@@ -12,7 +12,7 @@ import { baseApi } from '@/domains/base/api'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import JzIcon from '@/components/JzIcon.vue'
-import { toast, loading, hideLoading } from '@/composables/toast'
+import { toastError, toast, loading, hideLoading } from '@/composables/toast'
 
 const id = ref('')
 const projectId = ref('')
@@ -51,7 +51,8 @@ onLoad((q) => {
   id.value = q?.id || ''
   projectId.value = q?.projectId || ''
   stageId.value = q?.stageId || ''
-  load()
+  // 加载失败时给出可读提示，避免未捕获异常直接抛到用户界面
+  void load().catch((error) => toastError(error, '任务信息加载失败'))
 })
 async function load() {
   const [es, zn] = await Promise.all([identityApi.employees(), baseApi.zones()])
@@ -161,7 +162,10 @@ async function save() {
 .te__ta { width: 100%; height: 150rpx; margin-top: 12rpx; padding: 18rpx 20rpx; color: $jzb-text-1; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font; }
 .te__qty { max-width: 180rpx; }
 .te__unit { max-width: 200rpx; text-align: right; }
-.te__picker { display: flex; align-items: center; justify-content: flex-end; color: $jzb-text-1; font-size: $jzb-font; }
+/* picker 需撑满剩余宽度，内部 flex-end 才能让选中值靠右 */
+.te__row picker { flex: 1; min-width: 0; }
+.te__picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; color: $jzb-text-1; font-size: $jzb-font; }
+.te__picker text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .te__picker--empty { color: $jzb-text-4; }
 .te__prios { margin-left: auto; }
 .te__prio { min-height: 60rpx; padding: 0 24rpx; margin-left: 12rpx; display: inline-flex; align-items: center; background: $jzb-bg-hover; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
