@@ -60,6 +60,17 @@ const formula = computed(() => {
   return `(${price}) × 工程量`
 })
 
+// 价格模式对应的实际展示形式（含数值，便于录入时即时确认对外口径）
+const pricePreview = computed(() => {
+  const material = Number(materialPrice.value || 0)
+  const manual = Number(manualPrice.value || 0)
+  const unitText = unit.value || '项'
+  if (pricingMode.value === 'materialOnly') return `材料 ¥${material}/${unitText}`
+  if (pricingMode.value === 'manualOnly') return `人工 ¥${manual}/${unitText}`
+  if (pricingMode.value === 'fixedTotal') return `固定总价 ¥${material + manual}（不按工程量折算）`
+  return `材料 ¥${material} + 人工 ¥${manual} = ¥${material + manual}/${unitText}`
+})
+
 onLoad(() => {
   // 恢复上次的明细折叠状态（默认折叠）
   detailOpen.value = uni.getStorageSync('catalog_detail_open') === '1'
@@ -222,6 +233,10 @@ async function save() {
           <view class="jz-chip-row"><view v-for="item in pricingOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': pricingMode === item.value }" @tap="pricingMode = item.value">{{ item.label }}</view></view>
           <view class="cm__formula"><JzIcon name="info" :size="26" color="#0E8A7D" /><text>{{ formula }}</text></view>
           <view class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /></view>
+          <view class="cm__price-preview">
+            <text class="cm__price-preview-label">报价展示</text>
+            <text class="cm__price-preview-value">{{ pricePreview }}</text>
+          </view>
           <view v-if="canViewCost" class="cm__cost">
             <view class="cm__cost-head">
               <JzIcon name="lock" :size="26" color="#E67E22" />
@@ -280,6 +295,9 @@ async function save() {
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
 .cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx $jzb-page-pad 30rpx; }
+.cm__price-preview { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 16rpx; padding: 16rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.cm__price-preview-label { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cm__price-preview-value { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; text-align: right; }
 .cm__cost { margin-top: 16rpx; padding: 20rpx 24rpx; background: #FFF8EE; border: 1rpx solid rgba(230,126,34,.28); border-radius: $jzb-radius-sm; }
 .cm__cost-head { display: flex; align-items: center; gap: 8rpx; }
 .cm__cost-title { color: #B25E12; font-size: $jzb-font-sm; font-weight: 700; }
