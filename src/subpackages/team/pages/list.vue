@@ -92,7 +92,7 @@ const canInvite = computed(() => can(session.role || 'boss', 'act:inviteMember')
 .team__list { padding: 20rpx $jzb-page-pad; }
 .team__item { display: flex; flex-direction: row; align-items: center; padding: 24rpx; margin-bottom: 16rpx; }
 .team__who { margin-left: 20rpx; }
-.team__name { font-size: $jzb-font-md; font-weight: 600; margin-right: 14rpx; }
+.team__name {team__name overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team__meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .team__me { color: $jzb-primary; font-size: $jzb-font-xs; }
 </style>

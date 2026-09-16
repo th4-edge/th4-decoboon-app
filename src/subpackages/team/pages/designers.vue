@@ -250,7 +250,7 @@ function measureText(value?: string) {
 .md__designer { padding: 24rpx; margin-bottom: 16rpx; }
 .md__designer-head { display: flex; align-items: center; }
 .md__designer-who { margin-left: 18rpx; }
-.md__designer-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.md__designer-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md__designer-store { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .md__designer-amount { display: flex; flex-direction: column; align-items: flex-end; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .md__designer-amount text:last-child { margin-top: 4rpx; color: $jzb-success; font-size: $jzb-font-md; font-weight: 700; }

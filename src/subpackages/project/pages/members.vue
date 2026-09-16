@@ -89,7 +89,7 @@ function joinedText(value?: string | number) {
 .mb__row { display: flex; flex-direction: row; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .mb__row:last-child { border-bottom: none; }
 .mb__who { margin-left: 18rpx; }
-.mb__name { font-size: $jzb-font-md; font-weight: 600; margin-right: 14rpx; }
+.mb__name {mb__name overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mb__meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .mb__me { font-size: $jzb-font-xs; color: $jzb-primary; }
 .mb__empty { text-align: center; color: $jzb-text-4; font-size: $jzb-font-xs; padding: 30rpx 0; }

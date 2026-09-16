@@ -104,7 +104,7 @@ function editPartner(partnerId: string) {
 .supply__tab--on { color: #fff; background: $jzb-primary; font-weight: 650; }
 .supply__list { padding: 14rpx $jzb-page-pad; }
 .supply__card { padding: 24rpx; margin-bottom: 16rpx; }
-.supply__name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 650; }
+.supply__name {supply__name overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .supply__meta { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .supply__metrics { display: flex; justify-content: space-between; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .supply__add { display: flex; align-items: center; justify-content: center; gap: 8rpx; min-height: 88rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
