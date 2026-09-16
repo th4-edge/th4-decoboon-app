@@ -542,6 +542,13 @@
       "root": "subpackages/supply",
       "pages": [
         {
+          "path": "pages/partner-edit",
+          "style": {
+            "navigationBarTitleText": "合作方资料",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/index",
           "style": {
             "navigationBarTitleText": "供应链",

@@ -87,7 +87,41 @@ function normalizeMovement(raw: Raw): StockMovement {
   }
 }
 
+const PARTNER_STATUS_API: Record<PartnerStatus, string> = { active: 'Active', disabled: 'Disabled' }
+const PARTNER_TYPE_API: Record<PartnerType, string> = {
+  supplier: 'Supplier', factory: 'Factory', laborTeam: 'LaborTeam',
+  installer: 'Installer', logistics: 'Logistics', service: 'Service'
+}
+
+/** 合作方保存载荷：含结算方式与账期规则（收货日加天数 / 对账月结日）。 */
+function partnerPayload(input: Raw) {
+  return {
+    type: input.type ? PARTNER_TYPE_API[input.type as PartnerType] : undefined,
+    name: input.name,
+    contactName: input.contactName,
+    telNo: input.telNo,
+    taxNo: input.taxNo,
+    addr: input.addr,
+    bankName: input.bankName,
+    bankAccount: input.bankAccount,
+    settlementTerms: input.settlementTerms,
+    settlementMode: input.settlementMode || undefined,
+    settlementDays: input.settlementDays ? Number(input.settlementDays) : undefined,
+    cutoffDay: input.cutoffDay ? Number(input.cutoffDay) : undefined,
+    status: input.status ? PARTNER_STATUS_API[input.status as PartnerStatus] : undefined,
+    remark: input.remark
+  }
+}
+
 export const supplyApi = {
+  /** 新增合作方（供应商）。 */
+  partnerSave: (input: Raw) =>
+    post<Raw>('partner/save', partnerPayload(input)).then(normalizePartner),
+
+  /** 更新合作方。 */
+  partnerUpdate: (input: Raw) =>
+    post<Raw>('partner/update', { ...partnerPayload(input), partnerId: input.id }).then(normalizePartner),
+
   partners: async (type?: PartnerType) =>
     listOf(await post<PageResult<Raw> | Raw[]>('partner/page', {
       type: type ? Object.entries(PARTNER_TYPE).find(([, value]) => value === type)?.[0] : undefined

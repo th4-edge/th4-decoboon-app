@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { P } from '@/config'
 import { supplyApi } from '@/subpackages/supply/domains/supply/api'
 import type { InventoryStock, Partner, StockMovement } from '@/subpackages/supply/domains/supply/model'
 import { toastError } from '@/composables/toast'
@@ -36,6 +37,14 @@ function money(value: number) { return `¥${(value || 0).toFixed(2)}` }
 function movementText(type: StockMovement['type']) {
   return ({ inbound: '入库', issue: '领料', loss: '损耗', returnIn: '退料入库', returnOut: '退供应商', adjustment: '调整' })[type]
 }
+
+function addPartner() {
+  uni.navigateTo({ url: P.supplyPartnerEdit })
+}
+
+function editPartner(partnerId: string) {
+  uni.navigateTo({ url: `${P.supplyPartnerEdit}?id=${partnerId}` })
+}
 </script>
 
 <template>
@@ -66,7 +75,10 @@ function movementText(type: StockMovement['type']) {
     </view>
 
     <view v-else-if="tab === 'partner'" class="supply__list">
-      <view v-for="item in partners" :key="item.id" class="jz-card supply__card">
+      <view class="supply__add jz-card" @tap="addPartner()">
+        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增合作方</text>
+      </view>
+      <view v-for="item in partners" :key="item.id" class="jz-card supply__card" @tap="editPartner(item.id)">
         <view class="jz-between"><text class="supply__name">{{ item.name }}</text><JzTag :text="item.status === 'active' ? '合作中' : '已停用'" /></view>
         <text class="supply__meta">{{ item.type }} · {{ item.contactName || '-' }} {{ item.telNo || '' }}</text>
         <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
@@ -95,4 +107,5 @@ function movementText(type: StockMovement['type']) {
 .supply__name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 650; }
 .supply__meta { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .supply__metrics { display: flex; justify-content: space-between; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.supply__add { display: flex; align-items: center; justify-content: center; gap: 8rpx; min-height: 88rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
 </style>
