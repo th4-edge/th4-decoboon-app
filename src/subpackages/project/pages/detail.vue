@@ -477,9 +477,28 @@ function colorOf(m: ProjectMember) {
 .pd__task-urgent { color: $jzb-danger; }
 .pd__task-empty { text-align: center; color: $jzb-text-4; font-size: $jzb-font-xs; padding: 8rpx 0 20rpx; }
 .pd__feed-btn { margin: 24rpx 0; }
-.pd__member-grid { display: flex; flex-direction: row; flex-wrap: wrap; padding: 26rpx 10rpx; }
-.pd__member { width: 33.33%; display: flex; flex-direction: column; align-items: center; margin-bottom: 26rpx; }
-.pd__member-name { font-size: $jzb-font; font-weight: 600; margin-top: 8rpx; }
-.pd__member-role { font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 2rpx; }
+.pd__member-grid { display: flex; flex-direction: row; flex-wrap: wrap; padding: 24rpx 16rpx; }
+.pd__member { width: 33.33%; display: flex; flex-direction: column; align-items: center; margin-bottom: 24rpx; }
+.pd__member-name {
+  width: 100%;
+  margin-top: 8rpx;
+  font-size: $jzb-font;
+  font-weight: 600;
+  text-align: center;
+  /* 三列网格中长姓名需截断，否则会溢出到相邻成员造成遮挡 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd__member-role {
+  width: 100%;
+  margin-top: 8rpx;
+  color: $jzb-text-3;
+  font-size: $jzb-font-xs;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .pd__more { display: flex; align-items: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 </style>
