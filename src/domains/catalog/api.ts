@@ -107,7 +107,6 @@ export interface CatalogInput {
   pricingMode: CatalogPricingMode
   materialPrice: number
   manualPrice: number
-  costPrice: number
   craft?: string
   criterion?: string
   description?: string
@@ -155,7 +154,6 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
-      costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
       description: input.description,
@@ -177,7 +175,6 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
-      costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
       description: input.description,

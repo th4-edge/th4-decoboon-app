@@ -119,8 +119,12 @@ export interface Settlement {
   projectAmount: number
   expenseAmount: number
   totalCost: number
-  profitAmount: number
-  grossMargin: number
+  estimatedCost: number
+  actualCost: number
+  profitAmount?: number
+  costComplete: boolean
+  costIncompleteCount: number
+  grossMargin?: number
   status: SettlementStatus
   confirmedBy?: Employee
   confirmedAt?: string
@@ -147,7 +151,12 @@ export interface FinanceSummary {
   monthIncome: number
   monthExpense: number
   cashBalance: number
-  profitAmount: number
+  estimatedCost: number
+  actualCost: number
+  profitAmount?: number
+  costComplete: boolean
+  costIncompleteProjectCount: number
+  costIncompleteItemCount: number
   collectionRate: number
   urgentReceivables: Receivable[]
   urgentPayables: Payable[]
@@ -174,9 +183,13 @@ export interface FinanceProjectReport {
   otherPayableAmount: number
   expenseAllocation: number
   totalCost: number
-  profitAmount: number
-  grossProfit: number
-  grossMargin: number
+  estimatedCost: number
+  actualCost: number
+  profitAmount?: number
+  costComplete: boolean
+  costIncompleteCount: number
+  grossProfit?: number
+  grossMargin?: number
   collectionRate: number
   paymentRate: number
   receivableCleared: boolean

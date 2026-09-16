@@ -76,7 +76,8 @@ function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId
         </view>
         <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${Math.min(item.collectionRate, 100)}%` }" /></view>
         <view class="fin-card__foot">
-          <text class="jz-caption">预计利润 {{ money(item.profitAmount) }} · 付款进度 {{ item.paymentRate }}%</text>
+          <text v-if="item.costComplete !== false" class="jz-caption">预计利润 {{ money(item.profitAmount) }} · 付款进度 {{ item.paymentRate }}%</text>
+          <text v-else class="jz-caption fin-card__warning">成本未完整（{{ item.costIncompleteCount || 0 }} 项待补） · 付款进度 {{ item.paymentRate }}%</text>
           <text class="fin-card__action">项目核算</text>
         </view>
       </view>

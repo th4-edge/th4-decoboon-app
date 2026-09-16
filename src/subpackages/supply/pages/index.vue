@@ -1,22 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
+import { session } from '@/domains/identity/session'
 import { supplyApi } from '@/subpackages/supply/domains/supply/api'
-import type { InventoryStock, Partner, StockMovement } from '@/subpackages/supply/domains/supply/model'
+import type { InventoryStock, Partner, PartnerPrice, StockMovement } from '@/subpackages/supply/domains/supply/model'
 import { toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 
-type Tab = 'inventory' | 'warning' | 'partner' | 'movement'
+type Tab = 'inventory' | 'warning' | 'partner' | 'price' | 'movement'
 const tab = ref<Tab>('inventory')
 const inventory = ref<InventoryStock[]>([])
 const warnings = ref<InventoryStock[]>([])
 const partners = ref<Partner[]>([])
+const prices = ref<PartnerPrice[]>([])
 const movements = ref<StockMovement[]>([])
+const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 
-onLoad((q) => { if (q?.tab === 'partner') tab.value = 'partner' })
+onLoad((q) => {
+  if (q?.tab === 'partner') tab.value = 'partner'
+  if (q?.tab === 'price' && !canViewCost.value) tab.value = 'inventory'
+})
 onShow(() => refresh())
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
@@ -28,6 +34,7 @@ async function refresh() {
     inventory.value = stockList
     warnings.value = warningList
     partners.value = partnerList
+    prices.value = canViewCost.value ? await supplyApi.partnerPrices() : []
     movements.value = movementList
   } catch (error) {
     toastError(error, '供应链数据加载失败')
@@ -49,6 +56,18 @@ function addPartner() {
 function editPartner(partnerId: string) {
   uni.navigateTo({ url: `${P.supplyPartnerEdit}?id=${partnerId}` })
 }
+
+function addPrice() {
+  uni.navigateTo({ url: P.supplyPartnerPriceEdit })
+}
+
+function editPrice(priceId: string) {
+  uni.navigateTo({ url: `${P.supplyPartnerPriceEdit}?id=${priceId}` })
+}
+
+function catalogTypeText(type?: string) {
+  return ({ Material: '主材', Custom: '全屋定制', Soft: '软装电器', Appliance: '电器设备', Construction: '施工', General: '综合其他' } as Record<string, string>)[type || ''] || type || '-'
+}
 </script>
 
 <template>
@@ -57,7 +76,7 @@ function editPartner(partnerId: string) {
     <view class="supply__tabs">
       <text v-for="item in [
         { key: 'inventory', label: '库存' }, { key: 'warning', label: '预警' },
-        { key: 'partner', label: '供应商' }, { key: 'movement', label: '库存流水' }
+        { key: 'partner', label: '供应商' }, ...(canViewCost ? [{ key: 'price', label: '采购价' }] : []), { key: 'movement', label: '库存流水' }
       ]" :key="item.key" class="supply__tab" :class="{ 'supply__tab--on': tab === item.key }" @tap="tab = item.key as Tab">{{ item.label }}</text>
     </view>
 
@@ -88,6 +107,18 @@ function editPartner(partnerId: string) {
         <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
       </view>
       <JzEmpty v-if="!partners.length" text="暂无供应商" />
+    </view>
+
+    <view v-else-if="tab === 'price'" class="supply__list">
+      <view class="supply__add jz-card" @tap="addPrice()">
+        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增采购价</text>
+      </view>
+      <view v-for="item in prices" :key="item.id" class="jz-card supply__card" @tap="editPrice(item.id)">
+        <view class="jz-between"><text class="supply__name">{{ item.itemName }}</text><JzTag :text="item.active === false ? '已停用' : '有效'" /></view>
+        <text class="supply__meta">{{ item.partnerName }} · {{ catalogTypeText(item.itemType) }}</text>
+        <view class="supply__metrics"><text>采购 {{ money(item.purchasePrice) }}</text><text>人工 {{ money(item.laborPrice) }}</text><text>交期 {{ item.leadTimeDays }} 天</text></view>
+      </view>
+      <JzEmpty v-if="!prices.length" text="暂无采购价" />
     </view>
 
     <view v-else class="supply__list">

@@ -53,7 +53,12 @@ function normalizePrice(raw: Raw): PartnerPrice {
     laborPrice: Number(raw.laborPrice ?? 0),
     minimumOrder: Number(raw.minimumOrder ?? 1),
     leadTimeDays: Number(raw.leadTimeDays ?? 0),
-    settlementDays: Number(raw.settlementDays ?? 0)
+    settlementDays: Number(raw.settlementDays ?? 0),
+    itemType: enumValue(raw.item?.type) || undefined,
+    active: raw.active !== false,
+    effectiveFrom: raw.effectiveFrom,
+    effectiveTo: raw.effectiveTo,
+    remark: raw.remark
   }
 }
 
@@ -132,8 +137,39 @@ export const supplyApi = {
     listOf(await post<PageResult<Raw> | Raw[]>('partner/page', {
       type: type ? Object.entries(PARTNER_TYPE).find(([, value]) => value === type)?.[0] : undefined
     })).map(normalizePartner),
-  partnerPrices: async (partnerId?: string) =>
-    listOf(await post<PageResult<Raw> | Raw[]>('partner-price/page', { partnerId })).map(normalizePrice),
+  partnerPrices: async (params: { partnerId?: string; itemId?: string } | string = {}) => {
+    const query = typeof params === 'string' ? { partnerId: params } : params
+    return listOf(await post<PageResult<Raw> | Raw[]>('partner-price/page', query)).map(normalizePrice)
+  },
+  partnerPriceSave: (input: Raw) =>
+    post<Raw>('partner-price/save', {
+      partnerId: input.partnerId,
+      itemId: input.itemId,
+      purchasePrice: input.purchasePrice,
+      laborPrice: input.laborPrice,
+      minimumOrder: input.minimumOrder,
+      leadTimeDays: input.leadTimeDays,
+      settlementDays: input.settlementDays,
+      effectiveFrom: input.effectiveFrom,
+      effectiveTo: input.effectiveTo,
+      active: input.active,
+      remark: input.remark
+    }).then(normalizePrice),
+  partnerPriceUpdate: (input: Raw) =>
+    post<Raw>('partner-price/save', {
+      partnerPriceId: input.id,
+      partnerId: input.partnerId,
+      itemId: input.itemId,
+      purchasePrice: input.purchasePrice,
+      laborPrice: input.laborPrice,
+      minimumOrder: input.minimumOrder,
+      leadTimeDays: input.leadTimeDays,
+      settlementDays: input.settlementDays,
+      effectiveFrom: input.effectiveFrom,
+      effectiveTo: input.effectiveTo,
+      active: input.active,
+      remark: input.remark
+    }).then(normalizePrice),
   inventory: async () =>
     listOf(await post<PageResult<Raw> | Raw[]>('inventory/stock/page', {})).map(normalizeStock),
   warnings: async () =>

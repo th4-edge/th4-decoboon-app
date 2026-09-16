@@ -549,6 +549,13 @@
           }
         },
         {
+          "path": "pages/partner-price-edit",
+          "style": {
+            "navigationBarTitleText": "供应商采购价",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/index",
           "style": {
             "navigationBarTitleText": "供应链",

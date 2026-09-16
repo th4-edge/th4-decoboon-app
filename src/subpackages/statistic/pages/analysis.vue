@@ -54,7 +54,7 @@ const alertStats = computed(() => [
 ])
 
 const profitProjects = computed(() => [...projectReports.value]
-  .sort((a, b) => b.grossMargin - a.grossMargin)
+  .sort((a, b) => (b.grossMargin ?? -Infinity) - (a.grossMargin ?? -Infinity))
   .slice(0, 6))
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
@@ -92,16 +92,17 @@ async function load() {
 }
 
 function metricCard(label: string, metric: BossDashboard['signedAmount'] | undefined, icon: IconName, color: string, tone: string, isMoney = true) {
+  const incomplete = metric?.complete === false
   return {
     label,
     icon,
     color,
-    tone,
-    value: isMoney ? money(metric?.value || 0) : `${metric?.value || 0}`,
-    target: isMoney ? `目标 ${money(metric?.target || 0)}` : `目标 ${metric?.target || 0} 个`,
-    achievement: `达成 ${metric?.achievementRate || 0}%`,
-    month: `环比 ${signed(metric?.monthOverMonthRate || 0)}%`,
-    year: `同比 ${signed(metric?.yearOverYearRate || 0)}%`
+    tone: incomplete ? '#FFF4E8' : tone,
+    value: incomplete ? '成本未完整' : (isMoney ? money(metric?.value ?? 0) : `${metric?.value ?? 0}`),
+    target: incomplete ? (metric?.warning || '补齐成本后展示可靠毛利') : (isMoney ? `目标 ${money(metric?.target ?? 0)}` : `目标 ${metric?.target ?? 0} 个`),
+    achievement: incomplete ? '暂不计算达成率' : `达成 ${metric?.achievementRate ?? 0}%`,
+    month: incomplete ? '成本口径待补齐' : `环比 ${signed(metric?.monthOverMonthRate ?? 0)}%`,
+    year: incomplete ? '暂不参与同比' : `同比 ${signed(metric?.yearOverYearRate ?? 0)}%`
   }
 }
 

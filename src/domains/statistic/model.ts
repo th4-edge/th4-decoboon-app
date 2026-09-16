@@ -210,13 +210,15 @@ export interface StoreManagerReport {
 
 
 export interface DashboardMetric {
-  value: number
+  value: number | null
   target: number
   achievementRate: number
   previousMonthValue: number
   previousYearValue: number
   monthOverMonthRate: number
   yearOverYearRate: number
+  complete: boolean
+  warning?: string
 }
 
 export interface BossDashboard {

@@ -161,14 +161,14 @@ const visibleAttentionAlerts = computed(() => {
 })
 const foldedTodoCount = computed(() => Math.max(0, todoAlerts.value.length - 3))
 
-const statCards = computed((): { label: string; val: number; color: string; icon: IconName; tone: string }[] => {
+const statCards = computed((): { label: string; val: string | number; color: string; icon: IconName; tone: string }[] => {
   if (role.value === 'boss' && bossDashboard.value) {
     const d = bossDashboard.value
     return [
-      { label: '签约额', val: d.signedAmount.value, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5' },
-      { label: '回款额', val: d.receivedAmount.value, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0' },
-      { label: '项目毛利', val: d.grossProfit.value, color: '#6958C8', icon: 'chart', tone: '#F0EEFC' },
-      { label: '在建项目', val: d.activeProjectCount.value, color: '#E67E22', icon: 'briefcase', tone: '#FFF4E8' }
+      { label: '签约额', val: d.signedAmount.value ?? 0, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5' },
+      { label: '回款额', val: d.receivedAmount.value ?? 0, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0' },
+      { label: '项目毛利', val: d.grossProfit.complete ? (d.grossProfit.value ?? 0) : '成本未完整', color: '#6958C8', icon: 'chart', tone: '#F0EEFC' },
+      { label: '在建项目', val: d.activeProjectCount.value ?? 0, color: '#E67E22', icon: 'briefcase', tone: '#FFF4E8' }
     ]
   }
   if (role.value === 'finance' && financeSummary.value) {
@@ -430,7 +430,7 @@ const projectSectionTitle = computed(() => {
       <view v-if="role === 'boss' && bossDashboard" class="jz-card home__performance" @tap="go(P.analysis)">
         <view class="jz-grow">
           <text class="home__performance-label">经营驾驶舱</text>
-          <text class="home__performance-value">{{ money(bossDashboard.grossProfit.value) }}</text>
+          <text class="home__performance-value">{{ bossDashboard.grossProfit.complete ? money(bossDashboard.grossProfit.value) : '成本未完整' }}</text>
           <text class="home__performance-sub">签约 {{ money(bossDashboard.signedAmount.value) }} · 回款 {{ money(bossDashboard.receivedAmount.value) }} · 在建 {{ bossDashboard.activeProjectCount.value }} 个 · 风险 {{ alertReport?.totalCount || 0 }} 项</text>
         </view>
         <JzIcon name="chart" :size="42" color="#0E8A7D" />

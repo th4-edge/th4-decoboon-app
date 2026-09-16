@@ -34,6 +34,11 @@ export interface PartnerPrice {
   minimumOrder: number
   leadTimeDays: number
   settlementDays: number
+  itemType?: string
+  active?: boolean
+  effectiveFrom?: string
+  effectiveTo?: string
+  remark?: string
 }
 
 export interface InventoryStock {

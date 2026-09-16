@@ -88,7 +88,7 @@ async function releaseRetention() {
     <view v-if="report" class="fp-head">
       <view class="jz-between">
         <JzTag v-if="p" :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
-        <text class="fp-head__profit">项目毛利 {{ money(report.grossProfit) }} · {{ report.grossMargin }}%</text>
+        <text class="fp-head__profit">{{ report.costComplete === false ? `成本未完整 · ${report.costIncompleteCount || 0} 项待补` : `项目毛利 ${money(report.grossProfit)} · ${report.grossMargin ?? 0}%` }}</text>
       </view>
       <text class="fp-head__label">合同收入</text>
       <text class="fp-head__amount fin-amount">{{ money(report.contractRevenue) }}</text>
@@ -110,7 +110,7 @@ async function releaseRetention() {
         <view class="fp-metric"><text>已收工程款</text><text class="fp-metric--income">{{ money(report.receivedAmount) }}</text></view>
         <view class="fp-metric"><text>待收工程款</text><text class="fp-metric--danger">{{ money(report.outstandingAmount) }}</text></view>
         <view class="fp-metric"><text>项目总成本</text><text>{{ money(report.totalCost) }}</text></view>
-        <view class="fp-metric"><text>项目毛利</text><text class="fp-metric--income">{{ money(report.grossProfit) }} · {{ report.grossMargin }}%</text></view>
+        <view class="fp-metric"><text>项目毛利</text><text class="fp-metric--income">{{ report.costComplete === false ? '成本未完整' : `${money(report.grossProfit)} · ${report.grossMargin ?? 0}%` }}</text></view>
       </view>
 
       <view class="fp-section-card">
@@ -171,7 +171,7 @@ async function releaseRetention() {
       <template v-else>
         <view class="fp-settle-hero">
           <view class="jz-between"><text>结算状态</text><JzTag :text="SETTLEMENT_STATUS_META[report.settlement.status].label" :color="SETTLEMENT_STATUS_META[report.settlement.status].color" /></view>
-          <text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ money(report.settlement.profitAmount) }}</text>
+          <template v-if="report.settlement.costComplete !== false"><text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ money(report.settlement.profitAmount) }}</text></template><template v-else><text class="fp-settle-hero__label">成本未完整 · {{ report.settlement.costIncompleteCount || 0 }} 项待补</text><text class="fp-settle-hero__amount">暂不展示可靠利润</text></template>
         </view>
         <view class="fp-grid">
           <view class="fp-metric"><text>合同金额</text><text>{{ money(report.settlement.contractAmount) }}</text></view>

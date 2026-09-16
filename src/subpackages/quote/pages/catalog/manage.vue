@@ -27,7 +27,6 @@ const unit = ref('㎡')
 const pricingMode = ref<CatalogPricingMode>('materialAndManual')
 const materialPrice = ref('')
 const manualPrice = ref('')
-const costPrice = ref('')
 const craft = ref('')
 const criterion = ref('')
 const description = ref('')
@@ -104,7 +103,6 @@ function create(value: CatalogType) {
   pricingMode.value = 'materialAndManual'
   materialPrice.value = ''
   manualPrice.value = ''
-  costPrice.value = ''
   craft.value = ''
   criterion.value = ''
   description.value = ''
@@ -132,7 +130,6 @@ function edit(item: CatalogItem) {
   pricingMode.value = item.pricingMode
   materialPrice.value = String(item.materialPrice || '')
   manualPrice.value = String(item.manualPrice || '')
-  costPrice.value = String(item.costPrice || '')
   craft.value = item.craft || ''
   criterion.value = item.criterion || ''
   description.value = item.description || ''
@@ -174,7 +171,6 @@ async function save() {
       pricingMode: pricingMode.value,
       materialPrice: Number(materialPrice.value || 0),
       manualPrice: Number(manualPrice.value || 0),
-      costPrice: Number(costPrice.value || 0),
       craft: craft.value.trim() || undefined,
       criterion: criterion.value.trim() || undefined,
       description: description.value.trim() || undefined,
@@ -236,15 +232,6 @@ async function save() {
           <view class="cm__price-preview">
             <text class="cm__price-preview-label">报价展示</text>
             <text class="cm__price-preview-value">{{ pricePreview }}</text>
-          </view>
-          <view v-if="canViewCost" class="cm__cost">
-            <view class="cm__cost-head">
-              <JzIcon name="lock" :size="26" color="#E67E22" />
-              <text class="cm__cost-title">内部成本价</text>
-              <text class="cm__cost-tag">仅管理层可见</text>
-            </view>
-            <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input" placeholder="成本单价（对外报价不展示）" />
-            <text class="cm__cost-hint">成本价用于内部毛利测算，不会出现在报价单与业主端。</text>
           </view>
           <text class="cm__label">施工工艺</text>
           <textarea v-model="craft" class="jz-form-textarea" placeholder="施工步骤、材料要求、注意事项" />

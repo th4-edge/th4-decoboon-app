@@ -129,14 +129,17 @@ const PERFORMANCE_ROLE_MAP: Record<string, EmployeePerformance['role']> = {
 }
 
 function normalizeMetric(raw: RawRecord = {}): DashboardMetric {
+  const value = raw.value === null || raw.value === undefined || raw.value === '' ? null : Number(raw.value)
   return {
-    value: Number(raw.value ?? 0),
+    value: value !== null && Number.isFinite(value) ? value : null,
     target: Number(raw.target ?? 0),
     achievementRate: Number(raw.achievementRate ?? 0),
     previousMonthValue: Number(raw.previousMonthValue ?? 0),
     previousYearValue: Number(raw.previousYearValue ?? 0),
     monthOverMonthRate: Number(raw.monthOverMonthRate ?? 0),
-    yearOverYearRate: Number(raw.yearOverYearRate ?? 0)
+    yearOverYearRate: Number(raw.yearOverYearRate ?? 0),
+    complete: raw.complete !== false,
+    warning: raw.warning ? String(raw.warning) : undefined
   }
 }
 

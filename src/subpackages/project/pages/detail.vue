@@ -300,7 +300,8 @@ function colorOf(m: ProjectMember) {
           <text class="pd__finance-label">待收 / 应付</text><text class="pd__finance-val">{{ money(financeReport?.outstandingAmount) }} / {{ money(financeReport?.unpaidAmount) }}</text>
         </view>
         <view class="pd__finance-bar"><JzProgress :percent="Math.round((financeReport?.receivedAmount ?? project.paidAmount) / Math.max(project.contractAmount, 1) * 100)" :height="10" /></view>
-        <text class="pd__finance-tip">回款 {{ financeReport?.collectionRate ?? 0 }}% · 预计利润 {{ money(financeReport?.profitAmount) }}</text>
+        <text v-if="financeReport?.costComplete !== false" class="pd__finance-tip">回款 {{ financeReport?.collectionRate ?? 0 }}% · 预计利润 {{ money(financeReport?.profitAmount) }}</text>
+        <text v-else class="pd__finance-tip pd__finance-tip--warning">回款 {{ financeReport?.collectionRate ?? 0 }}% · 成本未完整（{{ financeReport?.costIncompleteCount || 0 }} 项待补），暂不展示可靠利润</text>
       </view>
     </view>
 
@@ -451,6 +452,7 @@ function colorOf(m: ProjectMember) {
 .pd__finance-val--ok { color: $jzb-success; }
 .pd__finance-bar { margin-top: 14rpx; }
 .pd__finance-tip { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pd__finance-tip--warning { color: $jzb-warning; font-weight: 600; }
 .pd__plan-head, .pd__member-head { margin: 6rpx 0 16rpx; }
 .pd__plan-title, .pd__member-title { font-size: $jzb-font; font-weight: 600; }
 .pd__gantt { padding: 10rpx 24rpx 20rpx; }

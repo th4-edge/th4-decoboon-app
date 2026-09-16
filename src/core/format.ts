@@ -27,7 +27,7 @@ export interface MoneyPart {
  * 金额拆分：家装金额普遍超过 1 万，因此 ≥10000 以「万元」为单位、否则以「元」为单位，
  * 并返回单位类型（wan/yuan）供界面区分着色。
  */
-export function moneyParts(n?: number): MoneyPart {
+export function moneyParts(n?: number | null): MoneyPart {
   if (n === undefined || n === null || Number.isNaN(n)) {
     return { value: '-', unit: '', text: '-', unitKey: 'yuan' }
   }
@@ -41,7 +41,7 @@ export function moneyParts(n?: number): MoneyPart {
 }
 
 /** 金额文案：≥1 万显示为「12.3万」，否则显示「¥9,800」。 */
-export function money(n?: number, withUnit = true): string {
+export function money(n?: number | null, withUnit = true): string {
   const part = moneyParts(n)
   if (!withUnit) return part.value
   return part.text
