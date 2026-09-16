@@ -103,33 +103,33 @@ function acceptanceLabel(raw: string) {
 
       <view class="pm__stats">
         <view class="pm__stat jz-card" @tap="tab = 'tasks'">
-          <JzIcon name="clipboard" :size="34" color="#6958C8" />
+          <view class="pm__stat-icon"><JzIcon name="clipboard" :size="34" color="#0E8A7D" /></view>
           <text class="pm__stat-value">{{ report.taskDoingCount + report.taskTodoCount }}</text>
           <text class="pm__stat-label">待推进任务</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'tasks'">
-          <JzIcon name="alert-circle" :size="34" color="#E5484D" />
+          <view class="pm__stat-icon pm__stat-icon--risk"><JzIcon name="alert-circle" :size="34" color="#E5484D" /></view>
           <text class="pm__stat-value pm__stat-value--risk">{{ report.taskOverdueCount }}</text>
           <text class="pm__stat-label">逾期任务</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'acceptance'">
-          <JzIcon name="check-circle" :size="34" color="#07A35A" />
+          <view class="pm__stat-icon"><JzIcon name="check-circle" :size="34" color="#0E8A7D" /></view>
           <text class="pm__stat-value">{{ report.pendingAcceptanceCount }}</text>
           <text class="pm__stat-label">待确认验收</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'materials'">
-          <JzIcon name="building" :size="34" color="#E67E22" />
+          <view class="pm__stat-icon"><JzIcon name="building" :size="34" color="#0E8A7D" /></view>
           <text class="pm__stat-value" :class="{ 'pm__stat-value--risk': report.materialDelayedCount > 0 }">{{ report.materialRiskCount }}</text>
           <text class="pm__stat-label">材料风险</text>
         </view>
       </view>
 
       <view class="pm__quick jz-card">
-        <view class="pm__quick-item" @tap="navigate(P.customerList)"><JzIcon name="users" :size="36" color="#0E8A7D" /><text>关联客户</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.quoteList)"><JzIcon name="file-text" :size="36" color="#6958C8" /><text>来源报价</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.projectList)"><JzIcon name="briefcase" :size="36" color="#E67E22" /><text>项目工地</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.performance)"><JzIcon name="chart" :size="36" color="#07A35A" /><text>履约业绩</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.msgList)"><JzIcon name="bell" :size="36" color="#E5484D" /><text>消息通知</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.customerList)"><view class="pm__quick-icon"><JzIcon name="users" :size="36" color="#0E8A7D" /></view><text>关联客户</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.quoteList)"><view class="pm__quick-icon"><JzIcon name="file-text" :size="36" color="#0E8A7D" /></view><text>来源报价</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.projectList)"><view class="pm__quick-icon"><JzIcon name="briefcase" :size="36" color="#0E8A7D" /></view><text>项目工地</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.performance)"><view class="pm__quick-icon"><JzIcon name="chart" :size="36" color="#0E8A7D" /></view><text>履约业绩</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.msgList)"><view class="pm__quick-icon"><JzIcon name="bell" :size="36" color="#0E8A7D" /></view><text>消息通知</text></view>
       </view>
 
       <scroll-view scroll-x class="pm__tabs" :show-scrollbar="false">
@@ -164,7 +164,7 @@ function acceptanceLabel(raw: string) {
       <view v-else-if="tab === 'tasks'" class="pm__list">
         <view v-for="task in report.urgentTasks" :key="task.id" class="jz-card pm__task" @tap="openTask(task.id)">
           <view class="pm__task-icon" :class="{ 'pm__task-icon--risk': taskDue(task).includes('逾期') }">
-            <JzIcon name="clipboard" :size="34" :color="taskDue(task).includes('逾期') ? '#E5484D' : '#6958C8'" />
+            <JzIcon name="clipboard" :size="34" :color="taskDue(task).includes('逾期') ? '#E5484D' : '#0E8A7D'" />
           </view>
           <view class="jz-grow">
             <view class="pm__task-head">
@@ -179,7 +179,7 @@ function acceptanceLabel(raw: string) {
 
       <view v-else-if="tab === 'acceptance'" class="pm__list">
         <view v-for="item in report.pendingAcceptances" :key="item.id" class="jz-card pm__acceptance" @tap="openStage(item.stageId)">
-          <view class="pm__acceptance-icon"><JzIcon name="check-circle" :size="38" :color="item.customerStatus === 'rejected' ? '#E5484D' : '#07A35A'" /></view>
+          <view class="pm__acceptance-icon"><JzIcon name="check-circle" :size="38" :color="item.customerStatus === 'rejected' ? '#E5484D' : '#0E8A7D'" /></view>
           <view class="jz-grow">
             <text class="pm__acceptance-title">{{ acceptanceLabel(item.customerStatus) }}</text>
             <text class="pm__acceptance-sub">{{ item.projectName || '项目' }} · {{ item.stageName || '施工阶段' }} · {{ item.content || '等待验收闭环' }}</text>
@@ -193,7 +193,7 @@ function acceptanceLabel(raw: string) {
         <view v-for="item in report.materialRisks" :key="item.id" class="jz-card pm__material" @tap="item.project && openProject(item.project.id)">
           <view class="pm__material-head">
             <text class="pm__material-name">{{ item.name }}</text>
-            <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? '#E5484D' : '#E67E22'" />
+            <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? '#E5484D' : '#0E8A7D'" />
           </view>
           <text class="pm__material-meta">{{ item.quantity }}{{ item.unit }} · {{ item.spec || '按项目材料标准' }}</text>
         </view>
@@ -233,7 +233,8 @@ function acceptanceLabel(raw: string) {
 <style lang="scss" scoped>
 .pm { min-height: 100vh; background: $jzb-bg-page; }
 .pm__body { padding-bottom: 48rpx; }
-.pm__hero { margin: 0 $jzb-page-pad 20rpx; padding: 30rpx; display: flex; align-items: center; color: #fff; background: linear-gradient(135deg, #C15D14, $jzb-warning 58%, #F2A65A); border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 40rpx rgba(230,126,34,.2); }
+.pm__hero { position: relative; overflow: hidden; margin: 0 $jzb-page-pad 20rpx; padding: 32rpx; display: flex; align-items: center; color: #fff; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
+.pm__hero::after { content: ''; position: absolute; width: 260rpx; height: 260rpx; right: -110rpx; top: -150rpx; border-radius: 50%; background: rgba(255,255,255,.10); pointer-events: none; }
 .pm__hero-main { flex: 1; }
 .pm__hero-label { display: block; font-size: $jzb-font-sm; opacity: .86; }
 .pm__hero-value { display: block; margin-top: 8rpx; font-size: 64rpx; line-height: 1; font-weight: 800; }
@@ -242,20 +243,27 @@ function acceptanceLabel(raw: string) {
 .pm__hero-ring text:first-child { font-size: 44rpx; font-weight: 750; }
 .pm__hero-ring text:last-child { margin-top: 2rpx; font-size: 20rpx; opacity: .86; }
 .pm__stats { padding: 0 $jzb-page-pad; display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
-.pm__stat { width: calc(25% - 11rpx); box-sizing: border-box; padding: 18rpx 8rpx; display: flex; flex-direction: column; align-items: center; }
-.pm__stat-value { margin-top: 8rpx; font-size: 34rpx; font-weight: 750; color: $jzb-text-1; }
+.pm__stat { border-color: rgba(22,163,148,.12); background: linear-gradient(180deg, #FFFFFF 0%, $jzb-primary-lightest 100%); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.06); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
+.pm__stat { width: calc(25% - 11rpx); box-sizing: border-box; padding: 20rpx 8rpx 18rpx; display: flex; flex-direction: column; align-items: center; }
+.pm__stat:active { transform: scale(.98); box-shadow: 0 4rpx 12rpx rgba(14,138,125,.08); }
+.pm__stat-icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; background: $jzb-primary-lighter; }
+.pm__stat-icon--risk { background: $jzb-danger-soft; }
+.pm__stat-value { margin-top: 10rpx; font-size: 34rpx; font-weight: 750; color: $jzb-primary-dark; }
 .pm__stat-value--risk { color: $jzb-danger; }
 .pm__stat-label { margin-top: 4rpx; font-size: 20rpx; color: $jzb-text-3; }
-.pm__quick { margin: 0 $jzb-page-pad 20rpx; padding: 22rpx 8rpx; display: flex; }
-.pm__quick-item { flex: 1; display: flex; flex-direction: column; align-items: center; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.pm__quick { margin: 0 $jzb-page-pad 20rpx; padding: 20rpx 8rpx 18rpx; display: flex; border-color: rgba(22,163,148,.12); background: $jzb-gradient-surface; box-shadow: 0 8rpx 24rpx rgba(14,138,125,.06); }
+.pm__quick-item { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 550; transition: opacity $jzb-duration-fast $jzb-ease-out; }
+.pm__quick-item:active { opacity: .72; }
+.pm__quick-icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: $jzb-primary-lighter; }
 .pm__quick-item text { margin-top: 8rpx; }
 .pm__tabs { margin-bottom: 16rpx; white-space: nowrap; }
 .pm__tab-row { display: inline-flex; padding: 0 $jzb-page-pad; }
-.pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-text-2; font-size: $jzb-font-sm; background: #fff; border-radius: $jzb-radius-pill; }
-.pm__tab--on { color: #fff; background: $jzb-primary; }
+.pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.14); border-radius: $jzb-radius-pill; transition: color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
+.pm__tab--on { color: #fff; background: $jzb-gradient; border-color: transparent; box-shadow: 0 8rpx 20rpx rgba(14,138,125,.20); font-weight: 650; }
 .pm__tab-count { margin-left: 8rpx; padding: 0 8rpx; border-radius: 18rpx; background: rgba(255,255,255,.22); }
 .pm__list { padding: 0 $jzb-page-pad; }
-.pm__project, .pm__task, .pm__acceptance, .pm__material, .pm__business-card { margin-bottom: 16rpx; padding: 24rpx; }
+.pm__project, .pm__task, .pm__acceptance, .pm__material, .pm__business-card { margin-bottom: 16rpx; padding: 24rpx; border-color: rgba(22,163,148,.10); background: $jzb-gradient-surface; box-shadow: 0 8rpx 26rpx rgba(14,138,125,.055); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
+.pm__project:active, .pm__task:active, .pm__acceptance:active, .pm__material:active { transform: scale(.99); box-shadow: 0 4rpx 14rpx rgba(14,138,125,.09); }
 .pm__project-head, .pm__task-head, .pm__material-head { display: flex; align-items: center; justify-content: space-between; }
 .pm__project-name, .pm__task-name, .pm__material-name { font-size: $jzb-font-md; font-weight: 650; color: $jzb-text-1; }
 .pm__project-site { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
@@ -263,22 +271,24 @@ function acceptanceLabel(raw: string) {
 .pm__progress-row text { width: 64rpx; text-align: right; margin-left: 12rpx; }
 .pm__project-foot { display: flex; justify-content: space-between; margin-top: 14rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .pm__task { display: flex; align-items: center; }
-.pm__task-icon, .pm__acceptance-icon { width: 68rpx; height: 68rpx; margin-right: 18rpx; border-radius: 20rpx; background: #F0EEFC; display: flex; align-items: center; justify-content: center; }
+.pm__task-icon, .pm__acceptance-icon { width: 68rpx; height: 68rpx; flex-shrink: 0; margin-right: 18rpx; border-radius: 20rpx; background: $jzb-primary-lighter; display: flex; align-items: center; justify-content: center; }
 .pm__task-icon--risk { background: $jzb-danger-soft; }
 .pm__task-meta, .pm__acceptance-sub, .pm__material-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .pm__acceptance { display: flex; align-items: center; }
 .pm__acceptance-icon { background: $jzb-primary-lightest; }
 .pm__acceptance-title { font-size: $jzb-font-md; font-weight: 650; }
 .pm__business { padding: 0 $jzb-page-pad; }
-.pm__business-card { background: linear-gradient(135deg, #FFF8ED, #FFFFFF); }
+.pm__business-card { background: linear-gradient(135deg, #FFFFFF 0%, $jzb-primary-lightest 100%); }
 .pm__business-title { font-size: $jzb-font-md; font-weight: 700; }
-.pm__business-link, .pm__business-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pm__business-link { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
+.pm__business-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pm__business-grid { margin-top: 22rpx; display: flex; flex-wrap: wrap; gap: 16rpx; }
-.pm__business-grid view { width: calc(50% - 8rpx); box-sizing: border-box; padding: 18rpx; background: rgba(255,255,255,.82); border-radius: $jzb-radius-sm; }
+.pm__business-grid view { width: calc(50% - 8rpx); box-sizing: border-box; padding: 20rpx; background: rgba(255,255,255,.86); border: 1rpx solid rgba(22,163,148,.10); border-radius: $jzb-radius-sm; }
 .pm__business-grid text { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.pm__business-grid text:last-child { margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
-.pm__customer, .pm__quote { margin-bottom: 14rpx; padding: 20rpx 22rpx; display: flex; align-items: center; }
-.pm__customer-avatar { width: 62rpx; height: 62rpx; margin-right: 16rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: $jzb-primary; font-weight: 700; }
+.pm__business-grid text:last-child { margin-top: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 750; }
+.pm__customer, .pm__quote { margin-bottom: 14rpx; padding: 20rpx 22rpx; display: flex; align-items: center; border-color: rgba(22,163,148,.09); background: $jzb-gradient-surface; }
+.pm__customer:active, .pm__quote:active { background: $jzb-primary-lightest; }
+.pm__customer-avatar { width: 62rpx; height: 62rpx; flex-shrink: 0; margin-right: 16rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: $jzb-gradient; box-shadow: 0 6rpx 16rpx rgba(14,138,125,.18); font-weight: 700; }
 .pm__customer-name, .pm__quote-name { font-size: $jzb-font; font-weight: 600; }
 .pm__customer-meta, .pm__quote-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pm__quote-amount { color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 700; }
