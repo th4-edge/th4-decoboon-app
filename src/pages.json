@@ -468,6 +468,13 @@
           }
         },
         {
+          "path": "pages/partners",
+          "style": {
+            "navigationBarTitleText": "供应商往来",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/entry",
           "style": {
             "navigationBarTitleText": "财务登记",

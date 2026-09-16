@@ -76,6 +76,7 @@ export const P = {
   financeLedger: '/subpackages/finance/pages/ledger',
   financeReceivables: '/subpackages/finance/pages/receivables',
   financeReceipts: '/subpackages/finance/pages/receipts',
+  financePartners: '/subpackages/finance/pages/partners',
   financePayables: '/subpackages/finance/pages/payables',
   financePayments: '/subpackages/finance/pages/payments',
   financeProjects: '/subpackages/finance/pages/projects',

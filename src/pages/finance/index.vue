@@ -53,6 +53,7 @@ const quick = computed(() => [
   { label: '应付账款', icon: 'clipboard' as IconName, tone: '#FFF4E8', path: P.financePayables },
   { label: '工人工资', icon: 'users' as IconName, tone: '#F3EFFA', path: `${P.financePayables}?type=salary` },
   { label: '资金台账', icon: 'chart' as IconName, tone: '#E9F6F7', path: P.financeLedger },
+  { label: '供应商往来', icon: 'users' as IconName, tone: '#FFF4E8', path: P.financePartners },
   { label: '项目账本', icon: 'briefcase' as IconName, tone: '#E8F7F5', path: P.financeProjects },
   { label: '登记付款', icon: 'arrow-right' as IconName, tone: '#FDECEC', path: `${P.financeEntry}?type=payment` },
   { label: '手工记账', icon: 'edit' as IconName, tone: '#F1F4F7', path: `${P.financeEntry}?type=ledger` }

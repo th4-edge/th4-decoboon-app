@@ -173,6 +173,10 @@ function normalizeProjectReport(raw: Raw): FinanceProjectReport {
 function paged<T>(result: PageResult<Raw> | Raw[], normalize: (raw: Raw) => T) { return listOf(result).map(normalize) }
 
 export const financeApi = {
+  /** 供应商应付台账：按供应商聚合待付、逾期与最近到期日。 */
+  partnerLedger: (params: { partnerId?: string; overdueOnly?: boolean } = {}) =>
+    post<Raw[]>('finance/partner-ledger/report', params),
+
   summary: async () => normalizeSummary(await post<Raw>('finance/summary/report', {})),
   projectPage: async (params: { projectId?: string; status?: string; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/project/page', { current: 1, size: 100, ...params }), normalizeProjectReport),
