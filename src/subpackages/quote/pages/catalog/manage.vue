@@ -11,6 +11,8 @@ import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 const pickerVisible = ref(true)
+// 成本价敏感：仅企业负责人 / 门店店长 / 财务可见（后端同样裁剪，前端仅控制展示）
+const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const authorized = ref(false)
 const editorOpen = ref(false)
 const editingId = ref('')
@@ -219,7 +221,16 @@ async function save() {
           <text class="cm__label">计价公式</text>
           <view class="jz-chip-row"><view v-for="item in pricingOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': pricingMode === item.value }" @tap="pricingMode = item.value">{{ item.label }}</view></view>
           <view class="cm__formula"><JzIcon name="info" :size="26" color="#0E8A7D" /><text>{{ formula }}</text></view>
-          <view class="cm__triple"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /><input v-model="costPrice" type="digit" class="jz-form-input" placeholder="成本单价" /></view>
+          <view class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /></view>
+          <view v-if="canViewCost" class="cm__cost">
+            <view class="cm__cost-head">
+              <JzIcon name="lock" :size="26" color="#E67E22" />
+              <text class="cm__cost-title">内部成本价</text>
+              <text class="cm__cost-tag">仅管理层可见</text>
+            </view>
+            <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input" placeholder="成本单价（对外报价不展示）" />
+            <text class="cm__cost-hint">成本价用于内部毛利测算，不会出现在报价单与业主端。</text>
+          </view>
           <text class="cm__label">施工工艺</text>
           <textarea v-model="craft" class="jz-form-textarea" placeholder="施工步骤、材料要求、注意事项" />
           <text class="cm__label">工艺/验收标准</text>
@@ -269,6 +280,12 @@ async function save() {
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
 .cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx $jzb-page-pad 30rpx; }
+.cm__cost { margin-top: 16rpx; padding: 20rpx 24rpx; background: #FFF8EE; border: 1rpx solid rgba(230,126,34,.28); border-radius: $jzb-radius-sm; }
+.cm__cost-head { display: flex; align-items: center; gap: 8rpx; }
+.cm__cost-title { color: #B25E12; font-size: $jzb-font-sm; font-weight: 700; }
+.cm__cost-tag { margin-left: auto; padding: 4rpx 12rpx; color: #B25E12; background: rgba(230,126,34,.14); border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.cm__cost-input { margin-top: 12rpx; }
+.cm__cost-hint { display: block; margin-top: 8rpx; color: #A4713C; font-size: $jzb-font-xs; line-height: 1.6; }
 .cm__detail-toggle { margin-top: 24rpx; padding: 20rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cm__detail-toggle-title { display: block; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
 .cm__detail-toggle-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
