@@ -198,6 +198,7 @@ function colorOf(m: ProjectMember) {
             </view>
             <view class="pd__hero-bar"><JzProgress :percent="project.progress" :height="14" color="#ffffff" /></view>
             <text class="pd__hero-stage">当前：{{ project.currentStageName }} · 阶段 {{ doneStageCount }}/{{ stageTotal }}</text>
+            <text class="pd__hero-hint">进度按任务完成度计算；阶段计数以业主验收确认为准</text>
           </view>
         </view>
         <view class="pd__hero-meta">
@@ -397,6 +398,7 @@ function colorOf(m: ProjectMember) {
 .pd__hero-pct { color: #fff; font-size: 40rpx; font-weight: 700; }
 .pd__hero-bar { margin-top: 8rpx; }
 .pd__hero-stage { display: block; margin-top: 8rpx; color: rgba(255,255,255,0.85); font-size: $jzb-font-xs; }
+.pd__hero-hint { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, 0.72); font-size: $jzb-font-xs; line-height: 1.5; }
 .pd__hero-meta { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 14rpx; }
 .pd__hero-meta-item { display: inline-flex; align-items: center; min-height: 52rpx; padding: 0 16rpx; margin: 0 10rpx 8rpx 0; color: rgba(255,255,255,.94); background: rgba(255,255,255,.16); border: 1rpx solid rgba(255,255,255,.12); border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .pd__hero-meta-item text { margin-left: 7rpx; }
