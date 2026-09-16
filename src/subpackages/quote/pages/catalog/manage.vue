@@ -203,7 +203,9 @@ async function save() {
 .cm__title { display: block; font-size: $jzb-font-xl; font-weight: 750; }
 .cm__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .cm__close { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
-.cm__body { flex: 1; padding: 6rpx $jzb-page-pad 30rpx; }
+/* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
+   否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
+.cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx $jzb-page-pad 30rpx; }
 .cm__label { display: block; margin: 26rpx 0 12rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 .cm__double { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }
 .cm__triple { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }
