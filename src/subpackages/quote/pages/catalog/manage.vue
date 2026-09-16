@@ -173,7 +173,7 @@ async function save() {
           <view class="jz-chip-row"><view v-for="item in typeOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': type === item.value }" @tap="type = item.value">{{ item.label }}</view></view>
           <text class="cm__label">项目名称 *</text>
           <input v-model="name" class="jz-form-input" placeholder="例：轻钢龙骨石膏板吊平顶" />
-          <view class="cm__double"><input v-model="category" class="jz-form-input" placeholder="分类 *，如木工" /><input v-model="code" class="jz-form-input" placeholder="项目编码（可选）" /></view>
+          <view class="cm__double"><input v-model="category" class="jz-form-input" placeholder="分类 *，如木工" /><input v-model="code" class="jz-form-input" placeholder="编码（留空自动生成）" /></view>
           <view class="cm__double"><input v-model="brand" class="jz-form-input" placeholder="品牌（可选）" /><input v-model="series" class="jz-form-input" placeholder="系列（可选）" /></view>
           <input v-model="spec" class="jz-form-input cm__gap" placeholder="规格，如 1200×600mm" />
           <text class="cm__label">计量单位</text>
