@@ -9,6 +9,7 @@ import { useSystem } from '@/composables/system'
 import { hideLoading, loading, toast } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import JzIcon from '@/components/JzIcon.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
 const { system } = useSystem()
 const padTop = computed(() => `${(system.value.statusBarHeight || 20) + 12}px`)
@@ -101,7 +102,7 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
   <view class="login">
     <view class="login__shell" :style="{ paddingTop: padTop }">
       <view class="login__brand">
-        <view class="login__logo"><JzIcon name="building" :size="64" color="#FFFFFF" :stroke-width="1.8" /></view>
+        <JzBrandLogo class="login__logo" variant="white" :size="104" />
         <view class="login__brand-copy">
           <text class="login__name">装得清</text>
           <text class="login__tagline">装企数字化协同管理平台</text>
@@ -152,7 +153,7 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
 .login { min-height: 100vh; background: radial-gradient(circle at 8% 0%, rgba(43,196,180,.18), transparent 34%), $jzb-bg-page; }
 .login__shell { min-height: 100vh; padding-left: 40rpx; padding-right: 40rpx; box-sizing: border-box; }
 .login__brand { display: flex; align-items: center; margin-top: 54rpx; }
-.login__logo { display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; background: $jzb-gradient; border-radius: 32rpx; box-shadow: $jzb-shadow-float; }
+.login__logo { border-radius: 32rpx; box-shadow: $jzb-shadow-float; }
 .login__brand-copy { margin-left: 22rpx; }
 .login__name { display: block; color: $jzb-text-1; font-size: 44rpx; font-weight: 780; }
 .login__tagline { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }

@@ -5,6 +5,7 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { ROLE_META } from '@/roles/catalog'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
 const contactEmail = computed(() => runtime.legalContact || 'decoboon@joytsing.com')
 const roleLabel = computed(() => ROLE_META[session.role || 'customer']?.label || '访客')
@@ -70,7 +71,7 @@ function go(url: string) {
     <view class="about-body">
       <view class="about-hero jz-card">
         <view class="about-hero__glow" />
-        <view class="about-hero__logo"><JzIcon name="briefcase" :size="68" color="#FFFFFF" :stroke-width="1.8" /></view>
+        <JzBrandLogo class="about-hero__logo" variant="white" :size="112" />
         <text class="about-hero__name">装得清</text>
         <text class="about-hero__slogan">让每一单都算得清</text>
         <text class="about-hero__desc">面向中小家装企业的经营型数字化系统，不是设计渲染工具，也不是传统进销存 ERP。</text>
@@ -151,7 +152,7 @@ function go(url: string) {
 .about-body { padding: 24rpx $jzb-page-pad calc($jzb-safe-bottom + 48rpx); }
 .about-hero { position: relative; padding: 42rpx 34rpx; overflow: hidden; background: linear-gradient(145deg, #0E8A7D, #147D73 62%, #0B665F); color: #fff; }
 .about-hero__glow { position: absolute; right: -90rpx; top: -110rpx; width: 300rpx; height: 300rpx; border-radius: 50%; background: rgba(255,255,255,.14); }
-.about-hero__logo { width: 112rpx; height: 112rpx; display: flex; align-items: center; justify-content: center; border-radius: 34rpx; background: rgba(255,255,255,.16); border: 1rpx solid rgba(255,255,255,.2); }
+.about-hero__logo { border-radius: 34rpx; }
 .about-hero__name { display: block; margin-top: 24rpx; font-size: 52rpx; font-weight: 800; letter-spacing: 2rpx; }
 .about-hero__slogan { display: block; margin-top: 8rpx; font-size: 32rpx; font-weight: 700; }
 .about-hero__desc { display: block; margin-top: 18rpx; color: rgba(255,255,255,.82); font-size: $jzb-font-sm; line-height: 1.7; }

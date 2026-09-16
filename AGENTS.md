@@ -19,6 +19,8 @@
 4. **路由集中管理**：页面跳转统一使用 `src/config/index.ts` 的 `P.*`，禁止魔法字符串。
 5. **品牌统一**：品牌视觉必须有唯一 Token 真源。当前实现真源是 `src/uni.scss`（`$jzb-*`）；目标语义 Token 是 `$brand-* / $text-* / $bg-*`。迁移前禁止两套 Token 混用，禁止页面散落自造品牌色。
 
+**装得清 Logo 统一（强制）**：品牌 Logo 只能使用 `logo-export` 导出的统一 Mark，并通过 `src/components/JzBrandLogo.vue` 引用；深色品牌背景用 `variant="white"`，浅色背景用 `variant="color"`。禁止再用“清/装”文字方块、building/briefcase 图标或页面内另存图片冒充品牌 Logo。完整资源路径、校验值与三端同步规则见后端根目录 `rules.md` §12。
+
 ---
 
 ## 2. 技术栈（固定，不得擅自替换）

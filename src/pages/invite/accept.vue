@@ -11,6 +11,7 @@ import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
 const inviteId = ref('')
 const token = ref('')
@@ -139,7 +140,7 @@ function roleLabel() {
     <view class="invite-body">
       <view v-if="invite" class="invite-card jz-card">
         <view class="invite-company">
-          <view class="invite-logo"><JzIcon :name="isCustomerInvite ? 'home' : 'building'" :size="48" color="#FFFFFF" /></view>
+          <JzBrandLogo class="invite-logo" variant="white" :size="92" />
           <view class="jz-grow">
             <text class="invite-company__name">{{ isCustomerInvite ? (invite.projectName || '我的家') : (invite.companyId || invite.company?.name || '邀请企业') }}</text>
             <text class="invite-company__sub">{{ isCustomerInvite ? (invite.propertyAddress || '项目进度同频授权') : `邀请人 ${invite.inviter?.name || '企业管理员'}` }}</text>
@@ -176,7 +177,7 @@ function roleLabel() {
 .invite-body { padding: 28rpx; }
 .invite-card { padding: 28rpx; }
 .invite-company { display: flex; align-items: center; gap: 18rpx; padding-bottom: 24rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.invite-logo { display: flex; align-items: center; justify-content: center; width: 92rpx; height: 92rpx; background: $jzb-gradient; border-radius: 28rpx; }
+.invite-logo { border-radius: 28rpx; }
 .invite-company__name { display: block; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 750; }
 .invite-company__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .invite-info { padding-top: 10rpx; }
