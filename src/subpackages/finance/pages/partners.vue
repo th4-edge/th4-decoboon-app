@@ -57,6 +57,10 @@ function termsText(row: LedgerRow) {
   return `收货 + ${partner.settlementDays || 30} 天`
 }
 
+function managePartners() {
+  uni.navigateTo({ url: `${P.supply}?tab=partner` })
+}
+
 function openPayables(row: LedgerRow) {
   const partnerId = row.partner?.id
   uni.navigateTo({ url: partnerId ? `${P.financePayables}?partnerId=${partnerId}` : P.financePayables })
@@ -66,6 +70,13 @@ function openPayables(row: LedgerRow) {
 <template>
   <view class="fp">
     <view class="fp__head jz-card">
+      <view class="fp__head-top">
+        <view class="fp__head-copy">
+          <text class="fp__head-title">供应商往来台账</text>
+          <text class="fp__head-sub">账期、待付与逾期统一管理</text>
+        </view>
+        <button class="jz-btn jz-btn--primary jz-btn--sm fp__manage" @tap="managePartners"><JzIcon name="users" :size="22" color="#FFFFFF" /><text>维护供应商</text></button>
+      </view>
       <view class="fp__totals">
         <view class="fp__total">
           <text class="fp__total-label">待付合计</text>
@@ -105,6 +116,12 @@ function openPayables(row: LedgerRow) {
 <style lang="scss" scoped>
 .fp { min-height: 100vh; padding: 24rpx $jzb-page-pad 48rpx; background: $jzb-bg-page; }
 .fp__head { padding: 24rpx; }
+.fp__head-top { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-bottom: 20rpx; }
+.fp__head-copy { min-width: 0; }
+.fp__head-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.fp__head-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fp__manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fp__manage text { margin-left: 6rpx; }
 .fp__totals { display: flex; gap: 16rpx; }
 .fp__total { flex: 1; padding: 20rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .fp__total-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }

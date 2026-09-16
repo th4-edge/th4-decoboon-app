@@ -65,12 +65,12 @@ onLoad(async (q) => {
     const modeAt = MODE_OPTIONS.findIndex((item) => item.value === found.settlementMode)
     if (modeAt >= 0) modeIdx.value = modeAt
   } catch (error) {
-    toastError(error, '合作方资料加载失败')
+    toastError(error, '供应商资料加载失败')
   }
 })
 
 async function save() {
-  if (!name.value.trim()) { toast('请填写合作方名称'); return }
+  if (!name.value.trim()) { toast('请填写供应商名称'); return }
   if (submitting.value) return
   submitting.value = true
   loading('保存中…')
@@ -94,10 +94,10 @@ async function save() {
   try {
     if (id.value) await supplyApi.partnerUpdate(payload)
     else await supplyApi.partnerSave(payload)
-    toast(id.value ? '合作方已更新' : '合作方已新增', 'success')
+    toast(id.value ? '供应商已更新' : '供应商已新增', 'success')
     setTimeout(() => uni.navigateBack(), 400)
   } catch (error) {
-    toastError(error, '合作方保存失败')
+    toastError(error, '供应商保存失败')
   } finally {
     hideLoading()
     submitting.value = false
@@ -107,7 +107,7 @@ async function save() {
 
 <template>
   <view class="pe">
-    <JzPageHeader :title="id ? '编辑合作方' : '新增合作方'" subtitle="供应商、厂家、劳务班组等往来对象" />
+    <JzPageHeader :title="id ? '编辑供应商' : '新增供应商'" subtitle="材料商、厂家、劳务班组等往来对象" />
     <view class="pe__card jz-card">
       <view class="pe__field"><text class="pe__label">名称 <text class="pe__req">*</text></text><input v-model="name" class="pe__input" maxlength="64" placeholder="如：合肥瓷砖供应商" /></view>
       <view class="pe__field">
@@ -141,7 +141,7 @@ async function save() {
     </view>
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">保存合作方</button>
+        <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">保存供应商</button>
       </view>
     </view>
   </view>

@@ -11,6 +11,12 @@ export interface Partner {
   taxNo?: string
   addr?: string
   settlementTerms?: string
+  settlementMode?: string
+  settlementDays?: number
+  cutoffDay?: number
+  bankName?: string
+  bankAccount?: string
+  remark?: string
   status: PartnerStatus
   payableAmount?: number
   paidAmount?: number

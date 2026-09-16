@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { supplyApi } from '@/subpackages/supply/domains/supply/api'
 import type { InventoryStock, Partner, StockMovement } from '@/subpackages/supply/domains/supply/model'
@@ -16,6 +16,7 @@ const warnings = ref<InventoryStock[]>([])
 const partners = ref<Partner[]>([])
 const movements = ref<StockMovement[]>([])
 
+onLoad((q) => { if (q?.tab === 'partner') tab.value = 'partner' })
 onShow(() => refresh())
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
@@ -34,6 +35,9 @@ async function refresh() {
 }
 
 function money(value: number) { return `¥${(value || 0).toFixed(2)}` }
+function partnerTypeText(type: Partner['type']) {
+  return ({ supplier: '材料供应商', factory: '厂家', laborTeam: '劳务班组', installer: '安装服务', logistics: '物流', service: '其他服务' })[type]
+}
 function movementText(type: StockMovement['type']) {
   return ({ inbound: '入库', issue: '领料', loss: '损耗', returnIn: '退料入库', returnOut: '退供应商', adjustment: '调整' })[type]
 }
@@ -49,11 +53,11 @@ function editPartner(partnerId: string) {
 
 <template>
   <view class="supply">
-    <JzPageHeader title="供应链与库存" subtitle="采购、库存、合作方和劳务成本" />
+    <JzPageHeader title="供应链与库存" subtitle="采购、库存、供应商和劳务成本" />
     <view class="supply__tabs">
       <text v-for="item in [
         { key: 'inventory', label: '库存' }, { key: 'warning', label: '预警' },
-        { key: 'partner', label: '合作方' }, { key: 'movement', label: '库存流水' }
+        { key: 'partner', label: '供应商' }, { key: 'movement', label: '库存流水' }
       ]" :key="item.key" class="supply__tab" :class="{ 'supply__tab--on': tab === item.key }" @tap="tab = item.key as Tab">{{ item.label }}</text>
     </view>
 
@@ -76,14 +80,14 @@ function editPartner(partnerId: string) {
 
     <view v-else-if="tab === 'partner'" class="supply__list">
       <view class="supply__add jz-card" @tap="addPartner()">
-        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增合作方</text>
+        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增供应商</text>
       </view>
       <view v-for="item in partners" :key="item.id" class="jz-card supply__card" @tap="editPartner(item.id)">
         <view class="jz-between"><text class="supply__name">{{ item.name }}</text><JzTag :text="item.status === 'active' ? '合作中' : '已停用'" /></view>
-        <text class="supply__meta">{{ item.type }} · {{ item.contactName || '-' }} {{ item.telNo || '' }}</text>
+        <text class="supply__meta">{{ partnerTypeText(item.type) }} · {{ item.contactName || '-' }} {{ item.telNo || '' }}</text>
         <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
       </view>
-      <JzEmpty v-if="!partners.length" text="暂无合作方" />
+      <JzEmpty v-if="!partners.length" text="暂无供应商" />
     </view>
 
     <view v-else class="supply__list">

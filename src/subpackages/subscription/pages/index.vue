@@ -34,7 +34,7 @@ const statusMeta = computed(() => {
     return { text: '订阅已到期', short: '已到期', color: '#E5484D' }
   }
   switch (info.value?.status) {
-    case 'trial': return { text: '专业版试用中', short: '试用', color: '#E67E22' }
+    case 'trial': return { text: '基础版试用中', short: '试用', color: '#E67E22' }
     case 'active': return { text: '订阅使用中', short: '使用中', color: '#16A394' }
     case 'frozen': return { text: '订阅已冻结', short: '冻结', color: '#8A5CC7' }
     case 'closed': return { text: '订阅已关闭', short: '关闭', color: '#7A7F87' }
@@ -59,7 +59,7 @@ const filteredOrders = computed(() => orders.value.filter((order) => {
 }))
 const renewalHint = computed(() => {
   if (!info.value) return '开通套餐后开始积累完整经营数据'
-  if (info.value.status === 'trial') return `试用还剩 ${info.value.remainingDays} 天，现在续费不中断业务`
+  if (info.value.status === 'trial') return `基础版试用还剩 ${info.value.remainingDays} 天，现在续费不中断业务`
   if (!info.value.writable || info.value.expired) return '订阅已到期，续费后立即恢复写入和协作能力'
   return `当前订阅剩余 ${info.value.remainingDays} 天，支持提前续费叠加有效期`
 })
@@ -267,7 +267,8 @@ function capacityText(used?: number, max?: number) {
 }
 
 function money(value: number) {
-  return `¥${(value / 100).toFixed(2)}`
+  const amount = (value || 0) / 100
+  return `¥${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
 }
 
 function priceInteger(value: number) {
@@ -324,7 +325,7 @@ async function loadStores() {
             </view>
             <text class="subscription__plan">{{ info.planVersion?.name || info.plan?.name || '未配置套餐' }}</text>
             <view class="subscription__price">
-              <text class="subscription__price-value">{{ money((info.planVersion?.price || info.plan?.price || 0) / 100) }}</text>
+              <text class="subscription__price-value">{{ money(info.planVersion?.price || info.plan?.price || 0) }}</text>
               <text class="subscription__price-unit">/ 年</text>
             </view>
             <text class="subscription__renewal-tip">{{ renewalHint }}</text>
