@@ -34,6 +34,16 @@ function color(m: ProjectMember) {
   if (m.kind === 'customer') return '#F53F3F'
   return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? '#16A394' : '#13C2C2'
 }
+
+/** 加入时间格式化：后端返回 20260917002637 这类紧凑时间戳时转为 YYYY-MM-DD。 */
+function joinedText(value?: string | number) {
+  if (!value) return '-'
+  const digits = String(value).replace(/\D/g, '')
+  if (digits.length >= 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  }
+  return String(value).slice(0, 10)
+}
 </script>
 
 <template>
@@ -47,7 +57,7 @@ function color(m: ProjectMember) {
             <text class="mb__name">{{ m.emp?.name }}</text>
             <JzTag :text="m.label" :color="color(m)" />
           </view>
-          <text class="mb__meta">{{ m.emp?.title }} · {{ m.joinedAt }} 加入</text>
+          <text class="mb__meta">{{ m.emp?.title }} · {{ joinedText(m.joinedAt) }} 加入</text>
         </view>
         <text v-if="m.emp?.id === session.emp?.id" class="mb__me">我</text>
       </view>
