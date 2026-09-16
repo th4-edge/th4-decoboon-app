@@ -8,6 +8,7 @@ import type {
   BillingOrder, PlanAddon, PlanAddonType, PlanModule, SubscriptionInfo,
   SubscriptionPlan, WechatPayParams
 } from '@/subpackages/subscription/domains/billing/model'
+import { identityApi } from '@/domains/identity/api'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -18,6 +19,7 @@ import JzTag from '@/components/JzTag.vue'
 const info = ref<SubscriptionInfo | null>(null)
 const loading = ref(false)
 const paying = ref(false)
+const stores = ref<{ id: string; name: string; addr?: string; defaultStore?: boolean }[]>([])
 const queryingOrderNo = ref('')
 const plans = ref<SubscriptionPlan[]>([])
 const addons = ref<PlanAddon[]>([])
@@ -69,7 +71,10 @@ onLoad(() => {
     setTimeout(() => uni.navigateBack(), 500)
   }
 })
-onShow(() => { if (can(session.role, 'view:subscription')) refresh() })
+onShow(() => {
+  void loadStores()
+  if (can(session.role, 'view:subscription')) refresh()
+})
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 async function refresh() {
@@ -295,6 +300,13 @@ function clamp(value: number, min: number, max: number) {
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+async function loadStores() {
+  try {
+    stores.value = await identityApi.storeList()
+  } catch {
+    stores.value = []
+  }
+}
 </script>
 
 <template>
@@ -311,6 +323,10 @@ function delay(ms: number) {
               <text v-if="info.trialActivated && info.status === 'trial'" class="subscription__trial">新企专享</text>
             </view>
             <text class="subscription__plan">{{ info.planVersion?.name || info.plan?.name || '未配置套餐' }}</text>
+            <view class="subscription__price">
+              <text class="subscription__price-value">{{ money((info.planVersion?.price || info.plan?.price || 0) / 100) }}</text>
+              <text class="subscription__price-unit">/ 年</text>
+            </view>
             <text class="subscription__renewal-tip">{{ renewalHint }}</text>
           </view>
           <view class="subscription__days-card">
@@ -319,19 +335,28 @@ function delay(ms: number) {
           </view>
         </view>
 
-        <view class="subscription__timeline">
-          <view class="subscription__timeline-row">
-            <text>服务到期</text>
-            <text>{{ formatTime(info.serviceEndTime) }}</text>
-          </view>
-          <view class="subscription__timeline-row">
-            <text>上次续费</text>
-            <text>{{ formatTime(info.lastRenewTime) }}</text>
-          </view>
-        </view>
-
         <view v-if="!info.writable" class="subscription__expired-tip">
           当前仅支持查询历史数据，完成续费后立即恢复新增、编辑、审批和协作能力。
+        </view>
+      </view>
+
+      <!-- 服务周期：从 hero 拆出，独立成卡片，层次更清晰 -->
+      <view class="jz-section">
+        <text class="jz-section__title">服务周期</text>
+        <text class="subscription__section-subtitle">到期后数据保留，续费即恢复</text>
+      </view>
+      <view class="jz-card subscription__period">
+        <view class="subscription__period-row">
+          <text class="subscription__period-label">服务到期</text>
+          <text class="subscription__period-value">{{ formatTime(info.serviceEndTime) }}</text>
+        </view>
+        <view class="subscription__period-row">
+          <text class="subscription__period-label">上次续费</text>
+          <text class="subscription__period-value">{{ formatTime(info.lastRenewTime) || '暂无记录' }}</text>
+        </view>
+        <view class="subscription__period-row">
+          <text class="subscription__period-label">剩余可用</text>
+          <text class="subscription__period-value">{{ info.remainingDays }} 天</text>
         </view>
       </view>
 
@@ -378,6 +403,26 @@ function delay(ms: number) {
         <view class="subscription__modules">
           <JzTag v-for="item in modules" :key="item" :text="item" size="md" />
         </view>
+      </view>
+
+      <!-- 门店：基础版仅默认门店，不提供新增入口 -->
+      <view class="jz-section">
+        <text class="jz-section__title">门店</text>
+        <text class="subscription__section-subtitle">{{ stores.length }} / {{ info.effectiveMaxStores || 1 }} 家</text>
+      </view>
+      <view class="jz-card subscription__stores">
+        <view v-for="store in stores" :key="store.id" class="subscription__store">
+          <JzIcon name="building" :size="32" color="#0E8A7D" />
+          <view class="subscription__store-info">
+            <text class="subscription__store-name">{{ store.name }}</text>
+            <text class="subscription__store-addr">{{ store.addr || '未填写地址' }}</text>
+          </view>
+          <JzTag v-if="store.defaultStore" text="默认门店" color="#0E8A7D" />
+        </view>
+        <view v-if="!stores.length" class="subscription__store-empty">暂未获取到门店信息</view>
+        <text class="subscription__store-tip">
+          当前套餐支持 1 个默认门店，不支持新增门店；如需多门店经营请升级套餐。
+        </text>
       </view>
 
       <view class="subscription__section-head subscription__section-head--outside">
@@ -522,8 +567,8 @@ function delay(ms: number) {
                 </text>
               </view>
               <view v-if="order.status === 'pending'" class="subscription__order-actions">
-                <button class="jz-btn jz-btn--plain jz-btn--sm" :loading="queryingOrderNo === order.orderNo" @tap="queryPayment(order)">查询结果</button>
-                <button class="jz-btn jz-btn--primary jz-btn--sm" @tap="continuePay(order)">继续支付</button>
+                <button class="jz-btn jz-btn--text subscription__order-query" :loading="queryingOrderNo === order.orderNo" @tap="queryPayment(order)">查询结果</button>
+                <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="continuePay(order)">继续支付</button>
               </view>
             </view>
           </view>
@@ -540,15 +585,34 @@ function delay(ms: number) {
 
 <style lang="scss" scoped>
 .subscription { min-height: 100vh; padding-bottom: 60rpx; background: $jzb-bg-page; }
-.subscription__content { padding: 0 $jzb-page-pad; }
+.subscription__content { padding: 24rpx $jzb-page-pad 0; }
+/* 价格行：hero 内突出年费 */
+.subscription__price { display: flex; align-items: baseline; gap: 8rpx; margin-top: 16rpx; }
+.subscription__price-value { font-size: 40rpx; font-weight: 750; }
+.subscription__price-unit { color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; }
+/* 服务周期独立卡片 */
+.subscription__period { margin-top: 0; padding: 8rpx 24rpx; }
+.subscription__period-row { display: flex; align-items: center; justify-content: space-between; min-height: 88rpx; }
+.subscription__period-row + .subscription__period-row { border-top: 1rpx solid $jzb-border-light; }
+.subscription__period-label { color: $jzb-text-3; font-size: $jzb-font-sm; }
+.subscription__period-value { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 600; }
+/* 门店只读区 */
+.subscription__stores { margin-top: 0; padding: 24rpx; }
+.subscription__store { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 0; }
+.subscription__store-info { flex: 1; min-width: 0; }
+.subscription__store-name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.subscription__store-addr { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.subscription__store-empty { padding: 24rpx 0; color: $jzb-text-3; font-size: $jzb-font-sm; text-align: center; }
+.subscription__store-tip { display: block; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-4; font-size: $jzb-font-xs; line-height: 1.6; }
 .subscription__hero {
   position: relative;
   padding: 34rpx;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(135deg, #0E766E 0%, #16A394 52%, #52BFAF 100%);
+  /* 头部已是深绿渐变，卡片改用更亮的中绿，配合上方 24rpx 间距形成层次，避免两块深绿相接 */
+  background: linear-gradient(135deg, #12A08F 0%, #2BC4B4 58%, #6FD3C6 100%);
   border-radius: $jzb-radius-xl;
-  box-shadow: 0 20rpx 50rpx rgba(14, 118, 110, .20);
+  box-shadow: 0 16rpx 36rpx rgba(14, 138, 125, .16);
 }
 .subscription__hero-glow {
   position: absolute;
@@ -649,6 +713,8 @@ function delay(ms: number) {
 .subscription__order-foot { margin-top: 18rpx; }
 .subscription__order-amount { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 720; }
 .subscription__order-time { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
-.subscription__order-actions { display: flex; gap: 10rpx; }
+/* 订单操作：降级为文字 + 描边按钮，避免列表内出现多个主色实心 CTA */
+.subscription__order-actions { display: flex; align-items: center; gap: 16rpx; flex-shrink: 0; }
+.subscription__order-query { padding: 0 8rpx; min-height: 64rpx; color: $jzb-text-3; }
 .subscription__empty { margin: 20rpx $jzb-page-pad; padding: 40rpx; }
 </style>

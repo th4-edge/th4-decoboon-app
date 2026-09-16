@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
-import type { EmployeeRole, InviteCode, Team } from '@/domains/identity/model'
+import type { EmployeeRole, InviteCode, Store, Team } from '@/domains/identity/model'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -13,6 +13,8 @@ const inviteName = ref('')
 const telNo = ref('')
 const role = ref<EmployeeRole>('marketer')
 const teams = ref<Team[]>([])
+const stores = ref<Store[]>([])
+const storeLabel = computed(() => stores.value.find((item) => item.defaultStore)?.name || stores.value[0]?.name || '默认门店')
 const teamId = ref('')
 const teamName = ref('')
 const generated = ref<InviteCode | null>(null)
@@ -69,6 +71,7 @@ function pickTeam(event: { detail: { value: string } }) {
       <view class="jz-card ci-form">
         <view class="ci-field"><text>姓名</text><input v-model="inviteName" maxlength="15" placeholder="被邀请人姓名" /></view>
         <view class="ci-field"><text>手机号</text><input v-model="telNo" type="number" maxlength="11" placeholder="微信授权时必须一致" /></view>
+        <view class="ci-field"><text>归属门店</text><text class="ci-field__readonly">{{ storeLabel }}</text></view>
         <view class="ci-field">
           <text>岗位</text>
           <picker :range="roles.map(item => item.label)" :value="roleIndex" @change="pickRole">
@@ -110,4 +113,5 @@ function pickTeam(event: { detail: { value: string } }) {
 .ci-result__head { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ci-result__name { display: block; margin-top: 26rpx; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .ci-result__phone { display: block; margin: 10rpx 0 26rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.ci-field__readonly { flex: 1; min-width: 0; text-align: right; color: $jzb-text-2; font-size: $jzb-font; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
