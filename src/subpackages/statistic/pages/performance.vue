@@ -143,19 +143,16 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <view class="perf__hero-foot"><text>{{ hero.left }}</text><text>{{ hero.right }}</text></view>
     </view>
 
-    <view class="perf__overview" :class="{ 'perf__overview--store': isStoreManager }">
-      <view v-if="isStoreManager" class="perf__overview-head">
-        <view><text class="perf__overview-title">门店经营概览</text><text class="perf__overview-sub">核心经营指标与履约状态</text></view>
-        <text class="perf__overview-badge">实时</text>
-      </view>
-      <view class="perf__grid">
-        <view v-for="item in cards" :key="item.label" class="jz-card perf__card">
-          <view class="perf__icon" :style="{ backgroundColor: item.tone }">
-            <JzIcon :name="item.icon" :size="34" color="#0E8A7D" />
-          </view>
-          <text class="perf__value">{{ item.value }}</text>
-          <text class="perf__label">{{ item.label }}</text>
+    <view v-if="isStoreManager" class="perf__overview-title">
+      <text>门店经营概览</text><text>核心经营指标与履约状态</text>
+    </view>
+    <view class="perf__grid">
+      <view v-for="item in cards" :key="item.label" class="jz-card perf__card">
+        <view class="perf__icon" :style="{ backgroundColor: item.tone }">
+          <JzIcon :name="item.icon" :size="34" color="#0E8A7D" />
         </view>
+        <text class="perf__value">{{ item.value }}</text>
+        <text class="perf__label">{{ item.label }}</text>
       </view>
     </view>
 
@@ -369,16 +366,12 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__hero-label { display: block; font-size: $jzb-font-sm; opacity: .82; }
 .perf__hero-value { display: block; margin-top: 12rpx; font-size: 64rpx; font-weight: 750; letter-spacing: -2rpx; }
 .perf__hero-foot { display: flex; justify-content: space-between; margin-top: 22rpx; font-size: $jzb-font-xs; opacity: .88; }
-.perf__overview { margin-top: 0; }
-.perf__overview--store { padding: 26rpx 22rpx 22rpx; background: #fff; border: 1rpx solid rgba(14,138,125,.08); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
-.perf__overview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; padding: 0 4rpx; }
-.perf__overview-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 760; }
-.perf__overview-sub { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.perf__overview-badge { padding: 7rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 650; }
+.perf__overview-title { display: flex; align-items: baseline; gap: 12rpx; margin-bottom: 18rpx; padding: 0 4rpx; }
+.perf__overview-title text:first-child { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 760; }
+.perf__overview-title text:last-child { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__grid { display: flex; flex-wrap: wrap; gap: 18rpx; }
-.perf__card { width: calc(50% - 8rpx); padding: 22rpx; box-sizing: border-box; }
-.perf__overview--store .perf__card { border-color: rgba(14,138,125,.08); background: $jzb-primary-lightest; box-shadow: none; }
-.perf__overview--store .perf__icon { background: #fff !important; box-shadow: 0 6rpx 18rpx rgba(14,138,125,.08); }
+.perf__card { width: calc(50% - 9rpx); padding: 22rpx; box-sizing: border-box; background: #fff; border: 1rpx solid rgba(14,138,125,.08); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.055); }
+.perf__card .perf__icon { background: $jzb-primary-lightest !important; }
 .perf__icon { width: 62rpx; height: 62rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 16rpx; }
 .perf__value { display: block; font-size: 42rpx; font-weight: 750; }
 .perf__label { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
