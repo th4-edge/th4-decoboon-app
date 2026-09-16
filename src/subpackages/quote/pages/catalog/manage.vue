@@ -29,6 +29,15 @@ const costPrice = ref('')
 const craft = ref('')
 const criterion = ref('')
 const description = ref('')
+// 类型特有明细（施工工期 / 主材损耗与起订 / 软装交期 / 电器保修 / 定制板材台面）
+const detailOpen = ref(false)
+const durationDays = ref('')
+const lossRate = ref('')
+const minimumOrder = ref('')
+const leadTimeDays = ref('')
+const warrantyMonths = ref('')
+const board = ref('')
+const countertop = ref('')
 const active = ref(true)
 const saving = ref(false)
 
@@ -50,6 +59,8 @@ const formula = computed(() => {
 })
 
 onLoad(() => {
+  // 恢复上次的明细折叠状态（默认折叠）
+  detailOpen.value = uni.getStorageSync('catalog_detail_open') === '1'
   if (!isLoggedIn()) {
     uni.reLaunch({ url: P.login })
     return
@@ -84,6 +95,13 @@ function create(value: CatalogType) {
   craft.value = ''
   criterion.value = ''
   description.value = ''
+  durationDays.value = ''
+  lossRate.value = ''
+  minimumOrder.value = ''
+  leadTimeDays.value = ''
+  warrantyMonths.value = ''
+  board.value = ''
+  countertop.value = ''
   active.value = true
   editorOpen.value = true
 }
@@ -105,8 +123,21 @@ function edit(item: CatalogItem) {
   craft.value = item.craft || ''
   criterion.value = item.criterion || ''
   description.value = item.description || ''
+  durationDays.value = item.durationDays ? String(item.durationDays) : ''
+  lossRate.value = item.lossRate ? String(item.lossRate) : ''
+  minimumOrder.value = item.minimumOrder ? String(item.minimumOrder) : ''
+  leadTimeDays.value = item.leadTimeDays ? String(item.leadTimeDays) : ''
+  warrantyMonths.value = item.warrantyMonths ? String(item.warrantyMonths) : ''
+  board.value = item.board || ''
+  countertop.value = item.countertop || ''
   active.value = item.active
   editorOpen.value = true
+}
+
+function toggleDetail() {
+  detailOpen.value = !detailOpen.value
+  // 记住上次展开状态，下次进入沿用
+  uni.setStorageSync('catalog_detail_open', detailOpen.value ? '1' : '0')
 }
 
 async function save() {
@@ -134,6 +165,13 @@ async function save() {
       craft: craft.value.trim() || undefined,
       criterion: criterion.value.trim() || undefined,
       description: description.value.trim() || undefined,
+      durationDays: durationDays.value ? Number(durationDays.value) : undefined,
+      lossRate: lossRate.value ? Number(lossRate.value) : undefined,
+      minimumOrder: minimumOrder.value ? Number(minimumOrder.value) : undefined,
+      leadTimeDays: leadTimeDays.value ? Number(leadTimeDays.value) : undefined,
+      warrantyMonths: warrantyMonths.value ? Number(warrantyMonths.value) : undefined,
+      board: board.value.trim() || undefined,
+      countertop: countertop.value.trim() || undefined,
       active: active.value,
       sort: 0
     }
@@ -188,6 +226,31 @@ async function save() {
           <textarea v-model="criterion" class="jz-form-textarea" placeholder="用于向设计师和客户解释工艺标准" />
           <text class="cm__label">项目说明</text>
           <textarea v-model="description" class="jz-form-textarea" placeholder="适用场景、报价提醒等" />
+          <!-- 类型明细：默认折叠，记住上次展开状态 -->
+          <view class="cm__detail-toggle" @tap="toggleDetail">
+            <text class="cm__detail-toggle-title">{{ detailOpen ? '收起明细设置' : '展开明细设置' }}</text>
+            <text class="cm__detail-toggle-sub">按分类录入工期、损耗、交期、保修等明细</text>
+          </view>
+          <view v-if="detailOpen" class="cm__detail-body">
+            <view v-if="type === 'construction'" class="cm__double">
+              <input v-model="durationDays" type="number" class="jz-form-input" placeholder="施工工期(天)" />
+            </view>
+            <view v-else-if="type === 'material'" class="cm__double">
+              <input v-model="lossRate" type="digit" class="jz-form-input" placeholder="损耗率(%)" />
+              <input v-model="minimumOrder" type="digit" class="jz-form-input" placeholder="起订量" />
+            </view>
+            <view v-else-if="type === 'soft'" class="cm__double">
+              <input v-model="leadTimeDays" type="number" class="jz-form-input" placeholder="交期(天)" />
+            </view>
+            <view v-else-if="type === 'appliance'" class="cm__double">
+              <input v-model="warrantyMonths" type="number" class="jz-form-input" placeholder="保修(月)" />
+            </view>
+            <view v-else-if="type === 'custom'" class="cm__double">
+              <input v-model="board" class="jz-form-input" placeholder="柜体板材，如颗粒板" />
+              <input v-model="countertop" class="jz-form-input" placeholder="台面，如石英石" />
+            </view>
+            <text v-else class="cm__detail-empty">该类目暂无需补充明细</text>
+          </view>
         </scroll-view>
         <view class="catalog-editor__actions"><button class="jz-btn jz-btn--neutral" @tap="editorOpen = false">取消</button><button class="jz-btn jz-btn--primary jz-grow" :loading="saving" @tap="save">保存报价项目</button></view>
       </view>
@@ -206,6 +269,11 @@ async function save() {
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
 .cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx $jzb-page-pad 30rpx; }
+.cm__detail-toggle { margin-top: 24rpx; padding: 20rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.cm__detail-toggle-title { display: block; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
+.cm__detail-toggle-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cm__detail-body { margin-top: 16rpx; }
+.cm__detail-empty { display: block; padding: 16rpx 0; color: $jzb-text-4; font-size: $jzb-font-xs; }
 .cm__label { display: block; margin: 26rpx 0 12rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 .cm__double { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }
 .cm__triple { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }

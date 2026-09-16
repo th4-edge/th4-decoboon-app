@@ -3,6 +3,14 @@ export type CatalogPricingMode = 'materialAndManual' | 'materialOnly' | 'manualO
 
 export interface CatalogItem {
   id: string
+  /** 类型特有明细（由后端按 type 落库到对应明细表） */
+  durationDays?: number
+  lossRate?: number
+  minimumOrder?: number
+  leadTimeDays?: number
+  warrantyMonths?: number
+  board?: string
+  countertop?: string
   type: CatalogType
   code?: string
   category: string
