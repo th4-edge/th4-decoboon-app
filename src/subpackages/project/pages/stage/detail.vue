@@ -68,6 +68,8 @@ const canAcceptRequest = computed(() => {
   if (!stage.value || isCustomer(role.value)) return false
   return can(role.value, 'act:acceptRequest') && (stage.value.status === 'doing' || stage.value.status === 'accepting')
 })
+const canAddTask = computed(() => can(role.value, 'edit:task') && stage.value?.status !== 'done')
+const hasStageActions = computed(() => canOpen.value || canReport.value || canAcceptRequest.value || canAddTask.value)
 const isWaitingCustomer = computed(() => acceptance.value?.customerStatus === 'waiting' && isCustomer(role.value))
 
 async function start() {
@@ -132,12 +134,15 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
     </view>
 
     <!-- 操作 -->
-    <view v-if="!isCustomer(role)" class="jz-section"><text class="jz-section__title">阶段操作</text></view>
-    <view v-if="!isCustomer(role)" class="jz-card sd__ops">
+    <view v-if="!isCustomer(role) && hasStageActions" class="jz-section">
+      <view class="sd__section-head"><text class="jz-section__title">本阶段操作</text><text class="sd__section-tip">推进施工状态并沉淀现场记录</text></view>
+    </view>
+    <view v-if="!isCustomer(role) && hasStageActions" class="jz-card sd__ops">
+      <text class="sd__ops-note">阶段开工、现场汇报和验收会同步到项目动态，便于项目经理与业主同频。</text>
       <button v-if="canOpen" class="jz-btn jz-btn--primary jz-btn--block sd__action-btn" @tap="start"><JzIcon name="arrow-right" :size="28" color="#FFFFFF" /><text>开始「{{ stage.name }}」</text></button>
       <button v-if="canReport" class="jz-btn jz-btn--ghost jz-btn--block sd__op sd__action-btn" @tap="report"><JzIcon name="camera" :size="28" color="#0E8A7D" /><text>现场汇报（打卡/照片）</text></button>
       <button v-if="canAcceptRequest" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="acceptPage"><JzIcon name="check-circle" :size="28" color="#0E8A7D" /><text>{{ acceptance ? '查看验收单' : '提交阶段验收' }}</text></button>
-      <button v-if="can(role, 'edit:task') && stage.status !== 'done'" class="jz-btn jz-btn--text jz-btn--block sd__op sd__action-btn" @tap="addTask"><JzIcon name="plus" :size="26" color="#465260" /><text>添加施工任务</text></button>
+      <button v-if="canAddTask" class="jz-btn jz-btn--text jz-btn--block sd__op sd__action-btn" @tap="addTask"><JzIcon name="plus" :size="26" color="#465260" /><text>添加施工任务</text></button>
     </view>
 
     <view v-if="!isCustomer(role)" class="jz-section"><text class="jz-section__title">施工任务（{{ tasks.length }}）</text></view>
@@ -178,6 +183,9 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 .sd__banner-sub { display: block; margin-top: 2rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .sd__banner-arrow { margin-left: 8rpx; }
 .sd__ops { margin: 0 24rpx; padding: 24rpx; }
+.sd__section-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12rpx; }
+.sd__section-tip { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.sd__ops-note { display: block; margin-bottom: 18rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 .sd__op { margin-top: 16rpx; }
 .sd__action-btn { display: flex; align-items: center; justify-content: center; }
 .sd__action-btn text { margin-left: 8rpx; }

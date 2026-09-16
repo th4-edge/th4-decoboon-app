@@ -25,16 +25,23 @@
 .home__alert-more { display: flex; align-items: center; justify-content: center; margin: 0 $jzb-page-pad 16rpx; min-height: 72rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 500; }
 .home__projects { margin: 0 $jzb-page-pad; }
 .home__empty-card { margin: 0 $jzb-page-pad; }
-.home__project { display: flex; margin-bottom: 20rpx; overflow: hidden; }
-.home__project:active { transform: scale(.992); }
-.home__project-cover { width: 190rpx; height: 190rpx; flex-shrink: 0; }
-.home__project-cover--empty { display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, $jzb-primary-lighter, #DDF2EE); }
-.home__project-info { flex: 1; padding: 18rpx 20rpx; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-.home__project-name { font-size: $jzb-font-md; font-weight: 600; }
-.home__project-sub { font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 4rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.home__project-progress { margin-top: 8rpx; }
-.home__project-pct { font-size: $jzb-font-xs; color: $jzb-primary-dark; margin-right: 12rpx; font-weight: 600; }
-.home__project-stage { font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 6rpx; }
+.home__project { position: relative; margin-bottom: 20rpx; padding: 24rpx; overflow: hidden; border: 1rpx solid rgba(14,138,125,.08); transition: transform $jzb-duration-fast $jzb-ease-out, border-color $jzb-duration-fast $jzb-ease-out; }
+.home__project:active { transform: scale(.988); border-color: rgba(14,138,125,.25); background: #FAFDFC; }
+.home__project-top { display: flex; align-items: center; }
+.home__project-icon { width: 72rpx; height: 72rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 22rpx; background: linear-gradient(145deg, $jzb-primary-lighter, #E0F5F1); }
+.home__project-title { flex: 1; min-width: 0; margin: 0 16rpx; }
+.home__project-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home__project-no { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home__project-stage-row { display: flex; align-items: center; justify-content: space-between; margin: 22rpx 0 12rpx; }
+.home__project-stage-chip { display: flex; align-items: center; padding: 8rpx 16rpx; border-radius: $jzb-radius-pill; background: $jzb-primary-lighter; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
+.home__project-stage-chip text { margin-left: 7rpx; }
+.home__project-pct { color: $jzb-primary-dark; font-size: 30rpx; font-weight: 750; font-variant-numeric: tabular-nums; }
+.home__project-meta { display: flex; flex-direction: column; gap: 10rpx; margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
+.home__project-meta-item { display: flex; align-items: center; min-width: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.home__project-meta-item text { margin-left: 8rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home__project-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 18rpx; }
+.home__project-manager { flex: 1; min-width: 0; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home__project-enter { display: flex; align-items: center; flex-shrink: 0; margin-left: 16rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .home__alert { margin: 0 $jzb-page-pad 16rpx; background: $jzb-warning-soft; border: 1rpx solid rgba(230,126,34,.10); border-radius: $jzb-radius; padding: 22rpx 24rpx; display: flex; align-items: center; }
 .home__alert--risk { background: $jzb-danger-soft; border-color: rgba(229,72,77,.10); }
 .home__alert-icon { width: 60rpx; height: 60rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; background: rgba(255,255,255,.68); }

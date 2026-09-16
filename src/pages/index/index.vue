@@ -236,14 +236,14 @@ const statCards = computed((): { label: string; val: string | number; color: str
 
 async function refresh() {
   if (role.value === 'boss') {
-    const [ps, bd, alerts, unread] = await Promise.all([
-      projectApi.list(), statisticApi.bossDashboard(), statisticApi.alerts(), collabApi.unread(role.value)
+    const [ps, bd, alerts, rs, unread] = await Promise.all([
+      projectApi.list(), statisticApi.bossDashboard(), statisticApi.alerts(), siteApi.allReports(), collabApi.unread(role.value)
     ])
     projects.value = ps
     bossDashboard.value = bd
     alertReport.value = alerts
+    reports.value = rs
     unreadCount.value = Number(unread || 0)
-    reports.value = []
     acceptances.value = []
     return
   }
@@ -532,21 +532,26 @@ const projectSectionTitle = computed(() => {
         </view>
         <view v-else class="home__projects">
           <view v-for="p in myProjects.slice(0, isCustomer(role) ? 1 : 4)" :key="p.id" class="home__project jz-card" @tap="openProject(p.id)">
-            <image v-if="p.cover" class="home__project-cover" :src="p.cover" mode="aspectFill" />
-            <view v-else class="home__project-cover home__project-cover--empty">
-              <JzIcon name="building" :size="58" color="#0E8A7D" :stroke-width="1.6" />
-            </view>
-            <view class="home__project-info">
-              <view class="jz-between">
+            <view class="home__project-top">
+              <view class="home__project-icon"><JzIcon name="building" :size="38" :color="PROJECT_STATUS_META[p.status].color" :stroke-width="1.8" /></view>
+              <view class="home__project-title">
                 <text class="home__project-name">{{ p.name }}</text>
-                <JzTag :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
+                <text class="home__project-no">{{ p.no || p.community || '装修工地' }}</text>
               </view>
-              <text class="home__project-sub">{{ p.address }}</text>
-              <view class="jz-between home__project-progress">
-                <text class="home__project-pct">{{ p.progress }}%</text>
-                <JzProgress :percent="p.progress" :height="12" />
-              </view>
-              <text class="home__project-stage">当前：{{ p.currentStageName }} · 计划完工 {{ p.planEndDate?.slice(5) || '-' }}</text>
+              <JzTag :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
+            </view>
+            <view class="home__project-stage-row">
+              <view class="home__project-stage-chip"><JzIcon name="clipboard" :size="24" color="#0E8A7D" /><text>{{ p.currentStageName || '待开工' }}</text></view>
+              <text class="home__project-pct">{{ p.progress }}%</text>
+            </view>
+            <JzProgress :percent="p.progress" :height="12" />
+            <view class="home__project-meta">
+              <view class="home__project-meta-item"><JzIcon name="map-pin" :size="24" color="#8D98A5" /><text>{{ p.address || '地址待完善' }}</text></view>
+              <view class="home__project-meta-item"><JzIcon name="calendar" :size="24" color="#8D98A5" /><text>{{ p.planEndDate ? `计划完工 ${p.planEndDate.slice(5, 10)}` : '完工日期待排期' }}</text></view>
+            </view>
+            <view class="home__project-foot">
+              <text class="home__project-manager">{{ p.manager?.name ? `项目经理 ${p.manager.name}` : '查看任务、日报与验收' }}</text>
+              <view class="home__project-enter"><text>进入工地</text><JzIcon name="chevron-right" :size="24" color="#0E8A7D" /></view>
             </view>
           </view>
         </view>
