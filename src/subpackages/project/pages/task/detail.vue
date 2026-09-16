@@ -39,10 +39,17 @@ async function load() {
   try {
     task.value = await scheduleApi.task(id.value) || null
     if (!task.value) { loadError.value = '任务不存在或无权查看'; return }
-    project.value = await projectApi.info(task.value.projectId) || null
-    stage.value = await projectApi.stage(task.value.stageId) || null
-    const rs = await siteApi.reports(task.value.projectId)
-    reports.value = rs.filter((r) => r.taskId === task.value?.id)
+    const taskId = task.value.id
+    const projectId = task.value.projectId
+    const stageId = task.value.stageId
+    const [projectValue, stageValue, reportList] = await Promise.all([
+      projectApi.info(projectId).catch(() => null),
+      projectApi.stage(stageId).catch(() => null),
+      siteApi.reports(projectId).catch(() => [])
+    ])
+    project.value = projectValue
+    stage.value = stageValue
+    reports.value = reportList.filter((r) => r.taskId === taskId)
   } catch (error) {
     task.value = null
     loadError.value = error instanceof Error ? error.message : '任务加载失败'

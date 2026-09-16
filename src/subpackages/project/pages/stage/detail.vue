@@ -42,11 +42,18 @@ async function load() {
   try {
     stage.value = await projectApi.stage(id.value) || null
     if (!stage.value) { loadError.value = '阶段不存在或无权查看'; return }
-    project.value = await projectApi.info(stage.value.projectId) || null
-    tasks.value = isCustomer(role.value) ? [] : await scheduleApi.tasks(stage.value.projectId, stage.value.id)
-    const rs = await siteApi.reports(stage.value.projectId)
-    reports.value = rs.filter((r) => r.stageId === stage.value?.id)
-    acceptance.value = await acceptanceApi.ofStage(stage.value.id) || null
+    const stageId = stage.value.id
+    const projectId = stage.value.projectId
+    const [projectValue, taskList, reportList, acceptanceValue] = await Promise.all([
+      projectApi.info(projectId).catch(() => null),
+      isCustomer(role.value) ? Promise.resolve([]) : scheduleApi.tasks(projectId, stageId).catch(() => []),
+      siteApi.reports(projectId).catch(() => []),
+      acceptanceApi.ofStage(stageId).catch(() => null)
+    ])
+    project.value = projectValue
+    tasks.value = taskList
+    reports.value = reportList.filter((r) => r.stageId === stageId)
+    acceptance.value = acceptanceValue
   } catch (error) {
     stage.value = null
     loadError.value = error instanceof Error ? error.message : '阶段加载失败'

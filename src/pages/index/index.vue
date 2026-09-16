@@ -30,6 +30,7 @@ import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzMoney from '@/components/JzMoney.vue'
 
 const role = computed(() => session.role || 'customer')
 const emp = computed(() => session.emp)
@@ -161,23 +162,23 @@ const visibleAttentionAlerts = computed(() => {
 })
 const foldedTodoCount = computed(() => Math.max(0, todoAlerts.value.length - 3))
 
-const statCards = computed((): { label: string; val: string | number; color: string; icon: IconName; tone: string }[] => {
+const statCards = computed((): { label: string; val: string | number; color: string; icon: IconName; tone: string; money?: boolean }[] => {
   if (role.value === 'boss' && bossDashboard.value) {
     const d = bossDashboard.value
     return [
-      { label: '签约额', val: d.signedAmount.value ?? 0, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5' },
-      { label: '回款额', val: d.receivedAmount.value ?? 0, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0' },
-      { label: '项目毛利', val: d.grossProfit.complete ? (d.grossProfit.value ?? 0) : '成本未完整', color: '#6958C8', icon: 'chart', tone: '#F0EEFC' },
+      { label: '签约额', val: d.signedAmount.value ?? 0, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5', money: true },
+      { label: '回款额', val: d.receivedAmount.value ?? 0, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0', money: true },
+      { label: '项目毛利', val: d.grossProfit.complete ? (d.grossProfit.value ?? 0) : '成本未完整', color: '#6958C8', icon: 'chart', tone: '#F0EEFC', money: d.grossProfit.complete },
       { label: '在建项目', val: d.activeProjectCount.value ?? 0, color: '#E67E22', icon: 'briefcase', tone: '#FFF4E8' }
     ]
   }
   if (role.value === 'finance' && financeSummary.value) {
     const r = financeSummary.value
     return [
-      { label: '待收工程款', val: r.outstandingAmount, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5' },
-      { label: '本月回款', val: r.monthIncome, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0' },
-      { label: '待付账款', val: r.unpaidAmount, color: '#E67E22', icon: 'users', tone: '#FFF4E8' },
-      { label: '逾期应收', val: r.overdueAmount, color: '#E5484D', icon: 'alert-circle', tone: '#FDECEC' }
+      { label: '待收工程款', val: r.outstandingAmount, color: '#0E8A7D', icon: 'file-text', tone: '#E8F7F5', money: true },
+      { label: '本月回款', val: r.monthIncome, color: '#07A35A', icon: 'wallet', tone: '#EAF8F0', money: true },
+      { label: '待付账款', val: r.unpaidAmount, color: '#E67E22', icon: 'users', tone: '#FFF4E8', money: true },
+      { label: '逾期应收', val: r.overdueAmount, color: '#E5484D', icon: 'alert-circle', tone: '#FDECEC', money: true }
     ]
   }
   if (role.value === 'pm' && pmReport.value) {
@@ -421,7 +422,8 @@ const projectSectionTitle = computed(() => {
             <JzIcon :name="s.icon" :size="34" :color="s.color" :stroke-width="2" />
           </view>
           <view class="home__stat-copy">
-            <text class="home__stat-val" :style="{ color: s.color }">{{ s.val }}</text>
+            <view v-if="s.money" class="home__stat-val" :style="{ color: s.color }"><JzMoney :value="Number(s.val)" /></view>
+            <text v-else class="home__stat-val" :style="{ color: s.color }">{{ s.val }}</text>
             <text class="home__stat-label">{{ s.label }}</text>
           </view>
         </view>
