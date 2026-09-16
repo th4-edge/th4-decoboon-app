@@ -387,10 +387,10 @@ function colorOf(m: ProjectMember) {
 
 <style lang="scss" scoped>
 .pd { padding-bottom: 40rpx; }
-.pd__hero { height: 360rpx; position: relative; }
-.pd__hero-bg { position: absolute; width: 100%; height: 100%; }
-.pd__hero-mask { position: absolute; width: 100%; height: 100%; background: linear-gradient(180deg, rgba(11,44,41,0.55) 0%, rgba(14,74,68,0.72) 100%); }
-.pd__hero-content { position: relative; padding: 26rpx 24rpx 24rpx; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; justify-content: space-between; }
+.pd__hero { min-height: 360rpx; position: relative; overflow: hidden; }
+.pd__hero-bg { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+.pd__hero-mask { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(11,44,41,0.55) 0%, rgba(14,74,68,0.72) 100%); }
+.pd__hero-content { position: relative; padding: 26rpx 24rpx 24rpx; display: flex; flex-direction: column; min-height: 360rpx; box-sizing: border-box; justify-content: space-between; }
 .pd__hero-name { display: block; color: #fff; font-size: 40rpx; font-weight: 700; }
 .pd__hero-no { display: block; margin-top: 4rpx; color: rgba(255,255,255,0.8); font-size: $jzb-font-xs; }
 .pd__hero-progress { margin-top: 22rpx; }
