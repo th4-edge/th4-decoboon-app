@@ -89,7 +89,7 @@ function customerMeta(customer: Customer) {
     </view>
 
     <view class="drp__search">
-      <JzIcon name="search" :size="30" color="#778390" />
+      <JzIcon name="search" :size="30" color="#0E8A7D" />
       <input v-model="keyword" placeholder="搜索客户姓名、手机号或小区" />
     </view>
 
@@ -117,7 +117,7 @@ function customerMeta(customer: Customer) {
 
 <style lang="scss" scoped>
 .drp { min-height: 100vh; padding-bottom: 60rpx; background: $jzb-bg-page; }
-.drp__hero { margin: 24rpx; padding: 34rpx 30rpx; color: #fff; background: linear-gradient(135deg, $jzb-purple, $jzb-primary); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
+.drp__hero { margin: 24rpx; padding: 34rpx 30rpx; color: #fff; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
 .drp__eyebrow { display: block; font-size: $jzb-font-sm; opacity: .8; }
 .drp__title { display: block; margin-top: 8rpx; font-size: 44rpx; font-weight: 750; line-height: 1.3; }
 .drp__sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; line-height: 1.6; opacity: .86; }
@@ -125,11 +125,12 @@ function customerMeta(customer: Customer) {
 .drp__metrics text { display: block; }
 .drp__metrics text:first-child { font-size: $jzb-font-xl; font-weight: 750; }
 .drp__metrics text:last-child { margin-top: 5rpx; font-size: $jzb-font-xs; opacity: .78; }
-.drp__search { display: flex; align-items: center; gap: 12rpx; margin: 0 24rpx 18rpx; padding: 0 22rpx; min-height: 84rpx; background: #fff; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
+.drp__search { display: flex; align-items: center; gap: 12rpx; margin: 0 24rpx 18rpx; padding: 0 22rpx; min-height: 84rpx; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.18); border-radius: $jzb-radius-sm; }
 .drp__search input { flex: 1; min-width: 0; font-size: $jzb-font-sm; }
 .drp__list { padding: 0 24rpx; }
-.drp__card { padding: 24rpx; margin-bottom: 16rpx; transition: transform $jzb-duration-fast $jzb-ease-out; }
-.drp__card:active { transform: scale(0.99); }
+.drp__card { position: relative; padding: 24rpx; margin-bottom: 16rpx; overflow: hidden; background: linear-gradient(135deg, #FFFFFF 0%, $jzb-primary-lightest 100%); border: 1rpx solid rgba(22,163,148,.14); box-shadow: 0 10rpx 28rpx rgba(14,138,125,.07); transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
+.drp__card::before { content: ''; position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; background: $jzb-gradient; }
+.drp__card:active { transform: scale(0.992); background: $jzb-primary-lighter; }
 .drp__main { display: flex; align-items: center; }
 .drp__copy { min-width: 0; margin-left: 18rpx; }
 .drp__name-row { display: flex; align-items: center; gap: 12rpx; }
@@ -137,12 +138,12 @@ function customerMeta(customer: Customer) {
 .drp__phone { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .drp__meta { display: block; margin-top: 7rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
 .drp__tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 10rpx; }
-.drp__tags text { padding: 4rpx 10rpx; color: $jzb-text-2; background: $jzb-bg-hover; border-radius: 8rpx; font-size: 20rpx; }
-.drp__tags .drp__tag--high { color: $jzb-danger; background: $jzb-danger-soft; }
-.drp__count { flex-shrink: 0; margin-left: 14rpx; text-align: center; }
+.drp__tags text { padding: 4rpx 10rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: 8rpx; font-size: 20rpx; }
+.drp__tags .drp__tag--high { color: #fff; background: $jzb-primary-dark; }
+.drp__count { flex-shrink: 0; min-width: 80rpx; margin-left: 14rpx; padding: 12rpx 10rpx; text-align: center; background: $jzb-primary-lighter; border-radius: 20rpx; }
 .drp__count text { display: block; }
 .drp__count text:first-child { color: $jzb-primary-dark; font-size: 40rpx; font-weight: 750; }
 .drp__count text:last-child { color: $jzb-text-3; font-size: $jzb-font-xs; }
-.drp__actions { display: flex; justify-content: flex-end; gap: 12rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }
+.drp__actions { display: flex; justify-content: flex-end; gap: 12rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid rgba(22,163,148,.13); }
 .drp__empty { margin: 0 24rpx; }
 </style>
