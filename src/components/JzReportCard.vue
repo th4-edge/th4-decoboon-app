@@ -25,36 +25,42 @@ function preview(url: string) {
 
 <template>
   <view class="jz-report">
-    <view class="jz-report__head">
-      <JzAvatar :src="authorAvatar" :name="authorName" :size="68" />
-      <view class="jz-grow jz-report__who">
-        <view class="jz-row">
-          <text class="jz-report__name">{{ authorName }}</text>
-          <text class="jz-report__role">{{ roleText }}</text>
+    <view class="jz-report__accent" :style="{ backgroundColor: typeMeta.color }" />
+    <view class="jz-report__inner">
+      <view class="jz-report__head">
+        <JzAvatar :src="authorAvatar" :name="authorName" :size="68" />
+        <view class="jz-grow jz-report__who">
+          <view class="jz-row">
+            <text class="jz-report__name">{{ authorName }}</text>
+            <text class="jz-report__role">{{ roleText }}</text>
+          </view>
+          <text class="jz-report__time">{{ timeText(report.createdAt) }}</text>
         </view>
-        <text class="jz-report__time">{{ timeText(report.createdAt) }}</text>
+        <JzTag :text="typeMeta.label" :color="typeMeta.color" dot />
       </view>
-      <JzTag :text="typeMeta.label" :color="typeMeta.color" dot />
-    </view>
-    <view class="jz-report__body">
-      <text class="jz-report__title">{{ report.title }}</text>
-      <text class="jz-report__content">{{ report.content }}</text>
-      <view v-if="report.images && report.images.length" class="jz-report__imgs">
-        <image
-          v-for="(im, i) in report.images" :key="i"
-          class="jz-report__img"
-          :src="im" mode="aspectFill"
-          @tap="preview(im)"
-        />
-        <view class="jz-report__media-count">
-          <JzIcon name="camera" :size="24" color="#FFFFFF" />
-          <text>{{ report.images.length }}</text>
+      <view class="jz-report__body">
+        <text class="jz-report__title">{{ report.title }}</text>
+        <text class="jz-report__content">{{ report.content }}</text>
+        <view v-if="report.images && report.images.length" class="jz-report__imgs" :class="{ 'jz-report__imgs--single': report.images.length === 1 }">
+          <image
+            v-for="(im, i) in report.images" :key="i"
+            class="jz-report__img"
+            :src="im" mode="aspectFill"
+            @tap.stop="preview(im)"
+          />
+          <view v-if="report.images.length > 1" class="jz-report__media-count">
+            <JzIcon name="camera" :size="24" color="#FFFFFF" />
+            <text>{{ report.images.length }}</text>
+          </view>
         </view>
       </view>
-    </view>
-    <view class="jz-report__foot">
-      <view class="jz-report__foot-item"><JzIcon name="message" :size="26" color="#778390" /><text>项目动态</text></view>
-      <text v-if="showProject" class="jz-report__project">查看项目</text>
+      <view class="jz-report__foot">
+        <view class="jz-report__foot-item">
+          <view class="jz-report__type-dot" :style="{ backgroundColor: typeMeta.color }" />
+          <text>{{ typeMeta.label }}记录</text>
+        </view>
+        <view v-if="showProject" class="jz-report__project"><text>查看项目</text><JzIcon name="chevron-right" :size="24" color="#0E8A7D" /></view>
+      </view>
     </view>
   </view>
 </template>
@@ -63,12 +69,16 @@ function preview(url: string) {
 .jz-report {
   position: relative;
   margin: 0 $jzb-page-pad 20rpx;
-  padding: 26rpx;
   background: $jzb-bg-card;
   border: 1rpx solid rgba(15, 23, 42, 0.045);
   border-radius: $jzb-radius;
   box-shadow: $jzb-shadow-xs;
+  overflow: hidden;
+  transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out;
 }
+.jz-report:active { transform: scale(.992); background: #FAFDFC; }
+.jz-report__accent { position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; }
+.jz-report__inner { padding: 26rpx 26rpx 24rpx 30rpx; }
 .jz-report__head { display: flex; align-items: center; }
 .jz-report__who { margin-left: 16rpx; }
 .jz-report__name { margin-right: 12rpx; color: $jzb-text-1; font-size: $jzb-font; font-weight: 650; }
@@ -77,12 +87,13 @@ function preview(url: string) {
 .jz-report__body { margin-top: 20rpx; }
 .jz-report__title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .jz-report__content { display: block; margin-top: 8rpx; color: $jzb-text-2; font-size: $jzb-font; line-height: 1.65; }
-.jz-report__imgs { position: relative; display: flex; flex-wrap: wrap; margin-top: 18rpx; }
-.jz-report__img { width: 204rpx; height: 204rpx; margin: 0 12rpx 12rpx 0; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.jz-report__imgs { position: relative; display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 18rpx; }
+.jz-report__img { width: calc(50% - 6rpx); height: 216rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.jz-report__imgs--single .jz-report__img { width: 100%; height: 320rpx; }
 .jz-report__media-count {
   position: absolute;
-  right: 14rpx;
-  bottom: 14rpx;
+  right: 12rpx;
+  bottom: 12rpx;
   display: flex;
   align-items: center;
   padding: 6rpx 12rpx;
@@ -104,5 +115,7 @@ function preview(url: string) {
 }
 .jz-report__foot-item { display: flex; align-items: center; }
 .jz-report__foot-item text { margin-left: 8rpx; }
-.jz-report__project { color: $jzb-primary-dark; }
+.jz-report__type-dot { width: 12rpx; height: 12rpx; border-radius: 50%; }
+.jz-report__project { display: flex; align-items: center; color: $jzb-primary-dark; }
+.jz-report__project text { margin-right: 4rpx; }
 </style>
