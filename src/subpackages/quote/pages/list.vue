@@ -156,7 +156,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
 
 <style lang="scss" scoped>
 .ql { min-height: 100vh; padding-bottom: 150rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.ql__hero { margin: 24rpx 24rpx 20rpx; padding: 34rpx 30rpx; color: #fff; border-radius: $jzb-radius-lg; background: linear-gradient(135deg, $jzb-purple, $jzb-primary); box-shadow: $jzb-shadow-card; }
+.ql__hero { margin: 24rpx 24rpx 20rpx; padding: 34rpx 30rpx; color: #fff; border-radius: $jzb-radius-lg; background: $jzb-gradient; box-shadow: $jzb-shadow-card; }
 .ql__hero-label { display: block; font-size: $jzb-font-sm; opacity: .82; }
 .ql__hero-value { display: block; margin-top: 10rpx; font-size: 60rpx; font-weight: 750; letter-spacing: -2rpx; }
 .ql__hero-foot { display: flex; justify-content: space-between; margin-top: 20rpx; font-size: $jzb-font-xs; opacity: .9; }

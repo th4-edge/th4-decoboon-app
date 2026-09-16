@@ -45,44 +45,44 @@ const cards = computed((): { label: string; value: string; icon: IconName; tone:
   if (isPm.value) {
     const p = pmReport.value
     return [
-      { label: '在管项目', value: `${p?.projectCount || 0}`, icon: 'briefcase', tone: '#FFF4E8' },
-      { label: '逾期任务', value: `${p?.taskOverdueCount || 0}`, icon: 'alert-circle', tone: '#FDECEC' },
-      { label: '待确认验收', value: `${p?.pendingAcceptanceCount || 0}`, icon: 'check-circle', tone: '#EAF9F1' },
-      { label: '材料风险', value: `${p?.materialRiskCount || 0}`, icon: 'building', tone: '#F3EFFA' }
+      { label: '在管项目', value: `${p?.projectCount || 0}`, icon: 'briefcase', tone: '#E8F7F5' },
+      { label: '逾期任务', value: `${p?.taskOverdueCount || 0}`, icon: 'alert-circle', tone: '#E8F7F5' },
+      { label: '待确认验收', value: `${p?.pendingAcceptanceCount || 0}`, icon: 'check-circle', tone: '#E8F7F5' },
+      { label: '材料风险', value: `${p?.materialRiskCount || 0}`, icon: 'building', tone: '#E8F7F5' }
     ]
   }
   if (isTeamLeader.value) {
     const t = teamReport.value
     return [
       { label: '团队客户', value: `${t?.customerCount || 0}`, icon: 'users', tone: '#E8F7F5' },
-      { label: '待派单', value: `${t?.unassignedDesignerCount || 0}`, icon: 'user-plus', tone: '#FFF4E8' },
-      { label: '待推进报价', value: `${t?.pendingQuoteCount || 0}`, icon: 'file-text', tone: '#F0EEFC' },
-      { label: '施工风险', value: `${(t?.suspendedProjectCount || 0) + (t?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: '#FDECEC' }
+      { label: '待派单', value: `${t?.unassignedDesignerCount || 0}`, icon: 'user-plus', tone: '#E8F7F5' },
+      { label: '待推进报价', value: `${t?.pendingQuoteCount || 0}`, icon: 'file-text', tone: '#E8F7F5' },
+      { label: '施工风险', value: `${(t?.suspendedProjectCount || 0) + (t?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: '#E8F7F5' }
     ]
   }
   if (isStoreManager.value) {
     const s = storeReport.value
     return [
       { label: '门店客户', value: `${s?.customerCount || 0}`, icon: 'user', tone: '#E8F7F5' },
-      { label: '待指派', value: `${s?.unassignedDesignerCount || 0}`, icon: 'users', tone: '#FFF4E8' },
-      { label: '待推进报价', value: `${s?.pendingQuoteCount || 0}`, icon: 'file-text', tone: '#F0EEFC' },
-      { label: '施工风险', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: '#FDECEC' }
+      { label: '待指派', value: `${s?.unassignedDesignerCount || 0}`, icon: 'users', tone: '#E8F7F5' },
+      { label: '待推进报价', value: `${s?.pendingQuoteCount || 0}`, icon: 'file-text', tone: '#E8F7F5' },
+      { label: '施工风险', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: '#E8F7F5' }
     ]
   }
   if (isDesigner.value) {
     return [
       { label: '负责客户', value: `${r?.customerCount || 0}`, icon: 'user', tone: '#E8F7F5' },
-      { label: '方案报价', value: `${r?.quoteCount || 0}`, icon: 'file-text', tone: '#F0EEFC' },
-      { label: '报价接受', value: `${r?.acceptedQuoteCount || 0}`, icon: 'check-circle', tone: '#EAF9F1' },
-      { label: '在施项目', value: `${r?.ongoingProjectCount || 0}`, icon: 'briefcase', tone: '#E9F6F7' }
+      { label: '方案报价', value: `${r?.quoteCount || 0}`, icon: 'file-text', tone: '#E8F7F5' },
+      { label: '报价接受', value: `${r?.acceptedQuoteCount || 0}`, icon: 'check-circle', tone: '#E8F7F5' },
+      { label: '在施项目', value: `${r?.ongoingProjectCount || 0}`, icon: 'briefcase', tone: '#E8F7F5' }
     ]
   }
   const m = marketerReport.value
   return [
     { label: '客户总数', value: `${m?.customerCount || 0}`, icon: 'user', tone: '#E8F7F5' },
-    { label: '待跟进', value: `${(m?.followDueCount || 0) + (m?.followOverdueCount || 0)}`, icon: 'chart', tone: '#F0EEFC' },
-    { label: '成交客户', value: `${m?.signedCustomerCount || 0}`, icon: 'check-circle', tone: '#EAF9F1' },
-    { label: '我的项目', value: `${m?.projectCount || 0}`, icon: 'briefcase', tone: '#E9F6F7' }
+    { label: '待跟进', value: `${(m?.followDueCount || 0) + (m?.followOverdueCount || 0)}`, icon: 'chart', tone: '#E8F7F5' },
+    { label: '成交客户', value: `${m?.signedCustomerCount || 0}`, icon: 'check-circle', tone: '#E8F7F5' },
+    { label: '我的项目', value: `${m?.projectCount || 0}`, icon: 'briefcase', tone: '#E8F7F5' }
   ]
 })
 
@@ -169,8 +169,11 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <view class="jz-card perf__reminders">
         <view class="perf__reminder"><text>门店成员</text><text class="perf__reminder-num">{{ storeReport?.memberCount || 0 }}</text></view>
         <view class="perf__reminder"><text>设计师 / 顾问 / 项目经理</text><text class="perf__reminder-num">{{ storeReport?.designerCount || 0 }} / {{ storeReport?.marketerCount || 0 }} / {{ storeReport?.projectManagerCount || 0 }}</text></view>
+        <view class="perf__reminder"><text>新增客户 / 跟进中 / 待量房</text><text class="perf__reminder-num">{{ storeReport?.newCustomerCount || 0 }} / {{ storeReport?.followingCustomerCount || 0 }} / {{ storeReport?.pendingMeasureCount || 0 }}</text></view>
+        <view class="perf__reminder"><text>报价总数 / 待确认 / 已接受</text><text class="perf__reminder-num">{{ storeReport?.quoteCount || 0 }} / {{ storeReport?.pendingQuoteCount || 0 }} / {{ storeReport?.acceptedQuoteCount || 0 }}</text></view>
         <view class="perf__reminder"><text>在施 / 待开工 / 待验收</text><text class="perf__reminder-num">{{ storeReport?.ongoingProjectCount || 0 }} / {{ storeReport?.preparingProjectCount || 0 }} / {{ storeReport?.acceptingProjectCount || 0 }}</text></view>
         <view class="perf__reminder"><text>停工项目 / 逾期任务</text><text class="perf__reminder-num perf__reminder-num--danger">{{ storeReport?.suspendedProjectCount || 0 }} / {{ storeReport?.taskOverdueCount || 0 }}</text></view>
+        <view class="perf__reminder"><text>待办任务 / 已完工项目 / 未读消息</text><text class="perf__reminder-num">{{ storeReport?.taskTodoCount || 0 }} / {{ storeReport?.finishedProjectCount || 0 }} / {{ storeReport?.noticeUnreadCount || 0 }}</text></view>
         <view class="perf__reminder"><text>现场动态沉淀</text><text class="perf__reminder-num">{{ storeReport?.reportCount || 0 }}</text></view>
       </view>
 
@@ -187,12 +190,37 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
           <view class="perf__designer-metrics">
             <text>客户 {{ perf.customerCount }}</text>
             <text>待量房 {{ perf.pendingMeasureCount }}</text>
+            <text>报价 {{ perf.quoteCount }}</text>
             <text>待报价 {{ perf.pendingQuoteCount }}</text>
+            <text>已接受 {{ perf.acceptedQuoteCount }}</text>
+            <text>报价额 {{ money(perf.quoteAmount) }}</text>
+            <text>项目 {{ perf.projectCount }}</text>
+            <text>在施 {{ perf.ongoingProjectCount }}</text>
+            <text>待办 {{ perf.taskTodoCount }}</text>
             <text :class="{ 'perf__risk': perf.taskOverdueCount > 0 }">逾期 {{ perf.taskOverdueCount }}</text>
+            <text>动态 {{ perf.reportCount }}</text>
           </view>
         </view>
       </view>
       <JzEmpty v-else text="暂无设计师业绩" sub="邀请设计师并完成客户指派后形成经营排名" />
+
+      <view class="jz-section"><text class="jz-section__title">最近客户</text></view>
+      <view v-if="storeReport?.recentCustomers?.length" class="jz-card perf__list">
+        <view v-for="customer in storeReport.recentCustomers" :key="customer.id" class="perf__item">
+          <view class="jz-grow"><text class="perf__item-title">{{ customer.name }}</text><text class="perf__item-sub">{{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone }}</text></view>
+          <text class="perf__item-tag">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+        </view>
+      </view>
+      <JzEmpty v-else text="暂无门店客户" sub="登记并指派客户后形成门店经营视图" />
+
+      <view class="jz-section"><text class="jz-section__title">最近报价</text><text class="jz-section__more" @tap="openQuotes">报价池</text></view>
+      <view v-if="storeReport?.recentQuotes?.length" class="jz-card perf__list">
+        <view v-for="quote in storeReport.recentQuotes" :key="quote.id" class="perf__item" @tap="openQuote(quote.id)">
+          <view class="jz-grow"><text class="perf__item-title">{{ quote.customer?.name || '客户报价' }}</text><text class="perf__item-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡ · {{ quote.status }}</text></view>
+          <text class="perf__amount">{{ money(quote.amount) }}</text>
+        </view>
+      </view>
+      <JzEmpty v-else text="暂无门店报价" sub="设计师生成方案报价后进入门店报价池" />
 
       <view class="jz-section"><text class="jz-section__title">最近项目</text></view>
       <view v-if="storeReport?.recentProjects?.length" class="jz-card perf__list">
@@ -315,7 +343,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 
 <style lang="scss" scoped>
 .perf { padding: 24rpx; }
-.perf__hero { margin-bottom: 24rpx; padding: 34rpx 30rpx; color: #fff; background: linear-gradient(135deg, $jzb-purple, $jzb-primary); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
+.perf__hero { margin-bottom: 24rpx; padding: 34rpx 30rpx; color: #fff; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
 .perf__hero-label { display: block; font-size: $jzb-font-sm; opacity: .82; }
 .perf__hero-value { display: block; margin-top: 12rpx; font-size: 64rpx; font-weight: 750; letter-spacing: -2rpx; }
 .perf__hero-foot { display: flex; justify-content: space-between; margin-top: 22rpx; font-size: $jzb-font-xs; opacity: .88; }
@@ -342,7 +370,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__designers { display: flex; flex-direction: column; }
 .perf__designer { padding: 24rpx; margin-bottom: 16rpx; }
 .perf__designer-name { margin-right: 12rpx; font-size: $jzb-font-md; font-weight: 700; }
-.perf__designer-metrics { display: flex; justify-content: space-between; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.perf__designer-metrics { display: flex; flex-wrap: wrap; gap: 10rpx 22rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__risk { color: $jzb-danger; font-weight: 650; }
 
 </style>

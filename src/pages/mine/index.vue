@@ -131,9 +131,9 @@ async function doLogout() {
       </view>
     </view>
 
-    <view class="jz-card mine__logout">
-      <view class="jz-cell" @tap="doLogout"><text class="mine__logout-text">退出登录</text></view>
-    </view>
+    <button class="jz-btn jz-btn--ghost jz-btn--block mine__logout" @tap="doLogout">
+      <JzIcon name="logout" :size="30" color="#0E8A7D" /><text>退出登录</text>
+    </button>
 
     <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.mine" />
@@ -156,8 +156,8 @@ async function doLogout() {
 .mine__cell-label { font-size: $jzb-font; color: $jzb-text-1; }
 .mine__cell-value { font-size: $jzb-font-sm; color: $jzb-text-3; }
 .mine__cell-arrow { font-size: 36rpx; color: $jzb-text-4; margin-left: 12rpx; }
-.mine__logout { margin: 0 $jzb-page-pad; }
+.mine__logout { width: calc(100% - #{$jzb-page-pad} * 2); margin: 8rpx $jzb-page-pad 0; }
+.mine__logout text { margin-left: 8rpx; }
 .mine__profile::after { content: ''; position: absolute; right: -90rpx; top: -100rpx; width: 240rpx; height: 240rpx; border-radius: 50%; background: rgba(255,255,255,.5); }
-.mine__logout-text { width: 100%; text-align: center; color: $jzb-danger; }
 
 </style>

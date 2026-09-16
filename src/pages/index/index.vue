@@ -284,9 +284,9 @@ async function refresh() {
   }
   if (role.value === 'storeManager') {
     const [ps, rs, sr, unread] = await Promise.all([
-      projectApi.list(), siteApi.allReports(), statisticApi.storeManager(), collabApi.unread(role.value)
+      projectApi.list(), siteApi.allReports().catch(() => []), statisticApi.storeManager(), collabApi.unread(role.value)
     ])
-    projects.value = ps
+    projects.value = ps.length ? ps : sr.recentProjects
     reports.value = rs
     storeReport.value = sr
     unreadCount.value = Number(unread || 0)
@@ -418,12 +418,12 @@ const projectSectionTitle = computed(() => {
       <!-- 指标卡 -->
       <view class="home__stats">
         <view class="home__stat" v-for="s in statCards" :key="s.label">
-          <view class="home__stat-icon" :style="{ background: s.tone }">
-            <JzIcon :name="s.icon" :size="34" :color="s.color" :stroke-width="2" />
+          <view class="home__stat-icon">
+            <JzIcon :name="s.icon" :size="34" color="#0E8A7D" :stroke-width="2" />
           </view>
           <view class="home__stat-copy">
-            <view v-if="s.money" class="home__stat-val" :style="{ color: s.color }"><JzMoney :value="Number(s.val)" /></view>
-            <text v-else class="home__stat-val" :style="{ color: s.color }">{{ s.val }}</text>
+            <view v-if="s.money" class="home__stat-val"><JzMoney :value="Number(s.val)" /></view>
+            <text v-else class="home__stat-val">{{ s.val }}</text>
             <text class="home__stat-label">{{ s.label }}</text>
           </view>
         </view>

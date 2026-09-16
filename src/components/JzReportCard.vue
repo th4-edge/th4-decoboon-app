@@ -25,7 +25,7 @@ function preview(url: string) {
 
 <template>
   <view class="jz-report">
-    <view class="jz-report__accent" :style="{ backgroundColor: typeMeta.color }" />
+    <view class="jz-report__accent" />
     <view class="jz-report__inner">
       <view class="jz-report__head">
         <JzAvatar :src="authorAvatar" :name="authorName" :size="68" />
@@ -56,7 +56,7 @@ function preview(url: string) {
       </view>
       <view class="jz-report__foot">
         <view class="jz-report__foot-item">
-          <view class="jz-report__type-dot" :style="{ backgroundColor: typeMeta.color }" />
+          <view class="jz-report__type-dot" />
           <text>{{ typeMeta.label }}记录</text>
         </view>
         <view v-if="showProject" class="jz-report__project"><text>查看项目</text><JzIcon name="chevron-right" :size="24" color="#0E8A7D" /></view>
@@ -77,7 +77,7 @@ function preview(url: string) {
   transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out;
 }
 .jz-report:active { transform: scale(.992); background: #FAFDFC; }
-.jz-report__accent { position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; }
+.jz-report__accent { position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; background: $jzb-gradient; }
 .jz-report__inner { padding: 26rpx 26rpx 24rpx 30rpx; }
 .jz-report__head { display: flex; align-items: center; }
 .jz-report__who { margin-left: 16rpx; }
@@ -115,7 +115,7 @@ function preview(url: string) {
 }
 .jz-report__foot-item { display: flex; align-items: center; }
 .jz-report__foot-item text { margin-left: 8rpx; }
-.jz-report__type-dot { width: 12rpx; height: 12rpx; border-radius: 50%; }
+.jz-report__type-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: $jzb-primary; }
 .jz-report__project { display: flex; align-items: center; color: $jzb-primary-dark; }
 .jz-report__project text { margin-right: 4rpx; }
 </style>

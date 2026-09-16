@@ -174,7 +174,7 @@ async function generateTalk(design: DesignScheme) {
     </view>
 
     <view v-if="locked" class="jz-card dl__lock">
-      <view class="dl__lock-icon"><JzIcon name="shield-check" :size="34" color="#6958C8" /></view>
+      <view class="dl__lock-icon"><JzIcon name="shield-check" :size="34" color="#0E8A7D" /></view>
       <view class="jz-grow">
         <text class="dl__lock-title">{{ lockTitle }}</text>
         <text class="dl__lock-tip">{{ lockTip }}</text>
@@ -183,12 +183,12 @@ async function generateTalk(design: DesignScheme) {
     </view>
 
     <view class="dl__quick">
-      <view class="jz-card dl__quick-item" @tap="openRequirement"><view class="dl__quick-icon dl__quick-icon--purple"><JzIcon name="message" :size="38" color="#6958C8" /></view><view class="jz-grow"><text class="dl__quick-title jz-clamp-1">记录客户诉求</text><text class="dl__quick-sub">要求、偏好、排斥点</text></view><text class="dl__quick-count">{{ requirements.length }}</text></view>
+      <view class="jz-card dl__quick-item" @tap="openRequirement"><view class="dl__quick-icon"><JzIcon name="message" :size="38" color="#0E8A7D" /></view><view class="jz-grow"><text class="dl__quick-title jz-clamp-1">记录客户诉求</text><text class="dl__quick-sub">要求、偏好、排斥点</text></view><text class="dl__quick-count">{{ requirements.length }}</text></view>
       <view class="jz-card dl__quick-item" @tap="locked ? openProject() : createScheme()"><view class="dl__quick-icon"><JzIcon name="edit" :size="38" color="#16A394" /></view><view class="jz-grow"><text class="dl__quick-title jz-clamp-1">新建设计方案</text><text class="dl__quick-sub">区域、尺寸、施工、主材</text></view><text class="dl__quick-count">{{ designs.length }}</text></view>
     </view>
 
     <view v-if="canManageCatalog" class="jz-card dl__catalog-entry" @tap="openCatalogManage">
-      <view class="dl__quick-icon"><JzIcon name="package" :size="38" color="#E67E22" /></view>
+      <view class="dl__quick-icon"><JzIcon name="package" :size="38" color="#0E8A7D" /></view>
       <view class="jz-grow"><text class="dl__quick-title">报价项目库维护</text><text class="dl__quick-sub">施工、主材、软装、电器、综合的价格、规格、公式和工艺统一维护</text></view>
       <JzIcon name="chevron-right" :size="28" color="#AEB8C2" />
     </view>
@@ -256,7 +256,6 @@ async function generateTalk(design: DesignScheme) {
 .dl__quick-item { min-height: 160rpx; padding: 26rpx; display: flex; align-items: center; transition: transform $jzb-duration-fast $jzb-ease-out; }
 .dl__quick-item:active { transform: scale(0.988); background: $jzb-bg-hover; }
 .dl__quick-icon { width: 72rpx; height: 72rpx; margin-right: 18rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 22rpx; }
-.dl__quick-icon--purple { background: $jzb-purple-soft; }
 .dl__quick-title { display: block; font-size: $jzb-font-md; font-weight: 700; line-height: 1.4; }
 .dl__quick-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.45; }
 .dl__quick-item .jz-grow { min-width: 0; }

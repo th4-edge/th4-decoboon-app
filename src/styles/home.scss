@@ -8,9 +8,9 @@
 .home__profile-org text { margin-left: 8rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home__stats { display: flex; flex-wrap: wrap; margin: 0 $jzb-page-pad 24rpx; gap: 16rpx; }
 .home__stat { width: calc(50% - 8rpx); display: flex; align-items: center; padding: 24rpx; background: #fff; border: 1rpx solid rgba(15,23,42,0.045); border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.home__stat-icon { width: 68rpx; height: 68rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; }
+.home__stat-icon { width: 68rpx; height: 68rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; background: $jzb-primary-lighter; }
 .home__stat-copy { display: flex; flex-direction: column; }
-.home__stat-val { font-size: 44rpx; line-height: 1; font-weight: 750; letter-spacing: -1rpx; }
+.home__stat-val { color: $jzb-primary-dark; font-size: 44rpx; line-height: 1; font-weight: 750; letter-spacing: -1rpx; }
 .home__stat-label { margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .home__quicks { margin: 0 $jzb-page-pad 12rpx; padding: 24rpx 12rpx 8rpx; display: flex; flex-wrap: wrap; }
 .home__performance { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; display: flex; align-items: center; background: $jzb-gradient-surface; }
