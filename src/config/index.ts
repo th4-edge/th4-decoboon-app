@@ -25,6 +25,7 @@ export const P = {
   enterprise: '/pages/auth/enterprise',
   userAgreement: '/pages/legal/agreement',
   privacyPolicy: '/pages/legal/privacy',
+  about: '/pages/about/index',
   inviteAccept: '/pages/invite/accept',
   companyJoin: '/pages/company/join',
   companyInfo: '/subpackages/company/pages/info',
