@@ -86,6 +86,25 @@ const cards = computed((): { label: string; value: string; icon: IconName; tone:
   ]
 })
 
+const storeStructureCards = computed((): { label: string; value: string; sub: string; icon: IconName; tone: string }[] => {
+  const s = storeReport.value
+  return [
+    { label: '门店成员', value: `${s?.memberCount || 0}`, sub: `设计 ${s?.designerCount || 0} · 顾问 ${s?.marketerCount || 0} · PM ${s?.projectManagerCount || 0}`, icon: 'users', tone: '#E8F7F5' },
+    { label: '客户经营', value: `${s?.customerCount || 0}`, sub: `新增 ${s?.newCustomerCount || 0} · 跟进 ${s?.followingCustomerCount || 0} · 待量房 ${s?.pendingMeasureCount || 0}`, icon: 'user', tone: '#E8F7F5' },
+    { label: '报价转化', value: `${s?.quoteCount || 0}`, sub: `待确认 ${s?.pendingQuoteCount || 0} · 已接受 ${s?.acceptedQuoteCount || 0} · ${s?.conversionRate || 0}%`, icon: 'calculator', tone: '#E8F7F5' },
+    { label: '项目履约', value: `${s?.projectCount || 0}`, sub: `在施 ${s?.ongoingProjectCount || 0} · 待开工 ${s?.preparingProjectCount || 0} · 待验收 ${s?.acceptingProjectCount || 0}`, icon: 'briefcase', tone: '#E8F7F5' },
+    { label: '风险待办', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, sub: `停工 ${s?.suspendedProjectCount || 0} · 逾期任务 ${s?.taskOverdueCount || 0} · 未读 ${s?.noticeUnreadCount || 0}`, icon: 'alert-circle', tone: '#E8F7F5' },
+    { label: '经营沉淀', value: `${s?.reportCount || 0}`, sub: `签约 ${money(s?.signedAmount || 0)} · 报价额 ${money(s?.quoteAmount || 0)} · 已完工 ${s?.finishedProjectCount || 0}`, icon: 'chart', tone: '#E8F7F5' }
+  ]
+})
+
+function quoteStatusText(status: string) {
+  return ({
+    draft: '草稿', submitted: '待客户确认', accepted: '客户已接受',
+    converted: '已转项目', rejected: '已驳回', superseded: '已被替代'
+  } as Record<string, string>)[status] || status
+}
+
 const hero = computed(() => isPm.value ? {
   title: '项目履约合同额', amount: pmReport.value?.contractAmount || 0,
   left: `已交付 ${money(pmReport.value?.completedAmount || 0)}`,
@@ -166,15 +185,12 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 
     <template v-else-if="isStoreManager">
       <view class="jz-section"><text class="jz-section__title">门店经营结构</text></view>
-      <view class="jz-card perf__reminders">
-        <view class="perf__reminder"><text>门店成员</text><text class="perf__reminder-num">{{ storeReport?.memberCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>设计师 / 顾问 / 项目经理</text><text class="perf__reminder-num">{{ storeReport?.designerCount || 0 }} / {{ storeReport?.marketerCount || 0 }} / {{ storeReport?.projectManagerCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>新增客户 / 跟进中 / 待量房</text><text class="perf__reminder-num">{{ storeReport?.newCustomerCount || 0 }} / {{ storeReport?.followingCustomerCount || 0 }} / {{ storeReport?.pendingMeasureCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>报价总数 / 待确认 / 已接受</text><text class="perf__reminder-num">{{ storeReport?.quoteCount || 0 }} / {{ storeReport?.pendingQuoteCount || 0 }} / {{ storeReport?.acceptedQuoteCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>在施 / 待开工 / 待验收</text><text class="perf__reminder-num">{{ storeReport?.ongoingProjectCount || 0 }} / {{ storeReport?.preparingProjectCount || 0 }} / {{ storeReport?.acceptingProjectCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>停工项目 / 逾期任务</text><text class="perf__reminder-num perf__reminder-num--danger">{{ storeReport?.suspendedProjectCount || 0 }} / {{ storeReport?.taskOverdueCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>待办任务 / 已完工项目 / 未读消息</text><text class="perf__reminder-num">{{ storeReport?.taskTodoCount || 0 }} / {{ storeReport?.finishedProjectCount || 0 }} / {{ storeReport?.noticeUnreadCount || 0 }}</text></view>
-        <view class="perf__reminder"><text>现场动态沉淀</text><text class="perf__reminder-num">{{ storeReport?.reportCount || 0 }}</text></view>
+      <view class="perf__structure">
+        <view v-for="item in storeStructureCards" :key="item.label" class="jz-card perf__structure-card">
+          <view class="perf__structure-head"><view class="perf__structure-icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="32" color="#0E8A7D" /></view><text>{{ item.label }}</text><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <text class="perf__structure-value">{{ item.value }}</text>
+          <text class="perf__structure-sub">{{ item.sub }}</text>
+        </view>
       </view>
 
       <view class="jz-section"><text class="jz-section__title">设计师经营排名</text><text class="jz-section__more" @tap="openQuotes">报价池</text></view>
@@ -216,7 +232,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <view class="jz-section"><text class="jz-section__title">最近报价</text><text class="jz-section__more" @tap="openQuotes">报价池</text></view>
       <view v-if="storeReport?.recentQuotes?.length" class="jz-card perf__list">
         <view v-for="quote in storeReport.recentQuotes" :key="quote.id" class="perf__item" @tap="openQuote(quote.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ quote.customer?.name || '客户报价' }}</text><text class="perf__item-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡ · {{ quote.status }}</text></view>
+          <view class="jz-grow"><text class="perf__item-title">{{ quote.customer?.name || '客户报价' }}</text><text class="perf__item-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡ · {{ quoteStatusText(quote.status) }}</text></view>
           <text class="perf__amount">{{ money(quote.amount) }}</text>
         </view>
       </view>
@@ -357,6 +373,14 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__reminder:last-child { border-bottom: none; }
 .perf__reminder-num { color: $jzb-primary-dark; font-weight: 700; }
 .perf__reminder-num--danger { color: $jzb-danger; }
+.perf__structure { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
+.perf__structure-card { padding: 22rpx; transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
+.perf__structure-card:active { transform: scale(.985); background: $jzb-primary-lightest; }
+.perf__structure-head { display: flex; align-items: center; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.perf__structure-head > text { flex: 1; min-width: 0; margin-left: 10rpx; }
+.perf__structure-icon { width: 52rpx; height: 52rpx; display: flex; align-items: center; justify-content: center; border-radius: 16rpx; }
+.perf__structure-value { display: block; margin-top: 16rpx; color: $jzb-primary-dark; font-size: 42rpx; font-weight: 780; }
+.perf__structure-sub { display: block; margin-top: 7rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.55; }
 .perf__golden { display: flex; padding: 24rpx 12rpx; }
 .perf__golden-item { flex: 1; text-align: center; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__golden-num { display: block; margin-bottom: 8rpx; color: $jzb-primary-dark; font-size: 36rpx; font-weight: 750; }

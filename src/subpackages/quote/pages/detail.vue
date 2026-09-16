@@ -234,7 +234,7 @@ async function confirmCustomerChange(change: ContractChange) {
     </view>
 
     <view v-if="quote.status === 'accepted'" class="jz-card qd__handoff qd__handoff--accepted">
-      <JzIcon name="check-circle" :size="34" color="#07A35A" />
+      <JzIcon name="check-circle" :size="34" color="#0E8A7D" />
       <view class="jz-grow"><text class="qd__handoff-title">客户已确认报价，房屋报价已锁定</text><text class="qd__handoff-tip">该房屋不能再确认其他报价；生成唯一项目后，将通过合同基线、变更单和应收计划承接后续金额调整。</text></view>
       <button v-if="canConvert && !contract" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="generateContract">生成合同</button>
       <button v-else-if="canConvert && contract && contract.status !== 'effective'" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="effectiveContract">合同生效并生成项目</button>
@@ -255,7 +255,7 @@ async function confirmCustomerChange(change: ContractChange) {
     </view>
 
     <view v-if="quote.status === 'converted'" class="jz-card qd__handoff qd__handoff--converted">
-      <JzIcon name="briefcase" :size="34" color="#6958C8" />
+      <JzIcon name="briefcase" :size="34" color="#0E8A7D" />
       <view class="jz-grow"><text class="qd__handoff-title">{{ project ? `已转唯一项目 ${project.no}` : '报价已转项目，正在同步项目' }}</text><text class="qd__handoff-tip">设计与报价转为只读基线；所有金额调整进入合同变更单，应收由财务计划承接。</text></view>
       <button v-if="project" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="openProject">查看工地</button>
     </view>
@@ -371,7 +371,7 @@ async function confirmCustomerChange(change: ContractChange) {
 
 <style lang="scss" scoped>
 .qd { min-height: 100vh; padding: 24rpx 24rpx 170rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.qd__hero { padding: 34rpx 30rpx; color: #fff; border-radius: $jzb-radius-lg; background: linear-gradient(135deg, $jzb-purple, $jzb-primary); box-shadow: $jzb-shadow-card; }
+.qd__hero { padding: 34rpx 30rpx; color: #fff; border-radius: $jzb-radius-lg; background: $jzb-gradient; box-shadow: $jzb-shadow-card; }
 .qd__no { flex: 1; min-width: 0; font-size: $jzb-font-sm; opacity: .84; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .qd__status { flex-shrink: 0; margin-left: 12rpx; padding: 6rpx 16rpx; border-radius: $jzb-radius-pill; background: rgba(255,255,255,.18); font-size: $jzb-font-xs; }
 .qd__amount { display: block; margin-top: 20rpx; font-size: 64rpx; font-weight: 750; letter-spacing: -2rpx; }
@@ -407,23 +407,23 @@ async function confirmCustomerChange(change: ContractChange) {
 .qd__facts > view:last-child { border-bottom: none; }
 .qd__facts > view text:last-child { color: $jzb-text-1; font-weight: 600; }
 .qd__talk { margin-top: 22rpx; padding: 24rpx; display: flex; align-items: center; }
-.qd__talk-icon { width: 76rpx; height: 76rpx; margin-right: 18rpx; display: flex; align-items: center; justify-content: center; background: $jzb-purple-soft; border-radius: 22rpx; }
+.qd__talk-icon { width: 76rpx; height: 76rpx; margin-right: 18rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 22rpx; }
 .qd__talk-title { display: block; font-size: $jzb-font; font-weight: 650; }
 .qd__talk-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .qd__gap { margin-top: 16rpx; }
-.qd__action-state { flex: 1; min-height: 72rpx; display: flex; align-items: center; justify-content: center; gap: 8rpx; color: $jzb-success; background: $jzb-success-soft; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
+.qd__action-state { flex: 1; min-height: 72rpx; display: flex; align-items: center; justify-content: center; gap: 8rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
 .qd__handoff { margin-top: 20rpx; padding: 24rpx; display: flex; align-items: center; gap: 16rpx; }
-.qd__handoff--accepted { border: 1rpx solid rgba(7,163,90,.18); background: $jzb-success-soft; }
-.qd__handoff--converted { border: 1rpx solid rgba(105,88,200,.18); background: $jzb-purple-soft; }
+.qd__handoff--accepted { border: 1rpx solid rgba(14,138,125,.18); background: linear-gradient(135deg, #FFFFFF, $jzb-primary-lightest); }
+.qd__handoff--converted { border: 1rpx solid rgba(14,138,125,.18); background: linear-gradient(135deg, #FFFFFF, $jzb-primary-lightest); }
 .qd__handoff-title { display: block; font-size: $jzb-font; font-weight: 750; }
 .qd__handoff-tip { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .qd__contract-empty, .qd__contract, .qd__changes, .qd__receivable { margin-bottom: 16rpx; padding: 24rpx; }
-.qd__contract-empty { display: flex; align-items: center; gap: 16rpx; border: 1rpx dashed $jzb-border; }
+.qd__contract-empty { display: flex; align-items: center; gap: 16rpx; border: 1rpx dashed rgba(22,163,148,.28); background: $jzb-primary-lightest; }
 .qd__down-eyebrow { display: block; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 700; }
 .qd__down-title { display: block; margin-top: 5rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 750; }
 .qd__down-sub { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .qd__down-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10rpx; margin-top: 18rpx; }
-.qd__down-grid > view { padding: 16rpx 10rpx; text-align: center; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.qd__down-grid > view { padding: 16rpx 10rpx; text-align: center; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; }
 .qd__down-grid text { display: block; }
 .qd__down-grid text:first-child { font-size: $jzb-font-sm; font-weight: 700; word-break: break-all; }
 .qd__down-grid text:last-child { margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
