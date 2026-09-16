@@ -16,6 +16,8 @@ import JzIcon from '@/components/JzIcon.vue'
 const projectId = ref('')
 const list = ref<DailyReport[]>([])
 const projectName = ref('')
+const loading = ref(true)
+const loadError = ref('')
 const canPost = computed(() => can(session.role || 'boss', 'act:report') && !isCustomer(session.role))
 
 onLoad((q) => {
@@ -24,9 +26,18 @@ onLoad((q) => {
   load()
 })
 async function load() {
-  const p = await projectApi.info(projectId.value)
-  projectName.value = p?.name || ''
-  list.value = await scheduleApi.dailyReports(projectId.value)
+  loading.value = true
+  loadError.value = ''
+  try {
+    const p = await projectApi.info(projectId.value)
+    projectName.value = p?.name || ''
+    list.value = await scheduleApi.dailyReports(projectId.value)
+  } catch (error) {
+    list.value = []
+    loadError.value = error instanceof Error ? error.message : '日报加载失败'
+  } finally {
+    loading.value = false
+  }
 }
 
 function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || '#86909C' }
@@ -62,18 +73,20 @@ function write() {
       </view>
     </view>
 
-    <view v-if="!list.length" class="jz-card dr__empty"><JzEmpty text="还没有施工日报" sub="项目经理确认任务节点（开工/隐蔽/完工）后自动按天生成" /></view>
+    <view v-if="loading" class="jz-card dr__empty"><JzEmpty text="正在加载施工日报" /></view>
+    <view v-else-if="loadError" class="jz-card dr__empty"><JzEmpty text="施工日报加载失败" :sub="loadError" /></view>
+    <view v-else-if="!list.length" class="jz-card dr__empty"><JzEmpty text="还没有施工日报" sub="项目经理确认任务节点（开工/隐蔽/完工）后自动按天生成" /></view>
 
     <view v-for="d in list" :key="d.date" class="dr__day">
       <view class="dr__day-head">
         <text class="dr__day-title">{{ d.title }}</text>
-        <text class="dr__day-count">{{ d.events.length }} 节点 · {{ d.reports.length }} 条汇报</text>
+        <text class="dr__day-count">{{ d.events?.length ?? 0 }} 节点 · {{ d.reports?.length ?? 0 }} 条汇报</text>
       </view>
       <view class="jz-card dr__day-card">
         <view class="dr__summary">{{ d.summary }}</view>
 
         <!-- 任务节点（日报核心：开展/进行/完成） -->
-        <view v-for="(e, i) in d.events" :key="'e' + i" class="dr__event">
+        <view v-for="(e, i) in d.events || []" :key="'e' + i" class="dr__event">
           <view class="dr__event-dot" :style="{ backgroundColor: nodeColor(e.node) }" />
           <view class="jz-grow dr__event-main">
             <view class="jz-between">
@@ -81,8 +94,8 @@ function write() {
               <JzTag :text="nodeLabel(e.node)" :color="nodeColor(e.node)" />
             </view>
             <text class="dr__event-meta">{{ e.zone || '全屋' }} · {{ e.by || '-' }} · {{ (e.at || '').slice(11, 16) }} 确认</text>
-            <view v-if="e.medias.length" class="dr__medias">
-              <view v-for="(m, mi) in e.medias" :key="mi" class="dr__media" @tap="preview(m)">
+            <view v-if="e.medias?.length" class="dr__medias">
+              <view v-for="(m, mi) in e.medias || []" :key="mi" class="dr__media" @tap="preview(m)">
                 <image v-if="m.type === 'image'" :src="m.url" mode="aspectFill" />
                 <view v-else class="dr__video"><JzIcon name="play" :size="34" color="#FFFFFF" :stroke-width="2" /><text class="dr__video-tip">视频证据</text></view>
               </view>
@@ -91,7 +104,7 @@ function write() {
         </view>
 
         <!-- 文字/影像汇报 -->
-        <view v-for="(r, ri) in d.reports" :key="'r' + ri" class="dr__report">
+        <view v-for="(r, ri) in d.reports || []" :key="'r' + ri" class="dr__report">
           <view class="jz-row dr__report-head">
             <JzAvatar :name="(r.author as any)?.name || '系统'" :size="48" />
             <text class="dr__report-title">{{ r.title }}</text>

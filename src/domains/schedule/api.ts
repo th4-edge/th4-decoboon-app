@@ -6,8 +6,9 @@ import type { Employee } from '@/domains/identity/model'
 import type { SiteReport } from '../site/model'
 import { dateTimeValue } from '@/core/format'
 import { TASK_NODES } from './model'
-import type { Task, TaskMedia, TaskNode, TaskNodeKey } from './model'
+import type { DailyReport, Task, TaskMedia, TaskNode, TaskNodeKey } from './model'
 import { fileApi } from '@/domains/file/api'
+import { siteApi } from '../site/api'
 
 type RawRecord = Record<string, any>
 
@@ -97,6 +98,23 @@ function normalizeNodes(raw: RawRecord): TaskNode[] {
   })
 }
 
+function reportDayKey(value?: string) {
+  const key = (value || '').trim().slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : 'unknown'
+}
+
+function reportDay(date: string): DailyReport {
+  const title = date === 'unknown' ? '未标注日期' : `${date.slice(5, 7)}月${date.slice(8, 10)}日`
+  return { date, title, events: [], reports: [], summary: '' }
+}
+
+function summarizeReportDay(day: DailyReport) {
+  const parts: string[] = []
+  if (day.events.length) parts.push(`${day.events.length} 个施工节点`)
+  if (day.reports.length) parts.push(`${day.reports.length} 条现场汇报`)
+  day.summary = parts.length ? `本日记录：${parts.join('，')}` : '本日暂无施工记录'
+}
+
 export const scheduleApi = {
   tasks: async (projectId: string, stageId?: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/task/page', { projectId, stageId }))
@@ -138,11 +156,48 @@ export const scheduleApi = {
       note: input.note
     }),
 
-  dailyReports: async (projectId: string) =>
-    listOf(await post<PageResult<import('./model').DailyReport> | import('./model').DailyReport[]>(
-      'project/report/list',
-      { projectId, grouping: 'day' }
-    )),
+  dailyReports: async (projectId: string) => {
+    const [tasks, reports] = await Promise.all([
+      scheduleApi.tasks(projectId).catch(() => []),
+      siteApi.reports(projectId)
+    ])
+    const days = new Map<string, DailyReport>()
+    const dayOf = (date: string) => {
+      let day = days.get(date)
+      if (!day) {
+        day = reportDay(date)
+        days.set(date, day)
+      }
+      return day
+    }
+
+    for (const task of tasks) {
+      for (const node of task.nodes || []) {
+        if (node.status !== 'done' || !node.confirmedAt) continue
+        const day = dayOf(reportDayKey(node.confirmedAt))
+        day.events.push({
+          taskName: task.name,
+          zone: task.zone?.name,
+          node: node.key,
+          label: node.label,
+          by: node.confirmBy?.name,
+          medias: node.medias || [],
+          at: node.confirmedAt
+        })
+      }
+    }
+
+    for (const report of reports) {
+      dayOf(reportDayKey(report.createdAt)).reports.push(report)
+    }
+
+    days.forEach(summarizeReportDay)
+    return [...days.values()].sort((a, b) => {
+      if (a.date === 'unknown') return 1
+      if (b.date === 'unknown') return -1
+      return b.date.localeCompare(a.date)
+    })
+  },
 
   reports: async (projectId: string) =>
     listOf(await post<PageResult<SiteReport> | SiteReport[]>('project/report/page', { projectId }))
