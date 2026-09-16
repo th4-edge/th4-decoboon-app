@@ -1,0 +1,619 @@
+# AGENTS.md — th4-decoboon-app（装得清小程序端）工程与 UI/UX 规范
+
+本文件是 Codex 在本工程中的项目级系统约束。所有生成、修改、重构代码必须遵守。
+若与用户临时指令冲突，以用户指令为准，但必须在输出中说明偏离了哪条规则。
+
+## 0. 角色与交付目标
+
+你是资深前端架构师 + UI/UX 设计师，精通 uni-app（Vue3）+ TypeScript + Vite，并熟悉微信小程序设计指南、iOS HIG、Material 3。
+
+交付标准是**商业级产品应用**，不是 demo，不是原型。唯一验收标准：代码与页面能否直接上线。
+
+---
+
+## 1. 五条工程铁律（与后端 th4-decoboon 对齐）
+
+1. **无 DTO 心智**：页面/类型直接消费领域实体（`Customer / Project / ProjectStage / Task / SiteReport / Acceptance`），对象关联（如 `Project.designer` 是 `Employee`），禁止裸 id 拼接后再翻译。
+2. **权限先于渲染**：角色决定可见域——客户只见自己的项目；老板按企业范围；员工按项目参与关系。列表先过 `visibleProjects()`，服务端仍必须强制校验。
+3. **状态机在后端**：阶段、任务、节点、验收等状态流转由 Provider/领域服务负责。页面只提交业务对象或调用领域能力后重新拉取，不在页面维护本地状态机。
+4. **路由集中管理**：页面跳转统一使用 `src/config/index.ts` 的 `P.*`，禁止魔法字符串。
+5. **品牌统一**：品牌视觉必须有唯一 Token 真源。当前实现真源是 `src/uni.scss`（`$jzb-*`）；目标语义 Token 是 `$brand-* / $text-* / $bg-*`。迁移前禁止两套 Token 混用，禁止页面散落自造品牌色。
+
+---
+
+## 2. 技术栈（固定，不得擅自替换）
+
+- uni-app + Vue3 `<script setup lang="ts">` + TypeScript + Vite。
+- 状态管理：Pinia（新增跨页面状态时使用）；页面局部状态继续放 `ref/computed`，不得为局部变量强行建 store。
+- 样式：SCSS（scoped）+ Design Token 变量。
+- UI 能力：优先复用 `src/components` 现有 `Jz*` 组件与 uni-app 基础组件，不重复造轮子。
+- 目标端：微信小程序 / H5 / App 三端；小程序为第一优先级。
+- 设计基准：750rpx 设计稿，1rpx = 屏宽 / 750。
+- 正式 UI 禁止使用 emoji、字符箭头、字符加号等 Unicode 图标；统一使用 `src/components/JzIcon.vue` 的线性图标。
+
+---
+
+## 3. 目录结构约定
+
+```text
+src/
+├── components/                  # 多分包复用的全局通用组件
+│   └── XxxYyy/XxxYyy.vue       # 组件目录与文件同名
+├── pages/                       # 仅主包页面：启动、登录/授权、自定义 Tab 页
+│   ├── index/index.vue
+│   ├── project/list.vue
+│   ├── customer/list.vue
+│   ├── dynamic/index.vue
+│   ├── mine/index.vue
+│   ├── finance/index.vue
+│   ├── auth/login.vue
+│   ├── auth/enterprise.vue
+│   ├── invite/accept.vue
+│   └── company/join.vue
+├── subpackages/                 # 微信小程序分包根目录
+│   └── <domain>/
+│       ├── pages/               # 该业务域页面
+│       ├── components/          # 仅该分包使用的私有组件
+│       └── static/              # 仅该分包使用的小体积静态资源
+├── domains/                     # 领域模型/API/meta/scope（跨页面共享领域代码）
+│   └── <domain>/model.ts|api.ts|meta.ts
+├── composables/                # 可复用交互与组合逻辑
+├── config/                     # 路由、环境与集中配置
+├── core/                       # HTTP、格式化等基础设施
+├── roles/                      # 角色元信息与权限矩阵
+├── static/                     # 主包必需的小体积静态资源
+├── styles/                     # 基础样式、页面样式与目标 Token 文件
+│   └── tokens.scss            # 目标 Token 真源（迁移后）
+├── types/                      # 全局 TS 类型
+└── uni.scss                    # 当前 Design Token 真源，全局注入
+```
+
+补充约束：
+
+- 只有启动页、登录/授权页和 `TAB_PATHS` 中的自定义 Tab 页可放 `src/pages`；其他业务页一律放 `src/subpackages/<domain>/pages/<page>.vue`。
+- 领域模块统一放 `src/domains/<domain>`，至少包含 `model.ts / api.ts / meta.ts`。
+- 页面只依赖对应领域 API，禁止直接 `uni.request` 或拼 Provider 地址。
+- 公共 HTTP/上传协议放 `src/core/http.ts`；日期、金额等纯格式化放 `src/core/format.ts`。
+- 会话只放 `src/domains/identity/session.ts`，其他领域不得反向依赖页面。
+- 禁止新增 Mock、演示数据或页面内本地持久化；所有列表数据从 Provider 获取。
+
+---
+
+## 4. Design Token（唯一真源，禁止硬编码）
+
+**所有颜色、字号、间距、圆角、阴影、动效，必须从 Token 取值。**
+禁止在组件中写 `#xxx`、`28rpx`、`0 4rpx 16rpx` 这类字面量；`1rpx` 边框、`0`、`100%`、`flex: 1` 等结构性数值除外。
+
+当前工程真源是 `src/uni.scss`。目标结构是 `src/styles/tokens.scss` 作为唯一真源，并由 `src/uni.scss` 统一导入；迁移完成前不得创建“第二套真源”。
+
+`$jzb-*` 是现有命名空间；下表 `$brand-* / $text-* / $bg-*` 是目标语义契约。迁移必须一次性在 `src/styles/tokens.scss` 建立目标 Token，在 `src/uni.scss` 建立兼容别名或完成全量替换，并同步本文件，不得在同一组件中混用两套 Token。
+
+### 4.1 色彩
+
+**品牌主色（墨绿目标值）**
+
+| Token | 色值 | 用途 |
+|---|---|---|
+| `$brand-50` | `#EEF6F1` | 浅底、标签背景 |
+| `$brand-100` | `#D6EADF` | 选中态背景 |
+| `$brand-200` | `#ADD5BF` | 禁用主色 |
+| `$brand-300` | `#7FBB9B` | 图表辅助 |
+| `$brand-400` | `#529E77` | hover / active |
+| `$brand-500` | `#2F7D5A` | 主色：主按钮 / 链接 / 选中 |
+| `$brand-600` | `#26654A` | 按下态 |
+| `$brand-700` | `#1D4E39` | 深色标题 |
+| `$brand-800` | `#153829` | 深色卡片 |
+| `$brand-900` | `#0C221A` | 深色背景 |
+
+当前未执行品牌迁移时，以 `src/uni.scss` 中 `$jzb-primary` 等现有 Token 为准，不得直接改写页面品牌色。
+
+**辅助色（暖木橙，用量 ≤ 10%）**
+
+| Token | 色值 | 用途 |
+|---|---|---|
+| `$accent-50` | `#FDF5EE` | 浅底 |
+| `$accent-100` | `#FAE6D5` | 标签背景 |
+| `$accent-300` | `#F0BE96` | 装饰 |
+| `$accent-500` | `#D98B52` | 价格 / 优惠 / 限时 / 徽标 |
+| `$accent-600` | `#B86F3A` | 按下态 |
+
+橙色只用于价格、优惠、限时、徽标，禁止大面积铺底。
+
+**中性色（带绿调暖灰，禁止纯黑纯灰）**
+
+| Token | 色值 | 用途 |
+|---|---|---|
+| `$neutral-0` | `#FFFFFF` | 卡片底 |
+| `$neutral-50` | `#FAFAF8` | 浅底 |
+| `$neutral-100` | `#F5F5F2` | 页面底（默认） |
+| `$neutral-200` | `#EBEBE6` | 边框 |
+| `$neutral-300` | `#DCDCD6` | 禁用 / 占位块 |
+| `$neutral-400` | `#B8B8B0` | placeholder |
+| `$neutral-500` | `#7A7A72` | 辅助文字 |
+| `$neutral-600` | `#66665F` | 次要文字 |
+| `$neutral-700` | `#4A4A44` | 正文 |
+| `$neutral-800` | `#2E2E2A` | 小标题 |
+| `$neutral-900` | `#1A1A17` | 主标题 |
+
+**功能色**
+
+| Token | 色值 |
+|---|---|
+| `$success-500` / `$success-bg` | `#22A06B` / `#E9F7F0` |
+| `$warning-500` / `$warning-bg` | `#E8A020` / `#FDF4E3` |
+| `$error-500` / `$error-bg` | `#E5484D` / `#FDECEC` |
+| `$info-500` / `$info-bg` | `#3B7DE8` / `#EBF2FE` |
+
+**语义 Token（组件必须优先使用这一层）**
+
+| Token | 值 |
+|---|---|
+| `$text-primary` | `#1A1A17` |
+| `$text-regular` | `#4A4A44` |
+| `$text-secondary` | `#7A7A72` |
+| `$text-placeholder` | `#B8B8B0` |
+| `$text-disabled` | `#DCDCD6` |
+| `$text-inverse` | `#FFFFFF` |
+| `$text-price` | `#D98B52` |
+| `$bg-page` | `#F5F5F2` |
+| `$bg-card` | `#FFFFFF` |
+| `$bg-hover` | `rgba(26, 26, 23, 0.03)` |
+| `$bg-mask` | `rgba(26, 26, 23, 0.50)` |
+| `$border-color` | `#EBEBE6` |
+| `$divider-color` | `#F0F0EC` |
+
+### 4.2 字号与数字
+
+| Token | rpx | 字重 | 行高 | 用途 |
+|---|---:|---:|---:|---|
+| `$font-display` | 48 | 700 | 1.3 | 大数字 / 金额 |
+| `$font-h1` | 40 | 600 | 1.35 | 页面主标题 |
+| `$font-h2` | 36 | 600 | 1.4 | 区块标题 |
+| `$font-h3` | 32 | 500 | 1.4 | 卡片标题 |
+| `$font-body-lg` | 30 | 400 | 1.6 | 重点正文 |
+| `$font-body` | 28 | 400 | 1.6 | 正文默认 |
+| `$font-body-sm` | 26 | 400 | 1.6 | 次要正文 |
+| `$font-caption` | 24 | 400 | 1.5 | 辅助说明 |
+| `$font-mini` | 20 | 400 | 1.4 | 角标 |
+
+- 字重：`$fw-regular: 400` / `$fw-medium: 500` / `$fw-semibold: 600` / `$fw-bold: 700`。
+- 行高：`$lh-tight: 1.3` / `$lh-snug: 1.4` / `$lh-base: 1.5` / `$lh-loose: 1.6`。
+- 价格、面积、数量、编号等数字统一加 `font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';`。
+
+### 4.3 间距（8rpx 栅格）
+
+| Token | 值 | 用途 |
+|---|---:|---|
+| `$space-xxs` | 8rpx | 图标与文字 |
+| `$space-xs` | 16rpx | 行内元素 |
+| `$space-sm` | 24rpx | 卡片间距 / 卡片内边距（小） |
+| `$space-md` | 32rpx | 页面边距 / 卡片内边距 |
+| `$space-lg` | 40rpx | 区块内间距 |
+| `$space-xl` | 48rpx | 区块之间 |
+| `$space-2xl` | 64rpx | 大区块分隔 |
+| `$space-3xl` | 80rpx | 页面顶部 / 底部留白 |
+| `$page-gutter` | 32rpx | 全项目页面左右安全边距 |
+
+### 4.4 圆角
+
+| Token | 值 | 用途 |
+|---|---:|---|
+| `$radius-xs` | 4rpx | 标签 / 角标 |
+| `$radius-sm` | 8rpx | 输入框 / 小按钮 |
+| `$radius-md` | 16rpx | 卡片默认 |
+| `$radius-lg` | 24rpx | 大卡片 / 弹窗 |
+| `$radius-xl` | 32rpx | 底部面板顶角 |
+| `$radius-full` | 9999rpx | 胶囊 / 头像 |
+
+### 4.5 阴影
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `$shadow-xs` | `0 2rpx 8rpx rgba(26,26,23,0.04)` | 分割卡片 |
+| `$shadow-sm` | `0 4rpx 16rpx rgba(26,26,23,0.06)` | 卡片默认 |
+| `$shadow-md` | `0 8rpx 24rpx rgba(26,26,23,0.08)` | 悬浮卡片 |
+| `$shadow-lg` | `0 16rpx 40rpx rgba(26,26,23,0.10)` | 弹窗 |
+| `$shadow-brand` | `0 8rpx 24rpx rgba(47,125,90,0.24)` | 主按钮 |
+
+### 4.6 动效
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `$duration-fast` | 150ms | 点击反馈 / 颜色 |
+| `$duration-base` | 200ms | 默认：位移 / 淡入 |
+| `$duration-slow` | 300ms | 弹窗 / 转场 |
+| `$ease-out` | `cubic-bezier(0.4, 0, 0.2, 1)` | 默认 |
+| `$ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 回弹 |
+
+### 4.7 布局常量
+
+| Token | 值 |
+|---|---:|
+| `$btn-height` | 88rpx |
+| `$btn-height-lg` | 96rpx |
+| `$list-item-min-h` | 112rpx |
+| `$navbar-height` | 88rpx |
+| `$tabbar-height` | 100rpx |
+| `$safe-top` | `env(safe-area-inset-top, 0px)` |
+| `$safe-bottom` | `env(safe-area-inset-bottom, 0px)` |
+
+### 4.8 层级 z-index
+
+| Token | 值 |
+|---|---:|
+| `$z-fixed` | 800 |
+| `$z-sticky` | 900 |
+| `$z-dropdown` | 950 |
+| `$z-mask` | 1000 |
+| `$z-modal` | 1010 |
+| `$z-toast` | 1100 |
+| `$z-loading` | 1200 |
+
+---
+
+## 5. 硬性视觉规则（一票否决）
+
+1. 间距只用 8 的倍数（rpx）：8/16/24/32/40/48/64/80；禁止 15rpx、27rpx 等。
+2. 页面左右安全边距全项目统一 `$page-gutter`（32rpx），禁止各页不同。
+3. 单页面圆角种类 ≤ 2 种，默认 `$radius-md`（16rpx）。
+4. 单页面主色实心按钮 ≤ 1 个，其余按钮使用描边或文字按钮。
+5. 辅助色 `$accent-500` 只用于价格、优惠、限时、徽标，禁止铺底。
+6. 禁止纯黑 `#000` / 纯灰 `#999`，一律使用中性色 Token。
+7. 卡片必须同时具备 `background + border-radius + shadow` 三件套。
+8. 文字层级至少通过字号、字重、颜色中的两处区分，不靠加边框。
+9. 图标必须同一套，统一线性风格，禁止混用图标库。
+10. 一个页面内同类元素样式必须完全一致，包括所有卡片、标签和按钮。
+11. 一屏可见的主 CTA 只能有一个；次要操作必须通过描边、文字或降级位置表达。
+
+---
+
+## 6. 代码规范
+
+### 6.1 Vue / TS
+
+- 一律使用 `<script setup lang="ts">`，禁止 Options API。
+- 禁止 `any`；类型不明确时用 `unknown` + 类型守卫。
+- 组件 Props 必须使用 `defineProps<Props>()` + `withDefaults` 给默认值。
+- 事件必须使用 `defineEmits<{ (e: 'xxx', payload: T): void }>()` 声明类型。
+- `v-for` 必须带 `:key`；禁止用 index 作为 key，除非列表静态且不重排。
+- 组件单文件 ≤ 300 行，超出必须拆子组件。
+- 页面单文件 ≤ 500 行，业务逻辑抽到 composable、领域 API 或 store。
+- 能使用 `computed` 缓存的结果不得用 `watch` 重复计算。
+- 定时器、事件监听、订阅必须在 `onUnmounted` 中清理。
+
+### 6.2 样式
+
+- 一律使用 `<style lang="scss" scoped>`。
+- 命名使用 BEM：`.block__element--modifier`。
+- 禁止 `!important`；确有必要时必须在代码注释中说明不可替代原因。
+- 禁止行内 style；动态计算样式除外，且必须由 Token 拼接。
+- 禁止直接给 `view`、`text` 等标签选择器写样式，必须使用类名。
+- 嵌套层级 ≤ 3 层。
+- `:deep()` 只在覆盖第三方组件时使用。
+
+### 6.3 命名
+
+- 组件文件：`PascalCase`，如 `HouseCard.vue`。
+- 组件目录：与文件同名，如 `components/HouseCard/HouseCard.vue`。
+- 页面文件：`kebab-case`，如 `customer-detail.vue`。
+- 变量 / 函数：`camelCase`。
+- 常量：`UPPER_SNAKE_CASE`。
+- 类型 / 接口：`PascalCase`，接口不加 `I` 前缀。
+- SCSS 变量：`$kebab-case`。
+
+### 6.4 导入顺序（固定）
+
+```ts
+// 1. vue 核心
+import { ref, computed, onMounted } from 'vue'
+
+// 2. 第三方库
+import { storeToRefs } from 'pinia'
+
+// 3. 项目内 - 绝对路径（@/）
+import HouseCard from '@/components/HouseCard/HouseCard.vue'
+
+// 4. 项目内 - 相对路径
+import { formatPrice } from './utils'
+
+// 5. 类型
+import type { HouseItem } from '@/types/house'
+```
+
+---
+
+## 7. 交互规范（每个页面必须覆盖）
+
+### 7.1 视觉状态
+
+每个可交互元素必须定义 `默认 / active / disabled`；H5 额外定义 `hover / focus`。
+
+### 7.2 数据状态
+
+所有异步数据展示必须包含三态：
+
+- **loading**：骨架屏优先，禁止空白页面。
+- **empty**：插画 + 引导文案 + 引导按钮，禁止只显示“暂无数据”。
+- **error**：错误说明 + 重试按钮，禁止静默失败。
+
+### 7.3 交互反馈
+
+- 点击反馈必须在 300ms 内出现，使用 `:active` 或 `$bg-hover`。
+- 按钮必须防重复点击，具备 `loading` 态或 `disabled` 态。
+- 成功使用 `uni.showToast`（≤ 1.5s）；重要操作使用 `uni.showModal`。
+- 删除、取消等破坏性操作必须二次确认。
+
+### 7.4 列表
+
+- 长列表必须支持下拉刷新、上拉加载和到底提示。
+- 超过 100 条必须分页或使用虚拟列表。
+- 列表项点击态使用 `$bg-hover`，不得因此改变布局。
+
+### 7.5 动效
+
+- 时长遵守 Token，单次动效 ≤ `$duration-slow`（300ms）。
+- 缓动默认使用 `$ease-out`。
+- 列表项进入可使用 stagger，间隔 40ms，单次位移 ≤ 24rpx。
+- 禁止无意义动效；颜色反馈 < 100ms 视为无效；弹跳动画只用于收藏 / 点赞。
+
+### 7.6 表单
+
+- 输入框必须限制输入类型（`type` / `maxlength`）。
+- 必填项必须有 `*` 标记，失焦校验，错误提示位于输入框下方。
+- 提交按钮在表单校验通过前禁用。
+- 键盘弹起时输入框不得被遮挡，正确设置 `adjust-position`。
+
+---
+
+## 8. 多端适配
+
+- 尺寸使用 `rpx`；H5 页面容器增加 `max-width: 750px; margin: 0 auto`，防止大屏过大。
+- `1rpx` 边框在小程序正常；H5 高清屏使用 `0.5px` 或 `transform: scaleY(0.5)` 方案。
+- 底部固定元素必须增加底部安全区 `padding-bottom: $safe-bottom`。
+- 顶部自定义导航必须处理 `$safe-top`。
+- 禁止使用小程序不支持的 API：`document`、`window`、`localStorage`；统一使用 `uni.xxx`。
+- 图片必须 `lazy-load`、提供加载占位与失败兜底图。
+- 小程序图片域名必须已加入后台白名单。
+- 自定义字体必须评估小程序加载成本，优先使用系统字体栈。
+
+---
+
+## 9. 性能规范
+
+- 首屏只加载必要资源，图片懒加载。
+- `scroll / resize / input` 等高频函数必须节流或防抖。
+- 能缓存的计算不重复执行，优先 `computed`。
+- 长列表禁止一次性渲染全部数据。
+- 避免在 `v-for` 内执行复杂计算，使用 `computed` 预处理。
+- 组件按需引入，避免全量导入 UI 库。
+- 页面销毁时清理定时器、监听器和订阅。
+
+---
+
+## 10. 输出格式（每次回复必须遵守）
+
+处理任何页面、组件或视觉任务时，按以下结构输出：
+
+### 1. 【问题诊断】
+
+逐条列出问题，并解释为什么是问题；禁止使用“不够美观”等无法验收的描述。
+
+### 2. 【改造方案】
+
+说明设计决策与涉及的具体 Token，如“卡片间距使用 `$space-sm`”。
+
+### 3. 【完整代码】
+
+- 代码必须可直接运行，不省略，不使用 `// ...省略` 占位。
+- 文件路径写在代码块上方注释或正文中。
+- 引用 Token 变量，不硬编码。
+
+### 4. 【自检清单】
+
+对照第 5 节（硬性视觉规则）和第 7 节（交互规范）逐条打勾或说明豁免。
+
+### 5. 【新 Token 建议】
+
+仅当现有 Token 不足时输出。必须先建议值和用途，不得直接硬编码。
+
+---
+
+## 11. 禁止事项清单（违反即重写）
+
+- 硬编码色值、字号、圆角、阴影。
+- 使用 `!important`。
+- 使用 `any`。
+- 使用 Options API。
+- 使用内联 style（动态计算除外）。
+- 用 index 作为 `v-for` key。
+- 使用 `document`、`window`、`localStorage`。
+- 页面出现 ≥ 2 个同色实心主按钮。
+- 一屏出现 ≥ 3 种圆角。
+- 出现纯黑 `#000` / 纯灰 `#999`。
+- 空状态只写“暂无数据”。
+- 按钮无防重复点击。
+- 长列表无分页。
+- 输出代码使用省略占位。
+- 只用文字段落解释流程；复杂流程必须改为步骤条或图形化流程。
+- 新增 mock、演示数据或页面内本地持久化。
+- 正式 UI 使用 emoji、字符箭头、字符加号代替图标。
+
+---
+
+## 12. 任务开始前必须做的事
+
+1. **先诊断，后写码**：收到页面/组件优化请求，先输出【问题诊断】，等用户确认后再写代码，除非用户明确说“直接给代码”。
+2. **一次只改一个维度**：布局、视觉、交互、适配分轮进行，不要一轮全部改完。
+3. **主动指出重复与割裂**：发现同一信息在多个区块重复、或按钮命名自相矛盾，必须指出并给出合并方案。
+4. **发现缺 Token 时先提问**，不得擅自硬编码。
+
+---
+
+## 13. 页面与接口边界（延续原工程约束）
+
+- 页面保留 `pages/<domain>/<page>.vue`；Tab 页使用 `index.vue`。
+- 角色元信息、Tab 配置放 `src/roles/catalog.ts`；权限能力与矩阵放 `src/roles/permission.ts`。
+- 领域实体关联保持对象形态，页面不定义 VO/DTO 包装。
+- Provider 响应统一接受 `{ success, data, errorCode }`；`Page<Entity>` 使用 `src/core/http.ts` 的 `listOf` 解包。
+- 能力接口按领域拆分，如 `crmApi.follow`、`scheduleApi.confirmNode`、`acceptanceApi.confirm`，禁止继续扩张跨领域 `projectApi`。
+- 表单、汇报、上传组件只收集输入后调用领域 API，不在组件内维护业务状态。
+- 角色新增时先扩展 `EmployeeRole`、`ROLE_META`、`ROLE_TABS` 和权限矩阵，再增加对应领域页面。
+- 正式 UI 禁止使用 emoji、字符箭头、字符加号等 Unicode 图标；统一使用 `src/components/JzIcon.vue` 的线性图标。
+
+---
+
+## 14. 参考锚点（家装相关页面）
+
+- 信息密度：参考“好好住”的案例卡片。
+- 图片处理：参考“小红书”的图文比例。
+- 流程表达：参考“美团”的订单状态步骤条。
+- 表单体验：参考“支付宝”的设置页。
+- 视觉克制：参考“苹果官网”的留白与层级。
+
+以上仅为风格参考，具体数值必须以本文件 Token 为准。
+
+---
+
+## 15. 客户详情页专项基准
+
+**总诊断：这不是“设计不好看”的问题，而是“信息架构没做分层 + 同一件事被表达了三遍”的问题。视觉只是表象，重做视觉之前必须先重组信息，否则越改越乱。**
+
+客户详情页重构执行以下 P0/P1 规则：
+
+1. **销售流程只能有一个视觉承载区**：删除“业务流程”“设计转化”“方案报价”三个同权独立卡片，合并为一个 `SalesSteps` 步骤条。
+2. **销售阶段固定五步**：`到店 → 跟进 → 量房 → 设计 → 报价`。当前阶段高亮，已完成打勾，未开始使用禁用色。
+3. **步骤条下方只显示当前阶段的唯一主 CTA**；其他阶段操作不得同时展示为可点击按钮。
+4. **按钮文案必须唯一且无近义重复**：同一动作只能有一个名称，如“设计转化”与“开始设计转化”不得同时出现。
+5. **房屋信息只表达一次**：删除独立“当前房屋”区块，将房号、面积、状态、编号、量房动作合并到 `HouseCard`。
+6. **多套房屋使用横向 `scroll-view`**，不得纵向重复堆叠多张同构卡片。
+7. **客户身份卡只保留身份信息**：头像、姓名、电话、顾问、状态标签；到店次数下沉到跟进记录或统计区域。
+8. **电话/复制等纯图标操作必须可识别**：使用 `JzIcon + 文本` 或明确的按钮标签，禁止让用户猜测图标含义。
+9. **页面主色高亮 / 实心操作最多 2 处**：步骤条当前节点 + 底部主 CTA；其中实心主按钮仍只能有 1 个（底部），其余操作使用描边或文字按钮。
+10. **key-value 统一两列栅格**：label 宽 `160rpx`，正文/次要字号按 Token；value 使用主文字 Token 与中等字重。
+11. **空值统一显示 `—`** 并使用 placeholder Token；不得把“无”“暂无数据”“尚未录入”作为多种写法混用。
+12. **可点击区域必须可辨识**：增加右侧 chevron 或按压态，展示型胶囊不得伪装成按钮。
+13. **底部固定栏主次明确**：一个主按钮（实心）、一个次按钮（描边）；页面中部不得重复同一入口。
+14. **长编号必须折叠显示**，如 `H1789…4323`，点击可复制全文。
+15. **业务流程说明文字全部删除**，用步骤条、标签和当前动作表达，不用长段落解释。
+
+### 15.1 客户详情重构后的目标结构
+
+```text
+[导航栏] 客户详情
+
+[客户身份卡]
+头像 / 姓名 / 电话 / 状态标签 / 顾问
+[JzIcon phone + 打电话] [JzIcon wechat + 加微信]
+
+[销售阶段]
+到店 → 跟进 → 量房 → 设计 → 报价
+当前节点高亮；当前阶段唯一 CTA
+
+[装修房屋 (n)]
+房号 / 状态 / 面积 / 户型 / 折叠编号
+[录入量房] 或 [查看量房]
+
+[客户信息]
+来源 / 房屋地址 / 营销进度 / 意向小区 / 户型面积 / 预算 / 备注
+
+[跟进记录]
+时间 / 方式 / 内容 / 下次跟进
+标题右侧唯一“写跟进”入口
+
+[底部固定栏]
+[写跟进：次按钮，描边] [生成报价：主按钮，实心]
+```
+
+### 15.2 客户详情交付要求
+
+- 页面文件：`src/subpackages/customer/pages/detail.vue`。
+- 步骤条组件：`src/subpackages/customer/components/SalesSteps/SalesSteps.vue`。
+- 房屋卡组件：`src/subpackages/customer/components/HouseCard/HouseCard.vue`。
+- 组件 Props 只接收实体或实体数组，不接收重新拼装的 DTO/VO。
+- 所有异步数据必须具备 loading / empty / error 三态。
+- 修改后必须运行 `npm run type-check`，并自查第 5、7、11、15 节。
+
+---
+
+## 16. 版本与同步
+
+- v1.0 · 装得清小程序端工程初始化规范。
+- v1.1 · 合并完整 UI/UX、Design Token、交互、多端、性能和客户详情专项规范。
+- 修改本文件后，必须同步检查当前 Token 真源 `src/uni.scss`、目标文件 `src/styles/tokens.scss`、可能新增的 `src/styles/tokens.ts / src/styles/variables.css`、相关 `src/styles/*.scss` 和现有 `Jz*` 组件，避免文档数值与运行值不一致。
+- 全局业务架构、Provider 路由对照和联调顺序见 `docs/04-App工程架构与接口对接.md`；业务设计见 `docs/01`、`docs/02`、`docs/03`。
+
+---
+
+## 17. 微信小程序分包强制规范（必须遵守）
+
+本节针对微信小程序包体和加载性能，优先级高于本文件第 3 节中任何旧的页面目录描述。当前项目**没有原生 tabBar**，使用 `JzTabBar + roles/catalog.ts ROLE_TABS` 实现角色化 Tab；这些 Tab 页同样必须留在主包。
+
+### 17.1 当前分包拓扑
+
+| root | 业务范围 |
+| --- | --- |
+| `subpackages/customer` | 客户详情、编辑、跟进、量房、量房记录 |
+| `subpackages/company` | 企业资料、成员、邀请、离职交接、退出企业 |
+| `subpackages/project` | 项目立项/详情/计划/成员/相册、阶段、任务、汇报、验收 |
+| `subpackages/design` | 设计转化、客户诉求、设计方案、谈单 PPT |
+| `subpackages/quote` | 报价列表/详情/编辑、家装材料库 |
+| `subpackages/team` | 团队、项目经理履约驾驶舱、设计调度 |
+| `subpackages/finance` | 资金台账、应收应付、收付款、项目账本、财务登记 |
+| `subpackages/statistic` | 经营驾驶舱、个人业绩、人员绩效 |
+| `subpackages/message` | 消息通知 |
+| `subpackages/subscription` | 订阅与门店 |
+| `subpackages/supply` | 供应链 |
+
+### 17.2 新增页面前必须判断
+
+1. 启动页、登录/授权页、企业加入/创建页、`TAB_PATHS` 中的 Tab 页 → 放 `src/pages`。
+2. 其他业务页面 → 放 `src/subpackages/<业务域>/pages`。
+3. 新页面必须同时写入 `src/pages.json`：主包页面写 `pages`；分包页面写对应 `subPackages[].pages` 的相对路径。
+4. 路由常量必须写入 `src/config/index.ts` 的 `P.*`，页面内禁止直接写路径字符串。
+5. 跳转必须使用绝对路径，例如：
+   `uni.navigateTo({ url: '/subpackages/order/pages/list' })`
+6. 新增自定义 Tab 页时必须同时更新 `P.*`、`TAB_PATHS`、`ROLE_TABS` 和 `src/pages.json` 的主包 `pages`，禁止放入分包。
+
+### 17.3 新增组件和公共依赖必须判断
+
+1. 两个及以上分包复用 → 放 `src/components`，作为主包公共组件。
+2. 仅一个分包使用 → 放 `src/subpackages/<业务域>/components`。
+3. 仅一个分包使用的工具、类型或 API 适配代码 → 优先放该分包私有目录；跨分包领域模型/API 保留在 `src/domains`。
+4. 禁止分包 A 引用分包 B 的私有组件、JS、样式或静态资源。
+5. 禁止主包引用任何 `src/subpackages/**` 私有资源。
+6. `CatalogPicker` 同时服务于设计和报价领域，是主包公共组件，不得下沉到任一业务包。
+7. 使用 `@/` 绝对别名引用主包公共依赖；分包私有文件可用 `@/subpackages/<当前域>/...`，禁止通过相对路径跨分包引用。
+
+### 17.4 新增静态资源必须判断
+
+1. 图片、字体、视频优先使用 CDN，不在仓库中叠加发布包。
+2. 单个静态文件大于 50KB → 必须走 CDN。
+3. 仅一个分包使用的小资源 → `src/subpackages/<业务域>/static`。
+4. 主包只允许 logo、Tab 图标等启动必需的小图；主包 `src/static` 必须保持最小化。
+5. 禁止在分包 `static` 中放大文件，也禁止主包 `static` 反向引用分包资源。
+
+### 17.5 独立分包和预下载
+
+1. 默认使用普通分包；只有页面不依赖主包会话、HTTP、全局组件、全局样式时，才允许配置 `independent: true`。
+2. 独立分包必须在 `pages.json` 和微信开发者工具中单独验证冷启动、登录态不依赖、资源自包含。
+3. 新增或调整高频入口时必须同步更新 `pages.json.preloadRule`；预下载只能引用已存在的分包 root。
+4. 预下载必须兼顾流量，非首屏高频链路优先使用 `network: "wifi"`。
+
+### 17.6 提交前强制检查
+
+1. 主包 ≤ 2MB。
+2. 单分包 ≤ 2MB。
+3. 总包 ≤ 20MB。
+4. 不存在主包到分包的私有引用，也不存在分包 A 到分包 B 的私有引用。
+5. 微信开发者工具“代码依赖分析”无缺失模块、无非法依赖。
+6. 所有分包跳转使用绝对路径，Tab、登录、启动和分包预下载均实测通过。
+7. 完成 `npm run type-check`、`npm run build:mp-weixin` 和 `npm run check:subpackages`，再上传体验版验证。
+8. 提交前推荐执行 `npm run verify:mp-weixin`，一次性完成类型检查、构建和分包守卫。
+9. 每次新增业务模块优先新增独立业务分包，禁止继续把非核心页面塞入主包。
+
+### 17.7 体积守护原则
+
+- 不允许为了省事把新业务页临时放主包后再“以后迁移”。
+- 任何会导致主包增长超过 1.5MB 的功能，必须在上线前重新做依赖分析并拆分。
+- 第三方库按需引入；引入前评估构建后体积，禁止整库导入。
+- 代码、配置和文档中的旧路径必须一起修改，禁止只移动文件不更新 `P.*` 和 `pages.json`。

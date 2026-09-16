@@ -1,0 +1,51 @@
+{
+  "name": "装得清",
+  "appid": "",
+  "description": "装得清——家装装企经营算清系统。以报价为中枢，连接线索、客户、房屋、量房、报价、合同、项目、材料与财务，让中小装企签单即算清利润，变更可追溯，经营看得清。",
+  "versionName": "1.0.1",
+  "versionCode": "101",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "modules": {},
+    "distribute": {
+      "android": {
+        "permissions": []
+      },
+      "ios": {},
+      "sdkConfigs": {}
+    }
+  },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "wxe5cc5fec9e50a9a9",
+    "setting": {
+      "urlCheck": true,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "lazyCodeLoading": "requiredComponents",
+    "optimization": {
+      "subPackages": true
+    }
+  },
+  "mp-alipay": {
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "装得清",
+    "router": {
+      "mode": "hash"
+    }
+  },
+  "vueVersion": "3"
+}

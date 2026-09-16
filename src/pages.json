@@ -1,0 +1,601 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/project/list",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/dynamic/index",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/mine/index",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/auth/enterprise",
+      "style": {
+        "navigationBarTitleText": "创建企业",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/legal/agreement",
+      "style": {
+        "navigationBarTitleText": "用户协议",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/legal/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私政策",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/invite/accept",
+      "style": {
+        "navigationBarTitleText": "加入企业",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/company/join",
+      "style": {
+        "navigationBarTitleText": "未加入企业",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/customer/list",
+      "style": {
+        "navigationBarTitleText": "客户",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
+      "path": "pages/finance/index",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F4F7F8"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "subpackages/customer",
+      "pages": [
+        {
+          "path": "pages/detail",
+          "style": {
+            "navigationBarTitleText": "客户详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/edit",
+          "style": {
+            "navigationBarTitleText": "新建客户",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/follow",
+          "style": {
+            "navigationBarTitleText": "跟进客户",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/measure",
+          "style": {
+            "navigationBarTitleText": "约定量房时间",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/measure-record",
+          "style": {
+            "navigationBarTitleText": "录入量房数据",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/property-edit",
+          "style": {
+            "navigationBarTitleText": "新增房屋",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/wechat-record",
+          "style": {
+            "navigationBarTitleText": "记录客户微信",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/company",
+      "pages": [
+        {
+          "path": "pages/info",
+          "style": {
+            "navigationBarTitleText": "我的企业",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/members",
+          "style": {
+            "navigationBarTitleText": "成员管理",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/member-detail",
+          "style": {
+            "navigationBarTitleText": "员工详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/invite",
+          "style": {
+            "navigationBarTitleText": "邀请员工",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/handover",
+          "style": {
+            "navigationBarTitleText": "离职交接",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/resign",
+          "style": {
+            "navigationBarTitleText": "退出企业",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/account",
+      "pages": [
+        {
+          "path": "pages/password",
+          "style": {
+            "navigationBarTitleText": "账号密码",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/project",
+      "pages": [
+        {
+          "path": "pages/create",
+          "style": {
+            "navigationBarTitleText": "合同签约与立项",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/detail",
+          "style": {
+            "navigationBarTitleText": "工地详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/plan",
+          "style": {
+            "navigationBarTitleText": "施工计划",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/plan-edit",
+          "style": {
+            "navigationBarTitleText": "施工计划排期",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/members",
+          "style": {
+            "navigationBarTitleText": "项目成员",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/invite",
+          "style": {
+            "navigationBarTitleText": "邀请业主同频",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/album",
+          "style": {
+            "navigationBarTitleText": "工地相册",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/stage/detail",
+          "style": {
+            "navigationBarTitleText": "施工阶段",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/task/detail",
+          "style": {
+            "navigationBarTitleText": "任务详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/task/edit",
+          "style": {
+            "navigationBarTitleText": "新建任务",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/report/edit",
+          "style": {
+            "navigationBarTitleText": "进度汇报",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/report/daily",
+          "style": {
+            "navigationBarTitleText": "施工日报",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/accept/edit",
+          "style": {
+            "navigationBarTitleText": "阶段验收",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/design",
+      "pages": [
+        {
+          "path": "pages/list",
+          "style": {
+            "navigationBarTitleText": "设计转化",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/requirements",
+          "style": {
+            "navigationBarTitleText": "客户诉求",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/requirement",
+          "style": {
+            "navigationBarTitleText": "客户诉求",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/scheme",
+          "style": {
+            "navigationBarTitleText": "设计方案",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/talk",
+          "style": {
+            "navigationBarTitleText": "谈单PPT",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/quote",
+      "pages": [
+        {
+          "path": "pages/catalog/manage",
+          "style": {
+            "navigationBarTitleText": "家装材料库",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/list",
+          "style": {
+            "navigationBarTitleText": "方案报价",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/detail",
+          "style": {
+            "navigationBarTitleText": "报价详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/edit",
+          "style": {
+            "navigationBarTitleText": "新建报价",
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/team",
+      "pages": [
+        {
+          "path": "pages/list",
+          "style": {
+            "navigationBarTitleText": "团队成员",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/workbench",
+          "style": {
+            "navigationBarTitleText": "项目经理履约驾驶舱",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/designers",
+          "style": {
+            "navigationBarTitleText": "设计调度",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/finance",
+      "pages": [
+        {
+          "path": "pages/ledger",
+          "style": {
+            "navigationBarTitleText": "资金台账",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/receivables",
+          "style": {
+            "navigationBarTitleText": "应收计划",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/receipts",
+          "style": {
+            "navigationBarTitleText": "收款记录",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/payables",
+          "style": {
+            "navigationBarTitleText": "应付账款",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/payments",
+          "style": {
+            "navigationBarTitleText": "付款记录",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/projects",
+          "style": {
+            "navigationBarTitleText": "项目账本",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/project",
+          "style": {
+            "navigationBarTitleText": "项目财务",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/entry",
+          "style": {
+            "navigationBarTitleText": "财务登记",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/statistic",
+      "pages": [
+        {
+          "path": "pages/analysis",
+          "style": {
+            "navigationBarTitleText": "经营驾驶舱",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/performance",
+          "style": {
+            "navigationBarTitleText": "我的业绩",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/assessment",
+          "style": {
+            "navigationBarTitleText": "人员绩效考核",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/message",
+      "pages": [
+        {
+          "path": "pages/list",
+          "style": {
+            "navigationBarTitleText": "消息通知",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/subscription",
+      "pages": [
+        {
+          "path": "pages/index",
+          "style": {
+            "navigationBarTitleText": "订阅与门店",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/supply",
+      "pages": [
+        {
+          "path": "pages/index",
+          "style": {
+            "navigationBarTitleText": "供应链",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "wifi",
+      "packages": [
+        "subpackages/customer",
+        "subpackages/project",
+        "subpackages/design",
+        "subpackages/quote"
+      ]
+    },
+    "pages/project/list": {
+      "network": "all",
+      "packages": [
+        "subpackages/project"
+      ]
+    },
+    "pages/customer/list": {
+      "network": "all",
+      "packages": [
+        "subpackages/customer"
+      ]
+    },
+    "pages/dynamic/index": {
+      "network": "all",
+      "packages": [
+        "subpackages/message"
+      ]
+    },
+    "pages/mine/index": {
+      "network": "wifi",
+      "packages": [
+        "subpackages/company",
+        "subpackages/team",
+        "subpackages/statistic",
+        "subpackages/subscription"
+      ]
+    },
+    "pages/finance/index": {
+      "network": "all",
+      "packages": [
+        "subpackages/finance",
+        "subpackages/statistic"
+      ]
+    }
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "装得清",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F4F7F8",
+    "backgroundColorTop": "#F4F7F8",
+    "backgroundColorBottom": "#F4F7F8"
+  }
+}

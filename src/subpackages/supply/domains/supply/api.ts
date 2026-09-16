@@ -1,0 +1,104 @@
+import { post, listOf } from '@/core/http'
+import type { PageResult } from '@/domains/common/model'
+import type { InventoryStock, Partner, PartnerPrice, PartnerStatus, PartnerType, StockMovement, StockMovementType } from './model'
+
+type Raw = Record<string, any>
+
+const PARTNER_TYPE: Record<string, PartnerType> = {
+  Supplier: 'supplier', Factory: 'factory', LaborTeam: 'laborTeam', Installer: 'installer',
+  Logistics: 'logistics', Service: 'service'
+}
+const PARTNER_STATUS: Record<string, PartnerStatus> = { Active: 'active', Disabled: 'disabled' }
+const MOVEMENT_TYPE: Record<string, StockMovementType> = {
+  Inbound: 'inbound', Issue: 'issue', Loss: 'loss', ReturnIn: 'returnIn', ReturnOut: 'returnOut', Adjustment: 'adjustment'
+}
+
+function enumValue(raw: unknown): string {
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object') return String((raw as Raw).value ?? '')
+  return ''
+}
+
+function normalizePartner(raw: Raw): Partner {
+  return {
+    id: String(raw.id ?? raw.partnerId ?? ''),
+    type: PARTNER_TYPE[enumValue(raw.type)] || 'supplier',
+    name: raw.name ?? '',
+    contactName: raw.contactName,
+    telNo: raw.telNo,
+    taxNo: raw.taxNo,
+    addr: raw.addr,
+    settlementTerms: raw.settlementTerms,
+    status: PARTNER_STATUS[enumValue(raw.status)] || 'active',
+    payableAmount: Number(raw.payableAmount ?? 0),
+    paidAmount: Number(raw.paidAmount ?? 0),
+    outstandingAmount: Number(raw.outstandingAmount ?? 0)
+  }
+}
+
+function normalizePrice(raw: Raw): PartnerPrice {
+  return {
+    id: String(raw.id ?? raw.partnerPriceId ?? ''),
+    partnerId: String(raw.partnerId ?? raw.partner?.partnerId ?? ''),
+    partnerName: raw.partner?.name ?? '',
+    itemId: String(raw.itemId ?? raw.item?.itemId ?? ''),
+    itemName: raw.item?.name ?? '',
+    purchasePrice: Number(raw.purchasePrice ?? 0),
+    laborPrice: Number(raw.laborPrice ?? 0),
+    minimumOrder: Number(raw.minimumOrder ?? 1),
+    leadTimeDays: Number(raw.leadTimeDays ?? 0),
+    settlementDays: Number(raw.settlementDays ?? 0)
+  }
+}
+
+function normalizeStock(raw: Raw): InventoryStock {
+  return {
+    id: String(raw.id ?? raw.stockId ?? ''),
+    warehouseName: raw.store?.name,
+    itemId: String(raw.itemId ?? raw.item?.itemId ?? ''),
+    itemName: raw.item?.name ?? '',
+    brand: raw.item?.brand,
+    spec: raw.item?.spec,
+    batchNo: raw.batchNo,
+    quantity: Number(raw.quantity ?? 0),
+    lockedQuantity: Number(raw.lockedQuantity ?? 0),
+    availableQuantity: Number(raw.availableQuantity ?? raw.quantity ?? 0),
+    unitCost: Number(raw.unitCost ?? 0),
+    safetyStock: Number(raw.safetyStock ?? 0),
+    expiryDate: raw.expiryDate
+  }
+}
+
+function normalizeMovement(raw: Raw): StockMovement {
+  return {
+    id: String(raw.id ?? raw.movementId ?? ''),
+    itemName: raw.item?.name ?? '',
+    projectId: raw.projectId ? String(raw.projectId) : raw.project?.projectId ? String(raw.project.projectId) : undefined,
+    type: MOVEMENT_TYPE[enumValue(raw.type)] || 'adjustment',
+    quantity: Number(raw.quantity ?? 0),
+    unitCost: Number(raw.unitCost ?? 0),
+    amount: Number(raw.amount ?? 0),
+    beforeQuantity: Number(raw.beforeQuantity ?? 0),
+    afterQuantity: Number(raw.afterQuantity ?? 0),
+    sourceNo: raw.sourceNo,
+    occurredAt: raw.occurredAt,
+    operatorName: raw.operator?.name,
+    remark: raw.remark
+  }
+}
+
+export const supplyApi = {
+  partners: async (type?: PartnerType) =>
+    listOf(await post<PageResult<Raw> | Raw[]>('partner/page', {
+      type: type ? Object.entries(PARTNER_TYPE).find(([, value]) => value === type)?.[0] : undefined
+    })).map(normalizePartner),
+  partnerPrices: async (partnerId?: string) =>
+    listOf(await post<PageResult<Raw> | Raw[]>('partner-price/page', { partnerId })).map(normalizePrice),
+  inventory: async () =>
+    listOf(await post<PageResult<Raw> | Raw[]>('inventory/stock/page', {})).map(normalizeStock),
+  warnings: async () =>
+    listOf(await post<PageResult<Raw> | Raw[]>('inventory/stock/warning', {})).map(normalizeStock),
+  movements: async (projectId?: string) =>
+    listOf(await post<PageResult<Raw> | Raw[]>('stock/movement/page', { projectId })).map(normalizeMovement),
+  statement: async (partnerId: string) => normalizePartner(await post<Raw>('partner/statement/report', { partnerId }))
+}

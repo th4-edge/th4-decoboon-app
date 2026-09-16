@@ -1,0 +1,95 @@
+/** 运行时配置（.env 可覆盖） */
+export const runtime = {
+  /** Provider 网关前缀，与 th4-web 保持一致。 */
+  apiBase: import.meta.env.VITE_API_BASE,
+  environment: import.meta.env.VITE_APP_ENV,
+  isProduction: import.meta.env.PROD,
+  /** 身份令牌存储键。 */
+  tokenKey: 'jzb_token',
+  appName: '装得清',
+  version: '1.0.0',
+  agreementVersion: import.meta.env.VITE_AGREEMENT_VERSION,
+  privacyVersion: import.meta.env.VITE_PRIVACY_VERSION,
+  legalReviewed: import.meta.env.VITE_LEGAL_REVIEWED === 'true',
+  legalSubject: import.meta.env.VITE_LEGAL_SUBJECT,
+  legalContact: import.meta.env.VITE_LEGAL_CONTACT
+}
+
+/** 页面路径集中管理，页面代码禁止直接写魔法字符串。 */
+export const P = {
+  home: '/pages/index/index',
+  projectList: '/pages/project/list',
+  dynamic: '/pages/dynamic/index',
+  mine: '/pages/mine/index',
+  login: '/pages/auth/login',
+  enterprise: '/pages/auth/enterprise',
+  userAgreement: '/pages/legal/agreement',
+  privacyPolicy: '/pages/legal/privacy',
+  inviteAccept: '/pages/invite/accept',
+  companyJoin: '/pages/company/join',
+  companyInfo: '/subpackages/company/pages/info',
+  companyMembers: '/subpackages/company/pages/members',
+  companyMemberDetail: '/subpackages/company/pages/member-detail',
+  companyInvite: '/subpackages/company/pages/invite',
+  companyResign: '/subpackages/company/pages/resign',
+  companyHandover: '/subpackages/company/pages/handover',
+  accountPassword: '/subpackages/account/pages/password',
+  customerList: '/pages/customer/list',
+  customerDetail: '/subpackages/customer/pages/detail',
+  customerEdit: '/subpackages/customer/pages/edit',
+  customerFollow: '/subpackages/customer/pages/follow',
+  customerMeasure: '/subpackages/customer/pages/measure',
+  customerMeasureRecord: '/subpackages/customer/pages/measure-record',
+  customerPropertyEdit: '/subpackages/customer/pages/property-edit',
+  customerWechatRecord: '/subpackages/customer/pages/wechat-record',
+  projectCreate: '/subpackages/project/pages/create',
+  projectDetail: '/subpackages/project/pages/detail',
+  projectPlan: '/subpackages/project/pages/plan',
+  projectPlanEdit: '/subpackages/project/pages/plan-edit',
+  projectMembers: '/subpackages/project/pages/members',
+  projectInvite: '/subpackages/project/pages/invite',
+  projectAlbum: '/subpackages/project/pages/album',
+  stageDetail: '/subpackages/project/pages/stage/detail',
+  taskDetail: '/subpackages/project/pages/task/detail',
+  taskEdit: '/subpackages/project/pages/task/edit',
+  reportEdit: '/subpackages/project/pages/report/edit',
+  reportDaily: '/subpackages/project/pages/report/daily',
+  designList: '/subpackages/design/pages/list',
+  designRequirements: '/subpackages/design/pages/requirements',
+  designRequirement: '/subpackages/design/pages/requirement',
+  designScheme: '/subpackages/design/pages/scheme',
+  designTalk: '/subpackages/design/pages/talk',
+  catalogManage: '/subpackages/quote/pages/catalog/manage',
+  quoteList: '/subpackages/quote/pages/list',
+  quoteDetail: '/subpackages/quote/pages/detail',
+  quoteEdit: '/subpackages/quote/pages/edit',
+  acceptEdit: '/subpackages/project/pages/accept/edit',
+  teamList: '/subpackages/team/pages/list',
+  subscription: '/subpackages/subscription/pages/index',
+  msgList: '/subpackages/message/pages/list',
+  performance: '/subpackages/statistic/pages/performance',
+  performanceAssessment: '/subpackages/statistic/pages/assessment',
+  analysis: '/subpackages/statistic/pages/analysis',
+  managerWorkbench: '/subpackages/team/pages/workbench',
+  managerDesigners: '/subpackages/team/pages/designers',
+  financeHome: '/pages/finance/index',
+  financeLedger: '/subpackages/finance/pages/ledger',
+  financeReceivables: '/subpackages/finance/pages/receivables',
+  financeReceipts: '/subpackages/finance/pages/receipts',
+  financePayables: '/subpackages/finance/pages/payables',
+  financePayments: '/subpackages/finance/pages/payments',
+  financeProjects: '/subpackages/finance/pages/projects',
+  financeProject: '/subpackages/finance/pages/project',
+  financeEntry: '/subpackages/finance/pages/entry',
+  supply: '/subpackages/supply/pages/index'
+} as const
+
+export const TAB_PATHS = [P.home, P.projectList, P.customerList, P.dynamic, P.mine, P.financeHome]
+
+export function isTabPath(path: string): boolean {
+  return TAB_PATHS.includes(path as (typeof TAB_PATHS)[number])
+}
+
+export function goTab(url: string) {
+  uni.redirectTo({ url })
+}

@@ -1,0 +1,222 @@
+import { post, listOf } from '@/core/http'
+import { dateTimeValue } from '@/core/format'
+import type { PageResult } from '@/domains/common/model'
+import { normalizeProject } from '@/domains/project/api'
+import type { Project } from '@/domains/project/model'
+import { normalizeCustomer } from '@/domains/crm/api'
+import { normalizeEmployee } from '@/domains/identity/api'
+import type {
+  FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
+  Payable, PayableStatus, PayableType, Payment, Receipt, Receivable,
+  ReceivableStatus, ReceivableType, Settlement, SettlementStatus
+} from './model'
+
+type Raw = Record<string, any>
+const RECEIVABLE_TYPE_API: Record<ReceivableType, string> = { first: 'First', progress: 'Progress', final: 'Final', retention: 'Retention', other: 'Other' }
+const RECEIVABLE_TYPE_UI: Record<string, ReceivableType> = { first: 'first', progress: 'progress', final: 'final', retention: 'retention', other: 'other' }
+const RECEIVABLE_STATUS_UI: Record<string, ReceivableStatus> = { pending: 'pending', partial: 'partial', received: 'received', overdue: 'overdue', closed: 'closed' }
+const PAYABLE_TYPE_API: Record<PayableType, string> = { material: 'Material', salary: 'Salary', project: 'Project', supplier: 'Supplier', expense: 'Expense', other: 'Other' }
+const PAYABLE_TYPE_UI: Record<string, PayableType> = { material: 'material', salary: 'salary', project: 'project', supplier: 'supplier', expense: 'expense', other: 'other' }
+const PAYABLE_STATUS_UI: Record<string, PayableStatus> = { pending: 'pending', partial: 'partial', paid: 'paid', overdue: 'overdue', closed: 'closed' }
+const ACCOUNT_API: Record<FundAccount, string> = { companyBank: 'CompanyBank', cash: 'Cash', wechat: 'Wechat', alipay: 'Alipay', other: 'Other' }
+const ACCOUNT_UI: Record<string, FundAccount> = { companybank: 'companyBank', cash: 'cash', wechat: 'wechat', alipay: 'alipay', other: 'other' }
+const LEDGER_DIRECTION_API: Record<LedgerDirection, string> = { income: 'Income', expense: 'Expense' }
+const SETTLEMENT_STATUS_API: Record<SettlementStatus, string> = {
+  draft: 'Draft', confirmed: 'Confirmed', closed: 'Closed',
+  retentionPending: 'RetentionPending', retentionReleased: 'RetentionReleased'
+}
+
+function enumValue(raw: unknown): string {
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object') {
+    const item = raw as Raw
+    return String(item.value ?? item.key ?? item.name ?? '')
+  }
+  return ''
+}
+function lower(raw: unknown) { return enumValue(raw).toLowerCase() }
+function num(raw: unknown) { const value = Number(raw ?? 0); return Number.isFinite(value) ? value : 0 }
+function rawProject(raw: Raw): Project | undefined { return raw.project ? normalizeProject(raw.project) : undefined }
+function time(raw: Raw) { return dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime) }
+
+function normalizeReceivable(raw: Raw): Receivable {
+  const amount = num(raw.amount)
+  const receivedAmount = num(raw.receivedAmount)
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.receivableId ?? ''),
+    project: normalizeProject(raw.project || {}),
+    customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    name: raw.name ?? '', stageName: raw.stageName,
+    type: RECEIVABLE_TYPE_UI[lower(raw.type)] || 'other',
+    amount, receivedAmount,
+    outstandingAmount: Math.max(amount - receivedAmount, 0),
+    dueDate: raw.dueDate ?? '',
+    status: RECEIVABLE_STATUS_UI[lower(raw.status)] || 'pending',
+    invoiceRequired: !!raw.invoiceRequired, invoiceNo: raw.invoiceNo, remark: raw.remark,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined,
+    createdAt: time(raw)
+  }
+}
+function normalizeReceipt(raw: Raw): Receipt {
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.receiptId ?? ''),
+    project: normalizeProject(raw.project || {}),
+    receivable: raw.receivable ? normalizeReceivable(raw.receivable) : undefined,
+    customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    receivedAt: raw.receivedAt ?? '', payerName: raw.payerName, voucherUrl: raw.voucherUrl, remark: raw.remark,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizePayable(raw: Raw): Payable {
+  const amount = num(raw.amount)
+  const paidAmount = num(raw.paidAmount)
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.payableId ?? ''),
+    project: rawProject(raw),
+    materialPlan: raw.materialPlan ? { id: String(raw.materialPlan.id ?? raw.materialPlan.materialPlanId ?? ''), name: raw.materialPlan.name } : undefined,
+    name: raw.name ?? '',
+    type: PAYABLE_TYPE_UI[lower(raw.type)] || 'other',
+    payeeEmployee: raw.payeeEmployee ? normalizeEmployee(raw.payeeEmployee) : undefined,
+    payeeName: raw.payeeName, period: raw.period, amount, paidAmount,
+    outstandingAmount: Math.max(amount - paidAmount, 0), dueDate: raw.dueDate ?? '',
+    status: PAYABLE_STATUS_UI[lower(raw.status)] || 'pending', urgent: !!raw.urgent,
+    sourceNo: raw.sourceNo, remark: raw.remark,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizePayment(raw: Raw): Payment {
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.paymentId ?? ''),
+    project: rawProject(raw),
+    payable: raw.payable ? normalizePayable(raw.payable) : undefined,
+    amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    paidAt: raw.paidAt ?? '', payeeName: raw.payeeName, transactionNo: raw.transactionNo,
+    voucherUrl: raw.voucherUrl, remark: raw.remark,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizeLedger(raw: Raw): Ledger {
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.ledgerId ?? ''),
+    project: rawProject(raw),
+    direction: lower(raw.direction) === 'expense' ? 'expense' : 'income',
+    category: raw.category ?? '', source: lower(raw.source) as Ledger['source'],
+    sourceId: raw.sourceId == null ? undefined : String(raw.sourceId),
+    amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    occurredAt: raw.occurredAt ?? '', counterparty: raw.counterparty, summary: raw.summary ?? '', remark: raw.remark,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizeSettlement(raw: Raw): Settlement {
+  const status = lower(raw.status)
+  return {
+    ...raw,
+    id: String(raw.id ?? raw.settlementId ?? ''),
+    project: normalizeProject(raw.project || {}),
+    contractAmount: num(raw.contractAmount), receivableAmount: num(raw.receivableAmount),
+    changeAmount: num(raw.changeAmount), deductionAmount: num(raw.deductionAmount),
+    rewardAmount: num(raw.rewardAmount), finalAmount: num(raw.finalAmount),
+    retentionRate: num(raw.retentionRate), retentionAmount: num(raw.retentionAmount),
+    retentionReleaseAt: raw.retentionReleaseAt, retentionReleasedAt: raw.retentionReleasedAt,
+    receivedAmount: num(raw.receivedAmount), payableAmount: num(raw.payableAmount), paidAmount: num(raw.paidAmount),
+    materialAmount: num(raw.materialAmount), salaryAmount: num(raw.salaryAmount), projectAmount: num(raw.projectAmount),
+    expenseAmount: num(raw.expenseAmount), totalCost: num(raw.totalCost), profitAmount: num(raw.profitAmount),
+    grossMargin: num(raw.grossMargin),
+    status: (['draft', 'confirmed', 'closed', 'retentionpending', 'retentionreleased'].includes(status) ? status : 'draft') as SettlementStatus,
+    confirmedBy: raw.confirmedBy ? normalizeEmployee(raw.confirmedBy) : undefined,
+    confirmedAt: raw.confirmedAt, closedAt: raw.closedAt, remark: raw.remark, createdAt: time(raw)
+  }
+}
+function normalizeSummary(raw: Raw): FinanceSummary {
+  return {
+    ...raw,
+    projectCount: num(raw.projectCount), activeProjectCount: num(raw.activeProjectCount),
+    contractAmount: num(raw.contractAmount), receivableAmount: num(raw.receivableAmount),
+    receivedAmount: num(raw.receivedAmount), outstandingAmount: num(raw.outstandingAmount), overdueAmount: num(raw.overdueAmount),
+    payableAmount: num(raw.payableAmount), paidAmount: num(raw.paidAmount), unpaidAmount: num(raw.unpaidAmount),
+    materialPayableAmount: num(raw.materialPayableAmount), salaryPayableAmount: num(raw.salaryPayableAmount),
+    projectPayableAmount: num(raw.projectPayableAmount), otherPayableAmount: num(raw.otherPayableAmount),
+    monthIncome: num(raw.monthIncome), monthExpense: num(raw.monthExpense), cashBalance: num(raw.cashBalance),
+    profitAmount: num(raw.profitAmount), collectionRate: num(raw.collectionRate),
+    urgentReceivables: (raw.urgentReceivables || []).map((item: Raw) => normalizeReceivable(item)),
+    urgentPayables: (raw.urgentPayables || []).map((item: Raw) => normalizePayable(item)),
+    recentLedgers: (raw.recentLedgers || []).map((item: Raw) => normalizeLedger(item))
+  }
+}
+function normalizeProjectReport(raw: Raw): FinanceProjectReport {
+  return {
+    ...raw,
+    project: normalizeProject(raw.project || {}),
+    contractAmount: num(raw.contractAmount), contractRevenue: num(raw.contractRevenue),
+    receivableAmount: num(raw.receivableAmount),
+    receivedAmount: num(raw.receivedAmount), outstandingAmount: num(raw.outstandingAmount), overdueAmount: num(raw.overdueAmount),
+    payableAmount: num(raw.payableAmount), paidAmount: num(raw.paidAmount), unpaidAmount: num(raw.unpaidAmount),
+    materialAmount: num(raw.materialAmount), materialCost: num(raw.materialCost),
+    salaryAmount: num(raw.salaryAmount), laborCost: num(raw.laborCost),
+    projectPaymentAmount: num(raw.projectPaymentAmount), projectCost: num(raw.projectCost),
+    otherPayableAmount: num(raw.otherPayableAmount), expenseAllocation: num(raw.expenseAllocation),
+    totalCost: num(raw.totalCost), profitAmount: num(raw.profitAmount), grossProfit: num(raw.grossProfit),
+    grossMargin: num(raw.grossMargin), collectionRate: num(raw.collectionRate), paymentRate: num(raw.paymentRate),
+    receivableCleared: !!raw.receivableCleared, payableCleared: !!raw.payableCleared,
+    settlement: raw.settlement ? normalizeSettlement(raw.settlement) : undefined,
+    receivables: (raw.receivables || []).map((item: Raw) => normalizeReceivable(item)),
+    payables: (raw.payables || []).map((item: Raw) => normalizePayable(item)),
+    recentLedgers: (raw.recentLedgers || []).map((item: Raw) => normalizeLedger(item))
+  }
+}
+function paged<T>(result: PageResult<Raw> | Raw[], normalize: (raw: Raw) => T) { return listOf(result).map(normalize) }
+
+export const financeApi = {
+  summary: async () => normalizeSummary(await post<Raw>('finance/summary/report', {})),
+  projectPage: async (params: { projectId?: string; status?: string; keyword?: string; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/project/page', { current: 1, size: 100, ...params }), normalizeProjectReport),
+  projectReport: async (projectId: string) => normalizeProjectReport(await post<Raw>('finance/project/report', { projectId })),
+  receivables: async (params: { projectId?: string; type?: ReceivableType; status?: ReceivableStatus; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/receivable/page', {
+      current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId,
+      type: params.type ? RECEIVABLE_TYPE_API[params.type] : undefined, status: params.status
+    }), normalizeReceivable),
+  saveReceivable: async (input: { projectId: string; name: string; stageName?: string; type: ReceivableType; amount: number; dueDate: string; invoiceRequired?: boolean; invoiceNo?: string; remark?: string }) =>
+    normalizeReceivable(await post<Raw>('finance/receivable/save', { ...input, type: RECEIVABLE_TYPE_API[input.type] })),
+  updateReceivable: async (input: { id: string; name?: string; stageName?: string; type?: ReceivableType; amount?: number; dueDate?: string; invoiceRequired?: boolean; invoiceNo?: string; remark?: string }) =>
+    normalizeReceivable(await post<Raw>('finance/receivable/update', {
+      receivableId: input.id, name: input.name, stageName: input.stageName,
+      type: input.type ? RECEIVABLE_TYPE_API[input.type] : undefined, amount: input.amount,
+      dueDate: input.dueDate, invoiceRequired: input.invoiceRequired, invoiceNo: input.invoiceNo, remark: input.remark
+    })),
+  receipts: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceipt),
+  createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string }) =>
+    normalizeReceipt(await post<Raw>('finance/receipt/save', { ...input, account: ACCOUNT_API[input.account] })),
+  payables: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/payable/page', {
+      current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, urgent: params.urgent,
+      type: params.type ? PAYABLE_TYPE_API[params.type] : undefined, status: params.status
+    }), normalizePayable),
+  savePayable: async (input: { projectId?: string; materialPlanId?: string; name: string; type: PayableType; payeeEmployeeId?: string; payeeName?: string; period?: string; amount: number; dueDate: string; urgent?: boolean; sourceNo?: string; remark?: string }) =>
+    normalizePayable(await post<Raw>('finance/payable/save', { ...input, type: PAYABLE_TYPE_API[input.type] })),
+  updatePayable: async (input: { id: string; name?: string; amount?: number; dueDate?: string; urgent?: boolean; period?: string; remark?: string }) =>
+    normalizePayable(await post<Raw>('finance/payable/update', { payableId: input.id, name: input.name, amount: input.amount, dueDate: input.dueDate, urgent: input.urgent, period: input.period, remark: input.remark })),
+  payments: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
+  createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
+    normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
+  ledgers: async (params: { projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/ledger/page', { ...params, current: params.current ?? 1, size: params.size ?? 300 }), normalizeLedger),
+  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; category: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
+    normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
+  settlements: async (params: { projectId?: string; status?: SettlementStatus } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/settlement/page', { current: 1, size: 200, ...params }), normalizeSettlement),
+  saveSettlement: async (projectId: string, remark?: string) =>
+    normalizeSettlement(await post<Raw>('finance/settlement/save', { projectId, remark })),
+  updateSettlement: async (id: string, status: SettlementStatus, remark?: string) =>
+    normalizeSettlement(await post<Raw>('finance/settlement/update', { settlementId: id, status: SETTLEMENT_STATUS_API[status], remark })),
+  releaseRetention: async (id: string, releasedAt?: string) =>
+    normalizeSettlement(await post<Raw>('finance/settlement/retention-release', { settlementId: id, releasedAt }))
+}

@@ -1,0 +1,109 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { P, goTab } from '@/config'
+import { isLoggedIn, session } from '@/domains/identity/session'
+import { can, isCustomer } from '@/roles/permission'
+import type { Project } from '@/domains/project/model'
+import type { SiteReport } from '@/domains/site/model'
+import { projectApi } from '@/domains/project/api'
+import { siteApi } from '@/domains/site/api'
+import { visibleProjects } from '@/domains/project/scope'
+import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzTabBar from '@/components/JzTabBar.vue'
+import JzReportCard from '@/components/JzReportCard.vue'
+import JzEmpty from '@/components/JzEmpty.vue'
+import JzFloatAdd from '@/components/JzFloatAdd.vue'
+import JzActionSheet from '@/components/JzActionSheet.vue'
+import { toastError } from '@/composables/toast'
+
+const role = computed(() => session.role || 'customer')
+const emp = computed(() => session.emp)
+const customer = computed(() => session.customer)
+const projects = ref<Project[]>([])
+const reports = ref<SiteReport[]>([])
+const pickVisible = ref(false)
+const pickProjects = ref<Project[]>([])
+
+onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
+onShow(() => { if (isLoggedIn()) refresh() })
+onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+
+const scopedProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
+const feed = computed(() => {
+  const ids = scopedProjects.value.map((p) => p.id)
+  return reports.value.filter((r) => ids.includes(r.projectId))
+})
+
+async function refresh() {
+  try {
+    const [ps, rs] = await Promise.all([projectApi.list(), siteApi.allReports()])
+    projects.value = ps
+    reports.value = rs
+  } catch (error) {
+    projects.value = []
+    reports.value = []
+    toastError(error, '动态加载失败，请稍后重试')
+  }
+}
+
+function canReport() { return can(role.value, 'act:report') }
+
+async function startReport() {
+  if (!canReport()) return
+  const list = scopedProjects.value
+  if (!list.length) { uni.showToast({ title: '暂无可汇报项目', icon: 'none' }); return }
+  if (list.length === 1) {
+    uni.navigateTo({ url: `${P.reportEdit}?projectId=${list[0].id}` })
+    return
+  }
+  pickProjects.value = list
+  pickVisible.value = true
+}
+
+const pickActions = computed(() => pickProjects.value.map((p) => ({ label: p.name })))
+
+function onPickProject(index: number) {
+  const target = pickProjects.value[index]
+  if (!target) return
+  pickVisible.value = false
+  uni.navigateTo({ url: `${P.reportEdit}?projectId=${target.id}` })
+}
+</script>
+
+<template>
+  <view class="dy">
+    <JzPageHeader title="同频动态" :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'" right-text="写汇报" right-icon="edit" @right="startReport" />
+
+    <view class="dy__scope jz-card">
+      <text class="dy__scope-label">{{ isCustomer(role) ? '我的工地动态' : '我参与的工地动态' }}</text>
+      <text class="dy__scope-count">{{ feed.length }} 条</text>
+    </view>
+
+    <view class="dy__body">
+      <JzReportCard v-for="r in feed" :key="r.id" :report="r" />
+      <view v-if="!feed.length" class="jz-card dy__empty">
+        <JzEmpty text="暂无动态" :sub="isCustomer(role) ? '项目开工后，每一步进展都会同步到这里' : '现场打卡、阶段开工、验收申请都会进入时间线'" />
+      </view>
+    </view>
+
+    <JzFloatAdd v-if="canReport()" text="写汇报" @tap="startReport" />
+    <JzTabBar :current="P.dynamic" />
+
+    <JzActionSheet
+      :visible="pickVisible"
+      title="选择汇报项目"
+      :actions="pickActions"
+      @select="onPickProject"
+      @close="pickVisible = false"
+    />
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.dy__scope { margin: 0 $jzb-page-pad 22rpx; padding: 24rpx; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #FFFFFF, #F4FBFA); }
+.dy__scope-label { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.dy__scope-count { padding: 8rpx 18rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; font-weight: 650; }
+.dy__body { padding-bottom: calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }
+.dy__empty { margin: 0 $jzb-page-pad; }
+</style>

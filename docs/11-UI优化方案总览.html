@@ -1,0 +1,116 @@
+<html style="margin:0;padding:0;">
+<div style="font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif;background:#F4F7F8;color:#17212B;padding:20px;box-sizing:border-box;width:100%;border-radius:16px;">
+
+  <div style="font-size:20px;font-weight:750;color:#17212B;margin-bottom:4px;">装得清 UI 优化方案总览</div>
+  <div style="font-size:13px;color:#778390;margin-bottom:16px;">数据来源：2026-09-14 代码走查（50 页面 / 11 组件）· 详细方案见 docs/11-UI优化设计方案.md</div>
+
+  <!-- 核心：按钮四级动作体系 -->
+  <div style="background:#FFFFFF;border-radius:14px;padding:16px 16px 12px;box-shadow:0 2px 8px rgba(15,23,42,.045);margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="width:6px;height:16px;border-radius:3px;background:linear-gradient(135deg,#2BC4B4,#0B786F);display:inline-block;"></span>
+      <span style="font-size:15px;font-weight:700;">核心抓手 · 按钮四级动作体系（解决“突兀”与“主次不分”）</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+
+      <div style="flex:1;min-width:150px;background:#E8F7F5;border:1px solid rgba(22,163,148,.28);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:#0E8A7D;margin-bottom:6px;">L1 主操作 · 每屏唯一</div>
+        <div style="font-size:13px;font-weight:650;background:linear-gradient(135deg,#1FB5A8,#0B786F);color:#fff;border-radius:8px;padding:6px 10px;text-align:center;display:inline-block;">生成报价</div>
+        <div style="font-size:12px;color:#465260;margin-top:6px;">推进业务阶段的动作，渐变实底+投影，全宽或 grow</div>
+      </div>
+
+      <div style="flex:1;min-width:150px;background:#FFFFFF;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:#0E8A7D;margin-bottom:6px;">L2 次级操作 · 每屏≤2</div>
+        <div style="font-size:13px;font-weight:650;color:#0E8A7D;background:#E8F7F5;border-radius:8px;padding:6px 10px;text-align:center;display:inline-block;">保存草稿</div>
+        <div style="font-size:12px;color:#465260;margin-top:6px;">取消 / 补充信息 / 并列入口（plain·ghost·neutral）</div>
+      </div>
+
+      <div style="flex:1;min-width:150px;background:#FFFFFF;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:#0E8A7D;margin-bottom:6px;">L3 图标按钮 · JzIconButton 新增</div>
+        <div style="display:flex;gap:6px;margin-bottom:4px;">
+          <span style="width:40px;height:40px;border-radius:50%;background:#E8F7F5;display:inline-flex;align-items:center;justify-content:center;font-size:16px;color:#0E8A7D;">✆</span>
+          <span style="width:40px;height:40px;border-radius:50%;background:#F1F4F7;display:inline-flex;align-items:center;justify-content:center;font-size:15px;color:#4E5969;">⧉</span>
+          <span style="width:40px;height:40px;border-radius:50%;background:#F1F4F7;display:inline-flex;align-items:center;justify-content:center;font-size:15px;color:#4E5969;">✎</span>
+        </div>
+        <div style="font-size:12px;color:#465260;">高频通用动作：电话/复制/编辑/更多；触控区≥88rpx</div>
+      </div>
+
+      <div style="flex:1;min-width:150px;background:#FFFFFF;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:12px;font-weight:700;color:#0E8A7D;margin-bottom:6px;">L4 文字链接 · 低优先入口</div>
+        <div style="font-size:13px;font-weight:650;color:#0E8A7D;padding:6px 4px;">写跟进 →</div>
+        <div style="font-size:12px;color:#465260;margin-top:6px;">列表行尾 / 区块头的低频动作，不占按钮位</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#778390;margin-top:10px;line-height:1.6;">图标代替的边界：业务推进类（生成报价/合同生效/提交验收）与危险/不可逆操作禁止图标化；业务动作图标必须“图标+文字”双通道，纯图标仅限 8 类通用动作。</div>
+  </div>
+
+  <!-- 六问题 → 对策 → 效果 -->
+  <div style="background:#FFFFFF;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(15,23,42,.045);margin-bottom:14px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="width:6px;height:16px;border-radius:3px;background:linear-gradient(135deg,#2BC4B4,#0B786F);display:inline-block;"></span>
+      <span style="font-size:15px;font-weight:700;">六类问题 → 对策 → 预期效果</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#E5484D;">① 按钮密度失衡</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">customer/detail 19 处、quote/detail 16 处；同屏多个 primary</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ 四级分级 + 图标化：高密度页按钮 −40%~55%，同屏 primary ≤1</div>
+      </div>
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#E67E22;">② 图标体系不完备</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">JzIcon 仅 48 图标；手写图标容器 60~76rpx 五档并存；31 处 view 冒充按钮</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ JzIconButton + 补 18 图标 + 统一触控区 88rpx</div>
+      </div>
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#6958C8;">③ 底部操作条碎片化</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">21 页 ≥4 种实现（jz-actionbar / cd__foot / qe__foot…）</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ JzActionBar 统一，私有类清零，H5 适配收敛</div>
+      </div>
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#3568C7;">④ 页面节奏过载</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">首页单屏 8 模块；需要关注最多 8 条；5 页原生弹层</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ 首页 8→6 模块、风险/待办分组折叠、JzSheet 品牌化</div>
+      </div>
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#16A394;">⑤ Token 纪律走样</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">颜色字面量 425 处，品牌 hex 直接出现 134 处</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ 收敛回 $jzb-* 变量，交付前 grep 黑名单拦截</div>
+      </div>
+
+      <div style="flex:1;min-width:200px;border:1px solid #E3E9ED;border-radius:10px;padding:10px 12px;background:#F8FAFB;">
+        <div style="font-size:13px;font-weight:700;color:#E5484D;">⑥ 触控与反馈</div>
+        <div style="font-size:12px;color:#465260;margin:4px 0;">可点卡片部分无按压反馈；图标按钮触控区偏小；骨架屏仅 5 页</div>
+        <div style="font-size:12px;color:#0E8A7D;font-weight:600;">→ 触控区≥88rpx、统一 :active、JzState 三态全覆盖</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实施批次 -->
+  <div style="background:#FFFFFF;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(15,23,42,.045);">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="width:6px;height:16px;border-radius:3px;background:linear-gradient(135deg,#2BC4B4,#0B786F);display:inline-block;"></span>
+      <span style="font-size:15px;font-weight:700;">实施批次（3 批）</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;">
+      <div style="flex:1;min-width:200px;border-left:4px solid #16A394;background:#F2FBFA;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:13px;font-weight:700;color:#0E8A7D;">P0 · 第 1 周</div>
+        <div style="font-size:12px;color:#465260;line-height:1.6;">JzIconButton + 补图标 + 7 个高密度页按钮分级改造 + 31 处 view 改 button</div>
+      </div>
+      <div style="flex:1;min-width:200px;border-left:4px solid #6958C8;background:#F7F5FF;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:13px;font-weight:700;color:#6958C8;">P1 · 第 2 周</div>
+        <div style="font-size:12px;color:#465260;line-height:1.6;">底部操作条统一（21 页）+ 首页降载 + JzSheet 弹层品牌化（5 页）</div>
+      </div>
+      <div style="flex:1;min-width:200px;border-left:4px solid #E67E22;background:#FFF8F0;border-radius:8px;padding:10px 12px;">
+        <div style="font-size:13px;font-weight:700;color:#B65D00;">P2 · 持续</div>
+        <div style="font-size:12px;color:#465260;line-height:1.6;">Token 清理 425 处 + 触控/反馈补齐 + JzSkeleton 全覆盖 + 表单细节</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#778390;margin-top:10px;">协调点：quote/*、design/* 页面随报价重构（Quote→QuoteVersion→QuoteSection→QuoteLine）同批改造，避免二次返工。</div>
+  </div>
+
+</div>
+</html>

@@ -1,0 +1,100 @@
+/* ============================================================
+   装得清 · Design Tokens
+   品牌色与 th4-decoboon-web 对齐；所有页面只使用以下 Token。
+   ============================================================ */
+
+/* Brand */
+$jzb-primary: #16A394;
+$jzb-primary-light: #2BC4B4;
+$jzb-primary-dark: #0E8A7D;
+$jzb-primary-deep: #096C64;
+$jzb-primary-lighter: #E8F7F5;
+$jzb-primary-lightest: #F2FBFA;
+$jzb-gradient: linear-gradient(135deg, #1FB5A8 0%, #16A394 52%, #0B786F 100%);
+$jzb-gradient-soft: linear-gradient(145deg, rgba(43, 196, 180, 0.14) 0%, rgba(22, 163, 148, 0.04) 100%);
+$jzb-gradient-surface: linear-gradient(160deg, #FFFFFF 0%, #F7FCFB 100%);
+
+/* Semantic */
+$jzb-success: #07A35A;
+$jzb-success-soft: #EAF8F0;
+$jzb-warning: #E67E22;
+$jzb-warning-soft: #FFF4E8;
+$jzb-danger: #E5484D;
+$jzb-danger-soft: #FDECEC;
+$jzb-info: #4E5969;
+$jzb-info-soft: #F1F4F7;
+$jzb-purple: #6958C8;
+$jzb-purple-soft: #F0EEFC;
+
+/* Text */
+$jzb-text-1: #17212B;
+$jzb-text-2: #465260;
+$jzb-text-3: #778390;
+$jzb-text-4: #AEB8C2;
+$jzb-text-inverse: #FFFFFF;
+
+/* Surface */
+$jzb-border: #E3E9ED;
+$jzb-border-light: #EEF2F4;
+$jzb-bg-page: #F4F7F8;
+$jzb-bg-card: #FFFFFF;
+$jzb-bg-hover: #F8FAFB;
+$jzb-bg-active: #E8F7F5;
+
+/* Elevation */
+$jzb-shadow-xs: 0 2rpx 8rpx rgba(15, 23, 42, 0.035);
+$jzb-shadow-card: 0 8rpx 30rpx rgba(15, 23, 42, 0.055);
+$jzb-shadow-elevated: 0 16rpx 48rpx rgba(15, 23, 42, 0.10);
+$jzb-shadow-float: 0 16rpx 38rpx rgba(14, 138, 125, 0.28);
+
+/* Radius */
+$jzb-radius-xs: 8rpx;
+$jzb-radius-sm: 12rpx;
+$jzb-radius: 20rpx;
+$jzb-radius-lg: 28rpx;
+$jzb-radius-xl: 36rpx;
+$jzb-radius-pill: 999rpx;
+
+/* Spacing */
+$jzb-space-1: 8rpx;
+$jzb-space-2: 12rpx;
+$jzb-space-3: 16rpx;
+$jzb-space-4: 24rpx;
+$jzb-space-5: 32rpx;
+$jzb-space-6: 40rpx;
+$jzb-space-7: 48rpx;
+$jzb-space-8: 64rpx;
+
+/* Layout */
+$jzb-page-pad: 28rpx;
+$jzb-page-gap: 24rpx;
+$jzb-control-height: 92rpx;
+$jzb-button-height: 92rpx;
+$jzb-tabbar-height: 116rpx;
+$jzb-safe-bottom: env(safe-area-inset-bottom);
+
+/* Typography */
+$jzb-font-xs: 22rpx;
+$jzb-font-sm: 26rpx;
+$jzb-font: 30rpx;
+$jzb-font-md: 32rpx;
+$jzb-font-lg: 36rpx;
+$jzb-font-xl: 42rpx;
+$jzb-font-xxl: 50rpx;
+$jzb-font-display: 64rpx;
+
+/* Motion */
+$jzb-duration-fast: 150ms;
+$jzb-duration-base: 200ms;
+$jzb-duration-slow: 300ms;
+$jzb-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+$jzb-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+/* Role semantic */
+$jzb-role-boss: #16A394;
+$jzb-role-designer: #6958C8;
+$jzb-role-pm: #E67E22;
+$jzb-role-marketer: #168A96;
+$jzb-role-project-support: #8A5CC7;
+$jzb-role-finance: #0E8A7D;
+$jzb-role-customer: #E5484D;

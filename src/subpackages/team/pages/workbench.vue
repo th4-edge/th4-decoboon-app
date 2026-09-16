@@ -1,0 +1,286 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { P } from '@/config'
+import { isLoggedIn, session } from '@/domains/identity/session'
+import { statisticApi } from '@/domains/statistic/api'
+import type { PmReport } from '@/domains/statistic/model'
+import { PROJECT_STATUS_META } from '@/domains/project/meta'
+import { TASK_STATUS_META } from '@/domains/schedule/meta'
+import { money } from '@/core/format'
+import { toastError } from '@/composables/toast'
+import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzEmpty from '@/components/JzEmpty.vue'
+import JzTag from '@/components/JzTag.vue'
+import JzProgress from '@/components/JzProgress.vue'
+import JzIcon from '@/components/JzIcon.vue'
+
+type TabKey = 'projects' | 'tasks' | 'acceptance' | 'materials' | 'business'
+
+const report = ref<PmReport | null>(null)
+const loading = ref(false)
+const tab = ref<TabKey>('projects')
+const isPm = computed(() => session.role === 'pm')
+const tabItems = computed(() => {
+  const r = report.value
+  return [
+    { key: 'projects' as const, label: '项目进度', count: r?.projectCount || 0 },
+    { key: 'tasks' as const, label: '任务风险', count: r?.urgentTasks.length || 0 },
+    { key: 'acceptance' as const, label: '验收', count: r?.pendingAcceptances.length || 0 },
+    { key: 'materials' as const, label: '材料', count: r?.materialRisks.length || 0 },
+    { key: 'business' as const, label: '客户报价', count: (r?.customerCount || 0) + (r?.quoteCount || 0) }
+  ]
+})
+
+onLoad(() => {
+  if (!isLoggedIn()) uni.reLaunch({ url: P.login })
+  if (!isPm.value) {
+    uni.showToast({ title: '仅项目经理可访问履约驾驶舱', icon: 'none' })
+    setTimeout(() => uni.navigateBack(), 500)
+  }
+})
+onShow(() => { if (isLoggedIn() && isPm.value) void load() })
+onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+
+async function load() {
+  loading.value = true
+  try {
+    report.value = await statisticApi.pm()
+  } catch (error) {
+    toastError(error, '项目经理履约数据加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function open(url: string) { uni.navigateTo({ url }) }
+function navigate(url: string) { uni.navigateTo({ url }) }
+function openProject(id: string) { open(`${P.projectDetail}?id=${id}`) }
+function openTask(id: string) { open(`${P.taskDetail}?id=${id}`) }
+function openStage(id: string) { open(`${P.stageDetail}?id=${id}`) }
+
+function taskDue(task: PmReport['urgentTasks'][number]) {
+  if (!task.plannedEnd) return '未排期'
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const due = new Date(task.plannedEnd); due.setHours(0, 0, 0, 0)
+  const days = Math.round((due.getTime() - today.getTime()) / 86400000)
+  if (days < 0) return `逾期 ${Math.abs(days)} 天`
+  if (days === 0) return '今日到期'
+  return `${days} 天后到期`
+}
+
+function materialDue(requiredAt?: string) {
+  if (!requiredAt) return '未排到场日期'
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const due = new Date(requiredAt); due.setHours(0, 0, 0, 0)
+  const days = Math.round((due.getTime() - today.getTime()) / 86400000)
+  if (days < 0) return `已延迟 ${Math.abs(days)} 天`
+  if (days === 0) return '今日需到场'
+  return `${days} 天后到场`
+}
+
+function acceptanceLabel(raw: string) {
+  return raw === 'rejected' ? '整改待重提' : '等待业主确认'
+}
+</script>
+
+<template>
+  <view class="pm">
+    <JzPageHeader title="项目经理履约驾驶舱" subtitle="仅展示本人负责项目及其关联业务" />
+
+    <view v-if="isPm && report" class="pm__body">
+      <view class="pm__hero">
+        <view class="pm__hero-main">
+          <text class="pm__hero-label">在管履约项目</text>
+          <text class="pm__hero-value">{{ report.projectCount }}</text>
+          <text class="pm__hero-sub">{{ report.ongoingProjectCount }} 个施工中 · {{ report.acceptingProjectCount }} 个待验收 · 平均进度 {{ report.averageProgress }}%</text>
+        </view>
+        <view class="pm__hero-ring">
+          <text>{{ report.overdueProjectCount }}</text>
+          <text>逾期项目</text>
+        </view>
+      </view>
+
+      <view class="pm__stats">
+        <view class="pm__stat jz-card" @tap="tab = 'tasks'">
+          <JzIcon name="clipboard" :size="34" color="#6958C8" />
+          <text class="pm__stat-value">{{ report.taskDoingCount + report.taskTodoCount }}</text>
+          <text class="pm__stat-label">待推进任务</text>
+        </view>
+        <view class="pm__stat jz-card" @tap="tab = 'tasks'">
+          <JzIcon name="alert-circle" :size="34" color="#E5484D" />
+          <text class="pm__stat-value pm__stat-value--risk">{{ report.taskOverdueCount }}</text>
+          <text class="pm__stat-label">逾期任务</text>
+        </view>
+        <view class="pm__stat jz-card" @tap="tab = 'acceptance'">
+          <JzIcon name="check-circle" :size="34" color="#07A35A" />
+          <text class="pm__stat-value">{{ report.pendingAcceptanceCount }}</text>
+          <text class="pm__stat-label">待确认验收</text>
+        </view>
+        <view class="pm__stat jz-card" @tap="tab = 'materials'">
+          <JzIcon name="building" :size="34" color="#E67E22" />
+          <text class="pm__stat-value" :class="{ 'pm__stat-value--risk': report.materialDelayedCount > 0 }">{{ report.materialRiskCount }}</text>
+          <text class="pm__stat-label">材料风险</text>
+        </view>
+      </view>
+
+      <view class="pm__quick jz-card">
+        <view class="pm__quick-item" @tap="navigate(P.customerList)"><JzIcon name="users" :size="36" color="#0E8A7D" /><text>关联客户</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.quoteList)"><JzIcon name="file-text" :size="36" color="#6958C8" /><text>来源报价</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.projectList)"><JzIcon name="briefcase" :size="36" color="#E67E22" /><text>项目工地</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.performance)"><JzIcon name="chart" :size="36" color="#07A35A" /><text>履约业绩</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.msgList)"><JzIcon name="bell" :size="36" color="#E5484D" /><text>消息通知</text></view>
+      </view>
+
+      <scroll-view scroll-x class="pm__tabs" :show-scrollbar="false">
+        <view class="pm__tab-row">
+          <view v-for="item in tabItems" :key="item.key" class="pm__tab" :class="{ 'pm__tab--on': tab === item.key }" @tap="tab = item.key">
+            {{ item.label }}<text v-if="item.count" class="pm__tab-count">{{ item.count }}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view v-if="tab === 'projects'" class="pm__list">
+        <view v-for="project in report.focusProjects" :key="project.id" class="jz-card pm__project" @tap="openProject(project.id)">
+          <view class="pm__project-head">
+            <view class="jz-grow">
+              <text class="pm__project-name">{{ project.name }}</text>
+              <text class="pm__project-site">{{ project.address || project.community || '未填写工地地址' }}</text>
+            </view>
+            <JzTag :text="PROJECT_STATUS_META[project.status].label" :color="PROJECT_STATUS_META[project.status].color" />
+          </view>
+          <view class="pm__progress-row">
+            <JzProgress :percent="project.progress" :height="10" />
+            <text>{{ project.progress }}%</text>
+          </view>
+          <view class="pm__project-foot">
+            <text>客户：{{ project.customer?.name || '-' }}</text>
+            <text>计划完工：{{ project.planEndDate?.slice(5) || '-' }}</text>
+          </view>
+        </view>
+        <JzEmpty v-if="!report.focusProjects.length" text="暂无负责项目" sub="企业负责人指派项目经理后显示在这里" />
+      </view>
+
+      <view v-else-if="tab === 'tasks'" class="pm__list">
+        <view v-for="task in report.urgentTasks" :key="task.id" class="jz-card pm__task" @tap="openTask(task.id)">
+          <view class="pm__task-icon" :class="{ 'pm__task-icon--risk': taskDue(task).includes('逾期') }">
+            <JzIcon name="clipboard" :size="34" :color="taskDue(task).includes('逾期') ? '#E5484D' : '#6958C8'" />
+          </view>
+          <view class="jz-grow">
+            <view class="pm__task-head">
+              <text class="pm__task-name">{{ task.name }}</text>
+              <JzTag :text="TASK_STATUS_META[task.status].label" :color="TASK_STATUS_META[task.status].color" />
+            </view>
+            <text class="pm__task-meta">{{ task.projectName || '项目任务' }} · {{ task.zone?.name || '' }} · {{ taskDue(task) }}</text>
+          </view>
+        </view>
+        <JzEmpty v-if="!report.urgentTasks.length" text="近 3 天无临期任务" sub="全部施工任务均处于安全排期" />
+      </view>
+
+      <view v-else-if="tab === 'acceptance'" class="pm__list">
+        <view v-for="item in report.pendingAcceptances" :key="item.id" class="jz-card pm__acceptance" @tap="openStage(item.stageId)">
+          <view class="pm__acceptance-icon"><JzIcon name="check-circle" :size="38" :color="item.customerStatus === 'rejected' ? '#E5484D' : '#07A35A'" /></view>
+          <view class="jz-grow">
+            <text class="pm__acceptance-title">{{ acceptanceLabel(item.customerStatus) }}</text>
+            <text class="pm__acceptance-sub">{{ item.projectName || '项目' }} · {{ item.stageName || '施工阶段' }} · {{ item.content || '等待验收闭环' }}</text>
+          </view>
+          <JzIcon name="chevron-right" :size="30" color="#AEB8C2" />
+        </view>
+        <JzEmpty v-if="!report.pendingAcceptances.length" text="暂无待处理验收" sub="阶段任务完成后提交业主确认" />
+      </view>
+
+      <view v-else-if="tab === 'materials'" class="pm__list">
+        <view v-for="item in report.materialRisks" :key="item.id" class="jz-card pm__material" @tap="item.project && openProject(item.project.id)">
+          <view class="pm__material-head">
+            <text class="pm__material-name">{{ item.name }}</text>
+            <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? '#E5484D' : '#E67E22'" />
+          </view>
+          <text class="pm__material-meta">{{ item.quantity }}{{ item.unit }} · {{ item.spec || '按项目材料标准' }}</text>
+        </view>
+        <JzEmpty v-if="!report.materialRisks.length" text="暂无材料到场风险" sub="未来 3 天材料计划均正常" />
+      </view>
+
+      <view v-else class="pm__business">
+        <view class="jz-card pm__business-card">
+          <view class="jz-between"><text class="pm__business-title">履约业绩</text><text class="pm__business-link" @tap="navigate(P.performance)">查看详情</text></view>
+          <view class="pm__business-grid">
+            <view><text>合同额</text><text>{{ money(report.contractAmount) }}</text></view>
+            <view><text>交付完成额</text><text>{{ money(report.completedAmount) }}</text></view>
+            <view><text>准时交付率</text><text>{{ report.onTimeDeliveryRate }}%</text></view>
+            <view><text>验收通过率</text><text>{{ report.acceptancePassRate }}%</text></view>
+          </view>
+        </view>
+
+        <view class="jz-section"><text class="jz-section__title">关联客户</text><text class="pm__business-count">{{ report.customerCount }} 户</text></view>
+        <view v-for="customer in report.recentCustomers.slice(0, 5)" :key="customer.id" class="jz-card pm__customer" @tap="open(`${P.customerDetail}?id=${customer.id}`)">
+          <view class="pm__customer-avatar">{{ customer.name.slice(0, 1) }}</view>
+          <view class="jz-grow"><text class="pm__customer-name">{{ customer.name }}</text><text class="pm__customer-meta">{{ customer.community || customer.addr || '未填写地址' }}</text></view>
+          <JzIcon name="chevron-right" :size="30" color="#AEB8C2" />
+        </view>
+
+        <view class="jz-section"><text class="jz-section__title">项目来源报价</text><text class="pm__business-count">{{ report.quoteCount }} 份</text></view>
+        <view v-for="quote in report.recentQuotes.slice(0, 5)" :key="quote.id" class="jz-card pm__quote" @tap="open(`${P.quoteDetail}?id=${quote.id}`)">
+          <view class="jz-grow"><text class="pm__quote-name">{{ quote.customer?.name || quote.no }}</text><text class="pm__quote-meta">{{ quote.no }} · {{ quote.area }}㎡</text></view>
+          <text class="pm__quote-amount">{{ money(quote.amount) }}</text>
+        </view>
+      </view>
+    </view>
+
+    <view v-else-if="!loading" class="pm__denied"><JzEmpty text="仅项目经理可查看" sub="请使用邀请注册的项目经理账号登录" /></view>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.pm { min-height: 100vh; background: $jzb-bg-page; }
+.pm__body { padding-bottom: 48rpx; }
+.pm__hero { margin: 0 $jzb-page-pad 20rpx; padding: 30rpx; display: flex; align-items: center; color: #fff; background: linear-gradient(135deg, #C15D14, $jzb-warning 58%, #F2A65A); border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 40rpx rgba(230,126,34,.2); }
+.pm__hero-main { flex: 1; }
+.pm__hero-label { display: block; font-size: $jzb-font-sm; opacity: .86; }
+.pm__hero-value { display: block; margin-top: 8rpx; font-size: 64rpx; line-height: 1; font-weight: 800; }
+.pm__hero-sub { display: block; margin-top: 14rpx; font-size: $jzb-font-xs; opacity: .9; line-height: 1.6; }
+.pm__hero-ring { width: 150rpx; height: 150rpx; border: 10rpx solid rgba(255,255,255,.35); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pm__hero-ring text:first-child { font-size: 44rpx; font-weight: 750; }
+.pm__hero-ring text:last-child { margin-top: 2rpx; font-size: 20rpx; opacity: .86; }
+.pm__stats { padding: 0 $jzb-page-pad; display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
+.pm__stat { width: calc(25% - 11rpx); box-sizing: border-box; padding: 18rpx 8rpx; display: flex; flex-direction: column; align-items: center; }
+.pm__stat-value { margin-top: 8rpx; font-size: 34rpx; font-weight: 750; color: $jzb-text-1; }
+.pm__stat-value--risk { color: $jzb-danger; }
+.pm__stat-label { margin-top: 4rpx; font-size: 20rpx; color: $jzb-text-3; }
+.pm__quick { margin: 0 $jzb-page-pad 20rpx; padding: 22rpx 8rpx; display: flex; }
+.pm__quick-item { flex: 1; display: flex; flex-direction: column; align-items: center; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.pm__quick-item text { margin-top: 8rpx; }
+.pm__tabs { margin-bottom: 16rpx; white-space: nowrap; }
+.pm__tab-row { display: inline-flex; padding: 0 $jzb-page-pad; }
+.pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-text-2; font-size: $jzb-font-sm; background: #fff; border-radius: $jzb-radius-pill; }
+.pm__tab--on { color: #fff; background: $jzb-primary; }
+.pm__tab-count { margin-left: 8rpx; padding: 0 8rpx; border-radius: 18rpx; background: rgba(255,255,255,.22); }
+.pm__list { padding: 0 $jzb-page-pad; }
+.pm__project, .pm__task, .pm__acceptance, .pm__material, .pm__business-card { margin-bottom: 16rpx; padding: 24rpx; }
+.pm__project-head, .pm__task-head, .pm__material-head { display: flex; align-items: center; justify-content: space-between; }
+.pm__project-name, .pm__task-name, .pm__material-name { font-size: $jzb-font-md; font-weight: 650; color: $jzb-text-1; }
+.pm__project-site { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pm__progress-row { display: flex; align-items: center; margin-top: 18rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
+.pm__progress-row text { width: 64rpx; text-align: right; margin-left: 12rpx; }
+.pm__project-foot { display: flex; justify-content: space-between; margin-top: 14rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pm__task { display: flex; align-items: center; }
+.pm__task-icon, .pm__acceptance-icon { width: 68rpx; height: 68rpx; margin-right: 18rpx; border-radius: 20rpx; background: #F0EEFC; display: flex; align-items: center; justify-content: center; }
+.pm__task-icon--risk { background: $jzb-danger-soft; }
+.pm__task-meta, .pm__acceptance-sub, .pm__material-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pm__acceptance { display: flex; align-items: center; }
+.pm__acceptance-icon { background: $jzb-primary-lightest; }
+.pm__acceptance-title { font-size: $jzb-font-md; font-weight: 650; }
+.pm__business { padding: 0 $jzb-page-pad; }
+.pm__business-card { background: linear-gradient(135deg, #FFF8ED, #FFFFFF); }
+.pm__business-title { font-size: $jzb-font-md; font-weight: 700; }
+.pm__business-link, .pm__business-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pm__business-grid { margin-top: 22rpx; display: flex; flex-wrap: wrap; gap: 16rpx; }
+.pm__business-grid view { width: calc(50% - 8rpx); box-sizing: border-box; padding: 18rpx; background: rgba(255,255,255,.82); border-radius: $jzb-radius-sm; }
+.pm__business-grid text { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pm__business-grid text:last-child { margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.pm__customer, .pm__quote { margin-bottom: 14rpx; padding: 20rpx 22rpx; display: flex; align-items: center; }
+.pm__customer-avatar { width: 62rpx; height: 62rpx; margin-right: 16rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: $jzb-primary; font-weight: 700; }
+.pm__customer-name, .pm__quote-name { font-size: $jzb-font; font-weight: 600; }
+.pm__customer-meta, .pm__quote-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pm__quote-amount { color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 700; }
+.pm__denied { padding-top: 180rpx; }
+</style>

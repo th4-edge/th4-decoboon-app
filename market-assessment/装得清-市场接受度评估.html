@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装得清 · 市场接受度评估（中小家装企业经营视角）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232F7D5A'/%3E%3Cpath d='M9 21V11l7 6 7-6v10' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+:root{
+  --brand:#2F7D5A; --brand-deep:#1D4E39; --brand-dark:#153829; --brand-tint:#EEF6F1; --brand-mid:#D6EADF;
+  --accent:#D98B52; --accent-deep:#B86F3A; --accent-tint:#FDF5EE;
+  --ink:#1A1A17; --ink-2:#4A4A44; --ink-3:#7A7A72; --line:#EBEBE6; --divider:#F0F0EC;
+  --bg:#F5F5F2; --card:#FFFFFF;
+  --red:#E5484D; --red-bg:#FDECEC; --amber:#E8A020; --amber-bg:#FDF4E3; --blue:#3B7DE8; --blue-bg:#EBF2FE; --green:#22A06B; --green-bg:#E9F7F0;
+  --shadow:0 2rpx 8rpx rgba(26,26,23,.04); --shadow-sm:0 4px 16px rgba(26,26,23,.06);
+  --serif:"Noto Serif SC",Songti SC,serif; --sans:"Noto Sans SC",-apple-system,PingFang SC,Microsoft YaHei,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 28px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+/* ---------- Hero ---------- */
+.hero{background:linear-gradient(160deg,var(--brand-dark) 0%,var(--brand-deep) 55%,var(--brand) 130%);color:#fff;padding:72px 0 60px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-120px;top:-120px;width:380px;height:380px;border:1.5px solid rgba(255,255,255,.08);border-radius:50%}
+.hero::before{content:"";position:absolute;right:-40px;top:-40px;width:240px;height:240px;border:1.5px solid rgba(255,255,255,.12);border-radius:50%}
+.hero .kicker{font-size:13px;letter-spacing:.22em;color:var(--brand-mid);font-weight:500;margin-bottom:22px}
+.hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,4.6vw,46px);line-height:1.3;letter-spacing:.01em;max-width:760px}
+.hero .sub{margin-top:20px;font-size:16.5px;color:rgba(255,255,255,.82);max-width:720px;line-height:1.85}
+.hero .meta{margin-top:34px;display:flex;flex-wrap:wrap;gap:10px}
+.hero .meta span{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 15px;font-size:12.5px;color:rgba(255,255,255,.85)}
+/* ---------- Section ---------- */
+section{padding:58px 0 8px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+.sec-no{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--brand);border:1.5px solid var(--brand);border-radius:6px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.sec-head h2{font-family:var(--serif);font-size:clamp(21px,2.6vw,27px);font-weight:700;color:var(--ink)}
+.sec-lead{color:var(--ink-3);font-size:14px;margin:2px 0 26px 50px;max-width:760px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 28px;box-shadow:var(--shadow-sm)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+/* verdict */
+.verdict{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:stretch}
+.verdict .lead-card{background:var(--brand-dark);color:#fff;border-radius:14px;padding:30px 30px;display:flex;flex-direction:column;justify-content:center}
+.verdict .lead-card .tag{display:inline-block;background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;padding:4px 13px;border-radius:999px;align-self:flex-start;margin-bottom:16px;letter-spacing:.05em}
+.verdict .lead-card h3{font-family:var(--serif);font-size:21px;line-height:1.6;margin-bottom:14px}
+.verdict .lead-card p{color:rgba(255,255,255,.8);font-size:14px}
+.score-line{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14)}
+.score-line .big{font-family:var(--serif);font-size:44px;font-weight:900;line-height:1}
+.score-line .big small{font-size:18px;color:rgba(255,255,255,.55);font-weight:500}
+.score-line .lab{font-size:13px;color:rgba(255,255,255,.75);line-height:1.6}
+.chart-box{border-radius:14px;border:1px solid var(--line);background:#fff;padding:18px 12px 6px}
+.chart-box .ct{font-size:13.5px;font-weight:700;color:var(--ink-2);padding:0 10px 4px}
+.chart{width:100%;height:300px}
+/* stat strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:8px 0 4px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.stat .v{font-family:var(--serif);font-size:29px;font-weight:900;color:var(--brand-deep);line-height:1.15}
+.stat .v .u{font-size:15px;font-weight:600;color:var(--ink-3);margin-left:2px}
+.stat .k{font-size:12.8px;color:var(--ink-3);margin-top:7px;line-height:1.5}
+.stat.warn .v{color:var(--accent-deep)}
+.stat.risk .v{color:var(--red)}
+.src-note{font-size:12px;color:var(--ink-3);margin-top:12px}
+.src-note a{color:var(--brand);text-decoration:none;border-bottom:1px dotted var(--brand-mid)}
+/* pain chain */
+.chain{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:6px}
+.chain .node{flex:1;min-width:150px;background:var(--red-bg);border:1px solid #f3d2d4;border-radius:10px;padding:13px 15px;margin:6px;position:relative}
+.chain .node b{display:block;font-size:13.8px;color:#9c2b30;margin-bottom:3px}
+.chain .node span{font-size:12.3px;color:var(--ink-2);line-height:1.55}
+.chain .arrow{align-self:center;color:var(--ink-3);font-size:18px;flex:none}
+.chain .node.good{background:var(--brand-tint);border-color:var(--brand-mid)}
+.chain .node.good b{color:var(--brand-deep)}
+/* flow */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+.flow .step{flex:1;min-width:120px;background:#fff;border:1.5px solid var(--brand-mid);border-radius:10px;padding:12px 12px;margin:5px;text-align:center}
+.flow .step .n{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-bottom:6px}
+.flow .step b{font-size:13px;display:block;color:var(--ink)}
+.flow .step span{font-size:11.5px;color:var(--ink-3)}
+.flow .arr{align-self:center;color:var(--brand);font-weight:700}
+.roles{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:16px}
+.role{border:1px solid var(--line);border-radius:10px;padding:13px 12px;background:#fff;text-align:center}
+.role .rn{font-weight:700;font-size:13.5px;color:var(--brand-deep);margin-bottom:4px}
+.role .rd{font-size:11.6px;color:var(--ink-3);line-height:1.5}
+/* angle cards */
+.angle{display:grid;grid-template-columns:200px 1fr;gap:0;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;margin-bottom:14px}
+.angle .an{background:var(--brand-tint);padding:18px 18px;border-right:1px solid var(--brand-mid)}
+.angle .an .idx{font-family:var(--serif);font-size:12px;color:var(--brand);font-weight:700;letter-spacing:.1em}
+.angle .an h4{font-family:var(--serif);font-size:16.5px;font-weight:700;color:var(--brand-dark);margin:5px 0 8px;line-height:1.45}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px}
+.pill.pos{background:var(--green-bg);color:#157f52}
+.pill.neg{background:var(--red-bg);color:#b3343a}
+.pill.mid{background:var(--amber-bg);color:#a8700f}
+.angle .ab{padding:18px 22px}
+.angle .ab p{font-size:13.6px;color:var(--ink-2);margin-bottom:8px}
+.angle .ab p:last-child{margin-bottom:0}
+.angle .ab .ev{font-size:12.5px;color:var(--ink-3);border-left:3px solid var(--brand-mid);padding-left:11px;margin-top:9px;line-height:1.65}
+.angle .ab .ev a{color:var(--brand);text-decoration:none}
+/* quadrant */
+.quad-wrap{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:center}
+.quad{position:relative;height:420px;border:1px solid var(--line);border-radius:12px;background:
+ linear-gradient(var(--divider),var(--divider)) 50% 0/1px 100% no-repeat,
+ linear-gradient(var(--divider),var(--divider)) 0 50%/100% 1px no-repeat,#fff;}
+.quad .ax-y{position:absolute;left:8px;top:50%;transform:rotate(-90deg) translateX(50%);transform-origin:left center;font-size:11.5px;color:var(--ink-3);white-space:nowrap;letter-spacing:.05em}
+.quad .ax-x{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.quad .qlab{position:absolute;font-size:11px;color:#b5b5ad;letter-spacing:.08em}
+.quad .pt{position:absolute;transform:translate(-50%,-50%);text-align:center;width:96px}
+.quad .pt .dot{width:11px;height:11px;border-radius:50%;margin:0 auto 4px}
+.quad .pt b{display:block;font-size:12px;color:var(--ink);line-height:1.3}
+.quad .pt span{font-size:10.5px;color:var(--ink-3)}
+.quad .pt.me .dot{width:16px;height:16px;background:var(--accent);box-shadow:0 0 0 5px rgba(217,139,82,.18)}
+.quad .pt.me b{color:var(--accent-deep);font-size:13px}
+.quad-legend{font-size:12.8px;color:var(--ink-2)}
+.quad-legend h5{font-family:var(--serif);font-size:14.5px;margin-bottom:10px;color:var(--ink)}
+.quad-legend .lg{margin-bottom:11px;padding-left:2px;line-height:1.6}
+.quad-legend .lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px}
+/* table */
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:13.2px}
+table th{background:var(--brand-dark);color:#fff;font-weight:500;padding:12px 14px;text-align:left;font-size:12.8px}
+table td{padding:12px 14px;border-bottom:1px solid var(--divider);color:var(--ink-2);vertical-align:top}
+table tr:last-child td{border-bottom:none}
+table td:first-child{font-weight:700;color:var(--ink)}
+.tbl-card{border:1px solid var(--line);border-radius:12px;overflow-x:auto;box-shadow:var(--shadow-sm);-webkit-overflow-scrolling:touch}
+.tbl-card table{min-width:760px}
+.stars{color:var(--accent);letter-spacing:2px;font-weight:700}
+.stars .off{color:#ddd8d0}
+.hl-row{background:var(--brand-tint)}
+/* checklist */
+.need{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.need .ni{display:flex;gap:13px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:16px 17px}
+.need .ni .ic{flex:none;width:30px;height:30px;border-radius:8px;background:var(--brand-tint);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:900;font-family:var(--serif)}
+.need .ni b{display:block;font-size:13.8px;margin-bottom:3px}
+.need .ni p{font-size:12.4px;color:var(--ink-3);line-height:1.6}
+/* scenario */
+.scn{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.scn .s{border-radius:12px;padding:20px 20px;border:1px solid var(--line);background:#fff}
+.scn .s h5{font-family:var(--serif);font-size:16px;margin-bottom:4px}
+.scn .s .prob{font-size:12px;margin-bottom:12px}
+.scn .s.good{border-top:3px solid var(--green)}
+.scn .s.base{border-top:3px solid var(--brand)}
+.scn .s.bad{border-top:3px solid var(--red)}
+.scn .s ul{list-style:none;font-size:12.7px;color:var(--ink-2)}
+.scn .s li{padding:5px 0 5px 16px;position:relative;line-height:1.55}
+.scn .s li::before{content:"";position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:var(--brand-mid)}
+/* timeline */
+.tl{position:relative;margin-left:8px}
+.tl-row{display:grid;grid-template-columns:96px 26px 1fr;gap:0;margin-bottom:2px}
+.tl-time{font-size:12.5px;font-weight:700;color:var(--brand-deep);padding-top:14px;text-align:right;padding-right:14px}
+.tl-axis{position:relative}
+.tl-axis::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--brand-mid);transform:translateX(-50%)}
+.tl-dot{position:relative;z-index:2;width:13px;height:13px;border-radius:50%;background:var(--brand);border:3px solid var(--brand-tint);margin:17px auto 0}
+.tl-body{background:#fff;border:1px solid var(--line);border-radius:10px;padding:13px 17px;margin:8px 0 8px 14px}
+.tl-body b{font-size:13.8px;display:block;margin-bottom:2px}
+.tl-body span{font-size:12.5px;color:var(--ink-3);line-height:1.6}
+/* footer */
+.footer{margin-top:60px;background:var(--brand-dark);color:rgba(255,255,255,.72);padding:34px 0;font-size:12.3px;line-height:1.9}
+.footer b{color:#fff}
+.footer a{color:var(--brand-mid);text-decoration:none}
+.tagset{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.mini-tag{font-size:11px;border-radius:6px;padding:2px 8px;background:var(--brand-tint);color:var(--brand-deep);font-weight:500}
+.callout{background:var(--accent-tint);border:1px solid #f0d9c4;border-radius:11px;padding:16px 20px;font-size:13.3px;color:#6b4a2e;line-height:1.75;margin-top:16px}
+.callout b{color:var(--accent-deep)}
+@media(max-width:860px){
+ .g3,.g4,.stats{grid-template-columns:1fr 1fr}
+ .verdict,.quad-wrap{grid-template-columns:1fr}
+ .g2{grid-template-columns:1fr}
+ .angle{grid-template-columns:1fr}.angle .an{border-right:none;border-bottom:1px solid var(--brand-mid)}
+ .need,.scn{grid-template-columns:1fr}
+ .roles{grid-template-columns:repeat(2,1fr)}
+ .quad{height:440px}
+ .quad .pt{width:88px}
+ .quad .pt b{font-size:11px}
+ .quad .pt span{font-size:9.5px}
+ .flow .arr{display:none}
+ .sec-lead{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Hero ============ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">行业视角 · 中小家装企业经营 · 产品市场评估</div>
+    <h1>装得清，市场会不会买单？<br>一份写给决策者的接受度评估</h1>
+    <p class="sub">不以"功能全不全"评价系统，而以"中小装企老板愿不愿付费、一线员工愿不愿用、续不续得起"为主线，从行业基本面、产品坐标、七个利益相关角度、竞争与定价、客群分层到落地前提，给出可被证伪的判断。</p>
+    <div class="meta">
+      <span>评估对象：TH4-DECOBOON 装得清</span>
+      <span>形态：微信小程序 + 多租户 SaaS</span>
+      <span>口径日期：2026-09</span>
+      <span>评分性质：分析判断，非实测数据</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 01 总判断 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">01</span><h2>一页结论：方向成立，接受度结构性分化</h2></div>
+    <p class="sec-lead">装得清踩中的是行业真实且正在恶化的痛点，但"痛点真实"不等于"软件被接受"——接受度在模块、客群、使用角色三个维度上高度分化。</p>
+    <div class="verdict">
+      <div class="lead-card">
+        <span class="tag">总体判断 · 谨慎乐观</span>
+        <h3>"报价尖刀 + 业主同频"是高接受度资产；"全链路经营闭环"价值最大但跨越了中小装企的管理鸿沟，必须分阶段兑现，不能一次性售卖。</h3>
+        <p>最甜的客户是 8–25 人、单店、年并行十余个工地的成长型装企：老板亲自管经营、决策链短、被漏项和回款折磨得最痛。对他们，装得清的价格带与 ROI 讲得通；真正的门槛不在买，而在一线能不能持续把数据录进来。</p>
+        <div class="score-line">
+          <div class="big num">3.7<small> /5</small></div>
+          <div class="lab">六维加权市场接受度<br>（右侧雷达 · 评估判断）</div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="ct">市场接受度六维评分（1–5，评估判断）</div>
+        <div id="radar" class="chart"></div>
+      </div>
+    </div>
+    <div class="callout">
+      <b>一句话给决策层：</b>市场存在、痛点真实、定价落在安全区、产品架构（报价为中枢 + 状态机后端 + 业主授权协同）方向正确；成败不取决于再做多少功能，而取决于三件事——<b>7 天内让客户产出第一份规范报价、把一线录入压到"拍照即完成"、在种子期攒出 3 个可量化 ROI 标杆</b>。
+    </div>
+  </div>
+</section>
+<!-- ============ 02 行业基本面 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">02</span><h2>需求侧：行业越难，"算清账"的需求越刚</h2></div>
+    <p class="sec-lead">家装是典型"大行业、小企业"：数万亿市场、十余万中小玩家、集中度极低；利润被压缩到极致的当下，"报价不漏、过程留证、回款可控"从锦上添花变成生存问题。</p>
+    <div class="stats">
+      <div class="stat"><div class="v num">~4<span class="u">万亿元级</span></div><div class="k">中国家装市场年规模（不同机构口径 2.5–3.8 万亿，整体四万亿级别）</div></div>
+      <div class="stat"><div class="v num">12<span class="u">万+ 家</span></div><div class="k">中小装饰企业，数量占比 99.9%，平均单体年产值低、标准化薄弱</div></div>
+      <div class="stat risk"><div class="v num">1.68<span class="u">%</span></div><div class="k">2025 年建筑装饰行业净利率，每百元营收到手不足 2 元；2026Q1 毛利率续降至 9%</div></div>
+      <div class="stat warn"><div class="v num">75<span class="u">家 / 半年</span></div><div class="k">2025 上半年被申请破产清算的装饰公司，行业加速出清</div></div>
+    </div>
+    <div class="src-note">来源：网易新闻《亿级装企接连停摆》（2026-08，引行业财报口径）、新浪财经（2026-05）、行业研究报告（豆丁网，2026）；规模口径差异较大，正式对外引用前需统一统计范围。</div>
+
+    <h3 style="font-family:var(--serif);font-size:17px;margin:30px 0 12px">中小装企的亏损链：每一环都对应装得清的一个模块</h3>
+    <div class="chain">
+      <div class="node"><b>报价靠经验</b><span>工程量估算偏差常超 20%，漏项、低开高走</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>签约即埋雷</b><span>67% 装修纠纷源于合同外增项，拆除/水电占 41%</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>施工黑箱</b><span>隐蔽工程无留证、口头报进度、返工难定责</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>回款失控</b><span>收支散在微信和 Excel，老板看不清项目真实毛利</span></div>
+      <div class="arrow">→</div>
+      <div class="node good"><b>装得清的回应</b><span>版本化报价+变更单 → 节点影像留证+业主线上验收 → 应收应付与项目利润闭环</span></div>
+    </div>
+    <div class="src-note">来源：土巴兔装修大学引 2025 行业投诉数据；央视网《家装的"坑"如何"避"如何"治"》（2025-08）；装得清产品白皮书 V2.0。</div>
+
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card">
+        <h4 style="font-family:var(--serif);font-size:16px;margin-bottom:10px;color:var(--brand-dark)">需求顺风（接受度的推力）</h4>
+        <p style="font-size:13.3px;color:var(--ink-2);line-height:1.9">① 存量翻新占比升至约六成，本地中小装企重新获得订单，但业主对"透明、零增项"的要求更高；<br>② 头部装企暴雷让业主转向本地口碑公司，"工地可视、节点确认"成为签单差异化武器；<br>③ 净利率逼近盈亏线，老板第一次有动力为"少漏一项、少返一次工"付费；<br>④ 微信小程序生态成熟，业主端无需下载 App，邀请即看，协同门槛为历史最低。</p>
+      </div>
+      <div class="card">
+        <h4 style="font-family:var(--serif);font-size:16px;margin-bottom:10px;color:var(--brand-dark)">需求逆风（接受度的阻力）</h4>
+        <p style="font-size:13.3px;color:var(--ink-2);line-height:1.9">① 行业下行期客户首先砍"非刚性支出"，软件预算被延后；<br>② 客户自身倒闭会造成非自愿流失，付费客户池在收缩；<br>③ 装企从业人员数字化习惯弱，"系统比 Excel 麻烦"会被立刻弃用；<br>④ 中国 SaaS 行业平均续费率不足 60%（美国超 80%），B 端付费文化仍在养成，续费是真正的生死线。</p>
+      </div>
+    </div>
+    <div class="src-note">来源：雪球《为什么中国 SaaS 满身是伤》（2026-05）；人人都是产品经理 ToB 落地分析；行业存量翻新数据见豆丁网行业报告（2026）。</div>
+  </div>
+</section>
+<!-- ============ 03 产品坐标 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">03</span><h2>供给侧：装得清在行业版图中的位置</h2></div>
+    <p class="sec-lead">市场上的家装数字化产品分四派，装得清不属于任何一派的主战场，而是卡在"报价—履约—回款"这段最脏最累、也最贴近经营结果的地带。</p>
+    <div class="card">
+      <h4 style="font-family:var(--serif);font-size:16px;margin-bottom:14px;color:var(--brand-dark)">一条经营主线：报价不是文件，是合同、预算、成本与变更的共同基线</h4>
+      <div class="flow">
+        <div class="step"><span class="n">1</span><b>客户/房屋</b><span>CRM·量房·多房屋</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">2</span><b>设计转化</b><span>诉求·方案·谈单</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">3</span><b>版本化报价</b><span>项目库·套餐·六类明细</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">4</span><b>合同/变更</b><span>报价快照·变更单</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">5</span><b>施工履约</b><span>7阶段·任务节点·影像</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">6</span><b>验收同频</b><span>业主线上确认</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">7</span><b>材料/财务</b><span>应收应付·结算</span></div><div class="arr">—</div>
+        <div class="step"><span class="n">8</span><b>经营复盘</b><span>项目利润·看板</span></div>
+      </div>
+      <div class="roles">
+        <div class="role"><div class="rn">老板</div><div class="rd">合同/收款/全局看板，看清每个项目的真实毛利与风险</div></div>
+        <div class="role"><div class="rn">设计师</div><div class="rd">客户转化、报价编制、施工计划编排与交底</div></div>
+        <div class="role"><div class="rn">项目经理</div><div class="rd">阶段开工、任务推进、节点拍照、提交验收</div></div>
+        <div class="role"><div class="rn">家装顾问</div><div class="rd">客户登记、跟进、邀约，线索不随人流失</div></div>
+        <div class="role"><div class="rn">业主</div><div class="rd">被邀请后只见自己工地，看进度、确认验收</div></div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card" style="padding:20px">
+        <div class="tagset"><span class="mini-tag">尖刀能力</span></div>
+        <h4 style="font-family:var(--serif);font-size:15.5px;margin:10px 0 7px">报价即预算</h4>
+        <p style="font-size:12.8px;color:var(--ink-3);line-height:1.7">统一 Quote→Version→Section→Line 内核与可售项主数据，签约时即看到收入、成本、毛利；版本快照让后期变更有据可比对，直击"漏项增项"这一最大纠纷源。</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="tagset"><span class="mini-tag">差异化能力</span></div>
+        <h4 style="font-family:var(--serif);font-size:15.5px;margin:10px 0 7px">隐蔽工程节点留证</h4>
+        <p style="font-size:12.8px;color:var(--ink-3);line-height:1.7">任务按"施工进行→隐蔽覆盖前→施工完成"设节点，强制拍照/录像后才能推进，自动聚合成施工日报。不可逆工序先留证，返工定责、业主信任同时解决。</p>
+      </div>
+      <div class="card" style="padding:20px">
+        <div class="tagset"><span class="mini-tag">获客型能力</span></div>
+        <h4 style="font-family:var(--serif);font-size:15.5px;margin:10px 0 7px">业主同频空间</h4>
+        <p style="font-size:12.8px;color:var(--ink-3);line-height:1.7">业主小程序只读自己工地 + 线上验收确认，是"同频"不是"透明"（金额、内部备注对业主隐藏）。它首先是装企的签单与转介绍工具，其次才是管理工具。</p>
+      </div>
+    </div>
+
+    <div class="callout">行业坐标判断：酷家乐/三维家解决"效果图与拆单"，是设计师的单点工具；土巴兔/贝壳解决"流量分配"，与装企存在博弈；用友/鲁班类 ERP 偏通用或重型工装，中小装企用不动；装企垂直管理 SaaS（装修云管家、亮宅、一起装等）是<b>直接竞品阵营</b>。装得清的组合差异 = <b>报价内核深度 × 业主端协同 × 微信小程序轻交付</b>，而非功能数量。</div>
+  </div>
+</section>
+<!-- ============ 04 七角度评估 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">04</span><h2>七个角度：谁受益、谁抗拒、为什么</h2></div>
+    <p class="sec-lead">市场接受度不是一个总分，而是七类利益相关者博弈的结果。买方（老板）、使用方（员工/工人）、间接受益方（业主）的意愿经常互相冲突。</p>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 01</div><h4>经营价值<br>老板为什么掏钱</h4><span class="pill pos">接受度高</span></div>
+      <div class="ab">
+        <p>老板不为"功能多"付费，只为经营结果付费。装得清的 ROI 账算得过来：少漏一项水电报价就是数千至上万元损失，一次返工可吞掉单项目大半毛利，而专业版年费 11,980 元，约相当于一个中小装企年利润的 3%–8% 安全区间内，一单堵漏即回本。</p>
+        <p>真正打动老板的是三句话：签约时看见项目毛利、逾期应收提前预警、员工带不走客户与过程资产。这三点都直击净利率仅 1%–6% 时代的生存焦虑。</p>
+        <div class="ev">白皮书定价原则：年费控制在装企年利润 3%–8%（约 5,000–25,000 元安全区）；行业侧佐证：无系统企业平均项目超支率显著偏高（携程社区引行业口径，约 25%，为弱来源需复核）。</div>
+      </div>
+    </div>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 02</div><h4>一线使用<br>员工和工人愿不愿录</h4><span class="pill neg">最大门槛</span></div>
+      <div class="ab">
+        <p>这是全盘最大的接受度风险，也是行业里 ERP "买完即弃"的首因：付费的是老板，干活的是设计师、项目经理和班组。任何要求工人额外填表、切换 App、学习流程的设计，都会在工地现场被微信群和纸笔记号打败。</p>
+        <p>装得清当前设计方向正确——节点确认以拍照/录像为主、日报自动聚合、状态机在后端、页面只做提交——但必须把"一个节点的上报动作"压到 30 秒内，并允许弱网续传。考核口径也要变：系统数据应成为员工自证工作量、对业主留证免责的工具，而不是监工工具。</p>
+        <div class="ev">行业共识：ToB 落地失败五大原因含"使用者习惯变更、培训不到位"（人人都是产品经理）；多个 2026 装企 ERP 选型内容反复强调"员工学不会、用不惯，再多功能也是摆设"（抖音行业号，代表渠道一线声音）。</div>
+      </div>
+    </div>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 03</div><h4>业主协同<br>C 端是签单武器</h4><span class="pill pos">接受度高·被低估</span></div>
+      <div class="ab">
+        <p>在 67% 纠纷源于增项、业主普遍不信任装企的市场里，"进度照片实时可见、隐蔽工程留证、节点线上验收"是可以直接写进谈单话术和合同承诺的差异化能力。业主不需要培训，微信点开即用，使用成本几乎为零。</p>
+        <p>建议把业主端的市场定位前移：它不是内部管理模块的附属品，而是装企获客转化环节的"信任凭证"，甚至可以作为免费版/试用装企最先感知价值的入口——先让老板在谈单时尝到甜头，再向内部管理要深度使用。</p>
+        <div class="ev">行业侧：工地透明看板使业主满意度评分提升 27 个百分点（掌赋，厂商口径，方向可参考、数值需自测）；2026 年口碑装企普遍以"零增项+线上节点验收+全程留痕"为核心卖点（界面新闻、华商报、土巴兔等）。</div>
+      </div>
+    </div>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 04</div><h4>竞争格局<br>赛道拥挤但未收口</h4><span class="pill mid">中等·需差异化</span></div>
+      <div class="ab">
+        <p>装企管理 SaaS 并非空白赛道：装修云管家、汇智信、亮宅、一起装、装内助等均已布局，且依托钉钉/企微生态、叠加 AI 获客与云监理。好消息是市场高度分散、没有绝对寡头，行业仍处在"教育期后半段"；坏消息是客户已经被各路销售教育过，对"功能清单式 PPT"免疫。</p>
+        <p>装得清的胜负手不是补齐九模块对轰，而是把"报价编制效率 + 报价到变更到结算的单一事实链"做到比对手深一个量级，并以业主端建立对手难以复制的 C 端触点。设计渲染不与酷家乐正面竞争，应保留导入/对接而非自建。</p>
+        <div class="ev">竞品观察：垂直竞品普遍走"钉钉/企微生态 + SCRM + ERP"打包路线（抖音 2026 装企 ERP 口碑榜内容）；设计工具侧酷家乐企业版约 1,980–2,980 元/账号/年、三维家 SaaS 数千元至万元级（官方及渠道公开价）。</div>
+      </div>
+    </div>
+    <div class="angle">
+      <div class="an"><div class="idx">角度 05</div><h4>定价与付费<br>价格带有竞争力</h4><span class="pill pos">接受度较高</span></div>
+      <div class="ab">
+        <p>5,980 / 11,980 / 21,800 元的三档年费，低于垂直管理系统"含实施 2–15 万/年"的常见报价，又显著高于单账号设计工具，卡在"老板一个人可拍板、无需走年度预算审批"的甜区。免费版只做窄而深的报价链路、不按项目抽成的原则，既降低试用门槛，又避免客户为省抽成把交易挪到系统外。</p>
+        <p>两个定价风险需要验证：其一，低价可能被解读为"不专业/小厂工具"，需要标杆案例背书对冲；其二，基础版与专业版差价 6,000 元，但财务+供应链+分析三个加购模块合计已逼近差价，升级引导规则（白皮书 4.4）设计合理，落地时要敢于直接推荐专业版。</p>
+        <div class="ev">竞品价格带：设计工具约 0.2–0.3 万/账号/年；垂直装企系统按规模报价，初创装企约 2–5 万/年、扩张期 5–15 万/年、集团化更高（一起装公开选型内容，含服务口径）。装得清定价见其白皮书 V2.0，正式价仍需 5 家以上种子客户敏感度测试。</div>
+      </div>
+    </div>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 06</div><h4>交付实施<br>上线即流失的关口</h4><span class="pill neg">重活·易低估</span></div>
+      <div class="ab">
+        <p>装企经营系统的价值依赖主数据：工艺库、可售项目库、套餐、价格体系。中小装企历史报价散在 Excel、微信文件和设计师个人电脑里，"建档"这一步做不完，系统就是空壳，首周价值（TTV）就无法兑现——这是行业里最常见的静默死亡原因。</p>
+        <p>白皮书已识别该风险（轻实施 2,000–5,000 元/次、Excel 迁移、行业模板包），方向正确但要产品化：必须预置整装/半包/全包开箱模板，让客户"改参数"而不是"建体系"；客户成功配比目标（1 人服务 30–50 家专业版）在种子期不现实，前 10 家应创始人亲自陪跑，把实施 SOP 打磨出来再谈人效。</p>
+        <div class="ev">行业经验：数字化转型普遍以"90 天上线计划"推进，小型装企起步投入数万元（一起装 SOP）；ToB 研究普遍指出"厂商培训与服务支持断档"是续费失败主因之一（人人都是产品经理）。</div>
+      </div>
+    </div>
+
+    <div class="angle">
+      <div class="an"><div class="idx">角度 07</div><h4>周期与生态<br>下行期的双刃</h4><span class="pill mid">中性偏谨慎</span></div>
+      <div class="ab">
+        <p>下行周期同时做两件事：压缩装企 IT 预算（利空），以及倒逼装企用精细化管理求生（利好）。历史上 SaaS 渗透率跃升往往发生在行业出清期——活下来的企业更需要算清账。装得清若能把自己定义为"降本堵漏工具"而非"数字化建设"，销售阻力会小得多。</p>
+        <p>长期生态（AI、供应链协同、线索分发、开放 API）是第二曲线，但早期碰供应链返佣会动摇装企对数据中立的信任，白皮书 10.6 的中立原则必须坚持；AI 能力按点数计费、成本 3–5 倍定价的策略稳健，避免无限量承诺拖垮毛利。</p>
+        <div class="ev">行业背景：2025 年建筑装饰行业营收同比下降 6%、归母净利润下滑近 23%（网易，2026-08）；中国 SaaS 平均续费率不足 60%（雪球，2026-05），意味着获客当年不能证明价值，第二年大概率流失。</div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ 05 竞争与定价 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">05</span><h2>竞争坐标与定价安全边际</h2></div>
+    <p class="sec-lead">横轴：单点工具 → 经营全链路；纵轴：设计/生产导向 → 施工/经营导向。气泡为代表性玩家阵营（示意定位，非精确市占）。</p>
+    <div class="quad-wrap">
+      <div class="quad">
+        <div class="qlab" style="left:12px;top:10px">设计侧 · 单点</div>
+        <div class="qlab" style="right:12px;top:10px">设计侧 · 全链路</div>
+        <div class="qlab" style="left:12px;bottom:10px">经营侧 · 单点</div>
+        <div class="qlab" style="right:12px;bottom:10px">经营侧 · 全链路</div>
+        <div class="pt" style="left:20%;top:24%"><div class="dot" style="background:#7FBB9B"></div><b>酷家乐/三维家</b><span>效果图·渲染·拆单</span></div>
+        <div class="pt" style="left:42%;top:16%"><div class="dot" style="background:#7FBB9B"></div><b>躺平/每平每屋</b><span>设计+商品库</span></div>
+        <div class="pt" style="left:24%;top:72%"><div class="dot" style="background:#7FBB9B"></div><b>用友畅捷通</b><span>通用财务/进销存</span></div>
+        <div class="pt" style="left:40%;top:60%"><div class="dot" style="background:#7FBB9B"></div><b>鲁班 ERP</b><span>重型工装预算</span></div>
+        <div class="pt" style="left:72%;top:30%"><div class="dot" style="background:#7FBB9B"></div><b>土巴兔/贝壳</b><span>平台流量·博弈方</span></div>
+        <div class="pt" style="left:71%;top:63%"><div class="dot" style="background:#3B7DE8"></div><b>装修云管家/亮宅</b><span>垂直全链路·钉钉企微</span></div>
+        <div class="pt" style="left:74%;top:83%"><div class="dot" style="background:#3B7DE8"></div><b>一起装/装内助</b><span>轻量工地+SOP陪跑</span></div>
+        <div class="pt me" style="left:60%;top:49%"><div class="dot"></div><b>装得清</b><span>报价中枢+业主同频</span></div>
+      </div>
+      <div class="quad-legend card" style="padding:20px">
+        <h5>读图结论</h5>
+        <div class="lg"><i style="background:#7FBB9B"></i>工具/通用派：要么只管设计出图，要么不懂家装场景，均不构成"经营单一事实链"。</div>
+        <div class="lg"><i style="background:#3B7DE8"></i>直接竞品：垂直装企管理 SaaS，功能趋同、依托大厂办公生态，是主要遭遇对象。</div>
+        <div class="lg"><i style="background:var(--accent)"></i>装得清的空位：以<b>报价内核深度</b>立身、以<b>业主端 C 触点</b>差异化，用小程序避开钉钉/企微生态依赖。</div>
+        <div class="lg" style="color:var(--ink-3);font-size:12px">注：定位为本报告基于公开资料的分析判断，不代表厂商能力全貌。</div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:20px">
+      <div class="chart-box">
+        <div class="ct">年费价格带对比（元/年，公开报价口径）</div>
+        <div id="priceBar" style="width:100%;height:330px"></div>
+        <div class="src-note" style="padding:0 10px 10px">装得清为标准年费（白皮书 V2.0）；设计工具为单账号价；垂直系统为公开选型区间（含服务），取区间中值示意。</div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+        <h4 style="font-family:var(--serif);font-size:16.5px;margin-bottom:14px;color:var(--brand-dark)">定价安全边际判断</h4>
+        <p style="font-size:13.4px;color:var(--ink-2);line-height:2">
+          <b style="color:var(--brand-deep)">① 付费决策门槛低：</b>三档均在老板单笔可决策区间，无需预算审批流程。<br>
+          <b style="color:var(--brand-deep)">② 不抽成是对的：</b>按项目抽成会促使交易绕开系统，破坏数据完整性与信任。<br>
+          <b style="color:var(--brand-deep)">③ 免费版必须克制：</b>只留报价基础链路，合同/项目/财务一旦全免费，专业版价值崩塌。<br>
+          <b style="color:var(--brand-deep)">④ 服务收入补毛利：</b>模板包、轻实施、陪跑既提高留存，又在下行期平滑订阅波动。<br>
+          <b style="color:var(--accent-deep)">⑤ 待验证：</b>正式价需经 ≥5 家种子客户敏感度测试，首发 7–8 折降低首单心理门槛。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ============ 06 客群分层 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">06</span><h2>分客群接受度：谁先买单，谁先别碰</h2></div>
+    <p class="sec-lead">同样的产品在四类装企面前接受度完全不同。种子期资源有限，必须押在"单店成长型"这一格。</p>
+    <div class="tbl-card">
+      <table>
+        <colgroup><col style="width:17%"><col style="13%"><col style="12%"><col style="12%"><col style="13%"><col style="13%"><col style="20%"></colgroup>
+        <thead><tr><th>客群</th><th>典型规模</th><th>痛点强度</th><th>付费能力</th><th>接受度</th><th>主销版本</th><th>策略判断</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>微型团队/工作室</td><td class="num">3–8 人<br>年单数少</td><td>中：报价不规范为主</td><td>弱，价格高度敏感</td>
+            <td><span class="stars">★★★<span class="off">★★</span></span></td><td>免费版 → 基础版</td>
+            <td>用免费版做漏斗入口，不投入重服务；转化看模板够不够省事</td>
+          </tr>
+          <tr class="hl-row">
+            <td>单店成长型（甜客）</td><td class="num">8–25 人<br>项目并行</td><td>强：漏项、延期、回款同时爆发</td><td>中，老板一人拍板</td>
+            <td><span class="stars">★★★★<span class="off">★</span></span></td><td>基础版 / 专业版</td>
+            <td><b>种子期唯一主攻客群</b>：决策快、痛感强、ROI 讲得通，2–4 周可成单</td>
+          </tr>
+          <tr>
+            <td>区域多店型</td><td class="num">25–80 人<br>2–5 店</td><td>强：跨店复制与权限</td><td>强，但决策链长</td>
+            <td><span class="stars">★★★★<span class="off">★</span></span></td><td>专业版 / 旗舰版</td>
+            <td>价值最大但要陪跑与迁移，1–3 个月周期；用标杆案例再规模复制</td>
+          </tr>
+          <tr>
+            <td>连锁/集团</td><td class="num">80 人以上</td><td>中：多已有在跑系统</td><td>强但定制要求多</td>
+            <td><span class="stars">★★<span class="off">★★★</span></span></td><td>旗舰/定制</td>
+            <td>初期不碰：销售周期 3–6 个月、定制拖垮小团队节奏，列入 18 个月后</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="src-note">客群规模与版本对应参考装得清白皮书 V2.0 §1.2 / §3；接受度星级为本报告评估判断。</div>
+  </div>
+</section>
+
+<!-- ============ 07 接受前提 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">07</span><h2>市场接受的六个必要条件（缺一降级）</h2></div>
+    <p class="sec-lead">这些不是"做好了加分"，而是做不到就会直接拉低接受度与续费率的硬前提，按优先级排列。</p>
+    <div class="need">
+      <div class="ni"><div class="ic">1</div><div><b>7 天首价值（TTV）</b><p>注册 24 小时内产出第一份规范报价，14 天内跑通报价→合同/项目；首周激活不足，后续再无唤醒机会。</p></div></div>
+      <div class="ni"><div class="ic">2</div><div><b>开箱即用的行业模板库</b><p>预置整装/半包/全包报价模板与工艺任务库，客户改参数而非建体系；这是实施不翻车的前提。</p></div></div>
+      <div class="ni"><div class="ic">3</div><div><b>一线动作 ≤30 秒</b><p>节点上报以拍照/语音为主、弱网续传、自动生成日报；让系统成为员工自证与免责工具。</p></div></div>
+      <div class="ni"><div class="ic">4</div><div><b>业主端前置为获客工具</b><p>把"透明工地+线上验收"做成谈单话术与合同承诺，让老板在签单环节先尝到价值。</p></div></div>
+      <div class="ni"><div class="ic">5</div><div><b>3 个可量化 ROI 标杆</b><p>报价时长、漏项率、返工/延期、回款周期、项目毛利——没有 ROI 证据，销售必然退化为功能罗列与价格战。</p></div></div>
+      <div class="ni"><div class="ic">6</div><div><b>续费健康度工程</b><p>到期前 90/30/7 天健康检查与提醒；用量账本识别沉默客户，客户成功主动介入，对标 70% 续费目标。</p></div></div>
+    </div>
+  </div>
+</section>
+<!-- ============ 08 情景与行动 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">08</span><h2>三种接受情景与 90 天验证路线</h2></div>
+    <p class="sec-lead">以 18 个月为观察窗，市场接受度不是预测出来的，是用最小成本的种子实验测出来的。</p>
+    <div class="scn">
+      <div class="s good">
+        <h5>乐观情景</h5>
+        <div class="prob" style="color:var(--green)">六个前提全部兑现</div>
+        <ul>
+          <li>免费→付费转化 ≥15%，试用→付费 20%–30%</li>
+          <li>续费率 ≥70%，净收入留存 ≥100%</li>
+          <li>18 个月付费装企 30+，出现 3–5 个区域标杆与转介绍飞轮</li>
+          <li>专业版成为主力 SKU，增值收入占比持续抬升</li>
+        </ul>
+      </div>
+      <div class="s base">
+        <h5>基准情景（最可能）</h5>
+        <div class="prob" style="color:var(--brand)">尖刀成立、闭环慢热</div>
+        <ul>
+          <li>报价与业主协同被快速接受，财务/供应链深度模块推进慢</li>
+          <li>免费→付费 8%–12%，首年续费率 55%–65%</li>
+          <li>18 个月付费 15–25 家，收入由订阅+实施陪跑共同支撑</li>
+          <li>靠合肥本地及区域口碑滚动，暂不具备全国自助放量条件</li>
+        </ul>
+      </div>
+      <div class="s bad">
+        <h5>悲观情景</h5>
+        <div class="prob" style="color:var(--red)">前提缺失、行业继续探底</div>
+        <ul>
+          <li>主数据建不起来，首周价值落空，激活率低</li>
+          <li>一线绕开系统回到微信群，数据不完整导致看板失真</li>
+          <li>客户出清造成非自愿流失，续费 &lt;50%，CAC 12 个月收不回</li>
+          <li>对策：收缩为区域深度服务/项目制，先活下来再产品化</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--serif);font-size:18px;margin:34px 0 16px">建议的 90 天市场验证路线</h3>
+    <div class="tl">
+      <div class="tl-row">
+        <div class="tl-time">D0–30</div>
+        <div class="tl-axis"><div class="tl-dot"></div></div>
+        <div class="tl-body"><b>种子攻坚：5 家本地单店成长型装企</b><span>只卖"报价尖刀+业主同频"，首发 7–8 折甚至置换案例；创始人亲自陪跑建主数据，逐秒计时一线节点上报动作。</span></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-time">D31–60</div>
+        <div class="tl-axis"><div class="tl-dot"></div></div>
+        <div class="tl-body"><b>沉淀证据：3 份可量化 ROI 案例</b><span>记录报价制作时长、漏项数、变更金额、回款周期的前后对比；固化整装/半包模板包与实施 SOP，跑通免费版转化漏斗。</span></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-time">D61–90</div>
+        <div class="tl-axis"><div class="tl-dot"></div></div>
+        <div class="tl-body"><b>定价复盘与放量决策</b><span>完成 ≥5 家价格敏感度访谈，确定正式价；上线转介绍激励；灰度专业版利润闭环；用真实激活/续费数据决定是区域复制还是收缩调整。</span></div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:26px">
+      <b>最终评估结论：</b>装得清面向的是一个"需求真实、支付能力有限、使用习惯脆弱、竞争尚未收口"的市场。综合接受度 <b>3.7/5（谨慎乐观）</b>：产品方向与定价具备被接受的基础，业主协同与报价内核是稀缺差异点；决定成败的不是功能广度，而是<b>首周价值、一线录入成本、ROI 证据链、续费运营</b>这四件看似不性感的事。建议放弃"全模块同时铺开"的冲动，以单店成长型客群和报价尖刀单点穿透，先在区域市场证明"装企因为用了它而少亏了钱"，再谈平台化。
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <b>数据口径与来源说明</b><br>
+    1. 产品功能、定价版本、模块规划、经营指标目标，来自装得清内部文档：《产品与定价白皮书 V2.0》（2026-09-14）、《业务设计说明书》及前后端工程实际结构。<br>
+    2. 行业数据来自公开来源：网易新闻（2026-08，建筑装饰行业财报口径）、新浪财经（2026-05）、央视网（2025-08）、土巴兔装修大学（2025 投诉数据转引）、界面新闻/华商报（2026）、雪球（中美 SaaS 续费率，2026-05）、人人都是产品经理、一起装/三维家/酷家乐等公开选型与报价内容；不同机构市场规模口径差异较大（2.5–4 万亿），正式对外引用前须统一统计范围与年份。<br>
+    3. 六维评分、客群星级、三情景概率均为本报告的<b>分析判断</b>，非市场实测；定价有效性需以种子客户访谈与真实转化数据校准。本报告用于内部决策讨论，不构成对外宣传材料。
+  </div>
+</footer>
+
+<script>
+(function(){
+  var brand='#2F7D5A', brandDeep='#1D4E39', accent='#D98B52', grid='#EBEBE6', ink3='#7A7A72';
+  var font='"Noto Sans SC",sans-serif';
+  // ---- Radar ----
+  var elR=document.getElementById('radar');
+  if(elR&&window.echarts){
+    var r=echarts.init(elR);
+    r.setOption({
+      backgroundColor:'transparent',
+      tooltip:{trigger:'item',triggerOn:'click',renderMode:'richText',confine:true},
+      radar:{
+        center:['50%','54%'],radius:'66%',
+        indicator:[
+          {name:'痛点匹配',max:5},{name:'价格可负担',max:5},{name:'落地易用',max:5},
+          {name:'竞争差异化',max:5},{name:'续费粘性',max:5},{name:'时机环境',max:5}
+        ],
+        axisName:{color:'#4A4A44',fontSize:12,fontFamily:font},
+        splitLine:{lineStyle:{color:grid}},splitArea:{areaStyle:{color:['#fff','#FAFAF8']}},
+        axisLine:{lineStyle:{color:grid}}
+      },
+      series:[{
+        type:'radar',
+        data:[{value:[4.5,4.0,3.0,3.5,4.0,3.0],name:'市场接受度',
+          areaStyle:{color:'rgba(47,125,90,.22)'},lineStyle:{color:brand,width:2},
+          symbol:'circle',symbolSize:5,itemStyle:{color:brandDeep},
+          label:{show:true,formatter:function(p){return p.value;},color:brandDeep,fontSize:11,fontWeight:700}}]
+      }]
+    });
+    window.addEventListener('resize',function(){r.resize();});
+  }
+  // ---- Price bar ----
+  var elP=document.getElementById('priceBar');
+  if(elP&&window.echarts){
+    var c=echarts.init(elP);
+    var names=['酷家乐企业版(每账号)','三维家SaaS(每账号)','装得清 基础版','装得清 专业版','一起装 初创期(含服务)','装得清 旗舰版','垂直系统 扩张期(含服务)'];
+    var vals=[2980,8000,5980,11980,35000,21800,100000];
+    var colors=names.map(function(n){return n.indexOf('装得清')>=0?accent:'#ADD5BF';});
+    c.setOption({
+      backgroundColor:'transparent',
+      grid:{left:8,right:46,top:10,bottom:6,containLabel:true},
+      tooltip:{trigger:'axis',triggerOn:'click',renderMode:'richText',confine:true,axisPointer:{type:'shadow'},
+        formatter:function(ps){var p=ps[0];return p.name+'<br/>约 '+Number(p.value).toLocaleString()+' 元/年';}},
+      xAxis:{type:'value',axisLabel:{color:ink3,fontFamily:font,formatter:function(v){return v/10000+'万';}},
+        splitLine:{lineStyle:{color:grid}},axisLine:{show:false}},
+      yAxis:{type:'category',data:names,inverse:true,
+        axisLabel:{color:'#4A4A44',fontSize:11.5,fontFamily:font,width:150,overflow:'truncate'},
+        axisTick:{show:false},axisLine:{lineStyle:{color:grid}}},
+      series:[{type:'bar',data:vals.map(function(v,i){return {value:v,itemStyle:{color:colors[i],borderRadius:[0,5,5,0]}};}),
+        barWidth:17,
+        label:{show:true,position:'right',color:'#4A4A44',fontSize:11,fontFamily:font,
+          formatter:function(p){return Number(p.value).toLocaleString();}}}]
+    });
+    window.addEventListener('resize',function(){c.resize();});
+  }
+})();
+</script>
+</body>
+</html>
+</body>
+</html>

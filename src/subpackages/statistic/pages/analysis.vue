@@ -1,0 +1,318 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { P } from '@/config'
+import { money } from '@/core/format'
+import { isLoggedIn, session } from '@/domains/identity/session'
+import { financeApi } from '@/domains/finance/api'
+import type { FinanceProjectReport } from '@/domains/finance/model'
+import { statisticApi } from '@/domains/statistic/api'
+import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTarget } from '@/domains/statistic/model'
+import { toast, toastError } from '@/composables/toast'
+import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzEmpty from '@/components/JzEmpty.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzStoreFilter from '@/components/JzStoreFilter.vue'
+
+const month = ref(currentMonth())
+const dashboard = ref<BossDashboard | null>(null)
+const alertReport = ref<BusinessAlertReport | null>(null)
+const projectReports = ref<FinanceProjectReport[]>([])
+const loading = ref(false)
+const showTarget = ref(false)
+const storeId = ref('')
+const savingTarget = ref(false)
+const targetForm = ref<BusinessTarget>({
+  targetMonth: `${month.value}-01`, signedAmount: 0, receivedAmount: 0, grossProfit: 0, activeProjectCount: 0
+})
+
+const metricCards = computed(() => {
+  const d = dashboard.value
+  return [
+    metricCard('签约额', d?.signedAmount, 'file-text', '#0E8A7D', '#E8F7F5'),
+    metricCard('回款额', d?.receivedAmount, 'wallet', '#07A35A', '#EAF8F0'),
+    metricCard('项目毛利', d?.grossProfit, 'chart', '#6958C8', '#F0EEFC'),
+    metricCard('在建项目', d?.activeProjectCount, 'briefcase', '#E67E22', '#FFF4E8', false)
+  ]
+})
+
+const alerts = computed(() => {
+  const report = alertReport.value
+  if (!report) return []
+  return [
+    ...report.overdueReceivables,
+    ...report.suspensionRisks,
+    ...report.materialOverIssues,
+    ...report.changeAnomalies
+  ]
+})
+
+const alertStats = computed(() => [
+  { label: '严重', value: alertReport.value?.highCount || 0, tone: 'danger' },
+  { label: '警告', value: alertReport.value?.mediumCount || 0, tone: 'warning' },
+  { label: '关注', value: alertReport.value?.lowCount || 0, tone: 'info' }
+])
+
+const profitProjects = computed(() => [...projectReports.value]
+  .sort((a, b) => b.grossMargin - a.grossMargin)
+  .slice(0, 6))
+
+onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onShow(() => { if (isLoggedIn()) void load() })
+onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+
+async function load() {
+  if (session.role !== 'boss') {
+    uni.reLaunch({ url: P.home })
+    return
+  }
+  loading.value = true
+  try {
+    const apiMonth = `${month.value}-01`
+    const [d, a, projects] = await Promise.all([
+      statisticApi.bossDashboard(apiMonth, storeId.value || undefined),
+      statisticApi.alerts(),
+      financeApi.projectPage({ size: 200 })
+    ])
+    dashboard.value = d
+    alertReport.value = a
+    projectReports.value = projects
+    targetForm.value = {
+      targetMonth: apiMonth,
+      signedAmount: d.signedAmount.target,
+      receivedAmount: d.receivedAmount.target,
+      grossProfit: d.grossProfit.target,
+      activeProjectCount: d.activeProjectCount.target
+    }
+  } catch (error) {
+    toastError(error, '经营驾驶舱加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function metricCard(label: string, metric: BossDashboard['signedAmount'] | undefined, icon: IconName, color: string, tone: string, isMoney = true) {
+  return {
+    label,
+    icon,
+    color,
+    tone,
+    value: isMoney ? money(metric?.value || 0) : `${metric?.value || 0}`,
+    target: isMoney ? `目标 ${money(metric?.target || 0)}` : `目标 ${metric?.target || 0} 个`,
+    achievement: `达成 ${metric?.achievementRate || 0}%`,
+    month: `环比 ${signed(metric?.monthOverMonthRate || 0)}%`,
+    year: `同比 ${signed(metric?.yearOverYearRate || 0)}%`
+  }
+}
+
+function onMonthChange(event: { detail: { value: string } }) {
+  month.value = event.detail.value.slice(0, 7)
+  void load()
+}
+
+async function saveTarget() {
+  if (savingTarget.value) return
+  savingTarget.value = true
+  try {
+    await statisticApi.saveTarget({ ...targetForm.value, targetMonth: `${month.value}-01` })
+    showTarget.value = false
+    await load()
+    toast('经营目标已保存', 'success')
+  } catch (error) {
+    toastError(error, '目标保存失败')
+  } finally {
+    savingTarget.value = false
+  }
+}
+
+function closeTarget() {
+  showTarget.value = false
+}
+
+function openProject(projectId?: string) {
+  if (projectId) uni.navigateTo({ url: `${P.financeProject}?projectId=${projectId}` })
+}
+
+function openAssessment() {
+  uni.navigateTo({ url: P.performanceAssessment })
+}
+
+function openProjectLedger() {
+  uni.navigateTo({ url: P.financeProjects })
+}
+
+function signed(value: number) {
+  return value > 0 ? `+${value}` : `${value}`
+}
+
+function alertMeta(type: BusinessAlertType) {
+  const map: Record<BusinessAlertType, { label: string; icon: IconName; tone: string }> = {
+    overdueReceivable: { label: '逾期应收', icon: 'alert-circle', tone: 'danger' },
+    projectSuspensionRisk: { label: '停工风险', icon: 'briefcase', tone: 'warning' },
+    materialOverIssue: { label: '材料超领', icon: 'building', tone: 'warning' },
+    abnormalChangeRate: { label: '变更异常', icon: 'file-text', tone: 'danger' }
+  }
+  return map[type]
+}
+
+function currentMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+</script>
+
+<template>
+  <view class="ana-page">
+    <JzPageHeader title="经营驾驶舱" subtitle="目标、回款、毛利与风险一屏掌握" right-text="人员绩效" @right="openAssessment" />
+
+    <view class="ana-body">
+      <JzStoreFilter v-model="storeId" @change="load" />
+
+      <view class="ana-query jz-card">
+        <picker mode="date" fields="month" :value="month" @change="onMonthChange">
+          <view class="ana-query__month"><JzIcon name="calendar" :size="30" color="#0E8A7D" /><text>{{ month }}</text></view>
+        </picker>
+        <button class="jz-btn jz-btn--ghost ana-query__target" @tap="showTarget = !showTarget">设置目标</button>
+      </view>
+
+      <view v-if="showTarget" class="jz-card ana-target">
+        <view class="ana-target__head">
+          <text class="ana-target__title">本月经营目标</text>
+          <text class="ana-target__month">{{ month }}</text>
+        </view>
+        <view class="ana-target__grid">
+          <view class="ana-field">
+            <text class="ana-field__label">签约目标</text>
+            <view class="ana-field__control">
+              <input v-model.number="targetForm.signedAmount" type="digit" placeholder="0" />
+              <text class="ana-field__unit">元</text>
+            </view>
+          </view>
+          <view class="ana-field">
+            <text class="ana-field__label">回款目标</text>
+            <view class="ana-field__control">
+              <input v-model.number="targetForm.receivedAmount" type="digit" placeholder="0" />
+              <text class="ana-field__unit">元</text>
+            </view>
+          </view>
+          <view class="ana-field">
+            <text class="ana-field__label">毛利目标</text>
+            <view class="ana-field__control">
+              <input v-model.number="targetForm.grossProfit" type="digit" placeholder="0" />
+              <text class="ana-field__unit">元</text>
+            </view>
+          </view>
+          <view class="ana-field">
+            <text class="ana-field__label">在建目标</text>
+            <view class="ana-field__control">
+              <input v-model.number="targetForm.activeProjectCount" type="number" placeholder="0" />
+              <text class="ana-field__unit">个</text>
+            </view>
+          </view>
+        </view>
+        <view class="ana-target__actions">
+          <button class="jz-btn jz-btn--neutral jz-btn--sm" @tap="closeTarget">取消</button>
+          <button class="jz-btn jz-btn--primary jz-btn--sm" :loading="savingTarget" :disabled="savingTarget" @tap="saveTarget">保存目标</button>
+        </view>
+      </view>
+
+      <view class="ana-metrics">
+        <view v-for="item in metricCards" :key="item.label" class="jz-card ana-metric">
+          <view class="ana-metric__head">
+            <view class="ana-metric__icon" :style="{ background: item.tone }"><JzIcon :name="item.icon" :size="30" :color="item.color" /></view>
+            <text class="ana-metric__label">{{ item.label }}</text>
+          </view>
+          <text class="ana-metric__value">{{ item.value }}</text>
+          <text class="ana-metric__target">{{ item.target }} · {{ item.achievement }}</text>
+          <view class="ana-metric__compare"><text>{{ item.month }}</text><text>{{ item.year }}</text></view>
+        </view>
+      </view>
+
+      <view class="jz-section">
+        <text class="jz-section__title">经营预警</text>
+        <text class="jz-section__more" @tap="openAssessment">查看绩效</text>
+      </view>
+      <view class="jz-card ana-alert-summary">
+        <view v-for="item in alertStats" :key="item.label" class="ana-alert-summary__item" :class="`ana-alert-summary__item--${item.tone}`">
+          <text class="ana-alert-summary__value">{{ item.value }}</text><text>{{ item.label }}</text>
+        </view>
+      </view>
+      <view v-if="alerts.length" class="jz-card ana-alerts">
+        <view v-for="item in alerts" :key="`${item.type}-${item.businessType}-${item.businessId}`" class="ana-alert" @tap="openProject(item.project?.id)">
+          <view class="ana-alert__icon" :class="`ana-alert__icon--${item.level}`"><JzIcon :name="alertMeta(item.type).icon" :size="30" :color="item.level === 'high' ? '#E5484D' : '#E67E22'" /></view>
+          <view class="jz-grow">
+            <view class="ana-alert__title-row"><text class="ana-alert__title">{{ item.title }}</text><text class="ana-alert__tag">{{ alertMeta(item.type).label }}</text></view>
+            <text class="ana-alert__message">{{ item.message }}</text>
+          </view>
+          <JzIcon name="chevron-right" :size="28" color="#AEB8C2" />
+        </view>
+      </view>
+      <JzEmpty v-else text="当前没有经营预警" sub="系统会持续监测应收、停工、材料与变更风险" />
+
+      <view class="jz-section"><text class="jz-section__title">项目毛利排名</text><text class="jz-section__more" @tap="openProjectLedger">项目账本</text></view>
+      <view v-if="profitProjects.length" class="jz-card ana-profits">
+        <view v-for="item in profitProjects" :key="item.project.id" class="ana-profit" @tap="openProject(item.project.id)">
+          <view class="jz-grow">
+            <text class="ana-profit__name">{{ item.project.name }}</text>
+            <text class="ana-profit__sub">{{ item.project.no }} · 收入 {{ money(item.contractRevenue) }} · 成本 {{ money(item.totalCost) }}</text>
+          </view>
+          <view class="ana-profit__value">
+            <text>{{ money(item.grossProfit) }}</text>
+            <text>毛利率 {{ item.grossMargin }}%</text>
+          </view>
+        </view>
+      </view>
+      <JzEmpty v-else text="暂无项目利润数据" sub="合同、成本和费用形成后自动核算" />
+      <view class="ana-bottom" />
+    </view>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.ana-page { min-height: 100vh; background: $jzb-bg-page; }
+.ana-body { padding: 24rpx $jzb-page-pad calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }
+.ana-query { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 24rpx; }
+.ana-query__month { display: flex; align-items: center; gap: 12rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 650; }
+.ana-query__target { min-height: 64rpx; margin: 0; padding: 0 24rpx; font-size: $jzb-font-sm; }
+.ana-target { margin-top: 24rpx; padding: 32rpx; }
+.ana-target__head { display: flex; align-items: center; justify-content: space-between; }
+.ana-target__title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.ana-target__month { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-target__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-top: 24rpx; }
+.ana-field__label { display: block; margin-bottom: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-field__control { display: flex; align-items: center; height: 80rpx; padding: 0 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.ana-field__control input { flex: 1; min-width: 0; height: 100%; color: $jzb-text-1; background: transparent; font-size: $jzb-font; }
+.ana-field__unit { flex-shrink: 0; margin-left: 8rpx; color: $jzb-text-4; font-size: $jzb-font-xs; }
+.ana-target__actions { display: flex; justify-content: flex-end; gap: 16rpx; margin-top: 24rpx; }
+.ana-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-top: 20rpx; }
+.ana-metric { padding: 24rpx; }
+.ana-metric__head { display: flex; align-items: center; gap: 12rpx; }
+.ana-metric__icon { display: flex; align-items: center; justify-content: center; width: 56rpx; height: 56rpx; border-radius: 18rpx; }
+.ana-metric__label { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-metric__value { display: block; margin-top: 18rpx; color: $jzb-text-1; font-size: 40rpx; font-weight: 760; }
+.ana-metric__target { display: block; margin-top: 8rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.ana-metric__compare { display: flex; justify-content: space-between; margin-top: 14rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-alert-summary { display: flex; padding: 22rpx; }
+.ana-alert-summary__item { flex: 1; text-align: center; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-alert-summary__value { display: block; margin-bottom: 6rpx; font-size: 38rpx; font-weight: 750; }
+.ana-alert-summary__item--danger .ana-alert-summary__value { color: $jzb-danger; }
+.ana-alert-summary__item--warning .ana-alert-summary__value { color: $jzb-warning; }
+.ana-alert-summary__item--info .ana-alert-summary__value { color: $jzb-info; }
+.ana-alerts { padding: 4rpx 24rpx; }
+.ana-alert { display: flex; align-items: center; min-height: 112rpx; border-bottom: 1rpx solid $jzb-border-light; }
+.ana-alert:last-child { border-bottom: none; }
+.ana-alert__icon { display: flex; align-items: center; justify-content: center; width: 58rpx; height: 58rpx; margin-right: 16rpx; background: $jzb-warning-soft; border-radius: 18rpx; }
+.ana-alert__icon--high { background: $jzb-danger-soft; }
+.ana-alert__title-row { display: flex; align-items: center; gap: 12rpx; }
+.ana-alert__title { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.ana-alert__tag { padding: 4rpx 10rpx; color: $jzb-danger; background: $jzb-danger-soft; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.ana-alert__message { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-profits { padding: 4rpx 24rpx; }
+.ana-profit { display: flex; align-items: center; min-height: 112rpx; border-bottom: 1rpx solid $jzb-border-light; }
+.ana-profit:last-child { border-bottom: none; }
+.ana-profit__name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.ana-profit__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ana-profit__value { text-align: right; color: $jzb-success; font-size: $jzb-font-md; font-weight: 750; }
+.ana-profit__value text:last-child { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; font-weight: 400; }
+.ana-bottom { height: 24rpx; }
+</style>
