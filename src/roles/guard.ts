@@ -55,7 +55,10 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.financePayments, anyOf: ['view:finance'] },
   { path: P.financeProjects, anyOf: ['view:finance'] },
   { path: P.financeProject, anyOf: ['view:finance'] },
-  { path: P.financeEntry, anyOf: ['edit:finance'] }
+  { path: P.financeEntry, anyOf: ['edit:finance'] },
+  { path: P.supply, anyOf: ['view:supply'] },
+  { path: P.supplyPurchaseEdit, anyOf: ['view:supply'] },
+  { path: P.supplyReceiptEdit, anyOf: ['view:supply'] }
 ]
 
 function pathOf(url: string): string {

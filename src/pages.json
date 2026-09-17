@@ -563,6 +563,20 @@
           }
         },
         {
+          "path": "pages/purchase-edit",
+          "style": {
+            "navigationBarTitleText": "新增采购单",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/receipt-edit",
+          "style": {
+            "navigationBarTitleText": "确认材料到货",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/index",
           "style": {
             "navigationBarTitleText": "供应链",

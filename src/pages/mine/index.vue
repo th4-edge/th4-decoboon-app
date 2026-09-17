@@ -70,7 +70,7 @@ const groups = computed(() => {
   if (employee && can(role.value, 'act:inviteMember')) organization.push(cell('user-plus', '邀请员工加入', '生成邀请并分配岗位', () => uni.navigateTo({ url: P.companyInvite })))
 
   if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
-  if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应链与库存', '供应商、库存、损耗与劳务', () => uni.navigateTo({ url: P.supply })))
+  if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应商协作', '项目采购、到货、采购价与月结', () => uni.navigateTo({ url: P.supply })))
   if (role.value === 'boss') business.push(cell('chart', '经营驾驶舱', '签约、回款、毛利与经营风险', () => uni.navigateTo({ url: P.analysis })))
   if (role.value === 'boss') business.push(cell('users', '人员绩效考核', '设计师、顾问与项目经理履约', () => uni.navigateTo({ url: P.performanceAssessment })))
   if (role.value === 'marketer') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))

@@ -126,7 +126,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   ],
   projectSupport: [
     { key: 'projects', label: '履约项目', icon: 'briefcase', path: P.projectList },
-    { key: 'supply', label: '供应链与库存', icon: 'package', path: P.supply, capability: 'view:supply' },
+    { key: 'supply', label: '供应商协作', icon: 'package', path: P.supply, capability: 'view:supply' },
     { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
   ],
   finance: [
