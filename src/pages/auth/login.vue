@@ -18,7 +18,23 @@ const submitting = ref(false)
 const needPhone = ref(false)
 const { handlePhoneNumber } = useWxPhoneAuth()
 
-onLoad(() => {
+onLoad(async (query) => {
+  // 本地联调：使用真实员工令牌快速切换角色；生产构建不会执行该分支。
+  if (import.meta.env.DEV && query?.devToken) {
+    const token = String(query.devToken)
+    try {
+      agreePrivacy()
+      loginAsToken(token)
+      const profile = await identityApi.sessionInfo(token)
+      if (profile.currentEmployee) {
+        loginAsEmployee(profile.currentEmployee, token, profile)
+        goTab(P.home)
+        return
+      }
+    } catch {
+      // 开发令牌失效时回到普通微信登录流程。
+    }
+  }
   if (session.role) goTab(P.home)
   else if (session.token && session.user) uni.redirectTo({ url: P.companyJoin })
 })

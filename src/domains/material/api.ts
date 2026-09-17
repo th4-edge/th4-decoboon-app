@@ -48,6 +48,12 @@ function enumValue(raw: unknown) {
   return ''
 }
 
+const UNIT_LABEL: Record<string, string> = {
+  Area: '㎡', Block: '块', Centimeter: '厘米', Count: '个', Grid: '格', Hole: '个',
+  House: '户', Item: '项', Metre: '米', Pcs: '件', Place: '处', Plate: '块',
+  Root: '根', Set: '套', Sheet: '张', Step: '步', Stick: '根'
+}
+
 function normalize(raw: RawRecord): MaterialPlan {
   const catalog = raw.catalogItem || {}
   return {
@@ -60,7 +66,7 @@ function normalize(raw: RawRecord): MaterialPlan {
     brand: catalog.brand,
     series: catalog.series,
     quantity: Number(raw.quantity ?? 0),
-    unit: enumValue(raw.unit),
+    unit: UNIT_LABEL[enumValue(raw.unit)] || enumValue(raw.unit),
     requiredAt: raw.requiredAt,
     arrivedAt: raw.arrivedAt,
     status: STATUS[enumValue(raw.status)] || 'planned'
@@ -86,7 +92,7 @@ function normalizePurchase(raw: RawRecord): PurchaseOrder {
     supplierPhone: supplier.telNo ?? '',
     deliveryMode: DELIVERY_MODE[enumValue(raw.deliveryMode)] || 'direct',
     quantity: Number(raw.quantity ?? 0),
-    unit: enumValue(raw.unit),
+    unit: UNIT_LABEL[enumValue(raw.unit)] || enumValue(raw.unit),
     unitPrice: Number(raw.unitPrice ?? 0),
     amount: Number(raw.amount ?? 0),
     receivedQuantity: Number(raw.receivedQuantity ?? 0),
@@ -110,7 +116,7 @@ function normalizeReceipt(raw: RawRecord): GoodsReceipt {
     materialName: plan.catalogItem?.name ?? plan.name ?? purchase.supplierName ?? '材料到货',
     deliveryMode: DELIVERY_MODE[enumValue(purchase.deliveryMode)] || 'direct',
     quantity: Number(raw.quantity ?? 0),
-    unit: enumValue(raw.unit),
+    unit: UNIT_LABEL[enumValue(raw.unit)] || enumValue(raw.unit),
     arrivedAt: dateTimeValue(raw.arrivedAt),
     images: raw.images || [],
     remark: raw.remark
