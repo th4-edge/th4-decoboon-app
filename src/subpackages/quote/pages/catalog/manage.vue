@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import type { CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
 import { can } from '@/roles/permission'
+import { money } from '@/core/format'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 const pickerVisible = ref(true)
-// 成本价敏感：仅企业负责人 / 门店店长 / 财务可见（后端同样裁剪，前端仅控制展示）
+// 标准采购成本敏感：仅企业负责人 / 门店店长 / 财务可见（后端同样裁剪，前端仅控制展示）
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const authorized = ref(false)
 const editorOpen = ref(false)
@@ -27,6 +28,7 @@ const unit = ref('㎡')
 const pricingMode = ref<CatalogPricingMode>('materialAndManual')
 const materialPrice = ref('')
 const manualPrice = ref('')
+const costPrice = ref('')
 const craft = ref('')
 const criterion = ref('')
 const description = ref('')
@@ -60,6 +62,8 @@ const formula = computed(() => {
 })
 
 // 价格模式对应的实际展示形式（含数值，便于录入时即时确认对外口径）
+const standardCostText = computed(() => Number(costPrice.value || 0) > 0 ? money(Number(costPrice.value)) : '未维护')
+
 const pricePreview = computed(() => {
   const material = Number(materialPrice.value || 0)
   const manual = Number(manualPrice.value || 0)
@@ -85,6 +89,11 @@ onLoad(() => {
   authorized.value = true
 })
 
+onShow(() => {
+  // 从供应商采购价返回后，刷新当前目录项的标准成本。
+  if (editorOpen.value && editingId.value && canViewCost.value) void refreshCost()
+})
+
 function closePicker() {
   pickerVisible.value = false
   setTimeout(() => uni.navigateBack(), 100)
@@ -103,6 +112,7 @@ function create(value: CatalogType) {
   pricingMode.value = 'materialAndManual'
   materialPrice.value = ''
   manualPrice.value = ''
+  costPrice.value = ''
   craft.value = ''
   criterion.value = ''
   description.value = ''
@@ -130,6 +140,7 @@ function edit(item: CatalogItem) {
   pricingMode.value = item.pricingMode
   materialPrice.value = String(item.materialPrice || '')
   manualPrice.value = String(item.manualPrice || '')
+  costPrice.value = item.costPrice ? String(item.costPrice) : ''
   craft.value = item.craft || ''
   criterion.value = item.criterion || ''
   description.value = item.description || ''
@@ -142,6 +153,29 @@ function edit(item: CatalogItem) {
   countertop.value = item.countertop || ''
   active.value = item.active
   editorOpen.value = true
+}
+
+async function refreshCost() {
+  try {
+    const result = await catalogApi.page({
+      type: type.value,
+      keyword: name.value.trim() || undefined,
+      current: 1,
+      size: 100
+    })
+    const current = result.list.find((item) => item.id === editingId.value)
+    if (current) costPrice.value = current.costPrice ? String(current.costPrice) : ''
+  } catch {
+    // 成本刷新失败不阻断目录编辑，保存操作仍由后端独立校验。
+  }
+}
+
+function openPartnerPrices() {
+  if (!editingId.value) {
+    toast('请先保存报价项目，再维护供应商采购价')
+    return
+  }
+  uni.navigateTo({ url: `${P.supplyPartnerPriceEdit}?itemId=${editingId.value}&itemType=${type.value}` })
 }
 
 function toggleDetail() {
@@ -214,7 +248,7 @@ async function save() {
 
     <view v-if="editorOpen" class="cm__mask" @tap="editorOpen = false">
       <view class="cm__sheet" @tap.stop>
-        <view class="cm__head"><view><text class="cm__title">{{ editingId ? '编辑库内项目' : '新增库内项目' }}</text><text class="cm__sub">价格、规格、公式和施工工艺由报价项目库统一维护</text></view><view class="cm__close" @tap="editorOpen = false"><JzIcon name="close" :size="30" color="#778390" /></view></view>
+        <view class="cm__head"><view><text class="cm__title">{{ editingId ? '编辑库内项目' : '新增库内项目' }}</text><text class="cm__sub">销售价由目录维护，标准采购成本由供应商采购价自动汇总</text></view><view class="cm__close" @tap="editorOpen = false"><JzIcon name="close" :size="30" color="#778390" /></view></view>
         <scroll-view scroll-y class="cm__body">
           <text class="cm__label">项目类型</text>
           <view class="jz-chip-row"><view v-for="item in typeOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': type === item.value }" @tap="type = item.value">{{ item.label }}</view></view>
@@ -232,6 +266,16 @@ async function save() {
           <view class="cm__price-preview">
             <text class="cm__price-preview-label">报价展示</text>
             <text class="cm__price-preview-value">{{ pricePreview }}</text>
+          </view>
+          <view v-if="canViewCost" class="cm__cost">
+            <view class="cm__cost-head">
+              <JzIcon name="lock" :size="26" color="#0E8A7D" />
+              <text class="cm__cost-title">标准采购成本</text>
+              <text class="cm__cost-tag">{{ costPrice ? '已同步' : '待维护' }}</text>
+            </view>
+            <text class="cm__cost-value">{{ standardCostText }}</text>
+            <text class="cm__cost-hint">由有效供应商采购价与人工/班组价自动汇总，报价项目内不手工覆盖成本。</text>
+            <button class="jz-btn jz-btn--ghost jz-btn--sm cm__cost-action" :disabled="!editingId" @tap="openPartnerPrices">维护供应商采购价</button>
           </view>
           <text class="cm__label">施工工艺</text>
           <textarea v-model="craft" class="jz-form-textarea" placeholder="施工步骤、材料要求、注意事项" />
@@ -285,12 +329,13 @@ async function save() {
 .cm__price-preview { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 16rpx; padding: 16rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cm__price-preview-label { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cm__price-preview-value { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; text-align: right; }
-.cm__cost { margin-top: 16rpx; padding: 20rpx 24rpx; background: #FFF8EE; border: 1rpx solid rgba(230,126,34,.28); border-radius: $jzb-radius-sm; }
+.cm__cost { margin-top: 16rpx; padding: 20rpx 24rpx; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.18); border-radius: $jzb-radius-sm; }
 .cm__cost-head { display: flex; align-items: center; gap: 8rpx; }
-.cm__cost-title { color: #B25E12; font-size: $jzb-font-sm; font-weight: 700; }
-.cm__cost-tag { margin-left: auto; padding: 4rpx 12rpx; color: #B25E12; background: rgba(230,126,34,.14); border-radius: $jzb-radius-pill; font-size: 20rpx; }
-.cm__cost-input { margin-top: 12rpx; }
-.cm__cost-hint { display: block; margin-top: 8rpx; color: #A4713C; font-size: $jzb-font-xs; line-height: 1.6; }
+.cm__cost-title { color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 700; }
+.cm__cost-tag { margin-left: auto; padding: 4rpx 12rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.cm__cost-value { display: block; margin-top: 12rpx; color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; }
+.cm__cost-hint { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
+.cm__cost-action { margin-top: 16rpx; }
 .cm__detail-toggle { margin-top: 24rpx; padding: 20rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cm__detail-toggle-title { display: block; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
 .cm__detail-toggle-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { CatalogItem, CatalogPricingMode, CatalogTree, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
+import { session } from '@/domains/identity/session'
 import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import JzIcon from './JzIcon.vue'
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 }>()
 
 const activeType = ref<CatalogType>(props.type)
+const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const tree = ref<CatalogTree | null>(null)
 const category = ref('')
 const brand = ref('')
@@ -156,6 +158,9 @@ function priceText(item: CatalogItem) {
   if (item.pricingMode === 'materialOnly') return `${money(item.materialPrice)}/${item.unit}`
   return `${money(item.materialPrice + item.manualPrice)}/${item.unit}`
 }
+function costText(item: CatalogItem) {
+  return Number(item.costPrice || 0) > 0 ? `成本 ${money(item.costPrice)}` : '成本未维护'
+}
 function modeLabel(mode: CatalogPricingMode) {
   return { materialAndManual: '材料+人工', materialOnly: '仅材料', manualOnly: '仅人工', fixedTotal: '固定总价' }[mode]
 }
@@ -204,7 +209,7 @@ function modeLabel(mode: CatalogPricingMode) {
             </view>
             <view class="cp__formula"><text>{{ modeLabel(item.pricingMode) }}</text><text class="jz-clamp-2">{{ item.formula }}</text></view>
             <view v-if="item.craft" class="cp__craft jz-clamp-2">{{ item.craft }}</view>
-            <view class="cp__item-foot"><text>{{ item.category }}</text><view v-if="manage" class="jz-btn jz-btn--ghost jz-btn--sm">编辑</view><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
+            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage" class="jz-btn jz-btn--ghost jz-btn--sm">编辑</view><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
           </view>
           <view v-if="loading" class="cp__loading">正在加载…</view>
           <view v-else-if="hasMore" class="cp__more" @tap="loadMore">加载更多</view>
@@ -258,7 +263,8 @@ function modeLabel(mode: CatalogPricingMode) {
 .cp__formula { display: flex; align-items: flex-start; gap: 10rpx; margin-top: 14rpx; padding: 14rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.5; }
 .cp__formula text:first-child { flex-shrink: 0; color: $jzb-primary-dark; font-weight: 650; }
 .cp__craft { margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
-.cp__item-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cp__item-foot { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cp__cost { margin-left: auto; color: $jzb-primary-dark; font-weight: 650; white-space: nowrap; }
 .cp__loading, .cp__more { padding: 26rpx; text-align: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .cp__confirm { flex-shrink: 0; padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; align-items: center; gap: 16rpx; background: #fff; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.06); }
 .cp__confirm .jz-grow { min-width: 0; }

@@ -42,6 +42,9 @@ onLoad(async (q) => {
     return
   }
   id.value = q?.id || ''
+  const queryItemId = q?.itemId || ''
+  const queryType = TYPE_OPTIONS.findIndex((item) => item.value === q?.itemType)
+  if (queryType >= 0) typeIdx.value = queryType
   try {
     partners.value = await supplyApi.partners()
     if (id.value) {
@@ -63,7 +66,7 @@ onLoad(async (q) => {
         remark.value = found.remark || ''
       }
     } else {
-      await loadItems()
+      await loadItems(queryItemId || undefined)
     }
   } catch (error) {
     toastError(error, '采购价资料加载失败')
