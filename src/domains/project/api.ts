@@ -126,9 +126,18 @@ export const projectApi = {
     return { ...page, list: page.list.map(normalizeProject) }
   },
 
-  list: async () => {
+  /**
+   * 当前登录角色可见的项目列表。
+   * - 不传 customerId：返回角色范围内的全部项目（首页卡片、我的、动态等汇总场景使用）。
+   * - 传 customerId：仅返回该客户名下的项目。后端 project/project/page 已支持 customerId
+   *   过滤（ProjectAccessContext 按 Boss/StoreManager/Designer 等角色再叠加企业/门店/参与范围），
+   *   客户详情页必须传 customerId，禁止用全量列表在前端自行 find，否则会把别的客户项目兜底到当前客户上。
+   */
+  list: async (query: { customerId?: string } = {}) => {
     const uri = session.role === 'customer' ? 'customer/project/page' : 'project/project/page'
-    return listOf(await post<PageResult<RawRecord> | RawRecord[]>(uri, { current: 1, size: 200 }))
+    const body: Record<string, unknown> = { current: 1, size: 200 }
+    if (query.customerId) body.customerId = query.customerId
+    return listOf(await post<PageResult<RawRecord> | RawRecord[]>(uri, body))
       .map(normalizeProject)
   },
 

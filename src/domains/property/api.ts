@@ -92,7 +92,6 @@ export const propertyApi = {
       address: property.address,
       area: property.area,
       layout: property.layout,
-      status: property.status,
       remark: property.remark
     }).then(normalizeProperty),
   measures: async (propertyId: string) =>

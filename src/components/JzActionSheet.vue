@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSheet from './JzSheet.vue'
 import JzIcon, { type IconName } from './JzIcon.vue'
 
@@ -30,9 +31,9 @@ const emit = defineEmits<{
 // JzIcon 通过 data-URI SVG 着色，需传入具体色值（与 uni.scss Token 保持一致）
 function toneColor(tone?: Tone): string {
   switch (tone) {
-    case 'primary': return '#0E8A7D'   // $jzb-primary-dark
-    case 'danger': return '#E5484D'    // $jzb-danger
-    default: return '#17212B'          // $jzb-text-1
+    case 'primary': return TOKEN_COLOR.primary
+    case 'danger': return TOKEN_COLOR.danger
+    default: return TOKEN_COLOR.text1
   }
 }
 
@@ -56,6 +57,7 @@ function close() {
 <template>
   <JzSheet :visible="visible" :title="title" @close="handleClose">
     <view class="jz-action-sheet">
+      <!-- 静态弹窗选项，不重排/不增删，index 安全 -->
       <view
         v-for="(action, index) in actions"
         :key="index"

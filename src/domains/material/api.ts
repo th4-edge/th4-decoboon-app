@@ -65,6 +65,7 @@ function normalize(raw: RawRecord): MaterialPlan {
     spec: raw.spec ?? catalog.spec,
     brand: catalog.brand,
     series: catalog.series,
+    cost: Number(raw.cost ?? 0),
     quantity: Number(raw.quantity ?? 0),
     unit: UNIT_LABEL[enumValue(raw.unit)] || enumValue(raw.unit),
     requiredAt: raw.requiredAt,

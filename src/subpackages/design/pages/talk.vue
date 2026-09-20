@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, nextTick, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P, runtime } from '@/config'
@@ -104,14 +105,14 @@ function jumpTo(section: TalkSection, index: number) {
 
     <scroll-view v-if="sections.length" scroll-x class="dt__nav" :show-scrollbar="false">
       <view class="dt__nav-row">
-        <view v-for="(section, index) in sections" :key="section.id || index" class="dt__nav-item" @tap="jumpTo(section, index)">
+        <view v-for="(section, index) in sections" :key="section.id ?? `sec-${index}`" class="dt__nav-item" @tap="jumpTo(section, index)">
           <text>{{ String(index + 1).padStart(2, '0') }}</text><text class="jz-clamp-1">{{ section.title }}</text>
         </view>
       </view>
     </scroll-view>
 
     <view v-if="sections.length" class="dt__pages">
-      <view v-for="(section, index) in sections" :id="`talk-page-${section.id}`" :key="section.id || index" class="jz-card dt__page">
+      <view v-for="(section, index) in sections" :id="`talk-page-${section.id}`" :key="section.id ?? `sec-${index}`" class="jz-card dt__page">
         <view class="dt__page-head">
           <view class="dt__page-no">{{ String(index + 1).padStart(2, '0') }}</view>
           <view class="jz-grow"><text class="dt__page-title jz-clamp-2">{{ section.title }}</text><text v-if="section.subtitle" class="dt__page-subtitle jz-clamp-3">{{ section.subtitle }}</text></view>
@@ -125,12 +126,12 @@ function jumpTo(section: TalkSection, index: number) {
         </scroll-view>
       </view>
     </view>
-    <view v-else-if="!busy" class="jz-card dt__empty"><JzEmpty text="谈单内容尚未生成" sub="至少完成两套方案和一份设计报价后再生成" /></view>
+    <view v-else-if="!busy" class="jz-card dt__empty"><JzEmpty text="谈单内容尚未生成" sub="完成主推方案和设计报价后再生成" /></view>
 
     <view v-if="talk" class="jz-actionbar">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--neutral jz-btn--sm" @tap="rebuild"><JzIcon name="refresh" :size="22" color="#465260" /><text>重新生成</text></button>
-        <button class="jz-btn jz-btn--primary jz-grow" @tap="copyOutput"><JzIcon name="copy" :size="22" color="#FFFFFF" /><text>复制PPT下载地址</text></button>
+        <button class="jz-btn jz-btn--neutral jz-btn--sm" @tap="rebuild"><JzIcon name="refresh" :size="22" :color="TOKEN_COLOR.text2" /><text>重新生成</text></button>
+        <button class="jz-btn jz-btn--primary jz-grow" @tap="copyOutput"><JzIcon name="copy" :size="22" :color="TOKEN_COLOR.white" /><text>复制PPT下载地址</text></button>
       </view>
     </view>
 
@@ -146,7 +147,7 @@ function jumpTo(section: TalkSection, index: number) {
 
 <style lang="scss" scoped>
 .dt { min-height: 100vh; padding-bottom: 170rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.dt__hero { margin: $jzb-page-gap $jzb-page-pad; padding: 32rpx 30rpx; color: #fff; background: linear-gradient(135deg, #1F2937, $jzb-purple); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
+.dt__hero { margin: $jzb-page-gap $jzb-page-pad; padding: 32rpx 30rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, #1F2937, $jzb-purple); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
 .dt__label { font-size: $jzb-font-sm; opacity: .8; }
 .dt__status { padding: 6rpx 14rpx; background: rgba(255,255,255,.16); border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .dt__title { display: block; margin-top: 20rpx; font-size: 42rpx; font-weight: 750; line-height: 1.38; word-break: break-word; }
@@ -156,13 +157,13 @@ function jumpTo(section: TalkSection, index: number) {
 .dt__facts text:last-child { margin-top: 5rpx; font-size: $jzb-font-sm; font-weight: 700; opacity: 1; word-break: break-all; }
 .dt__nav { position: sticky; top: 0; z-index: 30; background: rgba(244,247,248,.97); white-space: nowrap; border-bottom: 1rpx solid rgba(15,23,42,.04); }
 .dt__nav-row { display: inline-flex; gap: 12rpx; padding: 16rpx $jzb-page-pad; }
-.dt__nav-item { max-width: 220rpx; min-height: 64rpx; padding: 0 20rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: #fff; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
+.dt__nav-item { max-width: 220rpx; min-height: 64rpx; padding: 0 20rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
 .dt__nav-item text:last-child { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .dt__nav-item text:first-child { margin-right: 8rpx; color: $jzb-primary-dark; font-weight: 750; }
 .dt__pages { padding: 0 $jzb-page-pad; }
 .dt__page { padding: 28rpx; margin-bottom: 18rpx; scroll-margin-top: 120rpx; }
 .dt__page-head { display: flex; align-items: flex-start; }
-.dt__page-no { width: 58rpx; height: 58rpx; margin-right: 16rpx; display: flex; align-items: center; justify-content: center; color: #fff; background: $jzb-primary; border-radius: 16rpx; font-size: $jzb-font-sm; font-weight: 700; }
+.dt__page-no { width: 58rpx; height: 58rpx; margin-right: 16rpx; display: flex; align-items: center; justify-content: center; color: $jzb-text-inverse; background: $jzb-primary; border-radius: 16rpx; font-size: $jzb-font-sm; font-weight: 700; }
 .dt__page-title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.4; word-break: break-word; }
 .dt__page-subtitle { display: block; margin-top: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; line-height: 1.55; word-break: break-word; }
 .dt__content { margin-top: 20rpx; padding: 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }

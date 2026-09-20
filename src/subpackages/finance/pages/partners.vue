@@ -7,7 +7,10 @@ import { financeApi } from '@/domains/finance/api'
 import { toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
+import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 interface LedgerRow {
   partner?: { id?: string; name?: string; settlementMode?: string; settlementDays?: number; cutoffDay?: number }
@@ -22,6 +25,7 @@ interface LedgerRow {
 const ledgers = ref<LedgerRow[]>([])
 const overdueOnly = ref(false)
 const loading = ref(false)
+const loadError = ref('')
 
 const totalOutstanding = computed(() => ledgers.value.reduce((sum, item) => sum + Number(item.outstanding || 0), 0))
 const totalOverdue = computed(() => ledgers.value.reduce((sum, item) => sum + Number(item.overdueAmount || 0), 0))
@@ -31,10 +35,12 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     const result = await financeApi.partnerLedger(overdueOnly.value ? { overdueOnly: true } : {})
     ledgers.value = Array.isArray(result) ? (result as unknown as LedgerRow[]) : []
   } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '供应商往来加载失败'
     toastError(error, '供应商往来加载失败')
   } finally {
     loading.value = false
@@ -75,7 +81,7 @@ function openPayables(row: LedgerRow) {
           <text class="fp__head-title">供应商往来台账</text>
           <text class="fp__head-sub">账期、待付与逾期统一管理</text>
         </view>
-        <button class="jz-btn jz-btn--primary jz-btn--sm fp__manage" @tap="managePartners"><JzIcon name="users" :size="22" color="#FFFFFF" /><text>维护供应商</text></button>
+        <button class="jz-btn jz-btn--primary jz-btn--sm fp__manage" @tap="managePartners"><JzIcon name="users" :size="22" :color="TOKEN_COLOR.white" /><text>维护供应商</text></button>
       </view>
       <view class="fp__totals">
         <view class="fp__total">
@@ -93,10 +99,12 @@ function openPayables(row: LedgerRow) {
       </view>
     </view>
 
+    <PageState v-if="loadError && !ledgers.length" state="error" title="供应商往来加载失败" :subtitle="loadError" @retry="load" />
+    <JzSkeleton v-else-if="loading && !ledgers.length" :rows="4" />
     <view v-for="row in ledgers" :key="row.partner?.id || row.partner?.name" class="jz-card fp__row" @tap="openPayables(row)">
       <view class="fp__row-top">
         <text class="fp__name">{{ row.partner?.name || '未命名供应商' }}</text>
-        <JzTag :text="termsText(row)" :color="row.overdueAmount ? '#E5484D' : '#0E8A7D'" />
+        <JzTag :text="termsText(row)" :color="row.overdueAmount ? TOKEN_COLOR.danger : TOKEN_COLOR.primary" />
       </view>
       <view class="fp__row-facts">
         <text>待付 {{ money(row.outstanding) }}</text>
@@ -105,11 +113,11 @@ function openPayables(row: LedgerRow) {
       </view>
       <view class="fp__row-foot">
         <text>最近到期 {{ row.nearestDueDate ? row.nearestDueDate.slice(5) : '—' }}</text>
-        <view class="fp__more"><text>应付明细</text><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fp__more"><text>应付明细</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
       </view>
     </view>
 
-    <JzEmpty v-if="!loading && !ledgers.length" text="暂无供应商往来" sub="采购到货生成应付后，这里会按供应商归集待付与账期" />
+    <JzEmpty v-if="!loading && !loadError && !ledgers.length" text="暂无供应商往来" sub="采购到货生成应付后，这里会按供应商归集待付与账期" />
   </view>
 </template>
 

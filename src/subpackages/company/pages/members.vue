@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -22,9 +23,9 @@ const filters: { value: Filter; label: string }[] = [
   { value: 'Resigned', label: '已离职' }
 ]
 const statusMeta = {
-  active: { label: '在职', color: '#07A35A' },
-  suspended: { label: '停用', color: '#E67E22' },
-  resigned: { label: '已离职', color: '#E5484D' }
+  active: { label: '在职', color: TOKEN_COLOR.success },
+  suspended: { label: '停用', color: TOKEN_COLOR.warning },
+  resigned: { label: '已离职', color: TOKEN_COLOR.danger }
 }
 const currentCount = computed(() => members.value.length)
 
@@ -100,7 +101,7 @@ async function resign(member: Employee) {
       <view v-if="members.length" class="member-list">
         <view v-for="member in members" :key="member.id" class="member-card jz-card">
           <view class="member-card__main" @tap="detail(member)">
-            <view class="member-avatar"><JzIcon name="user" :size="34" color="#0E8A7D" /></view>
+            <view class="member-avatar"><JzIcon name="user" :size="34" :color="TOKEN_COLOR.primary" /></view>
             <view class="member-info">
               <view class="member-name-row">
                 <text class="member-name">{{ member.name }}</text>
@@ -108,30 +109,30 @@ async function resign(member: Employee) {
               </view>
               <text class="member-sub">{{ roleLabel(member) }} · {{ member.store?.name || '未分配门店' }} · {{ member.team?.name || '未分配团队' }}</text>
             </view>
-            <JzIcon name="chevron-right" :size="28" color="#AEB8C2" />
+            <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
           </view>
 
           <view class="member-card__actions">
             <template v-if="member.status === 'active'">
               <view class="member-action" @tap.stop="handover(member)">
-                <JzIcon name="share" :size="30" color="#0E8A7D" />
+                <JzIcon name="share" :size="30" :color="TOKEN_COLOR.primary" />
                 <text>交接</text>
               </view>
               <view class="member-action" @tap.stop="suspend(member)">
-                <JzIcon name="pause" :size="30" color="#E67E22" />
+                <JzIcon name="pause" :size="30" :color="TOKEN_COLOR.warning" />
                 <text>停用</text>
               </view>
             </template>
             <view v-else-if="member.status === 'suspended'" class="member-action" @tap.stop="resume(member)">
-              <JzIcon name="refresh" :size="30" color="#07A35A" />
+              <JzIcon name="refresh" :size="30" :color="TOKEN_COLOR.success" />
               <text>恢复在职</text>
             </view>
             <view v-if="member.status !== 'resigned'" class="member-action member-action--danger" @tap.stop="resign(member)">
-              <JzIcon name="logout" :size="30" color="#E5484D" />
+              <JzIcon name="logout" :size="30" :color="TOKEN_COLOR.danger" />
               <text>注销</text>
             </view>
             <view v-else class="member-action member-action--muted">
-              <JzIcon name="info" :size="30" color="#778390" />
+              <JzIcon name="info" :size="30" :color="TOKEN_COLOR.text3" />
               <text>已离职，仅可查看</text>
             </view>
           </view>

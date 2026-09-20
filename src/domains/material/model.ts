@@ -13,6 +13,7 @@ export interface MaterialPlan {
   spec?: string
   brand?: string
   series?: string
+  cost?: number
   quantity: number
   unit: string
   requiredAt?: string
@@ -37,6 +38,7 @@ export interface PurchaseOrder {
   supplierContact?: string
   supplierPhone?: string
   deliveryMode: DeliveryMode
+  cost?: number
   quantity: number
   unit: string
   unitPrice: number
@@ -56,6 +58,7 @@ export interface GoodsReceipt {
   projectName: string
   materialName: string
   deliveryMode: DeliveryMode
+  cost?: number
   quantity: number
   unit: string
   arrivedAt?: string

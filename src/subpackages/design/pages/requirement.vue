@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -11,7 +12,6 @@ import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
-import JzFloatAdd from '@/components/JzFloatAdd.vue'
 
 type Filter = 'all' | 'demand' | 'reject' | 'high'
 const customerId = ref('')
@@ -61,9 +61,11 @@ const filtered = computed(() => requirements.value.filter((item) => {
   if (filter.value === 'high') return item.priority === 'high'
   return true
 }))
-const filters: { key: Filter; label: string; count?: number }[] = [
-  { key: 'all', label: '全部' }, { key: 'demand', label: '诉求' },
-  { key: 'reject', label: '排斥点' }, { key: 'high', label: '高优先' }
+const filters: { key: Filter; label: string; count?: number; tone?: 'brand' | 'danger' | 'warning' }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'demand', label: '诉求', count: demandCount.value, tone: 'brand' },
+  { key: 'reject', label: '排斥点', count: rejectCount.value, tone: 'danger' },
+  { key: 'high', label: '高优先', count: highCount.value, tone: 'warning' }
 ]
 
 onLoad((query) => {
@@ -131,6 +133,7 @@ async function save() {
     })
     formOpen.value = false
     await load()
+    uni.$emit('design-workbench:refresh')
     toast('诉求已记录', 'success')
   } catch (error) {
     toastError(error, '诉求保存失败')
@@ -143,51 +146,63 @@ async function save() {
 
 <template>
   <view class="dr">
-    <view class="dr__hero">
-      <view class="jz-between">
-        <view>
-          <text class="dr__eyebrow">客户诉求库</text>
-          <text class="dr__title jz-clamp-1">{{ customer?.name || '客户' }}</text>
-        </view>
-        <view class="dr__total"><text>{{ requirements.length }}</text><text>条记录</text></view>
+    <view class="dr__header">
+      <view class="dr__header-left">
+        <text class="dr__title jz-clamp-1">{{ customer?.name || '客户' }}</text>
+        <text class="dr__sub">记录客户偏好与排斥项</text>
       </view>
-      <view class="dr__summary">
-        <view><text>{{ demandCount }}</text><text>明确诉求</text></view>
-        <view><text>{{ rejectCount }}</text><text>排斥点</text></view>
-        <view><text>{{ highCount }}</text><text>高优先级</text></view>
+      <view class="dr__total">
+        <text class="dr__total-num">{{ requirements.length }}</text>
+        <text class="dr__total-label">条记录</text>
       </view>
     </view>
 
-    <scroll-view scroll-x class="jz-toolbar" :show-scrollbar="false">
-      <view class="jz-toolbar__row">
-        <view v-for="item in filters" :key="item.key" class="jz-toolbar__item" :class="{ 'jz-toolbar__item--active': filter === item.key }" @tap="filter = item.key">{{ item.label }}</view>
+    <scroll-view scroll-x class="dr__tabs" :show-scrollbar="false">
+      <view class="dr__tabs-row">
+        <view v-for="item in filters" :key="item.key" class="dr__tab"
+          :class="{
+            'dr__tab--active': filter === item.key,
+            'dr__tab--danger': item.tone === 'danger' && filter !== item.key,
+            'dr__tab--warning': item.tone === 'warning' && filter !== item.key
+          }"
+          @tap="filter = item.key">
+          {{ item.label }}<text v-if="item.count !== undefined" class="dr__tab-count">{{ item.count }}</text>
+        </view>
       </view>
     </scroll-view>
 
     <JzSkeleton v-if="loadingData && !requirements.length" :rows="4" />
     <view v-else-if="filtered.length" class="dr__list">
-      <view v-for="item in filtered" :key="item.id" class="jz-card dr__item" @tap="toggleItem(item.id)">
-        <view class="dr__item-main">
-          <view class="dr__item-top">
-            <text class="dr__kind" :class="{ 'dr__kind--reject': item.kind === 'reject' }">{{ designMeta.requirementKind[item.kind] }}</text>
-            <text class="dr__priority" :class="`dr__priority--${item.priority}`">{{ designMeta.requirementPriority[item.priority] }}优先</text>
-          </view>
-          <text class="dr__item-title jz-clamp-2">{{ item.title }}</text>
-          <view class="dr__meta"><JzIcon name="map-pin" :size="22" color="#778390" /><text>{{ item.spaceName || '全局诉求' }}</text><text>·</text><text>{{ item.source || '沟通记录' }}</text></view>
-          <text v-if="item.detail" class="dr__detail" :class="{ 'jz-clamp-3': !expandedItems[item.id] }">{{ item.detail }}</text>
+      <view v-for="item in filtered" :key="item.id" class="dr__item" @tap="toggleItem(item.id)">
+        <view class="dr__item-tags">
+          <text class="dr__tag" :class="item.kind === 'reject' ? 'dr__tag--reject' : 'dr__tag--demand'">
+            {{ designMeta.requirementKind[item.kind] === '客户诉求' ? '诉求' : '排斥点' }}
+          </text>
+          <text class="dr__tag" :class="{
+            'dr__tag--high': item.priority === 'high',
+            'dr__tag--medium': item.priority === 'medium',
+            'dr__tag--low': item.priority === 'low'
+          }">
+            {{ designMeta.requirementPriority[item.priority] }}优先
+          </text>
+          <text class="dr__item-space">{{ item.spaceName || '全局' }}</text>
         </view>
-        <view class="dr__arrow"><JzIcon :name="expandedItems[item.id] ? 'chevron-down' : 'chevron-right'" :size="26" color="#AEB8C2" /></view>
+        <text class="dr__item-title jz-clamp-2">{{ item.title }}</text>
+        <text v-if="item.detail" class="dr__detail" :class="{ 'jz-clamp-2': !expandedItems[item.id] }">{{ item.detail }}</text>
       </view>
     </view>
-    <view v-else class="dr__empty jz-card"><JzEmpty text="没有匹配的诉求" sub="切换筛选条件，或继续记录客户最新表达" /></view>
+    <view v-else class="dr__empty"><JzEmpty text="没有匹配的诉求" sub="切换筛选条件，或继续记录客户最新表达" /></view>
 
-    <JzFloatAdd text="记录诉求" @tap="openForm" />
+    <view class="dr__footer">
+      <button class="jz-btn jz-btn--primary dr__submit" @tap="openForm"><JzIcon name="plus" :size="30" :color="TOKEN_COLOR.white" /><text>记录诉求</text></button>
+      <view class="jz-tabbar-gap" />
+    </view>
 
     <view v-if="formOpen" class="dr__mask" @tap="formOpen = false">
       <view class="dr__sheet" @tap.stop>
         <view class="dr__sheet-head">
           <view><text class="dr__sheet-title jz-clamp-1">记录客户诉求</text><text class="dr__sheet-sub">尽量保留客户原话，设计回应后续补充</text></view>
-          <view class="dr__close" @tap="formOpen = false"><JzIcon name="close" :size="30" color="#778390" /></view>
+          <view class="dr__close" @tap="formOpen = false"><JzIcon name="close" :size="30" :color="TOKEN_COLOR.text3" /></view>
         </view>
         <scroll-view scroll-y class="dr__sheet-content">
           <text class="dr__field-label">诉求类型</text>
@@ -204,7 +219,7 @@ async function save() {
           </view>
           <text class="dr__field-label">关联区域</text>
           <view class="dr__area-row">
-            <picker :range="spaceOptions.map(i => i.label)" @change="spaceType = spaceOptions[Number($event.detail.value)].value"><view class="jz-form-input dr__area-picker"><text>{{ spaceLabel }}</text><JzIcon name="chevron-down" :size="24" color="#778390" /></view></picker>
+            <picker :range="spaceOptions.map(i => i.label)" @change="spaceType = spaceOptions[Number($event.detail.value)].value"><view class="jz-form-input dr__area-picker"><text>{{ spaceLabel }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view></picker>
             <input v-model="spaceName" class="jz-form-input" placeholder="客户叫法，如北卧" />
           </view>
           <text class="dr__field-label">诉求标题 *</text>
@@ -213,7 +228,7 @@ async function save() {
           <textarea v-model="detail" class="jz-form-textarea" maxlength="500" placeholder="记录客户为什么这样要求，后续谈单才能准确回应" />
           <text class="dr__field-label">沟通来源</text>
           <picker :range="['电话', '到店沟通', '量房现场', '微信', '视频会议']" @change="source = ['电话', '到店沟通', '量房现场', '微信', '视频会议'][Number($event.detail.value)]">
-            <view class="jz-form-input dr__source"><text>{{ source }}</text><JzIcon name="chevron-down" :size="24" color="#778390" /></view>
+            <view class="jz-form-input dr__source"><text>{{ source }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view>
           </picker>
         </scroll-view>
         <view class="dr__sheet-foot">
@@ -226,49 +241,66 @@ async function save() {
 </template>
 
 <style lang="scss" scoped>
-.dr { min-height: 100vh; padding-bottom: 150rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.dr__hero { margin: $jzb-page-gap $jzb-page-pad; padding: 34rpx 30rpx; color: #fff; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
-.dr__eyebrow { display: block; font-size: $jzb-font-sm; opacity: .78; }
-.dr__title { display: block; margin-top: 8rpx; font-size: 46rpx; font-weight: 750; line-height: 1.3; }
-.dr__total { min-width: 116rpx; padding: 16rpx; text-align: center; background: rgba(255,255,255,.14); border-radius: 18rpx; }
-.dr__total text { display: block; }
-.dr__total text:first-child { font-size: $jzb-font-xl; font-weight: 750; }
-.dr__total text:last-child { margin-top: 3rpx; font-size: $jzb-font-xs; opacity: .78; }
-.dr__summary { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 28rpx; padding-top: 22rpx; border-top: 1rpx solid rgba(255,255,255,.16); text-align: center; }
-.dr__summary text { display: block; }
-.dr__summary text:first-child { font-size: $jzb-font-lg; font-weight: 700; }
-.dr__summary text:last-child { margin-top: 5rpx; font-size: $jzb-font-xs; opacity: .76; }
+.dr { min-height: 100vh; padding-bottom: 120rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
+
+/* 头部 */
+.dr__header { display: flex; justify-content: space-between; align-items: flex-end; padding: $jzb-space-4 $jzb-page-pad $jzb-space-1; }
+.dr__title { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 700; }
+.dr__sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.dr__total { text-align: right; }
+.dr__total-num { display: block; color: $jzb-text-1; font-size: $jzb-font-xxl; font-weight: 700; }
+.dr__total-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
+
+/* 筛选 tab */
+.dr__tabs { padding: 0 $jzb-page-pad $jzb-space-3; white-space: nowrap; }
+.dr__tabs-row { display: inline-flex; gap: $jzb-space-1; }
+.dr__tab { display: inline-flex; align-items: center; padding: $jzb-space-1 $jzb-space-3; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.dr__tab--active { background: $jzb-primary-dark; border-color: $jzb-primary-dark; color: $jzb-text-inverse; }
+.dr__tab--danger { color: $jzb-danger; border-color: $jzb-danger-soft; }
+.dr__tab--warning { color: $jzb-warning; border-color: $jzb-warning-soft; }
+.dr__tab-count { margin-left: 6rpx; font-size: $jzb-font-xs; opacity: .8; }
+
+/* 诉求列表卡片 */
 .dr__list { padding: 0 $jzb-page-pad; }
-.dr__item { position: relative; padding: 26rpx; margin-bottom: 16rpx; display: flex; align-items: center; overflow: hidden; background: linear-gradient(135deg, #FFFFFF 0%, $jzb-primary-lightest 100%); border: 1rpx solid rgba(22,163,148,.14); box-shadow: 0 10rpx 28rpx rgba(14,138,125,.07); transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
-.dr__item::before { content: ''; position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; background: $jzb-gradient; }
-.dr__item:active { transform: scale(0.992); background: $jzb-primary-lighter; }
-.dr__item-main { flex: 1; min-width: 0; }
-.dr__item-top { display: flex; align-items: center; gap: 12rpx; }
-.dr__kind { padding: 5rpx 13rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
-.dr__kind--reject { color: $jzb-primary-dark; background: $jzb-primary-lighter; border: 1rpx solid rgba(22,163,148,.18); }
-.dr__priority { padding: 5rpx 13rpx; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
-.dr__priority--high { color: #fff; background: $jzb-primary-dark; }
-.dr__priority--medium { color: #fff; background: $jzb-primary; }
-.dr__priority--low { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
-.dr__item-title { display: block; margin-top: 16rpx; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; word-break: break-word; }
-.dr__meta { display: flex; align-items: center; gap: 6rpx; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; min-width: 0; }
-.dr__meta text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.dr__detail { display: block; margin-top: 14rpx; padding: 16rpx 18rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.10); border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; line-height: 1.6; word-break: break-word; overflow-wrap: anywhere; }
-.dr__arrow { margin-left: 12rpx; }
+.dr__item { padding: $jzb-space-4; margin-bottom: $jzb-space-3; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius; }
+.dr__item:active { background: $jzb-bg-page; }
+.dr__item-tags { display: flex; align-items: center; gap: $jzb-space-1; }
+.dr__tag { padding: 2rpx $jzb-space-1; border-radius: $jzb-radius-xs; font-size: $jzb-font-xs; }
+.dr__tag--demand { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.dr__tag--reject { color: $jzb-danger; background: $jzb-danger-soft; }
+.dr__tag--high { color: $jzb-danger; background: $jzb-danger-soft; }
+.dr__tag--medium { color: $jzb-warning; background: $jzb-warning-soft; }
+.dr__tag--low { color: $jzb-text-3; background: $jzb-bg-page; }
+.dr__item-space { margin-left: auto; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.dr__item-title { display: block; margin-top: $jzb-space-3; color: $jzb-text-1; font-size: $jzb-font; font-weight: 650; line-height: 1.45; word-break: break-word; }
+.dr__detail { display: block; margin-top: $jzb-space-3; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.6; word-break: break-word; overflow-wrap: anywhere; }
+
 .dr__empty { margin: 0 $jzb-page-pad; }
+
+/* 底部固定主按钮 */
+.dr__footer { position: fixed; left: 0; right: 0; bottom: 0; padding: $jzb-space-3 $jzb-page-pad calc(#{$jzb-space-3} + #{$jzb-safe-bottom}); background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
+.dr__submit { width: 100%; }
+
+/* 弹出表单 */
 .dr__mask { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.dr__sheet { width: 100%; height: 88vh; display: flex; flex-direction: column; background: #fff; border-radius: 32rpx 32rpx 0 0; }
-.dr__sheet-head { padding: 30rpx $jzb-page-pad 22rpx; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
+.dr__sheet { width: 100%; height: 88vh; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: $jzb-radius-xl $jzb-radius-xl 0 0; }
+.dr__sheet-head { padding: $jzb-space-5 $jzb-page-pad $jzb-space-4; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
 .dr__sheet-title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.35; }
 .dr__sheet-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
 .dr__close { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 50%; }
-.dr__sheet-content { flex: 1; min-height: 0; height: 0; padding: 8rpx $jzb-page-pad 30rpx; overflow: hidden; }
-.dr__field-label { display: block; margin: 26rpx 0 12rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
-.dr__area-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14rpx; }
+.dr__sheet-content { flex: 1; min-height: 0; height: 0; padding: $jzb-space-1 $jzb-page-pad $jzb-space-5; overflow: hidden; }
+.dr__field-label { display: block; margin: $jzb-space-5 0 $jzb-space-3; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
+/* input 直接使用 jz-form-input 时补充宽度和盒模型 */
+.dr__sheet-content input.jz-form-input {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+.dr__area-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: $jzb-space-3; }
 .dr__area-row input { min-width: 0; }
 .dr__area-picker { justify-content: space-between; }
 .dr__source { justify-content: space-between; }
-.dr__sheet-foot { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.05); }
+.dr__sheet-foot { padding: $jzb-space-3 $jzb-page-pad calc(#{$jzb-space-3} + #{$jzb-safe-bottom}); display: flex; gap: $jzb-space-3; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.05); }
 .dr__sheet-foot .jz-btn { min-height: 88rpx; white-space: nowrap; }
 @media (min-width: 768px) { .dr__mask, .dr__sheet { left: 50%; right: auto; width: 560px; transform: translateX(-50%); } }
 </style>

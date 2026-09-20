@@ -1,8 +1,9 @@
 import type { TaskNodeKey, TaskPriority, TaskStatus } from './model'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 export const TASK_STATUS_META: Record<TaskStatus, { label: string; color: string }> = {
   todo:     { label: '待办',     color: '#86909C' },
-  doing:    { label: '进行中',   color: '#16A394' },
+  doing:    { label: '进行中',   color: TOKEN_COLOR.primaryBase },
   accepting:{ label: '待验收',   color: '#FF7D00' },
   done:     { label: '已完成',   color: '#00B42A' },
   overdue:  { label: '已逾期',   color: '#F53F3F' }

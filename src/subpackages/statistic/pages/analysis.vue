@@ -11,14 +11,18 @@ import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTar
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
+import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const month = ref(currentMonth())
 const dashboard = ref<BossDashboard | null>(null)
 const alertReport = ref<BusinessAlertReport | null>(null)
 const projectReports = ref<FinanceProjectReport[]>([])
 const loading = ref(false)
+const loadError = ref('')
 const showTarget = ref(false)
 const storeId = ref('')
 const savingTarget = ref(false)
@@ -29,10 +33,10 @@ const targetForm = ref<BusinessTarget>({
 const metricCards = computed(() => {
   const d = dashboard.value
   return [
-    metricCard('签约额', d?.signedAmount, 'file-text', '#0E8A7D', '#E8F7F5'),
-    metricCard('回款额', d?.receivedAmount, 'wallet', '#07A35A', '#EAF8F0'),
-    metricCard('项目毛利', d?.grossProfit, 'chart', '#6958C8', '#F0EEFC'),
-    metricCard('在建项目', d?.activeProjectCount, 'briefcase', '#E67E22', '#FFF4E8', false)
+    metricCard('签约额', d?.signedAmount, 'file-text', TOKEN_COLOR.primary, TOKEN_COLOR.primaryLighter),
+    metricCard('回款额', d?.receivedAmount, 'wallet', TOKEN_COLOR.success, TOKEN_COLOR.successSoft),
+    metricCard('项目毛利', d?.grossProfit, 'chart', TOKEN_COLOR.purple, TOKEN_COLOR.purpleSoft),
+    metricCard('在建项目', d?.activeProjectCount, 'briefcase', TOKEN_COLOR.warning, TOKEN_COLOR.warningSoft, false)
   ]
 })
 
@@ -67,6 +71,7 @@ async function load() {
     return
   }
   loading.value = true
+  loadError.value = ''
   try {
     const apiMonth = `${month.value}-01`
     const [d, a, projects] = await Promise.all([
@@ -85,6 +90,7 @@ async function load() {
       activeProjectCount: d.activeProjectCount.target
     }
   } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '经营驾驶舱加载失败'
     toastError(error, '经营驾驶舱加载失败')
   } finally {
     loading.value = false
@@ -97,7 +103,7 @@ function metricCard(label: string, metric: BossDashboard['signedAmount'] | undef
     label,
     icon,
     color,
-    tone: incomplete ? '#FFF4E8' : tone,
+    tone: incomplete ? TOKEN_COLOR.warningSoft : tone,
     value: incomplete ? '成本未完整' : (isMoney ? money(metric?.value ?? 0) : `${metric?.value ?? 0}`),
     target: incomplete ? (metric?.warning || '补齐成本后展示可靠毛利') : (isMoney ? `目标 ${money(metric?.target ?? 0)}` : `目标 ${metric?.target ?? 0} 个`),
     achievement: incomplete ? '暂不计算达成率' : `达成 ${metric?.achievementRate ?? 0}%`,
@@ -171,11 +177,14 @@ function currentMonth() {
 
       <view class="ana-query jz-card">
         <picker mode="date" fields="month" :value="month" @change="onMonthChange">
-          <view class="ana-query__month"><JzIcon name="calendar" :size="30" color="#0E8A7D" /><text>{{ month }}</text></view>
+          <view class="ana-query__month"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ month }}</text></view>
         </picker>
         <button class="jz-btn jz-btn--ghost ana-query__target" @tap="showTarget = !showTarget">设置目标</button>
       </view>
 
+      <PageState v-if="loadError && !dashboard" state="error" title="经营驾驶舱加载失败" :subtitle="loadError" @retry="load" />
+      <JzSkeleton v-else-if="loading && !dashboard" :rows="6" />
+      <template v-else>
       <view v-if="showTarget" class="jz-card ana-target">
         <view class="ana-target__head">
           <text class="ana-target__title">本月经营目标</text>
@@ -240,12 +249,12 @@ function currentMonth() {
       </view>
       <view v-if="alerts.length" class="jz-card ana-alerts">
         <view v-for="item in alerts" :key="`${item.type}-${item.businessType}-${item.businessId}`" class="ana-alert" @tap="openProject(item.project?.id)">
-          <view class="ana-alert__icon" :class="`ana-alert__icon--${item.level}`"><JzIcon :name="alertMeta(item.type).icon" :size="30" :color="item.level === 'high' ? '#E5484D' : '#E67E22'" /></view>
+          <view class="ana-alert__icon" :class="`ana-alert__icon--${item.level}`"><JzIcon :name="alertMeta(item.type).icon" :size="30" :color="item.level === 'high' ? TOKEN_COLOR.danger : TOKEN_COLOR.warning" /></view>
           <view class="jz-grow">
             <view class="ana-alert__title-row"><text class="ana-alert__title">{{ item.title }}</text><text class="ana-alert__tag">{{ alertMeta(item.type).label }}</text></view>
             <text class="ana-alert__message">{{ item.message }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="28" color="#AEB8C2" />
+          <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="当前没有经营预警" sub="系统会持续监测应收、停工、材料与变更风险" />
@@ -264,6 +273,7 @@ function currentMonth() {
         </view>
       </view>
       <JzEmpty v-else text="暂无项目利润数据" sub="合同、成本和费用形成后自动核算" />
+      </template>
       <view class="ana-bottom" />
     </view>
   </view>

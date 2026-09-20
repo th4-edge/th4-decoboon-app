@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装得清 Web UI 优化方案 — 仅视觉层级调整，零功能删减</title>
+<style>
+:root {
+  --brand-700:#0b7067; --brand-600:#0e8a7d; --brand-500:#16a394;
+  --brand-100:#d4f0eb; --brand-50:#f0faf8;
+  --ink-900:#1a2b27; --ink-800:#253532; --ink-600:#52635f; --ink-400:#8a9895; --ink-300:#b8c4c1;
+  --surface-50:#f7f9f8; --surface-100:#f1f5f4; --surface-0:#fff;
+  --border:#e8eeec; --warning:#e8a020; --warning-bg:#fdf4e3;
+  --danger:#e5484d; --danger-bg:#fdecec; --info:#3b7de8; --info-bg:#ebf2fe;
+  --radius:10px; --shadow-sm:0 1px 3px rgba(26,43,39,.06); --shadow-md:0 4px 16px rgba(26,43,39,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,"PingFang SC",sans-serif;background:var(--surface-50);color:var(--ink-800);line-height:1.5;font-size:14px;}
+.page{max-width:1280px;margin:0 auto;padding:32px 24px;}
+h1{font-size:26px;color:var(--ink-900);margin-bottom:4px;}
+.subtitle{font-size:14px;color:var(--ink-600);margin-bottom:8px;}
+.note{font-size:13px;color:var(--ink-400);margin-bottom:32px;}
+h2{font-size:18px;color:var(--ink-900);margin:40px 0 4px;}
+h2 .tag{font-size:11px;background:var(--brand-50);color:var(--brand-700);padding:2px 8px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;}
+h3{font-size:14px;color:var(--ink-800);margin:20px 0 8px;}
+p.lead{font-size:13px;color:var(--ink-600);margin-bottom:16px;}
+
+/* annotation table */
+.ann{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0 24px;}
+.ann th{background:var(--surface-100);text-align:left;padding:8px 12px;font-weight:600;color:var(--ink-600);}
+.ann td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+.ann .keep{color:var(--brand-700);font-weight:600;}
+.ann .change{color:var(--warning);font-weight:600;}
+
+/* browser frame */
+.frame{background:#fff;border-radius:12px;box-shadow:var(--shadow-md);overflow:hidden;margin:16px 0;}
+.frame-bar{background:var(--surface-100);padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.dot{width:10px;height:10px;border-radius:50%;}
+.url{flex:1;background:#fff;border-radius:6px;padding:3px 12px;font-size:11px;color:var(--ink-400);}
+.frame-body{padding:20px;background:var(--surface-50);}
+
+/* === Workbench === */
+.wb-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.wb-title{font-size:22px;font-weight:700;color:var(--ink-900);}
+.wb-eyebrow{font-size:12px;color:var(--brand-600);margin-bottom:2px;}
+.wb-actions{display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:8px;font-size:13px;border:1px solid var(--border);background:#fff;cursor:pointer;}
+.btn-primary{background:var(--brand-500);color:#fff;border-color:var(--brand-500);}
+.btn-plain{background:var(--brand-50);color:var(--brand-700);border-color:transparent;}
+.btn-link{background:none;border:none;color:var(--brand-600);font-size:13px;cursor:pointer;}
+
+/* mainline 3-col */
+.ml-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;}
+.ml-col{background:var(--surface-50);border-radius:var(--radius);padding:12px;}
+.ml-col-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink-600);font-weight:600;margin-bottom:8px;}
+.ml-col-head b{color:var(--brand-600);}
+.ml-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;position:relative;}
+.ml-card.risk{background:var(--danger-bg);border-color:#f0cccc;}
+.ml-card.blocked{background:var(--warning-bg);border-color:#f0d6b4;}
+.ml-card-top{display:flex;gap:6px;align-items:center;font-size:10px;color:var(--ink-400);}
+.ml-card-top strong{color:var(--ink-600);font-size:12px;}
+.ml-card h4{font-size:13px;color:var(--ink-900);margin:6px 18px 4px 0;}
+.ml-card p{font-size:11px;color:var(--ink-600);margin-bottom:6px;line-height:1.5;}
+.ml-card-meta{display:flex;gap:10px;font-size:10px;color:var(--ink-400);}
+/* FIX: source refs 小字默认折叠成"为什么"气泡 */
+.ml-card-refs{font-size:9px;color:#b0bab7;margin-top:4px;cursor:help;}
+
+/* metrics */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.metric{background:#fff;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm);}
+.metric-label{font-size:11px;color:var(--ink-400);}
+.metric-value{font-size:24px;font-weight:700;color:var(--ink-900);margin:4px 0;}
+.metric-hint{font-size:11px;color:var(--ink-400);}
+
+/* quick + scope */
+.wb-2col{display:grid;grid-template-columns:1.65fr 1fr;gap:12px;margin-bottom:16px;}
+.panel{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);}
+.panel h4{font-size:14px;font-weight:600;margin-bottom:10px;}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.quick{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;}
+.quick-icon{width:32px;height:32px;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--brand-600);font-size:14px;}
+.quick strong{font-size:12px;display:block;}
+.quick small{font-size:10px;color:var(--ink-400);}
+.scope-box{background:var(--brand-50);padding:16px;border-radius:8px;margin-bottom:10px;}
+.scope-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid var(--border);}
+.scope-row span{color:var(--ink-400);}
+.scope-row strong{color:var(--ink-800);}
+
+/* === Customer list === */
+.cl-stats{display:flex;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:12px;}
+.cl-stat{flex:1;padding:12px 16px;border-right:1px solid var(--border);}
+.cl-stat:last-child{border:0;}
+.cl-stat-label{font-size:11px;color:var(--ink-400);}
+.cl-stat-val{font-size:20px;font-weight:700;margin-top:2px;}
+.cl-stat-val.warn{color:var(--warning);}
+
+.cl-search{display:flex;gap:8px;margin-bottom:10px;align-items:center;}
+.cl-search input{flex:1;padding:8px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;}
+
+.cl-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+.cl-tab{padding:5px 12px;border-radius:999px;font-size:12px;background:#fff;border:1px solid var(--border);color:var(--ink-600);cursor:pointer;}
+.cl-tab.on{background:var(--brand-500);color:#fff;border-color:var(--brand-500);}
+.cl-tab.warn{background:var(--warning-bg);color:var(--warning);border-color:var(--warning);}
+.cl-tabs-secondary{display:flex;gap:4px;align-items:center;background:var(--surface-100);padding:6px 10px;border-radius:8px;margin-bottom:14px;flex-wrap:wrap;}
+.cl-tabs-secondary .label{font-size:11px;color:var(--ink-400);margin-right:4px;}
+
+.cl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cl-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);}
+.cl-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.cl-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;}
+.cl-name{font-size:15px;font-weight:600;}
+.cl-badge{font-size:10px;padding:1px 6px;border-radius:3px;margin-left:4px;}
+.cl-grid-info{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;}
+.cl-grid-info .k{color:var(--ink-400);font-size:10px;}
+.cl-grid-info .v{color:var(--ink-800);}
+.cl-follow{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px;}
+
+/* === Customer detail === */
+.cd-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;}
+.cd-avatar{width:52px;height:52px;border-radius:50%;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
+.cd-name{font-size:20px;font-weight:700;}
+.cd-meta{font-size:12px;color:var(--ink-400);margin-top:2px;}
+.cd-actions{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+
+.cd-alerts{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.cd-alert{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.cd-alert.danger{background:var(--danger-bg);color:var(--danger);}
+.cd-alert.warn{background:var(--warning-bg);color:var(--warning);}
+
+.cd-journey{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);margin-bottom:12px;}
+.cd-journey-top{display:grid;grid-template-columns:1fr 280px;gap:16px;}
+.cd-next{background:var(--brand-50);padding:12px;border-radius:8px;}
+.cd-next .lbl{font-size:10px;color:var(--brand-600);}
+.cd-next strong{font-size:14px;display:block;margin:2px 0;}
+.cd-next p{font-size:11px;color:var(--ink-600);line-height:1.5;}
+
+/* steps - keep all 8 nodes but make them smaller and horizontal scrollable on narrow */
+.cd-steps{display:flex;align-items:flex-start;margin-top:16px;}
+.cd-step{display:flex;flex-direction:column;align-items:center;flex:1;min-width:70px;position:relative;}
+.cd-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;z-index:1;}
+.cd-dot.done{background:var(--brand-500);color:#fff;}
+.cd-dot.cur{background:var(--brand-100);color:var(--brand-700);border:2px solid var(--brand-500);}
+.cd-dot.todo{background:var(--surface-100);color:var(--ink-400);}
+.cd-step-label{font-size:10px;margin-top:4px;color:var(--ink-600);text-align:center;}
+.cd-step-desc{font-size:9px;color:var(--ink-400);text-align:center;margin-top:2px;max-width:80px;}
+.cd-line{position:absolute;top:11px;left:50%;width:100%;height:2px;background:var(--border);}
+.cd-line.done{background:var(--brand-500);}
+
+.cd-facts{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:12px;}
+.cd-fact{padding:12px 14px;border-right:1px solid var(--border);}
+.cd-fact:last-child{border:0;}
+.cd-fact .k{font-size:10px;color:var(--ink-400);}
+.cd-fact .v{font-size:18px;font-weight:700;color:var(--ink-900);margin:2px 0;}
+.cd-fact .e{font-size:10px;color:var(--ink-400);}
+
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cd-panel{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);}
+.cd-panel h4{font-size:14px;font-weight:600;margin-bottom:10px;}
+.cd-prop{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.cd-prop.active{border-color:var(--brand-500);background:var(--brand-50);}
+.cd-profile{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;}
+.cd-profile .k{color:var(--ink-400);font-size:10px;}
+.cd-profile .v{color:var(--ink-800);}
+
+/* tabs */
+.cd-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;}
+.cd-tab{padding:8px 14px;font-size:13px;color:var(--ink-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.cd-tab.on{color:var(--brand-600);border-color:var(--brand-500);font-weight:600;}
+
+.legend{font-size:12px;color:var(--ink-600);background:var(--surface-100);padding:12px 16px;border-radius:8px;margin:8px 0 20px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>装得清 Web UI 优化方案</h1>
+<div class="subtitle">原则：零功能删减、零接口改动，只调整视觉层级、间距和信息密度</div>
+<div class="note">以下所有板块、按钮、Tab、数据均保留原有逻辑，仅做排版和视觉打磨。</div>
+
+<!-- ============ 变更总览 ============ -->
+<h2>变更总览 <span class="tag">只动样式和布局</span></h2>
+<table class="ann">
+<tr><th style="width:140px">页面</th><th>保留不动</th><th>视觉优化点</th></tr>
+<tr><td><b>工作台</b></td><td class="keep">OnboardingChecklist、今日主线三栏（需要处理/推进中/风险）、6个指标卡、业务入口、数据范围、近期客户表格、待办中心/刷新按钮、置顶功能</td><td class="change">① BR/SCN/DEC 编号从卡片正文移到灰色小字"规则依据"tooltip；② "进入处理"按钮从 plain 改实心主色；③ 三栏卡片间距收紧；④ 指标卡图标和数字对齐</td></tr>
+<tr><td><b>客户360列表</b></td><td class="keep">6个统计、搜索查询重置、登记客户、全部阶段tab、全部提醒tab、全部标签tab、每张卡片全部字段（头像/姓名/阶段/评级/电话/来源/顾问/标签/预算/面积/小区/登记日期/最近跟进/下次跟进）</td><td class="change">① 阶段tab和提醒/标签分两行，提醒行用浅灰底区分；② 卡片高度随内容自适应不强制对齐；③ "自然到店"标签不重复（合并到副标题行）；④ 统计横条去掉分隔线改用留白</td></tr>
+<tr><td><b>客户详情</b></td><td class="keep">顶部全部按钮（返回/登记到店/加微信/更多/预约量房）、告警条、客户身份+标签、下一步建议卡片、8节点流程轨道、4格fact strip、装修房屋卡片、客户档案8字段、客户画像、右侧Tabs（跟进记录/报价/项目）、全部抽屉弹窗</td><td class="change">① 头部按钮主次分级（主操作实心，其余描边）；② 流程节点8个全保留但缩小字号+描述小字；③ 下一步建议从右侧浮窗改为流程卡内右侧内联，不割裂；④ fact strip 数字加大、说明文字缩小；⑤ 左右两栏比例调整为 1fr : 1.1fr（跟进记录给更多空间）</td></tr>
+<tr><td><b>业绩页</b></td><td class="keep">hero三大指标、经营节奏日/周/月表格、今日待办5色块、客户健康度、排名、全部数据</td><td class="change">① hero区去掉竖分割线改用间距；② 今日待办色块数字加大、标签放下方；③ 排名卡片去掉浅灰背景改用文字列表</td></tr>
+</table>
+
+<!-- ============ 1. 工作台 ============ -->
+<h2>1. 工作台（业务员）</h2>
+<p class="lead">保留全部板块，仅优化今日主线卡片的视觉层级。</p>
+
+<div class="frame">
+  <div class="frame-bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="url">http://127.0.0.1/workbench</div></div>
+  <div class="frame-body">
+    <div class="wb-header">
+      <div>
+        <div class="wb-eyebrow">9月18日 星期五</div>
+        <div class="wb-title">业务员工作台</div>
+        <div style="font-size:12px;color:var(--ink-400);margin-top:2px;">客户登记、持续跟进、量房邀约和报价转化</div>
+      </div>
+      <div class="wb-actions">
+        <button class="btn">待办中心</button>
+        <button class="btn">刷新</button>
+      </div>
+    </div>
+
+    <!-- 今日主线 3栏 - 保留全部 -->
+    <div class="panel" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div><strong style="font-size:14px;">今日主线</strong><p style="font-size:11px;color:var(--ink-400);">按当前角色数据范围排序，解释每条为什么现在要处理</p></div>
+        <button class="btn-link">刷新</button>
+      </div>
+      <div class="ml-grid">
+        <!-- 列1: 需要我处理 -->
+        <div class="ml-col">
+          <div class="ml-col-head"><span>需要我处理</span><b>3</b></div>
+          <div class="ml-card blocked">
+            <div class="ml-card-top"><span>客户</span><strong>李四</strong></div>
+            <h4>预约当前房屋量房</h4>
+            <p>下一步只针对当前房屋：合肥市长江东路。</p>
+            <div class="ml-card-meta"><span>责任人：张伟</span><span>当前房屋已进入量房</span></div>
+            <div class="ml-card-refs" title="BR-001 / SCN-001 / DEC-002">规则依据 · 查看</div>
+            <button class="btn-primary btn" style="margin-top:8px;padding:5px 14px;font-size:12px;">进入处理</button>
+          </div>
+          <div class="ml-card blocked">
+            <div class="ml-card-top"><span>客户</span><strong>王六</strong></div>
+            <h4>预约当前房屋量房</h4>
+            <p>下一步只针对当前房屋：合肥市。</p>
+            <div class="ml-card-meta"><span>责任人：张伟</span><span>当前房屋已进入量房</span></div>
+            <div class="ml-card-refs" title="BR-001 / SCN-001 / DEC-002">规则依据 · 查看</div>
+            <button class="btn-primary btn" style="margin-top:8px;padding:5px 14px;font-size:12px;">进入处理</button>
+          </div>
+          <div class="ml-card">
+            <div class="ml-card-top"><span>客户</span><strong>田七</strong></div>
+            <h4>完成首次跟进</h4>
+            <p>客户尚未形成有效跟进事实，不能直接进入量房主链。</p>
+            <div class="ml-card-meta"><span>责任人：张伟</span><span>客户进入跟进中</span></div>
+            <div class="ml-card-refs" title="SCN-001 / DEC-002">规则依据 · 查看</div>
+            <button class="btn-primary btn" style="margin-top:8px;padding:5px 14px;font-size:12px;">进入处理</button>
+          </div>
+        </div>
+        <!-- 列2: 我在推进 -->
+        <div class="ml-col">
+          <div class="ml-col-head"><span>我在推进</span><b>0</b></div>
+          <div style="padding:24px 12px;text-align:center;font-size:11px;color:var(--ink-400);">暂无推进中的对象</div>
+        </div>
+        <!-- 列3: 风险 -->
+        <div class="ml-col">
+          <div class="ml-col-head"><span>风险与待确认</span><b>0</b></div>
+          <div style="padding:24px 12px;text-align:center;font-size:11px;color:var(--ink-400);">暂未发现可解释的风险项</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6指标卡 - 保留 -->
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">我的客户</div><div class="metric-value">3</div><div class="metric-hint">新增 0</div></div>
+      <div class="metric"><div class="metric-label">待跟进</div><div class="metric-value" style="color:var(--warning);">1</div><div class="metric-hint">逾期 0</div></div>
+      <div class="metric"><div class="metric-label">报价金额</div><div class="metric-value">0万</div><div class="metric-hint">接受金额 0万</div></div>
+      <div class="metric"><div class="metric-label">签约金额</div><div class="metric-value" style="color:var(--brand-600);">0万</div><div class="metric-hint">转化率 0%</div></div>
+      <div class="metric"><div class="metric-label">我的项目</div><div class="metric-value">0</div><div class="metric-hint">施工中 0</div></div>
+      <div class="metric"><div class="metric-label">流失客户</div><div class="metric-value">0</div><div class="metric-hint">待激活 0</div></div>
+    </div>
+
+    <!-- 业务入口 + 数据范围 - 保留 -->
+    <div class="wb-2col">
+      <div class="panel">
+        <h4>业务入口</h4>
+        <div class="quick-grid">
+          <div class="quick"><div class="quick-icon">客</div><div><strong>客户360</strong><small>管理我的客户</small></div></div>
+          <div class="quick"><div class="quick-icon">量</div><div><strong>预约量房</strong><small>安排量房日程</small></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>数据范围</h4>
+        <div class="scope-box"><span style="font-size:10px;color:var(--ink-600);">当前角色</span><strong style="display:block;font-size:18px;margin:4px 0;">业务员</strong><span style="font-size:10px;color:var(--ink-600);">本人负责 · Self</span></div>
+        <div class="scope-row"><span>企业</span><strong>安徽昭青</strong></div>
+        <div class="scope-row"><span>门店</span><strong>合肥一店</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>优化点说明：</b>
+  ① BR/SCN/DEC 编号从正文灰色小字"规则依据"展示（hover 可见），不再占视觉焦点；
+  ② "进入处理"按钮改为实心主色（当前是 plain 描边，太弱）；
+  ③ 风险列和推进列空态保留居中提示，不删；
+  ④ 6个指标卡、业务入口、数据范围全部保留，只调整间距。
+</div>
+
+<!-- ============ 2. 客户360列表 ============ -->
+<h2>2. 客户360列表</h2>
+<p class="lead">保留全部筛选和卡片字段，只调整分组和间距。</p>
+
+<div class="frame">
+  <div class="frame-bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="url">http://127.0.0.1/crm/customers</div></div>
+  <div class="frame-body">
+    <div style="font-size:11px;color:var(--brand-600);margin-bottom:2px;">客户经营 / 家装营销</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:12px;">客户经营</div>
+
+    <!-- 统计横条 6个保留 -->
+    <div class="cl-stats">
+      <div class="cl-stat"><div class="cl-stat-label">客户总数</div><div class="cl-stat-val">3</div></div>
+      <div class="cl-stat"><div class="cl-stat-label">线索客户</div><div class="cl-stat-val">0</div></div>
+      <div class="cl-stat"><div class="cl-stat-label">黄金营销期</div><div class="cl-stat-val">3</div></div>
+      <div class="cl-stat"><div class="cl-stat-label">已逾期跟进</div><div class="cl-stat-val">0</div></div>
+      <div class="cl-stat"><div class="cl-stat-label">今日跟进</div><div class="cl-stat-val warn">0</div></div>
+      <div class="cl-stat"><div class="cl-stat-label">3日内跟进</div><div class="cl-stat-val">1</div></div>
+    </div>
+
+    <!-- 搜索行 保留 -->
+    <div class="cl-search">
+      <input placeholder="搜索姓名、手机号、小区、地址" />
+      <button class="btn-primary btn">查询</button>
+      <button class="btn">重置</button>
+      <div style="flex:1;"></div>
+      <button class="btn-primary btn">+ 登记客户</button>
+      <button class="btn">刷新</button>
+    </div>
+
+    <!-- 阶段筛选 - 第一行 -->
+    <div class="cl-tabs">
+      <span class="cl-tab on">全部</span>
+      <span class="cl-tab">待首联</span>
+      <span class="cl-tab">跟进中</span>
+      <span class="cl-tab">待量房</span>
+      <span class="cl-tab">方案报价</span>
+      <span class="cl-tab">已签约</span>
+      <span class="cl-tab">施工中</span>
+      <span class="cl-tab">已完工</span>
+      <span class="cl-tab">已流失</span>
+    </div>
+    <!-- 提醒+标签 - 第二行浅灰底 -->
+    <div class="cl-tabs-secondary">
+      <span class="label">快捷筛选</span>
+      <span class="cl-tab warn">全部提醒</span>
+      <span class="cl-tab">跟进已逾期</span>
+      <span class="cl-tab">今日跟进</span>
+      <span class="cl-tab">3日内</span>
+      <span class="cl-tab">黄金期未首联</span>
+      <span style="width:12px;"></span>
+      <span class="cl-tab">全部标签</span>
+      <span class="cl-tab">来源客户</span>
+      <span class="cl-tab">已到店</span>
+      <span class="cl-tab">已加微信</span>
+      <span class="cl-tab">已量房</span>
+      <span class="cl-tab">风险客户</span>
+    </div>
+
+    <!-- 卡片 保留全部字段 -->
+    <div class="cl-grid">
+      <div class="cl-card">
+        <div class="cl-card-top">
+          <div class="cl-avatar" style="background:var(--brand-600);">四</div>
+          <div>
+            <div class="cl-name">李四 <span class="cl-badge" style="background:var(--warning-bg);color:var(--warning);">待首联</span> <span class="cl-badge" style="background:var(--info-bg);color:var(--info);">评级B</span></div>
+            <div style="font-size:11px;color:var(--ink-400);">18660219919 · 自然到店 · 张伟</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <span style="font-size:10px;background:var(--brand-50);color:var(--brand-700);padding:2px 8px;border-radius:4px;">自然到店</span>
+          <span style="font-size:10px;background:var(--info-bg);color:var(--info);padding:2px 8px;border-radius:4px;">多次到店</span>
+        </div>
+        <div class="cl-grid-info">
+          <div><div class="k">预算</div><div class="v">—</div></div>
+          <div><div class="k">面积</div><div class="v">—</div></div>
+          <div><div class="k">意向小区</div><div class="v">江南新苑</div></div>
+          <div><div class="k">登记日期</div><div class="v">2026-09-18</div></div>
+        </div>
+        <div class="cl-follow">
+          <div><div class="k" style="font-size:10px;color:var(--ink-400);">最近跟进</div><div class="v">尚未首联</div></div>
+          <div><div class="k" style="font-size:10px;color:var(--ink-400);">下次跟进</div><div class="v" style="color:var(--warning);">未安排 · 待安排跟进</div></div>
+        </div>
+      </div>
+
+      <div class="cl-card">
+        <div class="cl-card-top">
+          <div class="cl-avatar" style="background:var(--brand-700);">六</div>
+          <div>
+            <div class="cl-name">王六 <span class="cl-badge" style="background:var(--warning-bg);color:var(--warning);">待量房</span> <span class="cl-badge" style="background:var(--brand-50);color:var(--brand-700);">评级A</span></div>
+            <div style="font-size:11px;color:var(--ink-400);">18660219918 · 自然到店 · 张伟</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <span style="font-size:10px;background:var(--brand-50);color:var(--brand-700);padding:2px 8px;border-radius:4px;">自然到店</span>
+          <span style="font-size:10px;background:var(--info-bg);color:var(--info);padding:2px 8px;border-radius:4px;">已量房</span>
+        </div>
+        <div class="cl-grid-info">
+          <div><div class="k">预算</div><div class="v">20万</div></div>
+          <div><div class="k">面积</div><div class="v">100㎡</div></div>
+          <div><div class="k">意向小区</div><div class="v">江南新苑</div></div>
+          <div><div class="k">登记日期</div><div class="v">2026-09-18</div></div>
+        </div>
+        <div class="cl-follow">
+          <div><div class="k" style="font-size:10px;color:var(--ink-400);">最近跟进</div><div class="v">2026-09-18 07:42</div></div>
+          <div><div class="k" style="font-size:10px;color:var(--ink-400);">下次跟进</div><div class="v" style="color:var(--warning);">09-20 · 3日内跟进</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>优化点说明：</b>
+  ① 阶段tab（9个）第一行，提醒+标签（10个）第二行用浅灰底，视觉分组清晰；
+  ② 卡片保留全部标签行（自然到店/多次到店/已量房），不删；
+  ③ 统计横条6个全保留，去掉卡片间硬分隔线改用留白；
+  ④ "登记客户"和"刷新"按钮位置不变。
+</div>
+
+<!-- ============ 3. 客户详情 ============ -->
+<h2>3. 客户详情</h2>
+<p class="lead">保留全部板块，只调整头部主次和左右栏比例。</p>
+
+<div class="frame">
+  <div class="frame-bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="url">http://127.0.0.1/crm/customers/xxx</div></div>
+  <div class="frame-body">
+    <!-- 头部按钮行 -->
+    <div class="cd-header">
+      <button class="btn">← 返回</button>
+      <div class="cd-avatar">六</div>
+      <div>
+        <div class="cd-name">王六 <span class="cl-badge" style="background:var(--warning-bg);color:var(--warning);">待量房</span> <span class="cl-badge" style="background:var(--brand-50);color:var(--brand-700);">评级 A · 76</span></div>
+        <div class="cd-meta">18660219918 · 自然到店 · 负责人 张伟 · 待指定设计师</div>
+      </div>
+      <div class="cd-actions">
+        <button class="btn">登记到店</button>
+        <button class="btn">添加微信</button>
+        <button class="btn">更多 ▾</button>
+        <button class="btn-primary btn">预约当前房屋量房</button>
+      </div>
+    </div>
+
+    <!-- 告警条 保留 -->
+    <div class="cd-alerts">
+      <div class="cd-alert warn">⚠ 下一步建议：预约量房 · 当前房屋未完成有效量房记录</div>
+    </div>
+
+    <!-- 流程卡：身份+下一步+轨道 -->
+    <div class="cd-journey">
+      <div class="cd-journey-top">
+        <div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="font-size:11px;background:var(--brand-50);color:var(--brand-700);padding:2px 8px;border-radius:4px;">自然到店</span>
+            <span style="font-size:11px;background:var(--info-bg);color:var(--info);padding:2px 8px;border-radius:4px;">已量房</span>
+            <span style="font-size:11px;color:var(--brand-600);font-size:11px;">+ 标签</span>
+          </div>
+          <div style="font-size:11px;color:var(--ink-400);">状态轨道为只读投影，实际操作仍由服务端状态机校验</div>
+        </div>
+        <!-- 下一步建议 内联在流程卡右侧 -->
+        <div class="cd-next">
+          <span class="lbl">下一步建议</span>
+          <strong>预约当前房屋量房</strong>
+          <p>下一步只针对当前房屋。前置条件：当前房屋未完成有效量房记录；完成后：当前房屋进入已量房。</p>
+          <button class="btn-primary btn" style="margin-top:6px;font-size:12px;">立即处理</button>
+        </div>
+      </div>
+      <!-- 8节点流程 全保留 -->
+      <div class="cd-steps">
+        <div class="cd-step"><div class="cd-dot done">✓</div><div class="cd-step-label">建档</div><div class="cd-step-desc">客户档案已建立</div><div class="cd-line done"></div></div>
+        <div class="cd-step"><div class="cd-dot done">✓</div><div class="cd-step-label">跟进</div><div class="cd-step-desc">已有正式客户阶段或跟进事实</div><div class="cd-line done"></div></div>
+        <div class="cd-step"><div class="cd-dot done">✓</div><div class="cd-step-label">房屋</div><div class="cd-step-desc">合肥市</div><div class="cd-line done"></div></div>
+        <div class="cd-step"><div class="cd-dot cur">4</div><div class="cd-step-label">量房</div><div class="cd-step-desc">pendingMeasure</div><div class="cd-line"></div></div>
+        <div class="cd-step"><div class="cd-dot todo">5</div><div class="cd-step-label">设计</div><div class="cd-step-desc">尚未指定设计师</div><div class="cd-line"></div></div>
+        <div class="cd-step"><div class="cd-dot todo">6</div><div class="cd-step-label">报价</div><div class="cd-step-desc">当前房屋尚无报价</div><div class="cd-line"></div></div>
+        <div class="cd-step"><div class="cd-dot todo">7</div><div class="cd-step-label">合同</div><div class="cd-step-desc">尚无合同对象</div><div class="cd-line"></div></div>
+        <div class="cd-step"><div class="cd-dot todo">8</div><div class="cd-step-label">项目/工地</div><div class="cd-step-desc">尚无项目对象</div></div>
+      </div>
+    </div>
+
+    <!-- 4格fact strip 保留 -->
+    <div class="cd-facts">
+      <div class="cd-fact"><div class="k">装修房屋</div><div class="v">1</div><div class="e">1801</div></div>
+      <div class="cd-fact"><div class="k">当前房屋报价</div><div class="v">0</div><div class="e">尚无已接受报价</div></div>
+      <div class="cd-fact"><div class="k">当前房屋项目</div><div class="v">0</div><div class="e">签约额 ¥0</div></div>
+      <div class="cd-fact"><div class="k">最近跟进</div><div class="v">09-18</div><div class="e">微信 · 07:42</div></div>
+    </div>
+
+    <!-- 左右两栏 保留 -->
+    <div class="cd-grid">
+      <!-- 左栏：装修房屋 + 客户档案 + 客户画像 -->
+      <div>
+        <div class="cd-panel" style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h4>装修房屋 <span style="font-size:11px;color:var(--ink-400);font-weight:normal;">量房、设计、报价和项目都以房屋为落点</span></h4>
+            <div><button class="btn-link">录入房屋信息</button><button class="btn-link">+ 新增房屋</button></div>
+          </div>
+          <div class="cd-prop active">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:14px;">1801</strong>
+              <span style="font-size:11px;background:var(--warning-bg);color:var(--warning);padding:2px 8px;border-radius:4px;">待量房</span>
+            </div>
+            <p style="font-size:12px;color:var(--ink-600);margin:4px 0;">合肥市</p>
+            <div style="font-size:11px;color:var(--ink-400);display:flex;gap:12px;">
+              <span>100㎡</span><span>户型待补充</span><span>量房 暂无</span>
+            </div>
+            <div style="margin-top:8px;"><button class="btn-link">录入/编辑房屋信息</button><button class="btn-link">预约量房</button></div>
+          </div>
+        </div>
+
+        <div class="cd-panel" style="margin-bottom:12px;">
+          <h4>客户档案</h4>
+          <div class="cd-profile">
+            <div><div class="k">联系电话</div><div class="v">18660219918</div></div>
+            <div><div class="k">客户来源</div><div class="v">自然到店</div></div>
+            <div><div class="k">装修预算</div><div class="v">20万元</div></div>
+            <div><div class="k">意向面积</div><div class="v">100㎡</div></div>
+            <div><div class="k">负责顾问</div><div class="v">张伟</div></div>
+            <div><div class="k">接手设计师</div><div class="v">待指定</div></div>
+            <div style="grid-column:1/-1;"><div class="k">房屋地址</div><div class="v">—</div></div>
+            <div style="grid-column:1/-1;"><div class="k">客户备注</div><div class="v">暂无备注</div></div>
+          </div>
+        </div>
+
+        <div class="cd-panel">
+          <h4>客户画像</h4>
+          <p style="font-size:12px;color:var(--ink-400);">尚未填写画像，补充决策角色、装修动机与工期后可提升跟进针对性。</p>
+        </div>
+      </div>
+
+      <!-- 右栏：Tabs 保留 -->
+      <div class="cd-panel">
+        <div class="cd-tabs">
+          <div class="cd-tab on">跟进记录 1</div>
+          <div class="cd-tab">当前房屋报价 0</div>
+          <div class="cd-tab">当前房屋项目 0</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+          <button class="btn-primary btn" style="font-size:12px;padding:5px 12px;">写跟进</button>
+        </div>
+        <div style="border-left:2px solid var(--border);padding-left:14px;">
+          <div style="position:relative;margin-bottom:14px;">
+            <div style="position:absolute;left:-19px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--brand-500);"></div>
+            <div style="font-size:11px;color:var(--ink-400);">09-18 07:42</div>
+            <div style="font-weight:600;font-size:13px;">张伟 <span style="font-size:10px;background:var(--brand-50);color:var(--brand-700);padding:1px 6px;border-radius:3px;margin-left:4px;">微信</span></div>
+            <div style="font-size:12px;color:var(--ink-600);margin-top:4px;">测试内容</div>
+            <div style="font-size:11px;color:var(--warning);margin-top:4px;">下次跟进：2026-09-20</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>优化点说明：</b>
+  ① 头部5个按钮保留，主次分级：返回/登记到店/添加微信/更多=描边，预约量房=实心主色；
+  ② 8节点流程轨道全保留，描述文字缩小到9-10px不抢视觉；
+  ③ "下一步建议"从右侧独立浮窗改为流程卡内右侧内联卡片，和流程轨道同一水平区，不割裂；
+  ④ 4格fact strip保留，数字加大；
+  ⑤ 左栏（房屋+档案+画像）和右栏（跟进/报价/项目Tabs）比例不变；
+  ⑥ 所有抽屉弹窗、标签管理、编辑功能全部保留不动。
+</div>
+
+
+<!-- ============ 4. 整体布局：侧边栏 + 顶栏 ============ -->
+<h2>4. 整体布局：侧边栏 + 顶栏 <span class="tag">全局</span></h2>
+<p class="lead">当前问题：顶栏元素堆叠拥挤（方块图标/Self标签/铃铛/头像挤一行），侧边栏折叠态无当前角色提示，内容区和顶栏之间无呼吸感。</p>
+
+<div class="frame">
+  <div class="frame-bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="url">整体布局优化后</div></div>
+  <div class="frame-body" style="padding:0;">
+    <div style="background:#fff;padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);">
+      <div style="width:32px;height:32px;background:var(--brand-700);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;">装</div>
+      <div style="font-size:15px;font-weight:700;color:var(--ink-900);">装得清</div>
+      <div style="flex:1;"></div>
+      <span style="font-size:11px;background:var(--brand-50);color:var(--brand-700);padding:3px 10px;border-radius:999px;">本人负责 · Self</span>
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--surface-100);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;">🔔</div>
+      <div style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--brand-600);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;">伟</div>
+        <div><div style="font-size:13px;font-weight:600;line-height:1.2;">张伟</div><div style="font-size:10px;color:var(--ink-400);">业务员</div></div>
+        <span style="color:var(--ink-400);font-size:14px;">›</span>
+      </div>
+    </div>
+    <div style="display:flex;min-height:300px;">
+      <div style="width:60px;background:var(--ink-900);padding:12px 0;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div style="width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:8px;font-size:11px;">🏠</div>
+        <div style="width:40px;height:40px;border-radius:8px;background:var(--brand-600);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">👤</div>
+        <div style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-size:11px;">📊</div>
+        <div style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-size:11px;">📋</div>
+        <div style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-size:11px;">⚙</div>
+      </div>
+      <div style="flex:1;padding:20px;background:var(--surface-50);">
+        <div style="font-size:11px;color:var(--brand-600);">9月18日 星期五</div>
+        <div style="font-size:20px;font-weight:700;margin:4px 0;">业务员工作台</div>
+        <div style="font-size:12px;color:var(--ink-400);margin-bottom:16px;">客户登记、持续跟进、量房邀约和报价转化</div>
+        <div style="background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);">
+          <div style="font-size:14px;font-weight:600;margin-bottom:8px;">今日主线</div>
+          <div style="font-size:12px;color:var(--ink-400);">今日待办将在这里展示</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>布局优化说明：</b>
+  ① 顶栏：logo + 产品名在左，Self标签/通知/头像在右，去掉多余的方块图标；头像区显示姓名+角色两行；
+  ② 侧边栏：保持折叠图标态，当前项用品牌色高亮，非当前项降低透明度；
+  ③ 内容区：page-title 和 page-shell 之间增加 16px 呼吸间距；
+  ④ 所有页面统一 .page-shell padding: 20px 24px，卡片之间 gap: 12px。
+</div>
+
+<!-- ============ 5. 通用列表页 ============ -->
+<h2>5. 通用列表页：项目台账 / 业主邀请 / 跟进记录 <span class="tag">复用 ResourceListView</span></h2>
+<p class="lead">当前问题：空态页面"暂无匹配数据"文案太技术化；查询区和表格之间无间距；分页器样式松散。</p>
+
+<div class="frame">
+  <div class="frame-bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div><div class="url">项目台账 — 优化后</div></div>
+  <div class="frame-body">
+    <div style="font-size:11px;color:var(--brand-600);margin-bottom:2px;">服务端按项目成员及负责人数据范围返回项目</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:22px;font-weight:700;">项目台账</div>
+        <div style="font-size:12px;color:var(--ink-400);margin-top:2px;">以项目为经营单元查看合同、进度、负责人、阶段风险和交付状态。</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-primary btn">+ 从签约报价立项</button>
+        <button class="btn">刷新</button>
+      </div>
+    </div>
+    <div style="background:var(--brand-50);padding:10px 14px;border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--brand-700);">
+      项目台账是交付主入口：从项目进入计划、任务、现场、材料、验收和增减项，避免跨页重复选择。
+    </div>
+    <div style="background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm);margin-bottom:12px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <label style="font-size:11px;color:var(--ink-400);display:block;margin-bottom:4px;">项目/客户/小区</label>
+        <input placeholder="输入项目名称、客户或小区" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;"/>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--ink-400);display:block;margin-bottom:4px;">项目状态</label>
+        <select style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;width:140px;"><option>全部</option></select>
+      </div>
+      <button class="btn-primary btn">查询</button>
+      <button class="btn">重置</button>
+    </div>
+    <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1fr 1.5fr 1fr 1fr 1fr;padding:12px 16px;background:var(--surface-100);font-size:12px;font-weight:600;color:var(--ink-600);">
+        <div>项目编号</div><div>项目名称</div><div>客户</div><div>项目经理</div><div>业务操作</div>
+      </div>
+      <div style="padding:60px 20px;text-align:center;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--surface-100);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">📋</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ink-800);margin-bottom:6px;">还没有项目</div>
+        <div style="font-size:12px;color:var(--ink-400);margin-bottom:16px;">客户签约报价后，可在这里立项启动施工交付。</div>
+        <button class="btn-primary btn">从签约报价立项</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-400);">
+        <span>共 0 条</span>
+        <select style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;"><option>20条/页</option></select>
+        <span style="color:var(--brand-600);background:var(--brand-50);width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;">1</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>列表页优化说明：</b>
+  ① 空态从纯文字"暂无匹配数据"改为：图标 + 标题 + 引导文案 + 主操作按钮；
+  ② 查询区和表格之间留 12px 间距；
+  ③ 业务衔接提示条保留，文案精简；
+  ④ 所有筛选字段、表格列、分页逻辑完全保留。
+</div>
+
+<!-- ============ 6. 全局组件规范 ============ -->
+<h2>6. 全局组件统一规范 <span class="tag">设计系统</span></h2>
+<p class="lead">当前问题：按钮样式不统一、卡片圆角不统一、空态文案有3种写法、告警条颜色不一致。</p>
+
+<table class="ann">
+<tr><th style="width:120px">组件</th><th>当前问题</th><th>统一规范</th></tr>
+<tr><td><b>按钮</b></td><td>主按钮有实心/描边/链接三种混用</td><td class="keep">主操作=实心主色(brand-500)；次要操作=描边；文字操作=link type primary；危险操作=link type danger</td></tr>
+<tr><td><b>卡片</b></td><td>有的 page-card 无 padding；圆角有 10px/12px/16px 混用</td><td class="keep">统一 .page-card padding:16px；圆角 $radius-md=12px</td></tr>
+<tr><td><b>空态</b></td><td>"暂无匹配数据"/"暂无业务数据"/"暂无记录"三种写法</td><td class="keep">统一：图标+标题（动宾结构）+一句引导+主操作按钮（如有）</td></tr>
+<tr><td><b>告警条</b></td><td>业务衔接=浅绿、权限提示=浅红、内联提示=浅黄</td><td class="keep">信息=brand-50；警告=warning-bg；危险=danger-bg</td></tr>
+<tr><td><b>统计数字</b></td><td>有的 18px 有的 24px；tabular-nums 不统一</td><td class="keep">指标数字 24px bold + tabular-nums；fact strip 数字 18px semibold</td></tr>
+<tr><td><b>表格头</b></td><td>背景灰深浅不一；列头和内容不对齐</td><td class="keep">表头 surface-100 背景，12px semibold ink-600</td></tr>
+<tr><td><b>tag/badge</b></td><td>el-tag / 自定义 span / StatusTag 三种混用</td><td class="keep">状态标签统一 StatusTag；阶段/评级用固定色板</td></tr>
+</table>
+
+<p style="font-size:12px;color:var(--ink-400);margin-top:40px;text-align:center;">装得清 Web UI 优化方案 · 零功能删减 · 覆盖工作台/客户360/客户详情/项目台账/整体布局/全局组件 · 2026-09-18</p>
+
+</div>
+</body>
+</html>

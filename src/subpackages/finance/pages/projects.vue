@@ -15,6 +15,7 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const filter = ref<'all' | 'risk' | 'settle'>('all')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -72,7 +73,7 @@ function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId
           <text>合同 {{ money(item.contractAmount) }}</text>
           <text>已收 {{ money(item.receivedAmount) }} ({{ item.collectionRate }}%)</text>
           <text>应付 {{ money(item.payableAmount) }}</text>
-          <text :style="{ color: item.outstandingAmount > 0 ? '#E5484D' : '#07A35A' }">待收 {{ money(item.outstandingAmount) }}</text>
+          <text :style="{ color: item.outstandingAmount > 0 ? TOKEN_COLOR.danger : TOKEN_COLOR.success }">待收 {{ money(item.outstandingAmount) }}</text>
         </view>
         <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${Math.min(item.collectionRate, 100)}%` }" /></view>
         <view class="fin-card__foot">

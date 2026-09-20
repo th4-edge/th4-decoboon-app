@@ -20,6 +20,7 @@ export type Capability =
   | 'edit:finance'
   | 'view:contract'
   | 'view:quote'
+  | 'view:cost'
   | 'view:design'
   | 'view:catalog'
   | 'edit:catalog'
@@ -58,15 +59,17 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:subscription',
     'view:schedule', 'view:task', 'view:inspection', 'view:material', 'view:supply', 'view:finance',
     'view:contract', 'view:quote', 'view:approval', 'edit:finance', 'edit:project', 'edit:quote', 'edit:plan', 'edit:task',
+    'view:cost',
     'act:report', 'act:startStage', 'act:acceptRequest', 'act:quote', 'act:followCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure', 'act:assignDesigner',
     'act:convertCustomer', 'act:inviteMember', 'act:inviteCustomer', 'act:issue',
     'act:material', 'view:notice', 'view:performance'
   ],
   storeManager: [
-    'view:catalog',
+    'view:catalog', 'edit:catalog',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
+    'view:cost',
     'view:schedule', 'view:task', 'edit:quote',
     'act:quote', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
     'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance'
@@ -80,9 +83,8 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'act:inviteCustomer', 'view:notice', 'view:performance'
   ],
   marketer: [
-    'view:catalog',
-    'view:design', 'edit:design', 'act:talk',
-    'view:myProjects', 'view:customers', 'view:quote', 'edit:quote', 'act:quote',
+    'view:design', 'view:quote',
+    'view:myProjects', 'view:customers',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
     'act:inviteCustomer', 'view:notice', 'view:performance'
   ],
@@ -104,11 +106,13 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'edit:catalog',
     'view:catalog',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material', 'view:supply',
+    'view:cost',
     'act:issue', 'act:material', 'act:acceptRequest', 'view:notice'
   ],
   finance: [
-    'view:catalog',
+    'view:catalog', 'edit:catalog',
     'view:myProjects', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
+    'view:cost',
     'view:approval', 'view:supply', 'view:notice'
   ],
   customer: [

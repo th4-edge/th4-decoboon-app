@@ -5,13 +5,15 @@ import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { materialApi } from '@/domains/material/api'
 import type { DeliveryMode, MaterialPlan } from '@/domains/material/model'
-import { supplyApi } from '@/subpackages/supply/domains/supply/api'
-import type { Partner } from '@/subpackages/supply/domains/supply/model'
+import { supplyApi } from '@/domains/supply/api'
+import type { Partner } from '@/domains/supply/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const plans = ref<MaterialPlan[]>([])
+const allPartners = ref<Partner[]>([])
 const partners = ref<Partner[]>([])
 const planIdx = ref(0)
 const partnerIdx = ref(0)
@@ -22,7 +24,7 @@ const expectedAt = ref('')
 const remark = ref('')
 const submitting = ref(false)
 const queryPlanId = ref('')
-const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
+const canViewCost = computed(() => ['boss', 'storeManager', 'projectSupport', 'finance'].includes(session.role || ''))
 const currentPlan = computed(() => plans.value[planIdx.value])
 const currentPartner = computed(() => partners.value[partnerIdx.value])
 
@@ -31,7 +33,8 @@ onLoad(async (q) => {
   try {
     const [planList, partnerList] = await Promise.all([materialApi.plans(), supplyApi.partners()])
     plans.value = planList.filter((item) => ['planned', 'requested', 'approved'].includes(item.status))
-    partners.value = partnerList.filter((item) => item.status === 'active')
+    allPartners.value = partnerList.filter((item) => item.status === 'active')
+    partners.value = allPartners.value
     const planAt = queryPlanId.value ? plans.value.findIndex((item) => item.id === queryPlanId.value) : 0
     planIdx.value = planAt >= 0 ? planAt : 0
     applyPlan()
@@ -45,7 +48,13 @@ function applyPlan() {
   if (!plan) return
   quantity.value = String(plan.quantity || '')
   expectedAt.value = plan.requiredAt || ''
-  unitPrice.value = ''
+  const brand = plan.brand?.trim().toLowerCase()
+  const matched = brand
+    ? allPartners.value.filter((item) => (item.brands || []).some((value) => value.toLowerCase() === brand))
+    : []
+  partners.value = matched.length ? matched : allPartners.value
+  partnerIdx.value = 0
+  unitPrice.value = plan.cost ? String(plan.cost) : ''
 }
 
 function changePlan(event: { detail: { value: number } }) {
@@ -60,17 +69,7 @@ async function changePartner(event: { detail: { value: number } }) {
 
 async function suggestPrice() {
   const plan = currentPlan.value
-  const partner = currentPartner.value
-  if (!canViewCost.value || !plan?.catalogItemId || !partner?.id) return
-  try {
-    const prices = await supplyApi.partnerPrices({ itemId: plan.catalogItemId, partnerId: partner.id })
-    const price = prices
-      .filter((item) => item.active !== false)
-      .sort((a, b) => (a.purchasePrice + a.laborPrice) - (b.purchasePrice + b.laborPrice))[0]
-    if (price) unitPrice.value = String(price.purchasePrice + price.laborPrice)
-  } catch {
-    // 没有采购价建议时仍允许录入本次实际执行价。
-  }
+  if (canViewCost.value && plan?.cost) unitPrice.value = String(plan.cost)
 }
 
 async function save() {
@@ -112,7 +111,7 @@ async function save() {
       <view class="pe__field">
         <text class="pe__label">采购材料 <text class="pe__req">*</text></text>
         <picker class="pe__picker" :range="plans.map(i => i.name)" :value="planIdx" @change="changePlan">
-          <view class="pe__value">{{ currentPlan?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__value">{{ currentPlan?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pe__summary">
@@ -123,7 +122,7 @@ async function save() {
       <view class="pe__field">
         <text class="pe__label">供应商 <text class="pe__req">*</text></text>
         <picker class="pe__picker" :range="partners.map(i => i.name)" :value="partnerIdx" @change="changePartner">
-          <view class="pe__value">{{ currentPartner?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__value">{{ currentPartner?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pe__field">
@@ -175,7 +174,7 @@ async function save() {
 .pe__summary text { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 .pe__summary text:first-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .pe__modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12rpx; margin-top: 16rpx; }
-.pe__mode { padding: 18rpx; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-sm; background: #fff; }
+.pe__mode { padding: 18rpx; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-sm; background: $jzb-text-inverse; }
 .pe__mode text { display: block; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pe__mode text:last-child { margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pe__mode--on { border-color: $jzb-primary; background: $jzb-primary-lightest; }

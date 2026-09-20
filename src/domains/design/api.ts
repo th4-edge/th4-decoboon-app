@@ -177,6 +177,7 @@ export function normalizeScheme(raw: RawRecord): DesignScheme {
     no: raw.no ?? '',
     name: raw.name ?? '',
     customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    property: raw.property ? normalizeProperty(raw.property) : undefined,
     owner: raw.owner ? normalizeEmployee(raw.owner) : undefined,
     version: number(raw.version),
     style: raw.style,
@@ -187,6 +188,7 @@ export function normalizeScheme(raw: RawRecord): DesignScheme {
     coverUrl: raw.coverUrl,
     cadUrl: raw.cadUrl,
     originalPlanUrl: raw.originalPlanUrl,
+    originalPlanImages: raw.originalPlanImages,
     demolitionUrl: raw.demolitionUrl,
     masonryUrl: raw.masonryUrl,
     optimizationUrl: raw.optimizationUrl,
@@ -209,10 +211,11 @@ async function signScheme(raw: RawRecord): Promise<DesignScheme> {
   ].filter((path): path is string => !!path)
   const sitePaths = scheme.sitePhotos || []
   const surveyPaths = scheme.surveyPhotos || []
+  const originalPlanPaths = scheme.originalPlanImages || []
   const spacePaths = (scheme.spaces || []).flatMap((space) => space.images || [])
   const itemPaths = (scheme.items || []).flatMap((item) => item.images || [])
   const signed = await fileApi.grant('Design', scheme.id, [
-    ...documentPaths, ...sitePaths, ...surveyPaths, ...spacePaths, ...itemPaths
+    ...documentPaths, ...sitePaths, ...surveyPaths, ...originalPlanPaths, ...spacePaths, ...itemPaths
   ])
   let index = 0
   const next = (): string | undefined => signed[index++]
@@ -226,6 +229,7 @@ async function signScheme(raw: RawRecord): Promise<DesignScheme> {
     optimizationUrl: scheme.optimizationUrl ? next() : undefined,
     sitePhotos: (scheme.sitePhotos || []).map(() => next() || ''),
     surveyPhotos: (scheme.surveyPhotos || []).map(() => next() || ''),
+    originalPlanImages: (scheme.originalPlanImages || []).map(() => next() || ''),
     spaces: scheme.spaces?.map((space) => ({
       ...space,
       images: (space.images || []).map(() => next() || '')
@@ -257,6 +261,7 @@ function normalizeTalkQuote(raw: RawRecord): Quote {
     id: String(raw.id ?? raw.quoteId ?? ''),
     no: raw.no ?? '',
     title: raw.title,
+    version: number(raw.version || 1),
     area: number(raw.area),
     subtotal: number(raw.subtotal),
     amount: number(raw.amount),
@@ -313,6 +318,7 @@ async function signTalk(raw: RawRecord): Promise<TalkPlan> {
 }
 
 export interface RequirementInput {
+  requirementId?: string
   customerId: string
   propertyId?: string
   type?: SpaceType
@@ -330,13 +336,17 @@ export interface SchemeInput {
   customerId?: string
   propertyId?: string
   designId?: string
-  name: string
+  /** 局部更新时可省略：后端对未提交字段保持原值 */
+  name?: string
   style?: string
   layout?: string
   description?: string
   coverUrl?: string
   cadUrl?: string
   originalPlanUrl?: string
+  sitePhotos?: string[]
+  originalPlanImages?: string[]
+  surveyPhotos?: string[]
   demolitionUrl?: string
   masonryUrl?: string
   optimizationUrl?: string
@@ -378,13 +388,14 @@ export interface DesignItemInput {
 }
 
 export const designApi = {
-  requirements: async (customerId: string) =>
+  requirements: async (customerId: string, propertyId?: string) =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/requirement/page', {
-      customerId, current: 1, size: 100
+      customerId, propertyId, current: 1, size: 100
     })).map(normalizeRequirement),
 
   saveRequirement: (input: RequirementInput) =>
     post<RawRecord>('design/requirement/save', {
+      requirementId: input.requirementId,
       customerId: input.customerId,
       propertyId: input.propertyId,
       type: input.type ? SPACE_TYPE_API[input.type] : undefined,
@@ -418,10 +429,23 @@ export const designApi = {
       coverUrl: fileApi.storagePath(input.coverUrl),
       cadUrl: fileApi.storagePath(input.cadUrl),
       originalPlanUrl: fileApi.storagePath(input.originalPlanUrl),
+      sitePhotos: (input.sitePhotos || []).map((item: string) => fileApi.storagePath(item)),
+      originalPlanImages: (input.originalPlanImages || []).map((item: string) => fileApi.storagePath(item)),
+      surveyPhotos: (input.surveyPhotos || []).map((item: string) => fileApi.storagePath(item)),
       demolitionUrl: fileApi.storagePath(input.demolitionUrl),
       masonryUrl: fileApi.storagePath(input.masonryUrl),
       optimizationUrl: fileApi.storagePath(input.optimizationUrl)
     }).then(signScheme),
+
+  copyScheme: (designId: string, customerId: string, propertyId?: string) =>
+    post<RawRecord>('design/scheme/save', {
+      copyFromId: designId,
+      customerId,
+      propertyId
+    }).then(signScheme),
+
+  deleteScheme: (designId: string) =>
+    post<RawRecord>('design/scheme/delete', { designId }).then(signScheme),
 
   buildScheme: (designId: string, status: DesignStatus) =>
     post<RawRecord>('design/scheme/build', { designId, status: DESIGN_STATUS_API[status] }).then(signScheme),

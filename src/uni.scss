@@ -40,6 +40,7 @@ $jzb-bg-page: #F4F7F8;
 $jzb-bg-card: #FFFFFF;
 $jzb-bg-hover: #F8FAFB;
 $jzb-bg-active: #E8F7F5;
+$jzb-bg-mask: rgba(15, 23, 42, 0.50);
 
 /* Elevation */
 $jzb-shadow-xs: 0 2rpx 8rpx rgba(15, 23, 42, 0.035);
@@ -89,6 +90,15 @@ $jzb-duration-base: 200ms;
 $jzb-duration-slow: 300ms;
 $jzb-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 $jzb-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+/* Z-index */
+$jzb-z-fixed: 800;
+$jzb-z-sticky: 900;
+$jzb-z-dropdown: 950;
+$jzb-z-mask: 1000;
+$jzb-z-modal: 1010;
+$jzb-z-toast: 1100;
+$jzb-z-loading: 1200;
 
 /* Role semantic */
 $jzb-role-boss: #16A394;

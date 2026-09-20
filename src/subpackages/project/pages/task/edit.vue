@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -113,12 +114,12 @@ async function save() {
       <view class="te__row te__row--col"><text class="te__label">规格要求</text><textarea v-model="spec" class="te__ta" placeholder="验收规格/标准要求" maxlength="200" /></view>
       <view class="te__row"><text class="te__label">所属阶段</text>
         <picker :range="stages.map(s => s.sort + '. ' + s.name)" :value="Math.max(0, stages.findIndex(s => s.id === stageId))" @change="stageId = stages[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !stageLabel }"><text>{{ stageLabel || '选择阶段' }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view>
+          <view class="te__picker" :class="{ 'te__picker--empty': !stageLabel }"><text>{{ stageLabel || '选择阶段' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="te__row"><text class="te__label">施工区域</text>
         <picker :range="zones.map(z => z.name)" @change="zoneId = zones[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !zoneLabel }"><text>{{ zoneLabel || '选择区域（客厅/厨房…）' }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view>
+          <view class="te__picker" :class="{ 'te__picker--empty': !zoneLabel }"><text>{{ zoneLabel || '选择区域（客厅/厨房…）' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="te__row"><text class="te__label">施工总量</text>
@@ -127,7 +128,7 @@ async function save() {
       </view>
       <view class="te__row"><text class="te__label">负责人</text>
         <picker :range="owners.map(o => o.name + '（' + o.title + '）')" @change="ownerId = owners[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }"><text>{{ ownerLabel || '选择负责人' }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view>
+          <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }"><text>{{ ownerLabel || '选择负责人' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="te__row"><text class="te__label">优先级</text>
@@ -136,16 +137,16 @@ async function save() {
         </view>
       </view>
       <view class="te__row"><text class="te__label">开始日期</text>
-        <picker mode="date" :value="plannedStart" @change="plannedStart = $event.detail.value"><view class="te__picker"><text>{{ plannedStart || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view></picker>
+        <picker mode="date" :value="plannedStart" @change="plannedStart = $event.detail.value"><view class="te__picker"><text>{{ plannedStart || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view></picker>
       </view>
       <view class="te__row"><text class="te__label">截止日期</text>
-        <picker mode="date" :value="plannedEnd" @change="plannedEnd = $event.detail.value"><view class="te__picker"><text>{{ plannedEnd || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view></picker>
+        <picker mode="date" :value="plannedEnd" @change="plannedEnd = $event.detail.value"><view class="te__picker"><text>{{ plannedEnd || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view></picker>
       </view>
       <view class="te__row te__row--col"><text class="te__label">备注</text><textarea v-model="remark" class="te__ta" maxlength="200" /></view>
     </view>
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--primary jz-grow te__submit-btn" @tap="save"><JzIcon name="check-circle" :size="28" color="#FFFFFF" /><text>保存任务</text></button>
+        <button class="jz-btn jz-btn--primary jz-grow te__submit-btn" @tap="save"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.white" /><text>保存任务</text></button>
       </view>
     </view>
   </view>

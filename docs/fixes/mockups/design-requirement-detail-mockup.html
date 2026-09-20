@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>客户诉求详情页 UI 优化图例</title>
+<style>
+:root {
+  --brand-700: #0b7067; --brand-600: #0e8a7d; --brand-500: #16a394;
+  --brand-50: #f0faf8; --brand-100: #d6f0ec;
+  --ink-900: #1a2b27; --ink-700: #2e4a44; --ink-500: #5a706a; --ink-400: #8a9a95;
+  --surface-50: #f7f9f8; --surface-100: #eef3f2;
+  --danger: #e5484d; --danger-50: #fdecec;
+  --warning: #e8a020; --warning-50: #fdf4e3;
+  --border: #e0e8e6; --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; background: #f0f4f3; padding: 20px; }
+.phone { width: 375px; margin: 0 auto 32px; background: var(--surface-50); border-radius: 24px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.1); }
+.phone-title { text-align: center; font-size: 13px; color: #888; margin-bottom: 8px; font-weight: 600; }
+.section-label { text-align: center; font-size: 12px; color: #999; margin: 24px 0 8px; }
+.compare { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="section-label">当前设计（问题）</div>
+<div class="compare">
+<div>
+<div class="phone-title">改前 · 列表</div>
+<div class="phone">
+  <!-- Hero -->
+  <div style="background:linear-gradient(135deg,#0b7067,#16a394);margin:12px;padding:20px;color:#fff;border-radius:14px;">
+    <div style="font-size:11px;opacity:.78;">客户诉求库</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="font-size:23px;font-weight:700;margin-top:4px;">李女士</div>
+      <div style="padding:8px 10px;text-align:center;background:rgba(255,255,255,.14);border-radius:10px;">
+        <div style="font-size:20px;font-weight:700;">5</div>
+        <div style="font-size:9px;opacity:.78;">条记录</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16);text-align:center;">
+      <div><div style="font-size:16px;font-weight:700;">3</div><div style="font-size:9px;opacity:.76;">明确诉求</div></div>
+      <div><div style="font-size:16px;font-weight:700;">2</div><div style="font-size:9px;opacity:.76;">排斥点</div></div>
+      <div><div style="font-size:16px;font-weight:700;">2</div><div style="font-size:9px;opacity:.76;">高优先级</div></div>
+    </div>
+  </div>
+  <!-- Tabs -->
+  <div style="display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;">
+    <span style="padding:6px 14px;background:var(--brand-600);color:#fff;border-radius:16px;font-size:12px;">全部</span>
+    <span style="padding:6px 14px;background:#fff;color:var(--ink-500);border-radius:16px;font-size:12px;">诉求</span>
+    <span style="padding:6px 14px;background:#fff;color:var(--ink-500);border-radius:16px;font-size:12px;">排斥点</span>
+    <span style="padding:6px 14px;background:#fff;color:var(--ink-500);border-radius:16px;font-size:12px;">高优先</span>
+  </div>
+  <!-- Card 1 -->
+  <div style="margin:0 12px 10px;padding:14px;background:linear-gradient(135deg,#fff,#e8f7f5);border:1px solid rgba(22,163,148,.14);border-radius:12px;position:relative;">
+    <div style="position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,#0b7067,#16a394);border-radius:0 3px 3px 0;"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="padding:2px 8px;color:#0b7067;background:#e8f7f5;border-radius:10px;font-size:10px;">客户诉求</span>
+      <span style="padding:2px 8px;color:#fff;background:#0b7067;border-radius:10px;font-size:10px;">高优先</span>
+    </div>
+    <div style="margin-top:8px;font-size:14px;font-weight:700;line-height:1.4;">卫生间必须做干湿分离</div>
+    <div style="display:flex;align-items:center;gap:4px;margin-top:6px;font-size:10px;color:#888;">
+      <span>📍 卫生间</span><span>·</span><span>到店沟通</span>
+    </div>
+    <div style="margin-top:8px;padding:10px 12px;color:#465260;background:#e8f7f5;border:1px solid rgba(22,163,148,.1);border-radius:8px;font-size:11px;line-height:1.6;">客户说卫生间经常洗澡后地面全是水，老人小孩容易滑倒，一定要玻璃隔断...</div>
+  </div>
+  <!-- Card 2 -->
+  <div style="margin:0 12px 10px;padding:14px;background:linear-gradient(135deg,#fff,#e8f7f5);border:1px solid rgba(22,163,148,.14);border-radius:12px;position:relative;">
+    <div style="position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,#0b7067,#16a394);border-radius:0 3px 3px 0;"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="padding:2px 8px;color:#0b7067;background:#e8f7f5;border:1px solid rgba(22,163,148,.18);border-radius:10px;font-size:10px;">排斥点</span>
+      <span style="padding:2px 8px;color:#0b7067;background:#e8f7f5;border-radius:10px;font-size:10px;">中优先</span>
+    </div>
+    <div style="margin-top:8px;font-size:14px;font-weight:700;line-height:1.4;">不要黑色哑光橱柜</div>
+    <div style="display:flex;align-items:center;gap:4px;margin-top:6px;font-size:10px;color:#888;">
+      <span>📍 厨房</span><span>·</span><span>量房现场</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="section-label">优化后</div>
+<div class="compare">
+<div>
+<div class="phone-title">改后 · 列表</div>
+<div class="phone">
+  <!-- 紧凑头部 -->
+  <div style="padding:16px 16px 8px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--ink-900);">李女士 · 客户诉求</div>
+        <div style="font-size:11px;color:var(--ink-400);margin-top:2px;">记录客户偏好与排斥项</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:20px;font-weight:700;color:var(--ink-900);">5</div>
+        <div style="font-size:10px;color:var(--ink-400);">条记录</div>
+      </div>
+    </div>
+  </div>
+  <!-- Tabs 横滚 -->
+  <div style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;">
+    <span style="padding:5px 12px;background:var(--brand-600);color:#fff;border-radius:14px;font-size:11px;white-space:nowrap;">全部</span>
+    <span style="padding:5px 12px;background:#fff;color:var(--ink-500);border-radius:14px;font-size:11px;white-space:nowrap;">诉求 3</span>
+    <span style="padding:5px 12px;background:#fff;color:var(--danger);border-radius:14px;font-size:11px;white-space:nowrap;">排斥点 2</span>
+    <span style="padding:5px 12px;background:#fff;color:var(--warning);border-radius:14px;font-size:11px;white-space:nowrap;">高优先 2</span>
+  </div>
+  <!-- Card 1 白底 -->
+  <div style="margin:0 16px 10px;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:10px;">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span style="padding:1px 8px;background:var(--brand-50);color:var(--brand-700);border-radius:4px;font-size:10px;">诉求</span>
+      <span style="padding:1px 8px;background:var(--danger-50);color:var(--danger);border-radius:4px;font-size:10px;">高优先</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--ink-400);">卫生间</span>
+    </div>
+    <div style="margin-top:6px;font-size:14px;font-weight:600;color:var(--ink-900);line-height:1.4;">卫生间必须做干湿分离</div>
+    <div style="margin-top:4px;font-size:11px;color:var(--ink-500);line-height:1.5;">客户说卫生间经常洗澡后地面全是水，老人小孩容易滑倒，一定要玻璃隔断...</div>
+  </div>
+  <!-- Card 2 白底 排斥点 -->
+  <div style="margin:0 16px 10px;padding:14px 16px;background:#fff;border:1px solid var(--border);border-radius:10px;">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <span style="padding:1px 8px;background:#fef2f2;color:var(--danger);border-radius:4px;font-size:10px;">排斥点</span>
+      <span style="padding:1px 8px;background:var(--surface-100);color:var(--ink-500);border-radius:4px;font-size:10px;">中优先</span>
+      <span style="margin-left:auto;font-size:10px;color:var(--ink-400);">厨房</span>
+    </div>
+    <div style="margin-top:6px;font-size:14px;font-weight:600;color:var(--ink-900);line-height:1.4;">不要黑色哑光橱柜</div>
+  </div>
+  <!-- 底部固定栏 -->
+  <div style="position:sticky;bottom:0;padding:10px 16px;background:#fff;border-top:1px solid var(--border);">
+    <div style="height:40px;background:var(--brand-600);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600;">+ 记录诉求</div>
+  </div>
+</div>
+</div>
+</div>
+
+<div style="max-width:680px;margin:32px auto 0;padding:20px;background:#fff;border-radius:12px;">
+  <h3 style="font-size:15px;margin-bottom:12px;">优化点说明</h3>
+  <table style="width:100%;font-size:12px;border-collapse:collapse;">
+    <tr style="background:#f7f9f8;"><th style="padding:8px;text-align:left;">问题</th><th style="padding:8px;text-align:left;">改后</th></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">Hero 品牌渐变占首屏一半</td><td style="padding:8px;border-bottom:1px solid #eee;">白底紧凑头部，客户名+记录数左右对齐</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">3格统计在渐变块内</td><td style="padding:8px;border-bottom:1px solid #eee;">统计融入筛选 tab，tab 带数量和对应色</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">卡片渐变+色条过重</td><td style="padding:8px;border-bottom:1px solid #eee;">白底+细边框，去掉渐变和色条</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">诉求和排斥点标签同色</td><td style="padding:8px;border-bottom:1px solid #eee;">诉求用 brand 色，排斥点用 danger 色</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">高优先用深色底白字</td><td style="padding:8px;border-bottom:1px solid #eee;">高优先用 danger 色浅底标签</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">展开详情用浅绿背景框</td><td style="padding:8px;border-bottom:1px solid #eee;">详情直接在卡片内显示，不加额外背景框</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;">JzFloatAdd 浮动按钮</td><td style="padding:8px;">底部固定"+ 记录诉求"主按钮，和列表页一致</td></tr>
+  </table>
+</div>
+
+</body>
+</html>

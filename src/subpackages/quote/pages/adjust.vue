@@ -1,0 +1,233 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { catalogApi } from '@/domains/catalog/api'
+import type { CatalogItem, CatalogType } from '@/domains/catalog/model'
+import type { Quote, QuoteItem } from '@/domains/trade/model'
+import { tradeApi } from '@/domains/trade/api'
+import { money } from '@/core/format'
+import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import JzEmpty from '@/components/JzEmpty.vue'
+import JzIcon from '@/components/JzIcon.vue'
+
+type AdjustAction = 'deduct' | 'upgrade' | 'replace' | 'add'
+
+const quoteId = ref('')
+const quote = ref<Quote | null>(null)
+const action = ref<AdjustAction>('add')
+const baseLineId = ref('')
+const catalogType = ref<CatalogType>('construction')
+const catalogItems = ref<CatalogItem[]>([])
+const catalogItemId = ref('')
+const quantity = ref('1')
+
+const baseLines = computed(() => (quote.value?.items || []).filter((line) => ['Base', 'base'].includes(String(line.role || '')) && line.included !== false))
+const selectedCatalog = computed(() => catalogItems.value.find((item) => item.id === catalogItemId.value))
+const actionOptions: { value: AdjustAction; label: string }[] = [
+  { value: 'deduct', label: '扣减' }, { value: 'upgrade', label: '升级' },
+  { value: 'replace', label: '替换' }, { value: 'add', label: '增项' }
+]
+const differenceLabels: Record<string, string> = {
+  PackageOnly: '套餐独有', DesignOnly: '设计新增', QuantityChanged: '数量变化',
+  Deduct: '扣减', Upgrade: '升级', Replace: '替换'
+}
+const catalogTypes: { value: CatalogType; label: string }[] = [
+  { value: 'construction', label: '施工' }, { value: 'material', label: '主材' },
+  { value: 'custom', label: '定制' }, { value: 'soft', label: '软装' },
+  { value: 'appliance', label: '电器' }, { value: 'general', label: '综合' }
+]
+
+onLoad((query) => {
+  quoteId.value = query?.id || ''
+  void initialize()
+})
+
+async function initialize() {
+  await Promise.all([loadQuote(), loadCatalog()])
+  pickCatalog(0)
+}
+
+async function loadQuote() {
+  try {
+    quote.value = await tradeApi.quote(quoteId.value)
+  } catch (error) {
+    toastError(error, '报价加载失败')
+  }
+}
+
+async function loadCatalog() {
+  const page = await catalogApi.page({ type: catalogType.value, current: 1, size: 200 })
+  catalogItems.value = page.list
+}
+
+async function switchCatalogType(value: CatalogType) {
+  catalogType.value = value
+  await loadCatalog()
+  pickCatalog(0)
+}
+
+function pickCatalog(index: number) {
+  catalogItemId.value = catalogItems.value[index]?.id || ''
+}
+
+async function submit() {
+  if (!quote.value) return
+  if (['deduct', 'upgrade', 'replace'].includes(action.value) && !baseLineId.value) {
+    toast('请选择需要处理的套餐基础项目')
+    return
+  }
+  if (action.value !== 'deduct' && (!catalogItemId.value || Number(quantity.value) <= 0)) {
+    toast('请选择项目并填写有效数量')
+    return
+  }
+  loading('保存报价调整…')
+  try {
+    await tradeApi.saveQuoteLine({
+      quoteId: quote.value.id,
+      baseLineId: action.value === 'add' ? undefined : baseLineId.value,
+      catalogItemId: action.value === 'deduct' ? undefined : catalogItemId.value,
+      quantity: action.value === 'deduct' ? undefined : Number(quantity.value),
+      role: action.value === 'deduct' ? 'deduct' : action.value,
+      included: true,
+      deduct: action.value === 'deduct'
+    })
+    await loadQuote()
+    hideLoading()
+    toast('报价已重新计算', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '报价调整失败')
+  }
+}
+
+async function removeAdjustment(line: QuoteItem) {
+  if (!quote.value) return
+  const ok = await confirm('删除调整项目', `确认删除“${line.name}”？`, '删除')
+  if (!ok) return
+  try {
+    await tradeApi.deleteQuoteLine(quote.value.id, line.id)
+    await loadQuote()
+    toast('调整项目已删除', 'success')
+  } catch (error) {
+    toastError(error, '删除失败')
+  }
+}
+
+async function reviewDifference(line: QuoteItem, status: 'confirmed' | 'ignored') {
+  if (!quote.value) return
+  try {
+    await tradeApi.saveQuoteLine({ quoteId: quote.value.id, itemId: line.id, differenceStatus: status })
+    await loadQuote()
+    toast(status === 'confirmed' ? '差异已确认' : '差异已忽略', 'success')
+  } catch (error) {
+    toastError(error, '差异处理失败')
+  }
+}
+
+async function deductDifference(line: QuoteItem) {
+  if (!quote.value) return
+  const ok = await confirm('扣减套餐项目', `确认从套餐报价中扣减“${line.name}”？`, '扣减')
+  if (!ok) return
+  try {
+    await tradeApi.saveQuoteLine({ quoteId: quote.value.id, baseLineId: line.id, deduct: true })
+    await loadQuote()
+    toast('套餐项目已扣减', 'success')
+  } catch (error) {
+    toastError(error, '扣减失败')
+  }
+}
+</script>
+
+<template>
+  <view class="qa" v-if="quote">
+    <view class="qa__hero">
+      <text class="qa__no">{{ quote.no }} · V{{ quote.version }}</text>
+      <text class="qa__amount">{{ money(quote.amount) }}</text>
+      <text class="qa__meta">{{ quote.customer?.name || '未关联客户' }} · {{ quote.area }}㎡ · 草稿报价</text>
+    </view>
+
+    <view class="jz-card qa__form">
+      <text class="qa__title">套餐报价调整</text>
+      <view class="jz-chip-row">
+        <view v-for="item in actionOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': action === item.value }" @tap="action = item.value">{{ item.label }}</view>
+      </view>
+
+      <template v-if="action !== 'add'">
+        <text class="qa__label">基础套餐项目 <text class="req">*</text></text>
+        <picker :range="baseLines.map(item => `${item.name}（${money(item.amount || 0)}）`)" @change="baseLineId = baseLines[Number($event.detail.value)]?.id || ''">
+          <view class="qa__picker"><text>{{ baseLines.find(item => item.id === baseLineId)?.name || '选择基础项目' }}</text><JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" /></view>
+        </picker>
+      </template>
+
+      <template v-if="action !== 'deduct'">
+        <text class="qa__label">项目类型</text>
+        <view class="jz-chip-row">
+          <view v-for="item in catalogTypes" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': catalogType === item.value }" @tap="switchCatalogType(item.value)">{{ item.label }}</view>
+        </view>
+        <text class="qa__label">报价项目 <text class="req">*</text></text>
+        <picker :range="catalogItems.map(item => `${item.name}（${item.brand || '无品牌'} / ${money(item.materialPrice + item.manualPrice)}）`)" @change="pickCatalog(Number($event.detail.value))">
+          <view class="qa__picker"><text>{{ selectedCatalog?.name || '选择报价项目' }}</text><JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" /></view>
+        </picker>
+        <text class="qa__label">数量</text>
+        <input v-model="quantity" type="digit" class="qa__input" placeholder="1" />
+      </template>
+      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="submit">保存并重新计算</button>
+    </view>
+
+    <view class="jz-card qa__list">
+      <text class="qa__title">当前报价行</text>
+      <view v-for="line in quote.items || []" :key="line.id" class="qa__line">
+        <view class="jz-grow">
+          <text class="qa__line-name">{{ line.name }}</text>
+          <text class="qa__line-meta">{{ line.role || 'Base' }} · {{ line.included === false ? '已扣减' : `${line.quantity}${line.unit}` }}</text>
+          <view v-if="line.differenceStatus === 'Pending'" class="qa__difference">
+            <text class="qa__difference-label">{{ differenceLabels[line.differenceType || ''] || '设计差异' }}</text>
+            <view class="qa__difference-actions">
+              <text @tap.stop="reviewDifference(line, 'confirmed')">确认</text>
+              <text @tap.stop="reviewDifference(line, 'ignored')">忽略</text>
+              <text v-if="line.differenceType === 'PackageOnly'" class="danger" @tap.stop="deductDifference(line)">扣减</text>
+            </view>
+          </view>
+          <text v-else-if="line.differenceStatus === 'Ignored'" class="qa__difference--ignored">已忽略</text>
+        </view>
+        <text class="qa__line-price">{{ money(line.amount || 0) }}</text>
+        <text v-if="!['Base', 'base', 'Deduct', 'deduct'].includes(String(line.role || ''))" class="qa__delete" @tap="removeAdjustment(line)">删除</text>
+      </view>
+      <JzEmpty v-if="!(quote.items || []).length" text="暂无报价行" sub="请先从套餐模板生成报价草稿" />
+    </view>
+
+    <view class="jz-card qa__summary">
+      <view><text>折前小计</text><text>{{ money(quote.subtotal || 0) }}</text></view>
+      <view><text>折扣</text><text>{{ Math.round((quote.discount || 1) * 100) }}%</text></view>
+      <view><text>税金</text><text>{{ money(quote.taxAmount || 0) }}</text></view>
+      <view class="qa__summary-total"><text>报价合计</text><text>{{ money(quote.amount) }}</text></view>
+    </view>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.qa { min-height: 100vh; padding: 24rpx; background: $jzb-bg-page; }
+.qa__hero { padding: 30rpx; color: $jzb-text-inverse; border-radius: $jzb-radius-lg; background: $jzb-gradient; }
+.qa__no, .qa__amount, .qa__meta { display: block; }
+.qa__no, .qa__meta { font-size: $jzb-font-xs; opacity: .88; }
+.qa__amount { margin: 12rpx 0 8rpx; font-size: 52rpx; font-weight: 750; }
+.qa__form, .qa__list, .qa__summary { margin-top: 18rpx; padding: 26rpx; }
+.qa__title { display: block; margin-bottom: 18rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 750; }
+.qa__label { display: block; margin: 22rpx 0 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.req { color: $jzb-danger; }
+.qa__picker, .qa__input { min-height: 82rpx; padding: 0 20rpx; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
+.qa__line { display: flex; align-items: center; gap: 12rpx; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.qa__line-name, .qa__line-meta { display: block; }
+.qa__line-name { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.qa__line-meta { margin-top: 5rpx; color: $jzb-text-3; font-size: 20rpx; }
+.qa__line-price { color: $jzb-primary-dark; font-weight: 700; }
+.qa__delete { color: $jzb-danger; font-size: $jzb-font-xs; }
+.qa__difference { margin-top: 10rpx; padding: 10rpx 12rpx; background: $jzb-warning-soft; border-radius: $jzb-radius-xs; }
+.qa__difference-label, .qa__difference--ignored { display: block; color: $jzb-warning; font-size: 20rpx; }
+.qa__difference-actions { display: flex; gap: 18rpx; margin-top: 8rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
+.qa__difference-actions .danger { color: $jzb-danger; }
+.qa__summary > view { display: flex; justify-content: space-between; padding: 14rpx 0; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.qa__summary-total { margin-top: 8rpx; padding-top: 20rpx !important; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-1 !important; font-size: $jzb-font-md !important; font-weight: 750; }
+.qa__summary-total text:last-child { color: $jzb-primary-dark; }
+.jz-btn--block { margin-top: 24rpx; width: 100%; }
+</style>

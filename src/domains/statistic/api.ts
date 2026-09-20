@@ -1,5 +1,5 @@
 import { post } from '@/core/http'
-import type { BossDashboard, BusinessAlert, BusinessAlertReport, BusinessTarget, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerReport, PerformanceReport, PmReport, StoreManagerReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchReport } from './model'
+import type { BossDashboard, BusinessAlert, BusinessAlertReport, BusinessTarget, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, StoreManagerReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchReport } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeQuote } from '../trade/api'
@@ -26,6 +26,34 @@ const PM_TASK_STATUS: Record<string, TaskStatus> = {
 }
 const PM_TASK_PRIORITY: Record<string, TaskPriority> = {
   low: 'low', normal: 'normal', high: 'high', urgent: 'urgent'
+}
+
+function periodMetric(raw: RawRecord = {}): MarketerPeriodMetric {
+  return {
+    current: Number(raw.current ?? 0),
+    previous: Number(raw.previous ?? 0),
+    growthRate: Number(raw.growthRate ?? 0)
+  }
+}
+
+function rateMetric(raw: RawRecord = {}): MarketerRateMetric {
+  return {
+    currentRate: Number(raw.currentRate ?? 0),
+    previousRate: Number(raw.previousRate ?? 0),
+    change: Number(raw.change ?? 0)
+  }
+}
+
+function rankingItem(raw: RawRecord): MarketerRankingItem {
+  return {
+    id: raw.id ?? '',
+    name: raw.name ?? '',
+    rank: Number(raw.rank ?? 0),
+    customerCount: Number(raw.customerCount ?? 0),
+    measureCount: Number(raw.measureCount ?? 0),
+    followCount: Number(raw.followCount ?? 0),
+    measureRate: Number(raw.measureRate ?? 0)
+  }
 }
 
 function normalizePmTask(raw: RawRecord): Task {
@@ -310,6 +338,21 @@ export const statisticApi = {
       lostCustomerCount: Number(raw.lostCustomerCount ?? 0),
       conversionRate: Number(raw.conversionRate ?? 0),
       averageConversionDays: Number(raw.averageConversionDays ?? 0),
+      customerInputDay: periodMetric(raw.customerInputDay),
+      customerInputWeek: periodMetric(raw.customerInputWeek),
+      customerInputMonth: periodMetric(raw.customerInputMonth),
+      followDay: periodMetric(raw.followDay),
+      followWeek: periodMetric(raw.followWeek),
+      followMonth: periodMetric(raw.followMonth),
+      measureRateDay: rateMetric(raw.measureRateDay),
+      measureRateWeek: rateMetric(raw.measureRateWeek),
+      measureRateMonth: rateMetric(raw.measureRateMonth),
+      marketerRankings: (raw.marketerRankings || []).map(rankingItem),
+      storeRankings: (raw.storeRankings || []).map(rankingItem),
+      myMarketerRank: Number(raw.myMarketerRank ?? 0),
+      myStoreRank: Number(raw.myStoreRank ?? 0),
+      companyMarketerCount: Number(raw.companyMarketerCount ?? 0),
+      companyStoreCount: Number(raw.companyStoreCount ?? 0),
       recentCustomers: (raw.recentCustomers || []).map(normalizeCustomer),
       recentProjects: (raw.recentProjects || []) as Project[]
     } as MarketerReport

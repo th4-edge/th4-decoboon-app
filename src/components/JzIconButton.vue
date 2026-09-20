@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from './JzIcon.vue'
 
 const props = withDefaults(defineProps<{
@@ -24,9 +25,9 @@ const padding = computed(() => Math.max(0, Math.round((88 - props.size) / 2)))
 const iconSize = computed(() => Math.round(props.size / 2))
 // JzIcon 通过 data-URI SVG 着色，需传入具体色值（与 uni.scss Token 保持一致）
 const iconColor = computed(() => ({
-  neutral: '#465260',        // $jzb-text-2
-  primary: '#0E8A7D',        // $jzb-primary-dark
-  danger: '#E5484D'          // $jzb-danger
+  neutral: TOKEN_COLOR.text2,
+  primary: TOKEN_COLOR.primary,
+  danger: TOKEN_COLOR.danger
 }[props.tone]))
 </script>
 

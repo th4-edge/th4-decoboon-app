@@ -1,3 +1,4 @@
+import { TOKEN_COLOR } from '@/styles/tokens'
 export function toast(title: string, icon: 'success' | 'error' | 'none' = 'none') {
   uni.showToast({ title, icon, duration: 1800 })
 }
@@ -11,7 +12,7 @@ export function toastError(error: unknown, fallback = '操作失败，请稍后�
 export function confirm(title: string, content = '', okText = '确定'): Promise<boolean> {
   return new Promise((resolve) => {
     uni.showModal({
-      title, content, confirmText: okText, confirmColor: '#16A394',
+      title, content, confirmText: okText, confirmColor: TOKEN_COLOR.primaryBase,
       success: (r) => resolve(!!r.confirm),
       fail: () => resolve(false)
     })

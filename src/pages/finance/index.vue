@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
@@ -41,21 +42,21 @@ function openEntry(type: string, extra = '') { go(`${P.financeEntry}?type=${type
 function openProject(id: string) { go(`${P.financeProject}?projectId=${id}`) }
 
 const stats = computed(() => [
-  { label: '待收工程款', value: summary.value?.outstandingAmount || 0, sub: `逾期 ${money(summary.value?.overdueAmount)}`, icon: 'file-text' as IconName, tone: '#E8F7F5', color: '#0E8A7D' },
-  { label: '本月回款', value: summary.value?.monthIncome || 0, sub: `回款率 ${summary.value?.collectionRate || 0}%`, icon: 'arrow-right' as IconName, tone: '#EAF8F0', color: '#07A35A' },
-  { label: '待付账款', value: summary.value?.unpaidAmount || 0, sub: `合同应付 ${money(summary.value?.payableAmount)}`, icon: 'wallet' as IconName, tone: '#FFF4E8', color: '#E67E22' },
-  { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(netCash.value)}`, icon: 'chart' as IconName, tone: '#FDECEC', color: '#E5484D' }
+  { label: '待收工程款', value: summary.value?.outstandingAmount || 0, sub: `逾期 ${money(summary.value?.overdueAmount)}`, icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, color: TOKEN_COLOR.primary },
+  { label: '本月回款', value: summary.value?.monthIncome || 0, sub: `回款率 ${summary.value?.collectionRate || 0}%`, icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.successSoft, color: TOKEN_COLOR.success },
+  { label: '待付账款', value: summary.value?.unpaidAmount || 0, sub: `合同应付 ${money(summary.value?.payableAmount)}`, icon: 'wallet' as IconName, tone: TOKEN_COLOR.warningSoft, color: TOKEN_COLOR.warning },
+  { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(netCash.value)}`, icon: 'chart' as IconName, tone: TOKEN_COLOR.dangerSoft, color: TOKEN_COLOR.danger }
 ])
 
 const quick = computed(() => [
-  { label: '应收计划', icon: 'file-text' as IconName, tone: '#E8F7F5', path: P.financeReceivables },
-  { label: '登记收款', icon: 'wallet' as IconName, tone: '#EAF8F0', path: `${P.financeEntry}?type=receipt` },
-  { label: '应付账款', icon: 'clipboard' as IconName, tone: '#FFF4E8', path: P.financePayables },
+  { label: '应收计划', icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, path: P.financeReceivables },
+  { label: '登记收款', icon: 'wallet' as IconName, tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt` },
+  { label: '应付账款', icon: 'clipboard' as IconName, tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
   { label: '工人工资', icon: 'users' as IconName, tone: '#F3EFFA', path: `${P.financePayables}?type=salary` },
   { label: '资金台账', icon: 'chart' as IconName, tone: '#E9F6F7', path: P.financeLedger },
-  { label: '供应商往来', icon: 'users' as IconName, tone: '#FFF4E8', path: P.financePartners },
-  { label: '项目账本', icon: 'briefcase' as IconName, tone: '#E8F7F5', path: P.financeProjects },
-  { label: '登记付款', icon: 'arrow-right' as IconName, tone: '#FDECEC', path: `${P.financeEntry}?type=payment` },
+  { label: '供应商往来', icon: 'users' as IconName, tone: TOKEN_COLOR.warningSoft, path: P.financePartners },
+  { label: '项目账本', icon: 'briefcase' as IconName, tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
+  { label: '登记付款', icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.dangerSoft, path: `${P.financeEntry}?type=payment` },
   { label: '手工记账', icon: 'edit' as IconName, tone: '#F1F4F7', path: `${P.financeEntry}?type=ledger` }
 ])
 </script>
@@ -100,22 +101,22 @@ const quick = computed(() => [
     <view class="fin-body">
       <view class="fin-flow">
         <view class="fin-flow__node">
-          <view class="fin-flow__icon"><JzIcon name="file-text" :size="28" color="#0E8A7D" /></view>
+          <view class="fin-flow__icon"><JzIcon name="file-text" :size="28" :color="TOKEN_COLOR.primary" /></view>
           <text class="fin-flow__label">应收</text><text class="fin-flow__value">{{ money(summary?.receivableAmount) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-flow__node">
-          <view class="fin-flow__icon" style="background:#EAF8F0;"><JzIcon name="check-circle" :size="28" color="#07A35A" /></view>
+          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.successSoft }"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /></view>
           <text class="fin-flow__label">已收</text><text class="fin-flow__value">{{ money(summary?.receivedAmount) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-flow__node">
-          <view class="fin-flow__icon" style="background:#E8F7F5;"><JzIcon name="wallet" :size="28" color="#0E8A7D" /></view>
+          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.primaryLighter }"><JzIcon name="wallet" :size="28" :color="TOKEN_COLOR.primary" /></view>
           <text class="fin-flow__label">应付</text><text class="fin-flow__value">{{ money(summary?.payableAmount) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-flow__node">
-          <view class="fin-flow__icon" style="background:#FFF4E8;"><JzIcon name="arrow-right" :size="28" color="#E67E22" /></view>
+          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.warningSoft }"><JzIcon name="arrow-right" :size="28" :color="TOKEN_COLOR.warning" /></view>
           <text class="fin-flow__label">已付</text><text class="fin-flow__value">{{ money(summary?.paidAmount) }}</text>
         </view>
       </view>
@@ -128,7 +129,7 @@ const quick = computed(() => [
     <view class="fin-body">
       <view class="fin-quick">
         <view v-for="item in quick" :key="item.label" class="fin-quick__item" @tap="item.path.startsWith(P.financeEntry) && !editable ? null : go(item.path)">
-          <view class="fin-quick__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="30" color="#0E8A7D" /></view>
+          <view class="fin-quick__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="30" :color="TOKEN_COLOR.primary" /></view>
           <text class="fin-quick__text">{{ item.label }}</text>
         </view>
       </view>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
@@ -89,7 +90,7 @@ async function relogin() {
           <text class="join-identity__phone">{{ displayPhone }}</text>
         </view>
         <view class="join-identity__badge">
-          <JzIcon name="info" :size="24" color="#778390" />
+          <JzIcon name="info" :size="24" :color="TOKEN_COLOR.text3" />
           <text>未归属企业</text>
         </view>
       </view>
@@ -119,11 +120,11 @@ async function relogin() {
 
       <view class="join-actions">
         <button class="jz-btn jz-btn--ghost join-actions__item" @tap="createCompany">
-          <JzIcon name="building" :size="28" color="#0E8A7D" />
+          <JzIcon name="building" :size="28" :color="TOKEN_COLOR.primary" />
           <text>创建新企业</text>
         </button>
         <button class="jz-btn jz-btn--neutral join-actions__item" @tap="relogin">
-          <JzIcon name="logout" :size="28" color="#465260" />
+          <JzIcon name="logout" :size="28" :color="TOKEN_COLOR.text2" />
           <text>切换微信账号</text>
         </button>
       </view>

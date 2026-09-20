@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from './JzIcon.vue'
 
 const props = withDefaults(defineProps<{
@@ -35,7 +36,7 @@ function handleClose() {
           <view v-if="title || closable" class="jz-sheet__header">
             <text v-if="title" class="jz-sheet__title">{{ title }}</text>
             <view v-if="closable" class="jz-sheet__close" @tap="handleClose">
-              <JzIcon name="close" :size="36" color="#778390" />
+              <JzIcon name="close" :size="36" :color="TOKEN_COLOR.text3" />
             </view>
           </view>
           <view class="jz-sheet__body">

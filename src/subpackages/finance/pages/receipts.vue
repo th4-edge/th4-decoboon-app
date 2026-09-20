@@ -15,6 +15,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -58,8 +59,8 @@ function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
           <text class="fin-card__amount fin-card__amount--income">+{{ money(item.amount) }}</text>
         </view>
         <view class="fin-card__facts">
-          <view class="fin-fact"><JzIcon name="wallet" :size="22" color="#778390" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
-          <view class="fin-fact"><JzIcon name="user" :size="22" color="#778390" /><text>{{ item.payerName || item.customer?.name || '客户' }}</text></view>
+          <view class="fin-fact"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
+          <view class="fin-fact"><JzIcon name="user" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.payerName || item.customer?.name || '客户' }}</text></view>
           <text>{{ item.remark || '已核销应收' }}</text>
         </view>
         <view class="fin-card__foot"><text class="jz-caption">经办 {{ item.createdBy?.name || '财务' }}</text><text class="jz-caption">{{ item.voucherUrl ? '已上传凭证' : '无凭证' }}</text></view>

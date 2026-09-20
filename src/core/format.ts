@@ -1,3 +1,4 @@
+import { TOKEN_COLOR } from '@/styles/tokens'
 /** 展示格式化工具 */
 
 /** 后端 DateTime 可能序列化为 yyyyMMddHHmmss，统一成可读时间字符串。 */
@@ -96,7 +97,7 @@ export function nameChar(name?: string): string {
 
 /** 由姓名生成稳定头像底色 */
 export function colorOf(name?: string): string {
-  const palette = ['#16A394', '#722ED1', '#FA8C16', '#13C2C2', '#2F54EB', '#F53F3F', '#00B42A']
+  const palette = [TOKEN_COLOR.primaryBase, '#722ED1', '#FA8C16', '#13C2C2', '#2F54EB', '#F53F3F', '#00B42A']
   if (!name) return palette[0]
   let sum = 0
   for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i)

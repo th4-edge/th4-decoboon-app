@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -23,8 +24,8 @@ const TYPE_ICON: Record<string, IconName> = {
   dynamic: 'message', accept: 'check-circle', system: 'bell', invite: 'user-plus'
 }
 const TYPE_COLOR: Record<string, string> = {
-  customer: '#07A35A', project: '#0E8A7D', quote: '#6958C8', task: '#6958C8', overdue: '#E5484D',
-  dynamic: '#168A96', accept: '#07A35A', system: '#778390', invite: '#0E8A7D'
+  customer: TOKEN_COLOR.success, project: TOKEN_COLOR.primary, quote: TOKEN_COLOR.purple, task: TOKEN_COLOR.purple, overdue: TOKEN_COLOR.danger,
+  dynamic: '#168A96', accept: TOKEN_COLOR.success, system: TOKEN_COLOR.text3, invite: TOKEN_COLOR.primary
 }
 const shown = computed(() => {
   if (filter.value === 'all') return list.value
@@ -92,7 +93,7 @@ async function markAll() {
           <text class="msg__content">{{ n.content }}</text>
           <text class="msg__time">{{ n.createdAt?.slice(5, 16) }}</text>
         </view>
-        <JzIcon name="chevron-right" :size="26" color="#AEB8C2" />
+        <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
       </view>
       <JzEmpty v-if="!loadError && !shown.length" text="暂无通知" sub="客户跟进、报价推进、任务和进度提醒会出现在这里" />
       <ListFooter v-if="!loadError && shown.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
@@ -102,15 +103,15 @@ async function markAll() {
 
 <style lang="scss" scoped>
 .msg { padding: 24rpx 24rpx 60rpx; }
-.msg__head { padding: 28rpx; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; background: linear-gradient(135deg, #FFFFFF, #F4FBFA); }
+.msg__head { padding: 28rpx; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; background: linear-gradient(135deg, $jzb-text-inverse, #F4FBFA); }
 .msg__head-title { font-size: $jzb-font-lg; font-weight: 700; }
 .msg__head-sub { padding: 7rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .msg__head-actions { display: flex; align-items: center; }
 .msg__read-all { margin-left: 14rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .msg__filters { width: 100%; white-space: nowrap; margin-bottom: 18rpx; }
 .msg__filter-row { display: inline-flex; }
-.msg__filter { margin-right: 12rpx; padding: 10rpx 22rpx; background: #fff; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-xs; }
-.msg__filter--on { color: #fff; background: $jzb-primary; border-color: $jzb-primary; }
+.msg__filter { margin-right: 12rpx; padding: 10rpx 22rpx; background: $jzb-text-inverse; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.msg__filter--on { color: $jzb-text-inverse; background: $jzb-primary; border-color: $jzb-primary; }
 .msg__item { display: flex; align-items: center; padding: 26rpx 22rpx; margin-bottom: 18rpx; transition: transform $jzb-duration-fast $jzb-ease-out; }
 .msg__item:active { transform: scale(.992); }
 .msg__item--unread { border: 1rpx solid rgba(22, 163, 148, 0.35); }

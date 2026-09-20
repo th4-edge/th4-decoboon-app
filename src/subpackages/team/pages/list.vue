@@ -16,6 +16,7 @@ import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { usePagedList } from '@/composables/usePagedList'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const { items: list, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => identityApi.employeePage({ current, size }),
@@ -61,11 +62,11 @@ const canInvite = computed(() => can(session.role || 'boss', 'act:inviteMember')
     <view class="team__list">
       <PageState v-if="loadError && !list.length" state="error" title="成员加载失败" :subtitle="loadError" @retry="refresh" />
       <view v-for="e in shown" :key="e.id" class="jz-card team__item">
-        <JzAvatar :src="e.avatarUrl || ''" :name="e.name" :color="ROLE_META[e.role as keyof typeof ROLE_META]?.color || '#16A394'" :size="80" />
+        <JzAvatar :src="e.avatarUrl || ''" :name="e.name" :color="ROLE_META[e.role as keyof typeof ROLE_META]?.color || TOKEN_COLOR.primaryBase" :size="80" />
         <view class="jz-grow team__who">
           <view class="jz-row">
             <text class="team__name">{{ e.name }}</text>
-            <JzTag :text="ROLE_META[e.role as keyof typeof ROLE_META]?.short || e.role" :color="ROLE_META[e.role as keyof typeof ROLE_META]?.color || '#16A394'" />
+            <JzTag :text="ROLE_META[e.role as keyof typeof ROLE_META]?.short || e.role" :color="ROLE_META[e.role as keyof typeof ROLE_META]?.color || TOKEN_COLOR.primaryBase" />
           </view>
           <text class="team__meta">{{ e.title }} · 入职 {{ e.joinDate }}</text>
         </view>
@@ -85,10 +86,10 @@ const canInvite = computed(() => can(session.role || 'boss', 'act:inviteMember')
 .team__head { margin: 24rpx; padding: 28rpx; display: flex; flex-direction: column; }
 .team__head-name { font-size: $jzb-font-xl; font-weight: 700; }
 .team__head-sub { margin-top: 8rpx; font-size: $jzb-font-sm; color: $jzb-text-3; }
-.team__filters { width: 100%; white-space: nowrap; background: #fff; }
+.team__filters { width: 100%; white-space: nowrap; background: $jzb-text-inverse; }
 .team__filter-row { display: inline-flex; padding: 16rpx $jzb-page-pad; }
 .team__filter { padding: 8rpx 26rpx; margin-right: 14rpx; font-size: $jzb-font-sm; color: $jzb-text-2; background: $jzb-bg-page; border-radius: $jzb-radius-pill; }
-.team__filter--on { background: $jzb-primary; color: #fff; }
+.team__filter--on { background: $jzb-primary; color: $jzb-text-inverse; }
 .team__list { padding: 20rpx $jzb-page-pad; }
 .team__item { display: flex; flex-direction: row; align-items: center; padding: 24rpx; margin-bottom: 16rpx; }
 .team__who { margin-left: 20rpx; }

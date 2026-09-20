@@ -11,6 +11,7 @@ import { projectApi } from '@/domains/project/api'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const id = ref('')
 const project = ref<Project | null>(null)
@@ -32,7 +33,7 @@ const emps = computed(() => members.value.filter((m) => m.kind === 'employee'))
 const custs = computed(() => members.value.filter((m) => m.kind === 'customer'))
 function color(m: ProjectMember) {
   if (m.kind === 'customer') return '#F53F3F'
-  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? '#16A394' : '#13C2C2'
+  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? TOKEN_COLOR.primaryBase : '#13C2C2'
 }
 
 /** 加入时间格式化：后端返回 20260917002637 这类紧凑时间戳时转为 YYYY-MM-DD。 */
@@ -77,8 +78,8 @@ function joinedText(value?: string | number) {
     </view>
 
     <view class="mb__actions">
-      <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" color="#FFFFFF" /><text>邀请业主同频</text></button>
-      <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" color="#0E8A7D" /><text>邀请设计师 / 项目经理加入团队</text></button>
+      <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>邀请业主同频</text></button>
+      <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" :color="TOKEN_COLOR.primary" /><text>邀请设计师 / 项目经理加入团队</text></button>
     </view>
   </view>
 </template>

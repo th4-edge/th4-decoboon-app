@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
@@ -9,10 +10,8 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 const passwordSet = ref(session.user?.passwordSet === true)
-const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
-const showOld = ref(false)
 const showNew = ref(false)
 const showConfirm = ref(false)
 const submitting = ref(false)
@@ -32,10 +31,6 @@ onLoad(async () => {
 })
 
 function validate(): boolean {
-  if (passwordSet.value && !oldPassword.value) {
-    toast('请输入原密码')
-    return false
-  }
   if (newPassword.value.length < 8 || newPassword.value.length > 64) {
     toast('密码长度必须为 8-64 位')
     return false
@@ -56,18 +51,14 @@ async function submit() {
   submitting.value = true
   loading(passwordSet.value ? '正在修改密码…' : '正在设置密码…')
   try {
-    if (passwordSet.value) {
-      await identityApi.changePassword(oldPassword.value, newPassword.value, confirmPassword.value)
-    } else {
-      await identityApi.setPassword(newPassword.value, confirmPassword.value)
-    }
+    // App 端微信登录已验证身份，密码设置/修改均不要求原密码，后端同步去除原密码校验
+    await identityApi.setPassword(newPassword.value, confirmPassword.value)
     passwordSet.value = true
-    oldPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
     if (session.user) session.user.passwordSet = true
     hideLoading()
-    toast('密码已设置，可在 Web 工作台使用手机号密码登录', 'success')
+    toast('密码已保存，可在 Web 工作台使用手机号密码登录', 'success')
   } catch (error) {
     hideLoading()
     toastError(error, '密码保存失败')
@@ -83,12 +74,12 @@ async function submit() {
     <view class="password-body">
       <view class="jz-card password-status">
         <view class="password-status__icon">
-          <JzIcon name="shield-check" :size="42" color="#0E8A7D" />
+          <JzIcon name="shield-check" :size="42" :color="TOKEN_COLOR.primary" />
         </view>
         <view class="jz-grow">
           <text class="password-status__title">{{ passwordSet ? '已设置 Web 登录密码' : '尚未设置 Web 登录密码' }}</text>
           <text class="password-status__desc">
-            {{ passwordSet ? '如需更换密码，请先验证原密码。' : '设置后可使用手机号和密码登录 Web 工作台。' }}
+            {{ passwordSet ? '如需更换密码，直接输入新密码即可。' : '设置后可使用手机号和密码登录 Web 工作台。' }}
           </text>
         </view>
       </view>
@@ -97,14 +88,6 @@ async function submit() {
         <view class="password-form__account">
           <text>登录手机号</text>
           <text>{{ session.user?.phone || session.emp?.phone || '-' }}</text>
-        </view>
-
-        <view v-if="passwordSet" class="password-field">
-          <text class="password-field__label">原密码</text>
-          <input v-model="oldPassword" :password="!showOld" maxlength="64" placeholder="请输入当前密码" />
-          <view class="password-field__toggle" @tap="showOld = !showOld">
-            <JzIcon :name="showOld ? 'eye-off' : 'eye'" :size="34" color="#8A95A1" />
-          </view>
         </view>
 
         <view class="password-field">

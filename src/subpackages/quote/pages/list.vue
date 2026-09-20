@@ -7,6 +7,7 @@ import { can } from '@/roles/permission'
 import type { Quote, QuoteMode, QuoteStatus } from '@/domains/trade/model'
 import { tradeApi } from '@/domains/trade/api'
 import { money } from '@/core/format'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
@@ -37,17 +38,17 @@ const FILTERS: { key: 'all' | QuoteStatus; label: string }[] = [
 ]
 
 const STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
-  draft: { label: '草稿', color: '#778390' },
-  submitted: { label: '待客户确认', color: '#E67E22' },
-  accepted: { label: '客户已接受', color: '#07A35A' },
-  rejected: { label: '已驳回', color: '#E5484D' },
+  draft: { label: '草稿', color: TOKEN_COLOR.text3 },
+  submitted: { label: '待客户确认', color: TOKEN_COLOR.warning },
+  accepted: { label: '客户已接受', color: TOKEN_COLOR.success },
+  rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   superseded: { label: '已被替代', color: '#8B93A1' },
-  converted: { label: '已转项目', color: '#6958C8' }
+  converted: { label: '已转项目', color: TOKEN_COLOR.purple }
 }
 const MODE_META: Record<QuoteMode, { label: string; color: string }> = {
-  package: { label: '套餐报价', color: '#E67E22' },
-  custom: { label: '自定义报价', color: '#0E8A7D' },
-  hybrid: { label: '混合报价', color: '#6958C8' }
+  package: { label: '套餐报价', color: TOKEN_COLOR.warning },
+  custom: { label: '自定义报价', color: TOKEN_COLOR.primary },
+  hybrid: { label: '混合报价', color: TOKEN_COLOR.purple }
 }
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
@@ -127,7 +128,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
         <view class="ql__item-head">
           <view class="jz-grow">
             <text class="ql__customer jz-clamp-1">{{ quote.customer?.name || '未关联客户' }}</text>
-            <text class="ql__no jz-clamp-1">{{ quote.no }} · {{ quote.design?.name || quote.packageTemplate?.name || quote.customer?.community || '未关联方案' }}</text>
+            <text class="ql__no jz-clamp-1">{{ quote.no }} · V{{ quote.version }} · {{ quote.design?.name || quote.packageTemplate?.name || quote.customer?.community || '未关联方案' }}</text>
           </view>
           <view class="ql__status-group">
             <text class="ql__mode" :style="{ color: MODE_META[quote.mode].color, backgroundColor: MODE_META[quote.mode].color + '14' }">{{ MODE_META[quote.mode].label }}</text>
@@ -143,7 +144,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
         </view>
         <view class="ql__foot">
           <text class="jz-clamp-1">{{ quote.owner?.name || '未指派' }}</text>
-          <view class="ql__open"><text>{{ quote.status === 'converted' ? '合同 / 变更 / 应收' : '查看明细' }}</text><JzIcon name="chevron-right" :size="24" color="#0E8A7D" /></view>
+          <view class="ql__open"><text>{{ quote.status === 'converted' ? '合同 / 变更 / 应收' : '查看明细' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
         </view>
       </view>
       <JzEmpty v-if="!loading && !shown.length" text="暂无方案报价" sub="先记录诉求、完成设计分项，再生成设计报价" />
@@ -156,7 +157,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
 
 <style lang="scss" scoped>
 .ql { min-height: 100vh; padding-bottom: 150rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.ql__hero { margin: 24rpx 24rpx 20rpx; padding: 34rpx 30rpx; color: #fff; border-radius: $jzb-radius-lg; background: $jzb-gradient; box-shadow: $jzb-shadow-card; }
+.ql__hero { margin: 24rpx 24rpx 20rpx; padding: 34rpx 30rpx; color: $jzb-text-inverse; border-radius: $jzb-radius-lg; background: $jzb-gradient; box-shadow: $jzb-shadow-card; }
 .ql__hero-label { display: block; font-size: $jzb-font-sm; opacity: .82; }
 .ql__hero-value { display: block; margin-top: 10rpx; font-size: 60rpx; font-weight: 750; letter-spacing: -2rpx; }
 .ql__hero-foot { display: flex; justify-content: space-between; margin-top: 20rpx; font-size: $jzb-font-xs; opacity: .9; }

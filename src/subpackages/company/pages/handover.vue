@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -61,7 +62,7 @@ async function submit() {
     <JzPageHeader title="离职交接" subtitle="客户、房屋、项目与任务的归属转移" />
     <view class="hand-body">
       <view class="jz-card hand-person">
-        <JzIcon name="user" :size="44" color="#E67E22" />
+        <JzIcon name="user" :size="44" :color="TOKEN_COLOR.warning" />
         <view><text class="hand-name">{{ from?.name || '待离职员工' }}</text><text class="hand-role">{{ from?.role ? ROLE_META[from.role]?.label : '' }}</text></view>
       </view>
       <view class="jz-section"><text class="jz-section__title">待交接业务</text></view>

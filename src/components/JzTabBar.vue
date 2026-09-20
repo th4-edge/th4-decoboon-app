@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { goTab } from '@/config'
 import { session } from '@/domains/identity/session'
 import { tabsOf, type RoleTab } from '@/roles/catalog'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
 const props = defineProps<{ current: string }>()
@@ -24,7 +25,7 @@ function onTap(item: RoleTab) {
       @tap="onTap(item)"
     >
       <view class="jz-tabbar__icon-wrap">
-        <JzIcon :name="iconName(item.icon)" :size="42" :color="activeKey === item.key ? '#0E8A7D' : '#86909C'" :stroke-width="activeKey === item.key ? 2.2 : 1.8" />
+        <JzIcon :name="iconName(item.icon)" :size="42" :color="activeKey === item.key ? TOKEN_COLOR.primary : '#86909C'" :stroke-width="activeKey === item.key ? 2.2 : 1.8" />
       </view>
       <text class="jz-tabbar__label">{{ item.label }}</text>
     </view>

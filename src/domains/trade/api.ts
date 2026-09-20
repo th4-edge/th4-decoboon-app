@@ -72,6 +72,8 @@ function normalizeItem(raw: RawRecord): QuoteItem {
     formula: raw.formula
     ,
     role: enumValue(raw.role),
+    differenceType: enumValue(raw.differenceType),
+    differenceStatus: enumValue(raw.differenceStatus),
     included: raw.included !== false,
     discountAmount: Number(raw.discountAmount ?? 0),
     components: Array.isArray(raw.components) ? raw.components.map((component: RawRecord) => ({
@@ -113,10 +115,12 @@ export function normalizeQuote(raw: RawRecord): Quote {
     } : undefined,
     owner: raw.createdBy ? normalizeEmployee(raw.createdBy) : raw.owner ? normalizeEmployee(raw.owner) : undefined,
     mode: QUOTE_MODE[enumValue(raw.mode)] || (raw.packageTemplate ? 'package' : 'custom'),
+    version: Number(raw.version ?? 1),
     area: Number(raw.area ?? 0),
     subtotal: Number(raw.subtotal ?? raw.amount ?? 0),
     amount: Number(raw.amount ?? 0),
     cost: Number(raw.cost ?? 0),
+    costComplete: raw.costComplete === true,
     discount: Number(raw.discount ?? 1),
     taxRate: Number(raw.taxRate ?? 0.05),
     taxAmount: Number(raw.taxAmount ?? 0),
@@ -131,6 +135,7 @@ export function normalizeQuote(raw: RawRecord): Quote {
 }
 
 export interface QuoteInput {
+  sourceQuoteId?: string
   customerId?: string
   propertyId?: string
   designId?: string
@@ -139,6 +144,19 @@ export interface QuoteInput {
   area?: number
   discount?: number
   empId?: string
+}
+
+export interface QuoteLineInput {
+  quoteId: string
+  itemId?: string
+  baseLineId?: string
+  catalogItemId?: string
+  quantity?: number
+  role?: 'option' | 'upgrade' | 'add' | 'deduct' | 'replace' | 'gift'
+  included?: boolean
+  sort?: number
+  deduct?: boolean
+  differenceStatus?: 'pending' | 'confirmed' | 'ignored'
 }
 
 export interface QuoteQuery {
@@ -150,6 +168,7 @@ export interface QuoteQuery {
 
 function normalizeContract(raw: RawRecord): Contract {
   const baselineAmount = Number(raw.baselineAmount ?? raw.amount ?? 0)
+  const signedAmount = raw.signedAmount == null ? undefined : Number(raw.signedAmount)
   return {
     ...raw,
     id: String(raw.id ?? raw.contractId ?? ''),
@@ -158,6 +177,7 @@ function normalizeContract(raw: RawRecord): Contract {
     projectId: String(raw.projectId ?? raw.project?.projectId ?? ''),
     quoteId: raw.quoteId ? String(raw.quoteId) : raw.quote?.quoteId ? String(raw.quote.quoteId) : undefined,
     baselineAmount,
+    signedAmount,
     currentAmount: Number(raw.currentAmount ?? baselineAmount),
     amount: Number(raw.currentAmount ?? raw.amount ?? baselineAmount),
     status: CONTRACT_STATUS[enumValue(raw.status)] || 'draft',
@@ -170,6 +190,8 @@ function normalizeContract(raw: RawRecord): Contract {
     receivableAmount: Number(raw.receivableAmount ?? 0),
     receivedAmount: Number(raw.receivedAmount ?? 0),
     pendingChangeCount: Number(raw.pendingChangeCount ?? 0),
+    signedCost: raw.signedCost == null ? undefined : Number(raw.signedCost),
+    costComplete: raw.costComplete === true,
     remark: raw.remark
   }
 }
@@ -223,7 +245,9 @@ export const tradeApi = {
   page: async (query: QuoteQuery = {}): Promise<PageData<Quote>> => {
     const current = query.current ?? 1
     const size = query.size ?? 20
-    const uri = session.role === 'pm' ? 'project/manager/quote/page' : 'quote/page'
+    const uri = session.role === 'pm'
+      ? 'project/manager/quote/page'
+      : session.role === 'designer' ? 'quote/designer/page' : 'quote/page'
     const result = await post<PageResult<RawRecord> | RawRecord[]>(uri, {
       current,
       size,
@@ -239,11 +263,22 @@ export const tradeApi = {
     return result.list
   },
   quote: (id: string) => {
-    const uri = session.role === 'pm' ? 'project/manager/quote/info' : 'quote/info'
+    const uri = session.role === 'pm'
+      ? 'project/manager/quote/info'
+      : session.role === 'designer' ? 'quote/designer/info' : 'quote/info'
     return post<RawRecord>(uri, { quoteId: id }).then(normalizeQuote)
   },
   createQuote: (input: QuoteInput) =>
     post<RawRecord>('quote/save', input).then(normalizeQuote),
+  rebaseQuote: (sourceQuoteId: string) =>
+    post<RawRecord>('quote/save', { sourceQuoteId }).then(normalizeQuote),
+  saveQuoteLine: (input: QuoteLineInput) => post<RawRecord>('quote/line/save', {
+    ...input,
+    role: input.role ? input.role[0].toUpperCase() + input.role.slice(1) : undefined,
+    differenceStatus: input.differenceStatus ? input.differenceStatus[0].toUpperCase() + input.differenceStatus.slice(1) : undefined
+  }).then(normalizeItem),
+  deleteQuoteLine: (quoteId: string, itemId: string) =>
+    post<boolean>('quote/line/delete', { quoteId, itemId }),
   transition: (id: string, status: QuoteStatus) => {
     const statusMap: Record<QuoteStatus, string> = {
       draft: 'Draft', submitted: 'Submitted', accepted: 'Accepted', rejected: 'Rejected', superseded: 'Superseded', converted: 'Converted'
@@ -260,9 +295,9 @@ export const tradeApi = {
     const raw = await post<RawRecord | null>('project/contract/info', { quoteId })
     return raw ? normalizeContract(raw) : null
   },
-  generateContract: (quoteId: string, input: { signedAt?: string; startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
+  generateContract: (quoteId: string, input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
     post<RawRecord>('project/contract/save', { quoteId, ...input }).then(normalizeContract),
-  updateContract: (contractId: string, status: Contract['status'], input: { startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
+  updateContract: (contractId: string, status: Contract['status'], input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
     post<RawRecord>('project/contract/update', { contractId, status: status[0].toUpperCase() + status.slice(1), ...input }).then(normalizeContract),
   contractChanges: async (projectId: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/contract-change/page', { projectId }))

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -102,7 +103,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
           <text class="sd__sort">{{ stage.sort }}</text>
           <view>
             <text class="sd__name">{{ stage.name }}</text>
-            <view class="sd__project" @tap="openProject"><text>{{ project?.name || '' }}</text><JzIcon name="chevron-right" :size="22" color="#778390" /></view>
+            <view class="sd__project" @tap="openProject"><text>{{ project?.name || '' }}</text><JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text3" /></view>
           </view>
         </view>
         <JzTag :text="STAGE_STATUS_META[stage.status].label" :color="STAGE_STATUS_META[stage.status].color" />
@@ -121,15 +122,15 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 
     <!-- 验收横幅 -->
     <view v-if="acceptance && acceptance.customerStatus === 'waiting'" class="sd__banner" @tap="acceptPage">
-      <view class="sd__banner-icon"><JzIcon name="check-circle" :size="38" color="#07A35A" /></view>
+      <view class="sd__banner-icon"><JzIcon name="check-circle" :size="38" :color="TOKEN_COLOR.success" /></view>
       <view class="jz-grow">
         <text class="sd__banner-title">{{ isCustomer(role) ? '本阶段验收等待您确认' : '验收已提交，等待业主确认' }}</text>
         <text class="sd__banner-sub">点击查看验收单与现场照片</text>
       </view>
-      <JzIcon class="sd__banner-arrow" name="chevron-right" :size="30" color="#AEB8C2" />
+      <JzIcon class="sd__banner-arrow" name="chevron-right" :size="30" :color="TOKEN_COLOR.text4" />
     </view>
     <view v-else-if="acceptance && acceptance.customerStatus === 'confirmed'" class="sd__banner sd__banner--ok" @tap="acceptPage">
-      <view class="sd__banner-icon"><JzIcon name="check-circle" :size="38" color="#07A35A" /></view>
+      <view class="sd__banner-icon"><JzIcon name="check-circle" :size="38" :color="TOKEN_COLOR.success" /></view>
       <text class="sd__banner-title">业主已确认验收（{{ acceptance.confirmAt?.slice(5, 16) }}）</text>
     </view>
 
@@ -139,10 +140,10 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
     </view>
     <view v-if="!isCustomer(role) && hasStageActions" class="jz-card sd__ops">
       <text class="sd__ops-note">阶段开工、现场汇报和验收会同步到项目动态，便于项目经理与业主同频。</text>
-      <button v-if="canOpen" class="jz-btn jz-btn--primary jz-btn--block sd__action-btn" @tap="start"><JzIcon name="arrow-right" :size="28" color="#FFFFFF" /><text>开始「{{ stage.name }}」</text></button>
-      <button v-if="canReport" class="jz-btn jz-btn--ghost jz-btn--block sd__op sd__action-btn" @tap="report"><JzIcon name="camera" :size="28" color="#0E8A7D" /><text>现场汇报（打卡/照片）</text></button>
-      <button v-if="canAcceptRequest" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="acceptPage"><JzIcon name="check-circle" :size="28" color="#0E8A7D" /><text>{{ acceptance ? '查看验收单' : '提交阶段验收' }}</text></button>
-      <button v-if="canAddTask" class="jz-btn jz-btn--text jz-btn--block sd__op sd__action-btn" @tap="addTask"><JzIcon name="plus" :size="26" color="#465260" /><text>添加施工任务</text></button>
+      <button v-if="canOpen" class="jz-btn jz-btn--primary jz-btn--block sd__action-btn" @tap="start"><JzIcon name="arrow-right" :size="28" :color="TOKEN_COLOR.white" /><text>开始「{{ stage.name }}」</text></button>
+      <button v-if="canReport" class="jz-btn jz-btn--ghost jz-btn--block sd__op sd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报（打卡/照片）</text></button>
+      <button v-if="canAcceptRequest" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="acceptPage"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.primary" /><text>{{ acceptance ? '查看验收单' : '提交阶段验收' }}</text></button>
+      <button v-if="canAddTask" class="jz-btn jz-btn--text jz-btn--block sd__op sd__action-btn" @tap="addTask"><JzIcon name="plus" :size="26" :color="TOKEN_COLOR.text2" /><text>添加施工任务</text></button>
     </view>
 
     <view v-if="!isCustomer(role)" class="jz-section"><text class="jz-section__title">施工任务（{{ tasks.length }}）</text></view>
@@ -167,7 +168,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 <style lang="scss" scoped>
 .sd { padding-bottom: 60rpx; }
 .sd__hero { margin: 24rpx; padding: 28rpx; }
-.sd__sort { width: 56rpx; height: 56rpx; border-radius: 16rpx; background: $jzb-gradient; color: #fff; font-size: $jzb-font-md; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; }
+.sd__sort { width: 56rpx; height: 56rpx; border-radius: 16rpx; background: $jzb-gradient; color: $jzb-text-inverse; font-size: $jzb-font-md; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; }
 .sd__name { display: block; font-size: $jzb-font-xl; font-weight: 700; }
 .sd__project { display: flex; align-items: center; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .sd__prog { margin-top: 22rpx; }

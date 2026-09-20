@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
@@ -67,7 +68,7 @@ async function submit() {
 <template>
   <view class="ent">
     <view class="ent__head">
-      <view class="ent__icon"><JzIcon name="building" :size="52" color="#0E8A7D" /></view>
+      <view class="ent__icon"><JzIcon name="building" :size="52" :color="TOKEN_COLOR.primary" /></view>
       <text class="ent__title">创建企业</text>
       <text class="ent__sub">{{ session.user?.phone }} 已通过微信授权验证</text>
     </view>
@@ -111,7 +112,7 @@ async function submit() {
 .ent__icon { display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; background: $jzb-primary-lighter; border-radius: 32rpx; }
 .ent__title { display: block; margin-top: 24rpx; font-size: 48rpx; font-weight: 750; color: $jzb-text-1; }
 .ent__sub { display: block; margin-top: 10rpx; font-size: $jzb-font-sm; color: $jzb-text-3; }
-.ent__card { padding: 6rpx 28rpx 20rpx; background: #fff; border-radius: $jzb-radius-lg; }
+.ent__card { padding: 6rpx 28rpx 20rpx; background: $jzb-text-inverse; border-radius: $jzb-radius-lg; }
 .ent__group { display: block; padding: 24rpx 0 10rpx; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-primary-dark; }
 .ent__group--gap { margin-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
 .ent__field { display: flex; align-items: center; min-height: 92rpx; border-bottom: 1rpx solid $jzb-border-light; }

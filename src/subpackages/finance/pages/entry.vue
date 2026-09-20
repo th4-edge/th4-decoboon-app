@@ -13,6 +13,9 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
+import PageState from '@/components/PageState/PageState.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 type EntryType = 'receivable' | 'receipt' | 'payable' | 'payment' | 'ledger'
 const today = () => new Date().toISOString().slice(0, 10)
@@ -85,7 +88,10 @@ const accountIndex = computed(() => Math.max(accountOptions.findIndex((item) => 
 const directionOptions = [{ label: '收入', value: 'income' }, { label: '支出', value: 'expense' }]
 const directionIndex = computed(() => Math.max(directionOptions.findIndex((item) => item.value === form.direction), 0))
 
-onLoad(async (query) => {
+const booting = ref(false)
+const loadError = ref('')
+
+onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   if (!can(session.role, 'edit:finance')) { toast('当前账号仅可查看财务数据'); setTimeout(() => uni.navigateBack(), 600); return }
   type.value = (['receivable', 'receipt', 'payable', 'payment', 'ledger'].includes(query?.type) ? query?.type : 'receivable') as EntryType
@@ -94,11 +100,22 @@ onLoad(async (query) => {
   form.receivableId = query?.receivableId || ''
   form.payableId = query?.payableId || ''
   if (query?.payableType && PAYABLE_TYPE_META[query.payableType as PayableType]) form.payableType = query.payableType as PayableType
+  void boot()
+})
+
+async function boot() {
+  booting.value = true
+  loadError.value = ''
   try {
     projects.value = await projectApi.list()
-    await hydrate(query?.id || '')
-  } catch (error) { toastError(error, '表单数据加载失败') }
-})
+    await hydrate(editId.value)
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '表单数据加载失败'
+    toastError(error, '表单数据加载失败')
+  } finally {
+    booting.value = false
+  }
+}
 
 async function hydrate(id: string) {
   if (type.value === 'receivable') {
@@ -188,57 +205,60 @@ async function submit() {
       <text class="fe-head__sub">{{ subtitle }}</text>
     </view>
 
+    <PageState v-if="loadError" state="error" title="表单数据加载失败" :subtitle="loadError" @retry="boot" />
+    <JzSkeleton v-else-if="booting" :rows="5" />
+    <template v-else>
     <view class="fin-form-card">
       <view v-if="type !== 'payment' || !form.projectId" class="fin-field">
         <text class="fin-field__label">所属项目</text>
         <picker :range="projectOptions" range-key="label" :value="projectIndex" @change="onProject">
           <view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.projectId }">{{ form.projectId ? selectLabel(projectOptions, projectIndex) : '企业通用账务' }}</view>
         </picker>
-        <JzIcon name="chevron-right" :size="24" color="#AEB8C2" />
+        <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
       </view>
 
       <template v-if="type === 'receivable'">
         <view class="fin-field"><text class="fin-field__label">节点名称</text><input v-model="form.name" maxlength="64" placeholder="如 合同首期款" /></view>
         <view class="fin-field"><text class="fin-field__label">施工节点</text><input v-model="form.stageName" maxlength="64" placeholder="如 签订合同 / 水电验收" /></view>
-        <view class="fin-field"><text class="fin-field__label">应收类型</text><picker :range="receivableTypeOptions" range-key="label" :value="receivableTypeIndex" @change="onReceivableType"><view class="fin-field__value">{{ selectLabel(receivableTypeOptions, receivableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">应收类型</text><picker :range="receivableTypeOptions" range-key="label" :value="receivableTypeIndex" @change="onReceivableType"><view class="fin-field__value">{{ selectLabel(receivableTypeOptions, receivableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">应收金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">约定收款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
-        <view class="fin-field"><text class="fin-field__label">需要开票</text><switch :checked="form.invoiceRequired" color="#0E8A7D" @change="onInvoiceSwitch" /><text v-if="form.invoiceRequired" class="fin-field__label" style="width:auto;">发票号</text><input v-if="form.invoiceRequired" v-model="form.invoiceNo" placeholder="可选" /></view>
+        <view class="fin-field"><text class="fin-field__label">约定收款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">需要开票</text><switch :checked="form.invoiceRequired" :color="TOKEN_COLOR.primary" @change="onInvoiceSwitch" /><text v-if="form.invoiceRequired" class="fin-field__label" style="width:auto;">发票号</text><input v-if="form.invoiceRequired" v-model="form.invoiceNo" placeholder="可选" /></view>
       </template>
 
       <template v-else-if="type === 'receipt'">
-        <view class="fin-field"><text class="fin-field__label">应收节点</text><picker :range="receivableOptions" range-key="label" :value="receivableIndex" @change="onReceivable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.receivableId }">{{ form.receivableId ? selectLabel(receivableOptions, receivableIndex) : (form.projectId ? '请选择待收节点' : '请先选择项目') }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">应收节点</text><picker :range="receivableOptions" range-key="label" :value="receivableIndex" @change="onReceivable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.receivableId }">{{ form.receivableId ? selectLabel(receivableOptions, receivableIndex) : (form.projectId ? '请选择待收节点' : '请先选择项目') }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">收款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
-        <view class="fin-field"><text class="fin-field__label">收款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">收款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">收款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">付款方</text><input v-model="form.payerName" maxlength="64" :placeholder="selectedProject?.customer?.name || '默认项目客户'" /></view>
       </template>
 
       <template v-else-if="type === 'payable'">
         <view class="fin-field"><text class="fin-field__label">应付名称</text><input v-model="form.name" maxlength="64" :placeholder="form.payableType === 'salary' ? '如 9月水电工工资' : '如 瓷砖材料款'" /></view>
-        <view class="fin-field"><text class="fin-field__label">费用类型</text><picker :range="payableTypeOptions" range-key="label" :value="payableTypeIndex" @change="onPayableType"><view class="fin-field__value">{{ selectLabel(payableTypeOptions, payableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">费用类型</text><picker :range="payableTypeOptions" range-key="label" :value="payableTypeIndex" @change="onPayableType"><view class="fin-field__value">{{ selectLabel(payableTypeOptions, payableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" :placeholder="form.payableType === 'salary' ? '工人姓名' : '供应商/班组'" /></view>
         <view v-if="form.payableType === 'salary'" class="fin-field"><text class="fin-field__label">工资周期</text><input v-model="form.period" maxlength="32" placeholder="如 2026年8月" /></view>
         <view class="fin-field"><text class="fin-field__label">应付金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">约定付款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">约定付款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view v-if="form.payableType !== 'salary'" class="fin-field"><text class="fin-field__label">来源单号</text><input v-model="form.sourceNo" maxlength="64" placeholder="采购单/合同单号，可选" /></view>
-        <view class="fin-field"><text class="fin-field__label">加急</text><switch :checked="form.urgent" color="#E5484D" @change="onUrgentSwitch" /></view>
+        <view class="fin-field"><text class="fin-field__label">加急</text><switch :checked="form.urgent" :color="TOKEN_COLOR.danger" @change="onUrgentSwitch" /></view>
       </template>
 
       <template v-else-if="type === 'payment'">
-        <view class="fin-field"><text class="fin-field__label">应付单</text><picker :range="payableOptions" range-key="label" :value="payableIndex" @change="onPayable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.payableId }">{{ form.payableId ? selectLabel(payableOptions, payableIndex) : '请选择待付账款' }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">应付单</text><picker :range="payableOptions" range-key="label" :value="payableIndex" @change="onPayable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.payableId }">{{ form.payableId ? selectLabel(payableOptions, payableIndex) : '请选择待付账款' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">付款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
-        <view class="fin-field"><text class="fin-field__label">付款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">付款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">付款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" placeholder="默认应付收款方" /></view>
       </template>
 
       <template v-else>
-        <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">业务分类</text><input v-model="form.category" maxlength="32" placeholder="如 办公费用 / 其他收入" /></view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
-        <view class="fin-field"><text class="fin-field__label">发生日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+        <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">发生日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">往来对象</text><input v-model="form.counterparty" maxlength="64" placeholder="供应商/客户/个人" /></view>
         <view class="fin-field"><text class="fin-field__label">摘要</text><input v-model="form.summary" maxlength="128" placeholder="一句话说明资金用途" /></view>
       </template>
@@ -246,11 +266,12 @@ async function submit() {
       <view class="fin-field fe-remark"><text class="fin-field__label">备注</text><textarea v-model="form.remark" maxlength="500" auto-height placeholder="可选，记录凭证、批次或补充说明" /></view>
     </view>
 
-    <view class="fe-tip"><JzIcon name="info" :size="26" color="#0E8A7D" /><text>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
+    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
 
     <view class="fin-form-actions">
       <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="submitting" @tap="submit">{{ submitting ? '保存中...' : '确认保存' }}</button>
     </view>
+    </template>
   </view>
 </template>
 
@@ -262,6 +283,6 @@ async function submit() {
 .fe-unit { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fe-remark { min-height: 150rpx; align-items: flex-start; padding-top: 28rpx; }
 .fe-remark textarea { min-height: 90rpx; }
-.fe-tip { display: flex; align-items: flex-start; margin: 20rpx $jzb-page-pad 0; padding: 20rpx; color: $jzb-text-3; background: #E8F7F5; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
+.fe-tip { display: flex; align-items: flex-start; margin: 20rpx $jzb-page-pad 0; padding: 20rpx; color: $jzb-text-3; background: $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .fe-tip text { margin-left: 10rpx; }
 </style>

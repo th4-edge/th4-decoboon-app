@@ -33,6 +33,8 @@ export interface QuoteItem {
   cost: number
   formula?: string
   role?: string
+  differenceType?: string
+  differenceStatus?: string
   included?: boolean
   discountAmount?: number
   components?: QuoteComponent[]
@@ -59,10 +61,12 @@ export interface Quote {
   packageTemplate?: { id: string; name: string; area: number; price: number }
   owner?: Employee
   mode: QuoteMode
+  version: number
   area: number
   subtotal?: number
   amount: number
   cost: number
+  costComplete?: boolean
   discount: number
   taxRate?: number
   taxAmount?: number
@@ -82,6 +86,7 @@ export interface Contract {
   projectId: string
   quoteId?: string
   baselineAmount: number
+  signedAmount?: number
   currentAmount: number
   amount: number
   status: ContractStatus
@@ -94,6 +99,8 @@ export interface Contract {
   receivableAmount: number
   receivedAmount: number
   pendingChangeCount: number
+  signedCost?: number
+  costComplete?: boolean
   remark?: string
 }
 

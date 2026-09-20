@@ -11,14 +11,18 @@ import { money } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
+import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 type TabKey = 'projects' | 'tasks' | 'acceptance' | 'materials' | 'business'
 
 const report = ref<PmReport | null>(null)
 const loading = ref(false)
+const loadError = ref('')
 const tab = ref<TabKey>('projects')
 const isPm = computed(() => session.role === 'pm')
 const tabItems = computed(() => {
@@ -44,9 +48,11 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     report.value = await statisticApi.pm()
   } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '项目经理履约数据加载失败'
     toastError(error, '项目经理履约数据加载失败')
   } finally {
     loading.value = false
@@ -88,7 +94,9 @@ function acceptanceLabel(raw: string) {
   <view class="pm">
     <JzPageHeader title="项目经理履约驾驶舱" subtitle="仅展示本人负责项目及其关联业务" />
 
-    <view v-if="isPm && report" class="pm__body">
+    <PageState v-if="loadError && !report" state="error" title="履约数据加载失败" :subtitle="loadError" @retry="load" />
+    <JzSkeleton v-else-if="loading && !report" :rows="5" />
+    <view v-else-if="isPm && report" class="pm__body">
       <view class="pm__hero">
         <view class="pm__hero-main">
           <text class="pm__hero-label">在管履约项目</text>
@@ -103,33 +111,33 @@ function acceptanceLabel(raw: string) {
 
       <view class="pm__stats">
         <view class="pm__stat jz-card" @tap="tab = 'tasks'">
-          <view class="pm__stat-icon"><JzIcon name="clipboard" :size="34" color="#0E8A7D" /></view>
+          <view class="pm__stat-icon"><JzIcon name="clipboard" :size="34" :color="TOKEN_COLOR.primary" /></view>
           <text class="pm__stat-value">{{ report.taskDoingCount + report.taskTodoCount }}</text>
           <text class="pm__stat-label">待推进任务</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'tasks'">
-          <view class="pm__stat-icon pm__stat-icon--risk"><JzIcon name="alert-circle" :size="34" color="#E5484D" /></view>
+          <view class="pm__stat-icon pm__stat-icon--risk"><JzIcon name="alert-circle" :size="34" :color="TOKEN_COLOR.danger" /></view>
           <text class="pm__stat-value pm__stat-value--risk">{{ report.taskOverdueCount }}</text>
           <text class="pm__stat-label">逾期任务</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'acceptance'">
-          <view class="pm__stat-icon"><JzIcon name="check-circle" :size="34" color="#0E8A7D" /></view>
+          <view class="pm__stat-icon"><JzIcon name="check-circle" :size="34" :color="TOKEN_COLOR.primary" /></view>
           <text class="pm__stat-value">{{ report.pendingAcceptanceCount }}</text>
           <text class="pm__stat-label">待确认验收</text>
         </view>
         <view class="pm__stat jz-card" @tap="tab = 'materials'">
-          <view class="pm__stat-icon"><JzIcon name="building" :size="34" color="#0E8A7D" /></view>
+          <view class="pm__stat-icon"><JzIcon name="building" :size="34" :color="TOKEN_COLOR.primary" /></view>
           <text class="pm__stat-value" :class="{ 'pm__stat-value--risk': report.materialDelayedCount > 0 }">{{ report.materialRiskCount }}</text>
           <text class="pm__stat-label">材料风险</text>
         </view>
       </view>
 
       <view class="pm__quick jz-card">
-        <view class="pm__quick-item" @tap="navigate(P.customerList)"><view class="pm__quick-icon"><JzIcon name="users" :size="36" color="#0E8A7D" /></view><text>关联客户</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.quoteList)"><view class="pm__quick-icon"><JzIcon name="file-text" :size="36" color="#0E8A7D" /></view><text>来源报价</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.projectList)"><view class="pm__quick-icon"><JzIcon name="briefcase" :size="36" color="#0E8A7D" /></view><text>项目工地</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.performance)"><view class="pm__quick-icon"><JzIcon name="chart" :size="36" color="#0E8A7D" /></view><text>履约业绩</text></view>
-        <view class="pm__quick-item" @tap="navigate(P.msgList)"><view class="pm__quick-icon"><JzIcon name="bell" :size="36" color="#0E8A7D" /></view><text>消息通知</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.customerList)"><view class="pm__quick-icon"><JzIcon name="users" :size="36" :color="TOKEN_COLOR.primary" /></view><text>关联客户</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.quoteList)"><view class="pm__quick-icon"><JzIcon name="file-text" :size="36" :color="TOKEN_COLOR.primary" /></view><text>来源报价</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.projectList)"><view class="pm__quick-icon"><JzIcon name="briefcase" :size="36" :color="TOKEN_COLOR.primary" /></view><text>项目工地</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.performance)"><view class="pm__quick-icon"><JzIcon name="chart" :size="36" :color="TOKEN_COLOR.primary" /></view><text>履约业绩</text></view>
+        <view class="pm__quick-item" @tap="navigate(P.msgList)"><view class="pm__quick-icon"><JzIcon name="bell" :size="36" :color="TOKEN_COLOR.primary" /></view><text>消息通知</text></view>
       </view>
 
       <scroll-view scroll-x class="pm__tabs" :show-scrollbar="false">
@@ -164,7 +172,7 @@ function acceptanceLabel(raw: string) {
       <view v-else-if="tab === 'tasks'" class="pm__list">
         <view v-for="task in report.urgentTasks" :key="task.id" class="jz-card pm__task" @tap="openTask(task.id)">
           <view class="pm__task-icon" :class="{ 'pm__task-icon--risk': taskDue(task).includes('逾期') }">
-            <JzIcon name="clipboard" :size="34" :color="taskDue(task).includes('逾期') ? '#E5484D' : '#0E8A7D'" />
+            <JzIcon name="clipboard" :size="34" :color="taskDue(task).includes('逾期') ? TOKEN_COLOR.danger : TOKEN_COLOR.primary" />
           </view>
           <view class="jz-grow">
             <view class="pm__task-head">
@@ -179,12 +187,12 @@ function acceptanceLabel(raw: string) {
 
       <view v-else-if="tab === 'acceptance'" class="pm__list">
         <view v-for="item in report.pendingAcceptances" :key="item.id" class="jz-card pm__acceptance" @tap="openStage(item.stageId)">
-          <view class="pm__acceptance-icon"><JzIcon name="check-circle" :size="38" :color="item.customerStatus === 'rejected' ? '#E5484D' : '#0E8A7D'" /></view>
+          <view class="pm__acceptance-icon"><JzIcon name="check-circle" :size="38" :color="item.customerStatus === 'rejected' ? TOKEN_COLOR.danger : TOKEN_COLOR.primary" /></view>
           <view class="jz-grow">
             <text class="pm__acceptance-title">{{ acceptanceLabel(item.customerStatus) }}</text>
             <text class="pm__acceptance-sub">{{ item.projectName || '项目' }} · {{ item.stageName || '施工阶段' }} · {{ item.content || '等待验收闭环' }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="30" color="#AEB8C2" />
+          <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.text4" />
         </view>
         <JzEmpty v-if="!report.pendingAcceptances.length" text="暂无待处理验收" sub="阶段任务完成后提交业主确认" />
       </view>
@@ -193,7 +201,7 @@ function acceptanceLabel(raw: string) {
         <view v-for="item in report.materialRisks" :key="item.id" class="jz-card pm__material" @tap="item.project && openProject(item.project.id)">
           <view class="pm__material-head">
             <text class="pm__material-name">{{ item.name }}</text>
-            <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? '#E5484D' : '#0E8A7D'" />
+            <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? TOKEN_COLOR.danger : TOKEN_COLOR.primary" />
           </view>
           <text class="pm__material-meta">{{ item.quantity }}{{ item.unit }} · {{ item.spec || '按项目材料标准' }}</text>
         </view>
@@ -215,7 +223,7 @@ function acceptanceLabel(raw: string) {
         <view v-for="customer in report.recentCustomers.slice(0, 5)" :key="customer.id" class="jz-card pm__customer" @tap="open(`${P.customerDetail}?id=${customer.id}`)">
           <view class="pm__customer-avatar">{{ customer.name.slice(0, 1) }}</view>
           <view class="jz-grow"><text class="pm__customer-name">{{ customer.name }}</text><text class="pm__customer-meta">{{ customer.community || customer.addr || '未填写地址' }}</text></view>
-          <JzIcon name="chevron-right" :size="30" color="#AEB8C2" />
+          <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.text4" />
         </view>
 
         <view class="jz-section"><text class="jz-section__title">项目来源报价</text><text class="pm__business-count">{{ report.quoteCount }} 份</text></view>
@@ -226,14 +234,14 @@ function acceptanceLabel(raw: string) {
       </view>
     </view>
 
-    <view v-else-if="!loading" class="pm__denied"><JzEmpty text="仅项目经理可查看" sub="请使用邀请注册的项目经理账号登录" /></view>
+    <view v-else class="pm__denied"><JzEmpty text="仅项目经理可查看" sub="请使用邀请注册的项目经理账号登录" /></view>
   </view>
 </template>
 
 <style lang="scss" scoped>
 .pm { min-height: 100vh; background: $jzb-bg-page; }
 .pm__body { padding-bottom: 48rpx; }
-.pm__hero { position: relative; overflow: hidden; margin: 0 $jzb-page-pad 20rpx; padding: 32rpx; display: flex; align-items: center; color: #fff; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
+.pm__hero { position: relative; overflow: hidden; margin: 0 $jzb-page-pad 20rpx; padding: 32rpx; display: flex; align-items: center; color: $jzb-text-inverse; background: $jzb-gradient; border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
 .pm__hero::after { content: ''; position: absolute; width: 260rpx; height: 260rpx; right: -110rpx; top: -150rpx; border-radius: 50%; background: rgba(255,255,255,.10); pointer-events: none; }
 .pm__hero-main { flex: 1; }
 .pm__hero-label { display: block; font-size: $jzb-font-sm; opacity: .86; }
@@ -243,7 +251,7 @@ function acceptanceLabel(raw: string) {
 .pm__hero-ring text:first-child { font-size: 44rpx; font-weight: 750; }
 .pm__hero-ring text:last-child { margin-top: 2rpx; font-size: 20rpx; opacity: .86; }
 .pm__stats { padding: 0 $jzb-page-pad; display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
-.pm__stat { border-color: rgba(22,163,148,.12); background: linear-gradient(180deg, #FFFFFF 0%, $jzb-primary-lightest 100%); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.06); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
+.pm__stat { border-color: rgba(22,163,148,.12); background: linear-gradient(180deg, $jzb-text-inverse 0%, $jzb-primary-lightest 100%); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.06); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
 .pm__stat { width: calc(25% - 11rpx); box-sizing: border-box; padding: 20rpx 8rpx 18rpx; display: flex; flex-direction: column; align-items: center; }
 .pm__stat:active { transform: scale(.98); box-shadow: 0 4rpx 12rpx rgba(14,138,125,.08); }
 .pm__stat-icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; background: $jzb-primary-lighter; }
@@ -259,7 +267,7 @@ function acceptanceLabel(raw: string) {
 .pm__tabs { margin-bottom: 16rpx; white-space: nowrap; }
 .pm__tab-row { display: inline-flex; padding: 0 $jzb-page-pad; }
 .pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.14); border-radius: $jzb-radius-pill; transition: color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
-.pm__tab--on { color: #fff; background: $jzb-gradient; border-color: transparent; box-shadow: 0 8rpx 20rpx rgba(14,138,125,.20); font-weight: 650; }
+.pm__tab--on { color: $jzb-text-inverse; background: $jzb-gradient; border-color: transparent; box-shadow: 0 8rpx 20rpx rgba(14,138,125,.20); font-weight: 650; }
 .pm__tab-count { margin-left: 8rpx; padding: 0 8rpx; border-radius: 18rpx; background: rgba(255,255,255,.22); }
 .pm__list { padding: 0 $jzb-page-pad; }
 .pm__project, .pm__task, .pm__acceptance, .pm__material, .pm__business-card { margin-bottom: 16rpx; padding: 24rpx; border-color: rgba(22,163,148,.10); background: $jzb-gradient-surface; box-shadow: 0 8rpx 26rpx rgba(14,138,125,.055); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
@@ -278,7 +286,7 @@ function acceptanceLabel(raw: string) {
 .pm__acceptance-icon { background: $jzb-primary-lightest; }
 .pm__acceptance-title { font-size: $jzb-font-md; font-weight: 650; }
 .pm__business { padding: 0 $jzb-page-pad; }
-.pm__business-card { background: linear-gradient(135deg, #FFFFFF 0%, $jzb-primary-lightest 100%); }
+.pm__business-card { background: linear-gradient(135deg, $jzb-text-inverse 0%, $jzb-primary-lightest 100%); }
 .pm__business-title { font-size: $jzb-font-md; font-weight: 700; }
 .pm__business-link { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
 .pm__business-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
@@ -288,7 +296,7 @@ function acceptanceLabel(raw: string) {
 .pm__business-grid text:last-child { margin-top: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 750; }
 .pm__customer, .pm__quote { margin-bottom: 14rpx; padding: 20rpx 22rpx; display: flex; align-items: center; border-color: rgba(22,163,148,.09); background: $jzb-gradient-surface; }
 .pm__customer:active, .pm__quote:active { background: $jzb-primary-lightest; }
-.pm__customer-avatar { width: 62rpx; height: 62rpx; flex-shrink: 0; margin-right: 16rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; background: $jzb-gradient; box-shadow: 0 6rpx 16rpx rgba(14,138,125,.18); font-weight: 700; }
+.pm__customer-avatar { width: 62rpx; height: 62rpx; flex-shrink: 0; margin-right: 16rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: $jzb-text-inverse; background: $jzb-gradient; box-shadow: 0 6rpx 16rpx rgba(14,138,125,.18); font-weight: 700; }
 .pm__customer-name, .pm__quote-name { font-size: $jzb-font; font-weight: 600; }
 .pm__customer-meta, .pm__quote-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pm__quote-amount { color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 700; }

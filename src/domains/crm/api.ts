@@ -2,7 +2,7 @@ import { post, listOf } from '@/core/http'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Customer, CustomerFollow, CustomerStage } from './model'
+import type { Customer, CustomerFollow, CustomerGrade, CustomerStage, CustomerTag } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 
@@ -18,9 +18,27 @@ function enumValue(raw: unknown): string {
   if (typeof raw === 'string') return raw
   if (raw && typeof raw === 'object') {
     const value = raw as RawRecord
-    return String(value.value ?? value.key ?? '')
+    return String(value.value ?? value.key ?? value.name ?? '')
   }
   return ''
+}
+
+/** 枚举字段：缺失时保持 undefined，避免拼接出空串 */
+function enumOrUndefined(raw: unknown): string | undefined {
+  const value = enumValue(raw)
+  return value ? value : undefined
+}
+
+export function normalizeTag(raw: RawRecord): CustomerTag {
+  return {
+    id: String(raw.id ?? raw.tagId ?? ''),
+    key: raw.key ?? undefined,
+    name: raw.name ?? '',
+    category: (enumValue(raw.category) || 'intent').toLowerCase() as CustomerTag['category'],
+    scope: enumValue(raw.scope).toLowerCase() === 'system' ? 'system' : 'manual',
+    color: raw.color ?? undefined,
+    status: enumValue(raw.status) ? enumValue(raw.status).toLowerCase() : undefined
+  }
 }
 
 export function normalizeCustomer(raw: RawRecord): Customer {
@@ -34,8 +52,10 @@ export function normalizeCustomer(raw: RawRecord): Customer {
     phone: raw.phone ?? raw.telNo ?? '',
     stage: STAGE_FROM_STATUS[enumValue(raw.status ?? raw.stage)] || 'intention',
     gender: gender === 'M' || gender === 'F' ? gender : undefined,
-    source: ['lead', 'referral', 'walkin', 'old', 'video', 'other'].includes(source)
-      ? source as Customer['source'] : 'other',
+    source: source === 'oldcustomer'
+      ? 'old'
+      : (['lead', 'referral', 'walkin', 'video', 'other'].includes(source)
+          ? source as Customer['source'] : 'other'),
     community: raw.community,
     addr: raw.addr,
     area: raw.area == null ? undefined : Number(raw.area),
@@ -60,13 +80,38 @@ export function normalizeCustomer(raw: RawRecord): Customer {
       role: owner.role || 'marketer'
     } : undefined,
     designer: raw.designer ? normalizeEmployee(raw.designer) : undefined,
-    createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime)
+    createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
+    tags: Array.isArray(raw.tags) ? raw.tags.map((item: RawRecord) => normalizeTag(item)) : undefined,
+    portrait: raw.portrait ? {
+      decisionRole: enumOrUndefined(raw.portrait.decisionRole),
+      purpose: enumOrUndefined(raw.portrait.purpose),
+      houseCondition: enumOrUndefined(raw.portrait.houseCondition),
+      startWindow: enumOrUndefined(raw.portrait.startWindow),
+      style: enumOrUndefined(raw.portrait.style),
+      eco: enumOrUndefined(raw.portrait.eco),
+      household: enumOrUndefined(raw.portrait.household),
+      payment: enumOrUndefined(raw.portrait.payment),
+      concerns: Array.isArray(raw.portrait.concerns) ? raw.portrait.concerns.map((v: unknown) => enumValue(v)).filter(Boolean) : undefined,
+      competitor: enumOrUndefined(raw.portrait.competitor)
+    } : undefined,
+    grade: raw.grade ? {
+      level: (enumValue(raw.grade.level) || 'C').toUpperCase() as CustomerGrade['level'],
+      score: Number(raw.grade.score ?? 0),
+      computedAt: dateTimeValue(raw.grade.computedAt),
+      breakdown: Array.isArray(raw.grade.breakdown) ? raw.grade.breakdown.map((item: RawRecord) => ({
+        dimension: item.dimension ?? '',
+        label: item.label ?? '',
+        weight: Number(item.weight ?? 0),
+        score: Number(item.score ?? 0),
+        reason: item.reason ?? ''
+      })) : undefined
+    } : undefined
   }
 }
 
 function writePayload(customer: Partial<Customer>): RawRecord {
   const sourceMap: Record<Customer['source'], string> = {
-    lead: 'Lead', referral: 'Referral', walkin: 'Walkin', old: 'Old',
+    lead: 'Lead', referral: 'Referral', walkin: 'WalkIn', old: 'OldCustomer',
     video: 'Video', other: 'Other'
   }
   const payload: RawRecord = {
@@ -154,7 +199,7 @@ export const crmApi = {
       nextFollowAt: follow.nextFollowAt
     }).then(normalizeFollow),
 
-  measure: (customerId: string, measureAt: string, propertyId?: string) =>
+  measure: (customerId: string, measureAt: string, propertyId: string) =>
     post<RawRecord>('customer/customer/measure', {
       customerId, propertyId, measureAt
     }).then(normalizeCustomer),
@@ -169,8 +214,35 @@ export const crmApi = {
       customerId
     }).then(normalizeCustomer),
 
-  handoff: (customerId: string, designerId: string, propertyId?: string) =>
+  handoff: (customerId: string, designerId: string, propertyId: string) =>
     post<RawRecord>('customer/customer/handoff', {
       customerId, designerId, propertyId
-    }).then(normalizeCustomer)
+    }).then(normalizeCustomer),
+
+  /** 标签字典：可用项（业务员选用） */
+  tagList: async (category?: string) =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/customer-tag/list', { category })).map(normalizeTag),
+
+  /** 标签字典：全部（老板/店长维护） */
+  tagPage: async () =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/customer-tag/page', { current: 1, size: 200 })).map(normalizeTag),
+
+  tagSave: (tag: { name: string; category?: string; color?: string; sort?: number }) =>
+    post<RawRecord>('customer/customer-tag/save', tag).then(normalizeTag),
+
+  tagUpdate: (tag: { tagId: string; name?: string; color?: string; sort?: number; status?: string }) =>
+    post<RawRecord>('customer/customer-tag/update', tag).then(normalizeTag),
+
+  tagDelete: (tagId: string) =>
+    post<RawRecord>('customer/customer-tag/delete', { tagId }).then(normalizeTag),
+
+  /** 给客户打 / 去人工标签 */
+  tagBind: (customerId: string, tagId: string) =>
+    post<RawRecord>('customer/customer-tag-link/save', { customerId, tagId }),
+  tagUnbind: (customerId: string, tagId: string) =>
+    post<boolean>('customer/customer-tag-link/delete', { customerId, tagId }),
+
+  /** 维护客户画像（10 项，全部可空） */
+  savePortrait: (customerId: string, portrait: Record<string, unknown>) =>
+    post<RawRecord>('customer/customer-portrait/save', { customerId, ...portrait })
 }

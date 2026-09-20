@@ -15,6 +15,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -67,9 +68,9 @@ function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?ty
           </text>
         </view>
         <view class="fin-card__facts">
-          <view class="fin-fact"><JzIcon name="wallet" :size="22" color="#778390" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
-          <view class="fin-fact"><JzIcon name="chart" :size="22" color="#778390" /><text>{{ item.category }}</text></view>
-          <view class="fin-fact"><JzIcon name="user" :size="22" color="#778390" /><text>{{ item.counterparty || item.createdBy?.name || '—' }}</text></view>
+          <view class="fin-fact"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
+          <view class="fin-fact"><JzIcon name="chart" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.category }}</text></view>
+          <view class="fin-fact"><JzIcon name="user" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.counterparty || item.createdBy?.name || '—' }}</text></view>
         </view>
         <view class="fin-card__foot">
           <text class="jz-caption">{{ DIRECTION_LABEL[item.direction] }} · {{ item.source === 'receipt' ? '收款核销' : item.source === 'payment' ? '付款核销' : item.source === 'adjustment' ? '调整冲销' : '手工记账' }}</text>

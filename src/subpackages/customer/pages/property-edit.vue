@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { crmApi } from '@/domains/crm/api'
 import { propertyApi } from '@/domains/property/api'
@@ -9,6 +10,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 const customerId = ref('')
+const propertyId = ref('')
 const customer = ref<Customer | null>(null)
 const community = ref('')
 const building = ref('')
@@ -18,9 +20,36 @@ const area = ref('')
 const layout = ref('')
 const remark = ref('')
 const submitting = ref(false)
+const layoutPickerOpen = ref(false)
+const layoutDraft = ref('')
+
+/** 常用户型预设，覆盖主流住宅格局，减少录入打字量 */
+const LAYOUT_OPTIONS = [
+  '一室一厅', '一室两厅',
+  '两室一厅', '两室两厅', '两室三厅',
+  '三室一厅', '三室两厅', '三室三厅',
+  '四室两厅', '四室三厅',
+  '五室两厅', '五室三厅',
+  '复式', '别墅', 'LOFT'
+]
+
+function openLayoutPicker() {
+  layoutDraft.value = layout.value
+  layoutPickerOpen.value = true
+}
+function closeLayoutPicker() { layoutPickerOpen.value = false }
+function selectLayoutOption(value: string) { layoutDraft.value = value }
+function confirmLayout() {
+  layout.value = layoutDraft.value.trim()
+  layoutPickerOpen.value = false
+}
+
+/** 带 propertyId 进入即为编辑模式：加载已有房屋档案，保存调 update；否则为新增模式。 */
+const isEdit = computed(() => !!propertyId.value)
 
 onLoad(async (q) => {
   customerId.value = q?.customerId || ''
+  propertyId.value = q?.propertyId || ''
   if (!customerId.value) {
     toast('缺少客户参数')
     return
@@ -30,6 +59,17 @@ onLoad(async (q) => {
     customer.value = detail
     community.value = detail?.community || ''
     area.value = detail?.area ? String(detail.area) : ''
+    // 编辑模式：拉取房屋档案回填表单，客户级 community/area 只作默认值兜底
+    if (propertyId.value) {
+      const p = await propertyApi.info(propertyId.value)
+      community.value = p.community || community.value
+      building.value = p.building || ''
+      roomNo.value = p.roomNo || ''
+      address.value = p.address || ''
+      area.value = p.area ? String(p.area) : area.value
+      layout.value = p.layout || ''
+      remark.value = p.remark || ''
+    }
   } catch (error) {
     toastError(error, '客户信息加载失败')
   }
@@ -44,22 +84,38 @@ async function save() {
   submitting.value = true
   loading('保存中…')
   try {
-    await propertyApi.save({
-      customerId: customerId.value,
-      community: community.value.trim(),
-      building: building.value.trim(),
-      roomNo: roomNo.value.trim(),
-      address: address.value.trim(),
-      area: area.value ? Number(area.value) : undefined,
-      layout: layout.value.trim(),
-      remark: remark.value.trim()
-    })
-    toast('房屋已创建', 'success')
+    if (isEdit.value) {
+      await propertyApi.update({
+        id: propertyId.value,
+        community: community.value.trim(),
+        building: building.value.trim(),
+        roomNo: roomNo.value.trim(),
+        address: address.value.trim(),
+        area: area.value ? Number(area.value) : undefined,
+        layout: layout.value.trim(),
+        remark: remark.value.trim()
+      })
+    } else {
+      await propertyApi.save({
+        customerId: customerId.value,
+        community: community.value.trim(),
+        building: building.value.trim(),
+        roomNo: roomNo.value.trim(),
+        address: address.value.trim(),
+        area: area.value ? Number(area.value) : undefined,
+        layout: layout.value.trim(),
+        remark: remark.value.trim()
+      })
+    }
+    // 历史坑：App 端 uni.showToast 不会自动关闭 uni.showLoading，
+    // 必须先 hideLoading 再 toast，否则成功提示会被 loading 遮罩吞没，用户体感"保存无反应"。
+    hideLoading()
+    toast(isEdit.value ? '房屋已更新' : '房屋已创建', 'success')
     setTimeout(() => uni.navigateBack(), 500)
   } catch (error) {
-    toastError(error, '房屋创建失败')
-  } finally {
     hideLoading()
+    toastError(error, isEdit.value ? '房屋更新失败' : '房屋创建失败')
+  } finally {
     submitting.value = false
   }
 }
@@ -67,11 +123,11 @@ async function save() {
 
 <template>
   <view class="pe">
-    <JzPageHeader title="新增房屋" subtitle="建立房屋档案后可约定量房、设计与报价" />
+    <JzPageHeader :title="isEdit ? '编辑房屋' : '新增房屋'" :subtitle="isEdit ? '修改房屋地址、面积、户型等档案信息' : '建立房屋档案后可约定量房、设计与报价'" />
 
     <view class="pe__customer jz-card">
       <view class="pe__customer-row">
-        <JzIcon name="user" :size="30" color="#0E8A7D" />
+        <JzIcon name="user" :size="30" :color="TOKEN_COLOR.primary" />
         <text class="pe__customer-name">{{ customer?.name || '客户' }}</text>
         <text class="pe__customer-phone">{{ customer?.phone || '—' }}</text>
       </view>
@@ -99,9 +155,12 @@ async function save() {
         <text class="pe__label">面积(㎡)</text>
         <input v-model="area" class="pe__input" type="digit" placeholder="例：118" />
       </view>
-      <view class="pe__field">
+      <view class="pe__field" @tap="openLayoutPicker">
         <text class="pe__label">户型</text>
-        <input v-model="layout" class="pe__input" maxlength="60" placeholder="例：三室两厅" />
+        <view class="pe__input pe__input--picker">
+          <text :class="{ 'pe__placeholder': !layout }">{{ layout || '请选择或输入户型' }}</text>
+          <JzIcon name="arrow-down" :size="24" :color="TOKEN_COLOR.text3" />
+        </view>
       </view>
       <view class="pe__field pe__field--col">
         <text class="pe__label">备注</text>
@@ -109,9 +168,29 @@ async function save() {
       </view>
     </view>
 
+    <view v-if="layoutPickerOpen" class="pe__mask" @tap="closeLayoutPicker">
+      <view class="pe__sheet" @tap.stop>
+        <view class="pe__sheet-head">
+          <text class="pe__sheet-title">选择户型</text>
+          <view class="pe__sheet-close" @tap="closeLayoutPicker"><JzIcon name="close" :size="28" :color="TOKEN_COLOR.text3" /></view>
+        </view>
+        <scroll-view scroll-y class="pe__sheet-body">
+          <input v-model="layoutDraft" class="pe__sheet-input" maxlength="60" placeholder="可直接输入自定义户型" />
+          <text class="pe__sheet-label">常用户型</text>
+          <view class="pe__layout-options">
+            <view v-for="item in LAYOUT_OPTIONS" :key="item" class="pe__layout-option" :class="{ 'pe__layout-option--on': layoutDraft === item }" @tap="selectLayoutOption(item)">{{ item }}</view>
+          </view>
+        </scroll-view>
+        <view class="pe__sheet-actions">
+          <button class="jz-btn jz-btn--neutral" @tap="closeLayoutPicker">取消</button>
+          <button class="jz-btn jz-btn--primary jz-grow" @tap="confirmLayout">确定</button>
+        </view>
+      </view>
+    </view>
+
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">保存房屋</button>
+        <button class="jz-btn jz-btn--primary jz-grow" :disabled="submitting" @tap="save">保存房屋</button>
       </view>
     </view>
   </view>
@@ -134,4 +213,18 @@ async function save() {
 .pe__req { color: $jzb-danger; }
 .pe__input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
 .pe__input--block { flex: none; width: 100%; margin-top: 12rpx; text-align: left; }
+.pe__input--picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; }
+.pe__placeholder { color: $jzb-text-4; }
+.pe__mask { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
+.pe__sheet { width: 100%; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
+.pe__sheet-head { padding: 28rpx $jzb-page-pad 20rpx; display: flex; align-items: center; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
+.pe__sheet-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
+.pe__sheet-close { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
+.pe__sheet-body { max-height: 60vh; padding: 24rpx $jzb-page-pad; box-sizing: border-box; }
+.pe__sheet-input { width: 100%; min-height: 80rpx; padding: 0 24rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; color: $jzb-text-1; }
+.pe__sheet-label { display: block; margin: 24rpx 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pe__layout-options { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.pe__layout-option { min-height: 64rpx; padding: 0 24rpx; display: flex; align-items: center; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.pe__layout-option--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; font-weight: 650; }
+.pe__sheet-actions { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
 </style>

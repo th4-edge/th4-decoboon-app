@@ -81,6 +81,7 @@ export interface DesignScheme {
   no: string
   name: string
   customer?: Customer
+  property?: Property
   owner?: Employee
   version: number
   style?: string
@@ -90,7 +91,10 @@ export interface DesignScheme {
   description?: string
   coverUrl?: string
   cadUrl?: string
+  cadPreviewUrl?: string
+  cadConvertStatus?: 'pending' | 'processing' | 'success' | 'failed'
   originalPlanUrl?: string
+  originalPlanImages?: string[]
   demolitionUrl?: string
   masonryUrl?: string
   optimizationUrl?: string

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
@@ -118,18 +119,18 @@ function canCreate() {
         <view v-for="p in myFiltered" :key="p.id" class="jz-card pl__card" @tap="open(p.id)">
           <view class="pl__card-top">
             <image v-if="p.cover" class="pl__card-cover" :src="p.cover" mode="aspectFill" />
-            <view v-else class="pl__card-cover pl__card-cover--empty"><JzIcon name="building" :size="54" color="#0E8A7D" /></view>
+            <view v-else class="pl__card-cover pl__card-cover--empty"><JzIcon name="building" :size="54" :color="TOKEN_COLOR.primary" /></view>
             <view class="pl__card-main">
               <view class="jz-between">
                 <text class="pl__card-name">{{ p.name }}</text>
                 <JzTag :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
               </view>
               <view class="pl__meta-line">
-                <JzIcon name="map-pin" :size="24" color="#778390" />
+                <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
                 <text>{{ p.community || p.address }} · {{ p.area }}㎡</text>
               </view>
               <view class="pl__meta-line" v-if="p.designer || p.manager">
-                <JzIcon name="users" :size="24" color="#778390" />
+                <JzIcon name="users" :size="24" :color="TOKEN_COLOR.text3" />
                 <text>{{ p.designer ? '设计 ' + p.designer.name : '' }}<text v-if="p.designer && p.manager"> · </text>{{ p.manager ? '经理 ' + p.manager.name : '' }}</text>
               </view>
             </view>
@@ -140,9 +141,9 @@ function canCreate() {
               <JzProgress :percent="p.progress" :height="10" />
             </view>
             <view class="pl__card-facts">
-              <view class="pl__fact"><JzIcon name="briefcase" :size="24" color="#778390" /><text>{{ p.currentStageName || '待开工' }}</text></view>
-              <view class="pl__fact" v-if="!isCustomer(role)"><JzIcon name="wallet" :size="24" color="#778390" /><text>{{ (p.contractAmount / 10000).toFixed(1) }}万</text></view>
-              <view class="pl__fact" v-else><JzIcon name="calendar" :size="24" color="#778390" /><text>{{ p.planEndDate || '-' }}</text></view>
+              <view class="pl__fact"><JzIcon name="briefcase" :size="24" :color="TOKEN_COLOR.text3" /><text>{{ p.currentStageName || '待开工' }}</text></view>
+              <view class="pl__fact" v-if="!isCustomer(role)"><JzIcon name="wallet" :size="24" :color="TOKEN_COLOR.text3" /><text>{{ (p.contractAmount / 10000).toFixed(1) }}万</text></view>
+              <view class="pl__fact" v-else><JzIcon name="calendar" :size="24" :color="TOKEN_COLOR.text3" /><text>{{ p.planEndDate || '-' }}</text></view>
             </view>
           </view>
         </view>
@@ -158,7 +159,7 @@ function canCreate() {
 <style lang="scss" scoped>
 .pl__filters { width: 100%; white-space: nowrap; padding-top: 4rpx; }
 .pl__filter-row { display: inline-flex; padding: 16rpx $jzb-page-pad 22rpx; }
-.pl__filter { min-height: 64rpx; padding: 0 28rpx; margin-right: 14rpx; display: inline-flex; align-items: center; font-size: $jzb-font-sm; color: $jzb-text-2; background: #fff; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
+.pl__filter { min-height: 64rpx; padding: 0 28rpx; margin-right: 14rpx; display: inline-flex; align-items: center; font-size: $jzb-font-sm; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
 .pl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
 .pl__body { padding: 4rpx $jzb-page-pad calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }
 .pl__empty { margin-top: 40rpx; }

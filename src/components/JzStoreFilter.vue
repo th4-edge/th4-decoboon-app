@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { identityApi } from '@/domains/identity/api'
 import type { Store } from '@/domains/identity/model'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 /**
  * 门店维度筛选器。
@@ -52,12 +53,12 @@ defineExpose({ load })
 
 <template>
   <view v-if="visible" class="jz-store-filter jz-card">
-    <JzIcon name="building" :size="28" color="#0E8A7D" />
+    <JzIcon name="building" :size="28" :color="TOKEN_COLOR.primary" />
     <text class="jz-store-filter__label">{{ label }}</text>
     <picker class="jz-store-filter__picker" :range="range" :value="currentIndex" @change="onPick">
       <view class="jz-store-filter__value">
         <text>{{ currentLabel }}</text>
-        <JzIcon name="chevron-right" :size="24" color="#AEB8C2" />
+        <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
       </view>
     </picker>
   </view>

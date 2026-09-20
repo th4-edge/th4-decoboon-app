@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -100,10 +101,10 @@ function matchFollowFilter(c: Customer) {
 
 function goldenMeta(c: Customer) {
   const days = ageDays(c)
-  if (days <= 3) return { label: '黄金期 0-3天', color: '#E5484D' }
-  if (days <= 7) return { label: '升温期 4-7天', color: '#FF7D00' }
-  if (days <= 15) return { label: '保温期 8-15天', color: '#168A96' }
-  return { label: '沉睡风险 15天+', color: '#86909C' }
+  if (days <= 3) return { label: '黄金期 0-3天', color: TOKEN_COLOR.danger }
+  if (days <= 7) return { label: '升温期 4-7天', color: TOKEN_COLOR.warning }
+  if (days <= 15) return { label: '保温期 8-15天', color: TOKEN_COLOR.primary }
+  return { label: '沉睡风险 15天+', color: TOKEN_COLOR.text3 }
 }
 
 const goldenStats = computed(() => {
@@ -180,7 +181,7 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
   <view class="cl">
     <view class="cl__head">
       <view class="cl__search">
-        <view class="cl__search-icon"><JzIcon name="search" :size="34" color="#778390" /></view>
+        <view class="cl__search-icon"><JzIcon name="search" :size="34" :color="TOKEN_COLOR.text3" /></view>
         <input v-model="keyword" placeholder="搜索客户姓名 / 手机号 / 小区" placeholder-class="cl__ph" />
       </view>
     </view>
@@ -202,12 +203,12 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
     </view>
 
     <view v-if="isStoreManager" class="jz-card cl__dispatch" @tap="filter = 'assign'">
-      <view class="cl__dispatch-icon"><JzIcon name="users" :size="38" color="#E67E22" /></view>
+      <view class="cl__dispatch-icon"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /></view>
       <view class="jz-grow">
         <text class="cl__dispatch-title">{{ stageCount.assign || 0 }} 位客户等待指派设计师</text>
         <text class="cl__dispatch-sub">按量房时间优先处理，点击进入待指派清单</text>
       </view>
-      <JzIcon name="chevron-right" :size="28" color="#AEB8C2" />
+      <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
     </view>
 
     <view class="jz-card cl__follow-tasks">
@@ -234,9 +235,10 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
             <view class="cl__item-name-row">
               <text class="cl__name">{{ c.name }}</text>
               <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
+              <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
             </view>
             <view class="cl__item-phone">
-              <JzIcon name="phone" :size="22" color="#778390" />
+              <JzIcon name="phone" :size="22" :color="TOKEN_COLOR.text3" />
               <text>{{ c.phone }}</text>
             </view>
           </view>
@@ -244,7 +246,7 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
         </view>
 
         <view class="cl__item-facts">
-          <JzIcon name="map-pin" :size="24" color="#778390" />
+          <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
           <text class="cl__fact-name">{{ c.community || '未填小区' }}</text>
           <text class="cl__fact-sep">·</text>
           <text class="cl__fact-name">{{ c.area || '-' }}㎡</text>
@@ -255,12 +257,12 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
         </view>
 
         <view class="cl__item-tags">
-          <JzTag :text="c.wechatAdded ? '已加微信' : '未加微信'" :color="c.wechatAdded ? '#07A35A' : '#AEB8C2'" />
-          <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" color="#E67E22" />
-          <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" color="#6958C8" />
-          <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" color="#0E8A7D" />
-          <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" color="#E67E22" />
-          <JzTag v-if="c.projectId" text="已转项目" color="#07A35A" />
+          <JzTag :text="c.wechatAdded ? '已加微信' : '未加微信'" :color="c.wechatAdded ? TOKEN_COLOR.success : TOKEN_COLOR.text4" />
+          <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" :color="TOKEN_COLOR.text2" />
+          <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" :color="TOKEN_COLOR.text2" />
+          <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" :color="TOKEN_COLOR.text2" />
+          <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
+          <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
         </view>
 
         <view v-if="isMarketer" class="cl__item-foot">
@@ -279,7 +281,7 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 
 <style lang="scss" scoped>
 .cl__head { padding: 24rpx $jzb-page-pad 8rpx; }
-.cl__golden { margin: 16rpx $jzb-page-pad 16rpx; padding: 24rpx; background: linear-gradient(135deg, #FFF7F4, #FFFFFF); }
+.cl__golden { margin: 16rpx $jzb-page-pad 16rpx; padding: 24rpx; background: $jzb-warning-soft; }
 .cl__golden-head { display: flex; align-items: center; justify-content: space-between; }
 .cl__golden-title { font-size: $jzb-font; font-weight: 700; }
 .cl__golden-sub { color: $jzb-text-3; font-size: $jzb-font-xs; }
@@ -290,18 +292,18 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 .cl__golden-num--warm { color: $jzb-warning; }
 .cl__golden-num--cool { color: $jzb-role-marketer; }
 .cl__golden-foot { display: flex; justify-content: space-between; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cl__dispatch { display: flex; align-items: center; margin: 16rpx $jzb-page-pad 16rpx; padding: 24rpx; background: linear-gradient(135deg, #FFF8EE, #FFFFFF); }
+.cl__dispatch { display: flex; align-items: center; margin: 16rpx $jzb-page-pad 16rpx; padding: 24rpx; background: $jzb-primary-lightest; }
 .cl__dispatch-icon { width: 72rpx; height: 72rpx; margin-right: 16rpx; display: flex; align-items: center; justify-content: center; background: $jzb-warning-soft; border-radius: $jzb-radius-sm; }
 .cl__dispatch-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .cl__dispatch-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cl__golden-age { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cl__search { display: flex; align-items: center; height: 88rpx; padding: 0 24rpx; background: #fff; border: 1rpx solid rgba(15,23,42,.045); border-radius: $jzb-radius-pill; box-shadow: $jzb-shadow-xs; }
+.cl__search { display: flex; align-items: center; height: 88rpx; padding: 0 24rpx; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.045); border-radius: $jzb-radius-pill; box-shadow: $jzb-shadow-xs; }
 .cl__search-icon { width: 40rpx; height: 40rpx; margin-right: 8rpx; display: flex; align-items: center; justify-content: center; }
 .cl__search input { flex: 1; font-size: $jzb-font; }
 .cl__ph { color: $jzb-text-4; }
 .cl__filters { width: 100%; white-space: nowrap; }
 .cl__filter-row { display: inline-flex; padding: 16rpx $jzb-page-pad 24rpx; }
-.cl__filter { display: inline-flex; align-items: center; min-height: 64rpx; padding: 0 24rpx; margin-right: 16rpx; font-size: $jzb-font-sm; color: $jzb-text-2; background: #fff; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
+.cl__filter { display: inline-flex; align-items: center; min-height: 64rpx; padding: 0 24rpx; margin-right: 16rpx; font-size: $jzb-font-sm; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
 .cl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
 .cl__filter-count { font-size: $jzb-font-xs; margin-left: 8rpx; opacity: 0.8; }
 .cl__follow-tasks { display: flex; margin: 0 24rpx 16rpx; padding: 16rpx 8rpx; }
@@ -333,4 +335,8 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 .cl__item-tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 16rpx; }
 .cl__item-foot { display: flex; align-items: center; margin-top: 16rpx; }
 .cl__item-foot-text { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__grade { flex: 0 0 auto; padding: 2rpx 12rpx; border-radius: 999rpx; font-size: 20rpx; font-weight: 700; }
+.cl__grade--a { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.cl__grade--b { color: $jzb-warning; background: $jzb-warning-soft; }
+.cl__grade--c { color: $jzb-text-3; background: $jzb-bg-page; }
 </style>

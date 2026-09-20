@@ -1,36 +1,37 @@
+import { TOKEN_COLOR } from '@/styles/tokens'
 import type { FundAccount, LedgerDirection, PayableStatus, PayableType, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
 
 export const RECEIVABLE_TYPE_META: Record<ReceivableType, { label: string; color: string }> = {
-  first: { label: '首期款', color: '#16A394' },
-  progress: { label: '进度款', color: '#0E8A7D' },
-  final: { label: '尾款', color: '#E67E22' },
-  retention: { label: '质保金', color: '#6958C8' },
-  other: { label: '其他应收', color: '#778390' }
+  first: { label: '首期款', color: TOKEN_COLOR.primaryBase },
+  progress: { label: '进度款', color: TOKEN_COLOR.primary },
+  final: { label: '尾款', color: TOKEN_COLOR.warning },
+  retention: { label: '质保金', color: TOKEN_COLOR.purple },
+  other: { label: '其他应收', color: TOKEN_COLOR.text3 }
 }
 
 export const RECEIVABLE_STATUS_META: Record<ReceivableStatus, { label: string; color: string }> = {
-  pending: { label: '待收', color: '#778390' },
-  partial: { label: '部分收款', color: '#E67E22' },
-  received: { label: '已收清', color: '#07A35A' },
-  overdue: { label: '已逾期', color: '#E5484D' },
-  closed: { label: '已关闭', color: '#AEB8C2' }
+  pending: { label: '待收', color: TOKEN_COLOR.text3 },
+  partial: { label: '部分收款', color: TOKEN_COLOR.warning },
+  received: { label: '已收清', color: TOKEN_COLOR.success },
+  overdue: { label: '已逾期', color: TOKEN_COLOR.danger },
+  closed: { label: '已关闭', color: TOKEN_COLOR.text4 }
 }
 
 export const PAYABLE_TYPE_META: Record<PayableType, { label: string; short: string; color: string }> = {
   material: { label: '材料款', short: '材料', color: '#8A5CC7' },
-  salary: { label: '工人工资', short: '工资', color: '#E67E22' },
-  project: { label: '项目款', short: '项目', color: '#0E8A7D' },
+  salary: { label: '工人工资', short: '工资', color: TOKEN_COLOR.warning },
+  project: { label: '项目款', short: '项目', color: TOKEN_COLOR.primary },
   supplier: { label: '供应商款', short: '供应商', color: '#168A96' },
-  expense: { label: '费用支出', short: '费用', color: '#6958C8' },
-  other: { label: '其他应付', short: '其他', color: '#778390' }
+  expense: { label: '费用支出', short: '费用', color: TOKEN_COLOR.purple },
+  other: { label: '其他应付', short: '其他', color: TOKEN_COLOR.text3 }
 }
 
 export const PAYABLE_STATUS_META: Record<PayableStatus, { label: string; color: string }> = {
-  pending: { label: '待付款', color: '#778390' },
-  partial: { label: '部分付款', color: '#E67E22' },
-  paid: { label: '已付清', color: '#07A35A' },
-  overdue: { label: '已逾期', color: '#E5484D' },
-  closed: { label: '已关闭', color: '#AEB8C2' }
+  pending: { label: '待付款', color: TOKEN_COLOR.text3 },
+  partial: { label: '部分付款', color: TOKEN_COLOR.warning },
+  paid: { label: '已付清', color: TOKEN_COLOR.success },
+  overdue: { label: '已逾期', color: TOKEN_COLOR.danger },
+  closed: { label: '已关闭', color: TOKEN_COLOR.text4 }
 }
 
 export const ACCOUNT_LABEL: Record<FundAccount, string> = {
@@ -42,11 +43,11 @@ export const ACCOUNT_LABEL: Record<FundAccount, string> = {
 }
 
 export const SETTLEMENT_STATUS_META: Record<SettlementStatus, { label: string; color: string }> = {
-  draft: { label: '待确认', color: '#778390' },
-  confirmed: { label: '已确认', color: '#0E8A7D' },
-  closed: { label: '已关闭', color: '#07A35A' },
-  retentionPending: { label: '待释放质保金', color: '#E67E22' },
-  retentionReleased: { label: '质保金已释放', color: '#07A35A' }
+  draft: { label: '待确认', color: TOKEN_COLOR.text3 },
+  confirmed: { label: '已确认', color: TOKEN_COLOR.primary },
+  closed: { label: '已关闭', color: TOKEN_COLOR.success },
+  retentionPending: { label: '待释放质保金', color: TOKEN_COLOR.warning },
+  retentionReleased: { label: '质保金已释放', color: TOKEN_COLOR.success }
 }
 
 export const DIRECTION_LABEL: Record<LedgerDirection, string> = {

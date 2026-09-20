@@ -13,6 +13,7 @@ import type { Contract } from '@/domains/trade/model'
 import { PROJECT_STATUS_META, STAGE_STATUS_META } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { money } from '@/core/format'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { projectApi } from '@/domains/project/api'
 import { financeApi } from '@/domains/finance/api'
 import type { FinanceProjectReport } from '@/domains/finance/model'
@@ -170,7 +171,7 @@ function avatarOf(m: ProjectMember) {
   return m.kind === 'customer' ? m.customer?.name : m.emp?.name
 }
 function colorOf(m: ProjectMember) {
-  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? '#16A394' : '#13C2C2'
+  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? TOKEN_COLOR.primaryBase : '#13C2C2'
 }
 </script>
 
@@ -188,7 +189,7 @@ function colorOf(m: ProjectMember) {
             <text class="pd__hero-name">{{ project.name }}</text>
             <text class="pd__hero-no">{{ project.no }} · {{ project.address }}</text>
           </view>
-          <JzTag :text="PROJECT_STATUS_META[project.status].label" :color="'#0E8A7D'" :soft="false" />
+          <JzTag :text="PROJECT_STATUS_META[project.status].label" :color="TOKEN_COLOR.primary" :soft="false" />
         </view>
         <view class="pd__hero-progress">
           <view class="jz-grow">
@@ -196,17 +197,17 @@ function colorOf(m: ProjectMember) {
               <text class="pd__hero-pct-label">整体进度</text>
               <text class="pd__hero-pct">{{ project.progress }}%</text>
             </view>
-            <view class="pd__hero-bar"><JzProgress :percent="project.progress" :height="14" color="#ffffff" /></view>
+            <view class="pd__hero-bar"><JzProgress :percent="project.progress" :height="14" :color="TOKEN_COLOR.white" /></view>
             <text class="pd__hero-stage">当前：{{ project.currentStageName }} · 阶段 {{ doneStageCount }}/{{ stageTotal }}</text>
             <text class="pd__hero-hint">进度按任务完成度计算；阶段计数以业主验收确认为准</text>
           </view>
         </view>
         <view class="pd__hero-meta">
-          <view class="pd__hero-meta-item"><JzIcon name="calendar" :size="22" color="#FFFFFF" /><text>{{ project.startDate?.slice(5) }} 开工</text></view>
-          <view class="pd__hero-meta-item"><JzIcon name="flag" :size="22" color="#FFFFFF" /><text>计划 {{ project.planEndDate?.slice(5) }}</text></view>
-          <view v-if="canViewFinance" class="pd__hero-meta-item"><JzIcon name="wallet" :size="22" color="#FFFFFF" /><text>{{ money(project.contractAmount) }}</text></view>
-          <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goDaily"><JzIcon name="clipboard" :size="22" color="#FFFFFF" /><text>日报</text></view>
-          <view class="pd__hero-meta-item" @tap="goAlbum"><JzIcon name="camera" :size="22" color="#FFFFFF" /><text>相册</text></view>
+          <view class="pd__hero-meta-item"><JzIcon name="calendar" :size="22" :color="TOKEN_COLOR.white" /><text>{{ project.startDate?.slice(5) }} 开工</text></view>
+          <view class="pd__hero-meta-item"><JzIcon name="flag" :size="22" :color="TOKEN_COLOR.white" /><text>计划 {{ project.planEndDate?.slice(5) }}</text></view>
+          <view v-if="canViewFinance" class="pd__hero-meta-item"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.white" /><text>{{ money(project.contractAmount) }}</text></view>
+          <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goDaily"><JzIcon name="clipboard" :size="22" :color="TOKEN_COLOR.white" /><text>日报</text></view>
+          <view class="pd__hero-meta-item" @tap="goAlbum"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>相册</text></view>
         </view>
         <view v-if="!isOwner" class="pd__hero-team" @tap="goMembers">
           <view class="pd__hero-avatars">
@@ -222,12 +223,12 @@ function colorOf(m: ProjectMember) {
 
     <!-- 待办验收横幅 -->
     <view v-if="waitingAccept" class="pd__accept-banner" @tap="acceptStage(waitingAccept.stageId)">
-      <view class="pd__accept-icon"><JzIcon name="check-circle" :size="38" color="#07A35A" /></view>
+      <view class="pd__accept-icon"><JzIcon name="check-circle" :size="38" :color="TOKEN_COLOR.success" /></view>
       <view class="jz-grow">
         <text class="pd__accept-title">{{ isOwner ? '有验收等待您确认' : '等待业主确认验收' }}</text>
         <text class="pd__accept-sub">泥瓦工程验收申请已提交，点击处理</text>
       </view>
-      <JzIcon class="pd__accept-arrow" name="chevron-right" :size="30" color="#AEB8C2" />
+      <JzIcon class="pd__accept-arrow" name="chevron-right" :size="30" :color="TOKEN_COLOR.text4" />
     </view>
 
     <!-- 分段切换 -->
@@ -239,7 +240,7 @@ function colorOf(m: ProjectMember) {
     <view v-if="tab === 'overview'" class="pd__tab-body">
       <view v-if="!isOwner && (canOpenStage || canReport)" class="pd__quick-actions jz-card">
         <button v-if="canOpenStage && nextActionableStage" class="jz-btn jz-btn--primary jz-grow" @tap="startNextStage">开始「{{ nextActionableStage.name }}」</button>
-        <button v-if="canReport" class="jz-btn jz-btn--ghost jz-grow pd__action-btn" @tap="report"><JzIcon name="camera" :size="28" color="#0E8A7D" /><text>现场汇报</text></button>
+        <button v-if="canReport" class="jz-btn jz-btn--ghost jz-grow pd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报</text></button>
       </view>
 
       <view v-if="!isOwner && myPendingTasks.length" class="jz-card pd__mine">
@@ -250,11 +251,11 @@ function colorOf(m: ProjectMember) {
         </view>
       </view>
 
-      <view class="jz-section"><text class="jz-section__title">施工阶段进度</text><view v-if="!isOwner" class="pd__more" @tap="goPlan"><text>计划总览</text><JzIcon name="chevron-right" :size="24" color="#778390" /></view></view>
+      <view class="jz-section"><text class="jz-section__title">施工阶段进度</text><view v-if="!isOwner" class="pd__more" @tap="goPlan"><text>计划总览</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view></view>
       <view class="pd__stages">
         <view v-for="s in sortedStages" :key="s.id" class="pd__stage" @tap="openStage(s.id)">
-          <view class="pd__stage-dot" :style="{ borderColor: STAGE_STATUS_META[s.status].color, backgroundColor: s.status === 'done' ? STAGE_STATUS_META[s.status].color : '#fff' }">
-            <JzIcon v-if="s.status === 'done'" name="check" :size="22" color="#FFFFFF" :stroke-width="2.5" />
+          <view class="pd__stage-dot" :style="{ borderColor: STAGE_STATUS_META[s.status].color, backgroundColor: s.status === 'done' ? STAGE_STATUS_META[s.status].color : TOKEN_COLOR.white }">
+            <JzIcon v-if="s.status === 'done'" name="check" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.5" />
           </view>
           <view class="pd__stage-line" v-if="s.sort < sortedStages.length" :class="{ 'pd__stage-line--done': s.status === 'done' || s.status === 'accepting' }" />
           <view class="jz-grow pd__stage-main">
@@ -275,7 +276,7 @@ function colorOf(m: ProjectMember) {
       <view v-if="isOwner && contract" class="jz-card pd__contract">
         <view class="jz-between">
           <text class="pd__contract-title">合同摘要</text>
-          <JzTag :text="CONTRACT_STATUS_LABEL[contract.status]" :color="contract.status === 'changed' ? '#E67E22' : '#07A35A'" />
+          <JzTag :text="CONTRACT_STATUS_LABEL[contract.status]" :color="contract.status === 'changed' ? TOKEN_COLOR.warning : TOKEN_COLOR.success" />
         </view>
         <view class="jz-between pd__contract-row">
           <text class="pd__contract-label">当前合同额</text><text class="pd__contract-val">{{ money(contract.currentAmount) }}</text>
@@ -289,7 +290,7 @@ function colorOf(m: ProjectMember) {
       </view>
 
       <view v-if="canViewFinance" class="jz-card pd__finance" @tap="goFinance">
-        <view class="jz-between"><text class="pd__finance-title">资金进度</text><view class="pd__finance-more"><text>项目财务</text><JzIcon name="chevron-right" :size="24" color="#465260" /></view></view>
+        <view class="jz-between"><text class="pd__finance-title">资金进度</text><view class="pd__finance-more"><text>项目财务</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text2" /></view></view>
         <view class="jz-between pd__finance-row">
           <text class="pd__finance-label">合同金额</text><text class="pd__finance-val">{{ money(project.contractAmount) }}</text>
         </view>
@@ -324,7 +325,7 @@ function colorOf(m: ProjectMember) {
         </view>
       </view>
       <view v-if="canEditPlan" class="jz-card pd__plan-tip">
-        <view class="pd__plan-tip-title"><JzIcon name="info" :size="28" color="#0E8A7D" /><text>计划编排</text></view>
+        <view class="pd__plan-tip-title"><JzIcon name="info" :size="28" :color="TOKEN_COLOR.primary" /><text>计划编排</text></view>
         <text class="pd__plan-tip-text">设计师完成初始拆解，项目经理结合现场调整排期和执行任务；业主侧只读。</text>
         <button class="jz-btn jz-btn--primary jz-btn--sm" style="margin-top:16rpx;" @tap="goPlan">进入计划页</button>
       </view>
@@ -333,7 +334,7 @@ function colorOf(m: ProjectMember) {
     <!-- ③ 任务 -->
     <view v-else-if="tab === 'tasks'" class="pd__tab-body">
       <view v-if="canEditTask || (role !== 'marketer' && can(role, 'view:notice'))" class="jz-row pd__task-head">
-        <button v-if="canEditTask" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="addTask"><JzIcon name="plus" :size="25" color="#FFFFFF" /><text>添加任务</text></button>
+        <button v-if="canEditTask" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="addTask"><JzIcon name="plus" :size="25" :color="TOKEN_COLOR.white" /><text>添加任务</text></button>
         <JzIconButton name="clipboard" tone="neutral" style="margin-left:16rpx;" @tap="goDaily" />
       </view>
       <view v-for="g in tasksGrouped" :key="g.stage.id" class="pd__task-group">
@@ -360,14 +361,14 @@ function colorOf(m: ProjectMember) {
     <view v-else-if="tab === 'feed'" class="pd__tab-body">
       <JzReportCard v-for="r in reports" :key="r.id" :report="r" />
       <view v-if="!reports.length" class="jz-card"><JzEmpty text="暂无动态" sub="项目经理/设计师汇报后业主实时可见" /></view>
-      <view v-if="canReport" class="pd__feed-btn"><button class="jz-btn jz-btn--primary jz-btn--block pd__action-btn" @tap="report"><JzIcon name="camera" :size="29" color="#FFFFFF" /><text>发起现场汇报</text></button></view>
+      <view v-if="canReport" class="pd__feed-btn"><button class="jz-btn jz-btn--primary jz-btn--block pd__action-btn" @tap="report"><JzIcon name="camera" :size="29" :color="TOKEN_COLOR.white" /><text>发起现场汇报</text></button></view>
     </view>
 
     <!-- ⑤ 成员 -->
     <view v-else class="pd__tab-body">
       <view class="jz-between pd__member-head">
         <text class="pd__member-title">同频成员（{{ members.length }}）</text>
-        <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="goInviteOwner"><JzIcon name="user-plus" :size="24" color="#FFFFFF" /><text>邀请业主</text></button>
+        <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="goInviteOwner"><JzIcon name="user-plus" :size="24" :color="TOKEN_COLOR.white" /><text>邀请业主</text></button>
       </view>
       <view class="jz-card pd__member-grid">
         <view v-for="m in members" :key="m.id" class="pd__member">
@@ -392,11 +393,11 @@ function colorOf(m: ProjectMember) {
 .pd__hero-bg { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
 .pd__hero-mask { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(180deg, rgba(11,44,41,0.55) 0%, rgba(14,74,68,0.72) 100%); }
 .pd__hero-content { position: relative; padding: 26rpx 24rpx 24rpx; display: flex; flex-direction: column; min-height: 360rpx; box-sizing: border-box; justify-content: space-between; }
-.pd__hero-name { display: block; color: #fff; font-size: 40rpx; font-weight: 700; }
+.pd__hero-name { display: block; color: $jzb-text-inverse; font-size: 40rpx; font-weight: 700; }
 .pd__hero-no { display: block; margin-top: 4rpx; color: rgba(255,255,255,0.8); font-size: $jzb-font-xs; }
 .pd__hero-progress { margin-top: 22rpx; }
 .pd__hero-pct-label { color: rgba(255,255,255,0.85); font-size: $jzb-font-xs; }
-.pd__hero-pct { color: #fff; font-size: 40rpx; font-weight: 700; }
+.pd__hero-pct { color: $jzb-text-inverse; font-size: 40rpx; font-weight: 700; }
 .pd__hero-bar { margin-top: 8rpx; }
 .pd__hero-stage { display: block; margin-top: 8rpx; color: rgba(255,255,255,0.85); font-size: $jzb-font-xs; }
 .pd__hero-hint { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, 0.72); font-size: $jzb-font-xs; line-height: 1.5; }
@@ -405,8 +406,8 @@ function colorOf(m: ProjectMember) {
 .pd__hero-meta-item text { margin-left: 7rpx; }
 .pd__hero-team { display: flex; flex-direction: row; align-items: center; margin-top: 8rpx; }
 .pd__hero-avatars { display: flex; flex-direction: row; }
-.pd__hero-avatar { margin-right: -10rpx; border: 2rpx solid #fff; border-radius: 50%; overflow: hidden; }
-.pd__hero-avatar--more { width: 52rpx; height: 52rpx; background: rgba(255,255,255,0.3); color: #fff; font-size: $jzb-font-xs; display: flex; align-items: center; justify-content: center; }
+.pd__hero-avatar { margin-right: -10rpx; border: 2rpx solid $jzb-text-inverse; border-radius: 50%; overflow: hidden; }
+.pd__hero-avatar--more { width: 52rpx; height: 52rpx; background: rgba(255,255,255,0.3); color: $jzb-text-inverse; font-size: $jzb-font-xs; display: flex; align-items: center; justify-content: center; }
 .pd__hero-team-link { display: flex; align-items: center; margin-left: 22rpx; }
 .pd__hero-team-text { color: rgba(255,255,255,0.92); font-size: $jzb-font-xs; }
 .pd__accept-banner { margin: -40rpx 24rpx 0; position: relative; background: $jzb-warning-soft; border-radius: $jzb-radius; padding: 22rpx 24rpx; display: flex; flex-direction: row; align-items: center; z-index: 5; box-shadow: $jzb-shadow-card; }
@@ -414,7 +415,7 @@ function colorOf(m: ProjectMember) {
 .pd__accept-title { display: block; font-size: $jzb-font; font-weight: 600; }
 .pd__accept-sub { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 2rpx; }
 .pd__accept-arrow { margin-left: 8rpx; }
-.pd__tabs { position: sticky; top: 0; z-index: 20; display: flex; flex-direction: row; background: #fff; padding: 0 16rpx; box-shadow: $jzb-shadow-xs; }
+.pd__tabs { position: sticky; top: 0; z-index: 20; display: flex; flex-direction: row; background: $jzb-text-inverse; padding: 0 16rpx; box-shadow: $jzb-shadow-xs; }
 .pd__tab { flex: 1; text-align: center; font-size: $jzb-font; color: $jzb-text-2; padding: 24rpx 0 20rpx; position: relative; }
 .pd__tab--on { color: $jzb-primary-dark; font-weight: 700; }
 .pd__tab--on::after { content: ''; position: absolute; bottom: 6rpx; left: 50%; transform: translateX(-50%); width: 48rpx; height: 6rpx; border-radius: 6rpx; background: $jzb-primary; }
@@ -425,10 +426,10 @@ function colorOf(m: ProjectMember) {
 .pd__mine-title { font-size: $jzb-font; font-weight: 600; }
 .pd__mine-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .pd__mine-name { font-size: $jzb-font-sm; color: $jzb-text-2; }
-.pd__stages { background: #fff; border-radius: $jzb-radius; padding: 10rpx 24rpx 20rpx; }
+.pd__stages { background: $jzb-text-inverse; border-radius: $jzb-radius; padding: 10rpx 24rpx 20rpx; }
 .pd__stage { display: flex; flex-direction: row; padding-top: 26rpx; position: relative; }
 .pd__stage-dot { width: 30rpx; height: 30rpx; border-radius: 50%; border: 4rpx solid; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 4rpx; }
-.pd__stage-dot-ok { color: #fff; font-size: 18rpx; }
+.pd__stage-dot-ok { color: $jzb-text-inverse; font-size: 18rpx; }
 .pd__stage-line { position: absolute; left: 13rpx; top: 56rpx; bottom: -6rpx; width: 4rpx; background: $jzb-border-light; }
 .pd__stage-line--done { background: $jzb-primary; opacity: 0.3; }
 .pd__stage-main { margin-left: 20rpx; padding-bottom: 26rpx; min-width: 0; }

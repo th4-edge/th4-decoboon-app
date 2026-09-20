@@ -14,6 +14,28 @@ export interface DashboardReport {
   metrics: Record<string, number>
 }
 
+export interface MarketerPeriodMetric {
+  current: number
+  previous: number
+  growthRate: number
+}
+
+export interface MarketerRateMetric {
+  currentRate: number
+  previousRate: number
+  change: number
+}
+
+export interface MarketerRankingItem {
+  id: number | string
+  name: string
+  rank: number
+  customerCount: number
+  measureCount: number
+  followCount: number
+  measureRate: number
+}
+
 export interface MarketerReport {
   customerCount: number
   newCustomerCount: number
@@ -42,6 +64,21 @@ export interface MarketerReport {
   goldenWarmCount: number
   goldenCoolingCount: number
   goldenRiskCount: number
+  customerInputDay: MarketerPeriodMetric
+  customerInputWeek: MarketerPeriodMetric
+  customerInputMonth: MarketerPeriodMetric
+  followDay: MarketerPeriodMetric
+  followWeek: MarketerPeriodMetric
+  followMonth: MarketerPeriodMetric
+  measureRateDay: MarketerRateMetric
+  measureRateWeek: MarketerRateMetric
+  measureRateMonth: MarketerRateMetric
+  marketerRankings: MarketerRankingItem[]
+  storeRankings: MarketerRankingItem[]
+  myMarketerRank: number
+  myStoreRank: number
+  companyMarketerCount: number
+  companyStoreCount: number
   recentCustomers: import('../crm/model').Customer[]
   recentProjects: import('../project/model').Project[]
 }

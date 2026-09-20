@@ -31,7 +31,15 @@ export interface UploadedFile {
 }
 
 function isManagedPath(path: string): boolean {
-  const value = path.replace(/^\/+/, '')
+  if (!path) return false
+  // 私有下载链接：/file/private/download?path=xxx，由 storagePath 还原
+  if (path.includes('/file/private/download')) return true
+  // 完整 URL：先提取路径部分，再按前缀判断
+  let value = path
+  if (/^https?:\/\//i.test(path)) {
+    value = path.replace(/^https?:\/\/[^/]+/i, '').split('?')[0]
+  }
+  value = value.replace(/^\/+/, '')
   return value.startsWith('upload/') || value.startsWith('companies/') || value.startsWith('system/')
 }
 
@@ -56,10 +64,11 @@ export const fileApi = {
     filePath: string,
     options: { projectId?: string } = {}
   ): Promise<UploadedFile> => {
-    const grants = await uploadRequest<RawFileGrant[]>('file/private/grant', filePath, {
-      businessType,
-      projectId: options.projectId
-    })
+    // 历史坑：projectId 为 undefined 时直接放入 formData，uni.uploadFile 会序列化为字符串 "undefined"，
+    // 后端 @AutoInject Long projectId 转换失败导致上传接口报错。量房等无项目场景必须省略该字段。
+    const formData: Record<string, unknown> = { businessType }
+    if (options.projectId) formData.projectId = options.projectId
+    const grants = await uploadRequest<RawFileGrant[]>('file/private/grant', filePath, formData)
     const grant = grants?.[0]
     if (!grant.path) throw new Error('文件上传未返回存储路径')
     return {

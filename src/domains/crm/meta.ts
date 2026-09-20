@@ -1,4 +1,5 @@
 import type { CustomerSource, CustomerStage } from './model'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 export const CUSTOMER_SOURCE_META: Record<CustomerSource, string> = {
   lead: '短视频线索', referral: '转介绍', walkin: '自然到店',
@@ -10,7 +11,7 @@ export const CUSTOMER_STAGE_META: Record<CustomerStage, { label: string; color: 
   following:    { label: '跟进中',   color: '#168A96' },
   pendingMeasure: { label: '待量房', color: '#2F54EB' },
   quote:        { label: '方案报价', color: '#722ED1' },
-  sign:         { label: '已签约',   color: '#16A394' },
+  sign:         { label: '已签约',   color: TOKEN_COLOR.primaryBase },
   construction: { label: '施工中',   color: '#FA8C16' },
   done:         { label: '已完工',   color: '#00B42A' },
   lost:         { label: '已流失',   color: '#C9CDD4' }

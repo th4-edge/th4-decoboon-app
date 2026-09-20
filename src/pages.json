@@ -111,6 +111,27 @@
           }
         },
         {
+          "path": "pages/portrait-edit",
+          "style": {
+            "navigationBarTitleText": "客户画像",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/tag-manage",
+          "style": {
+            "navigationBarTitleText": "客户标签",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/flow",
+          "style": {
+            "navigationBarTitleText": "签约后业务流转",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/edit",
           "style": {
             "navigationBarTitleText": "新建客户",
@@ -307,6 +328,14 @@
             "navigationBarTitleText": "阶段验收",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/sign-workbench",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -349,6 +378,14 @@
             "navigationBarTitleText": "谈单PPT",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/workbench",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -382,6 +419,43 @@
           "style": {
             "navigationBarTitleText": "新建报价",
             "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/package-manage",
+          "style": {
+            "navigationBarTitleText": "套餐模板",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/package-edit",
+          "style": {
+            "navigationBarTitleText": "套餐配置",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/adjust",
+          "style": {
+            "navigationBarTitleText": "报价调整",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/quote-confirm",
+          "style": {
+            "navigationBarTitleText": "确认报价",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/workbench",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
           }
         }
       ]
@@ -579,7 +653,7 @@
         {
           "path": "pages/index",
           "style": {
-            "navigationBarTitleText": "供应链",
+            "navigationBarTitleText": "供应商协作",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }

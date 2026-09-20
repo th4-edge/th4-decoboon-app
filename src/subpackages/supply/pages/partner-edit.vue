@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { supplyApi } from '@/subpackages/supply/domains/supply/api'
+import { supplyApi } from '@/domains/supply/api'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const TYPE_OPTIONS = [
   { value: 'supplier', label: '材料供应商' },
@@ -38,6 +39,7 @@ const settlementTerms = ref('')
 const settlementDays = ref('')
 const cutoffDay = ref('')
 const remark = ref('')
+const brandsText = ref('')
 const submitting = ref(false)
 
 onLoad(async (q) => {
@@ -58,6 +60,7 @@ onLoad(async (q) => {
     settlementDays.value = found.settlementDays ? String(found.settlementDays) : ''
     cutoffDay.value = found.cutoffDay ? String(found.cutoffDay) : ''
     remark.value = found.remark || ''
+    brandsText.value = Array.isArray(found.brands) ? found.brands.join('、') : ''
     const typeAt = TYPE_OPTIONS.findIndex((item) => item.value === found.type)
     if (typeAt >= 0) typeIdx.value = typeAt
     const statusAt = STATUS_OPTIONS.findIndex((item) => item.value === found.status)
@@ -89,7 +92,8 @@ async function save() {
     settlementMode: MODE_OPTIONS[modeIdx.value].value,
     settlementDays: settlementDays.value,
     cutoffDay: cutoffDay.value,
-    remark: remark.value.trim()
+    remark: remark.value.trim(),
+    brands: brandsText.value.split(/[，,、\n]/).map((item) => item.trim()).filter(Boolean)
   }
   try {
     if (id.value) await supplyApi.partnerUpdate(payload)
@@ -113,11 +117,12 @@ async function save() {
       <view class="pe__field">
         <text class="pe__label">类型</text>
         <picker class="pe__picker" :range="TYPE_OPTIONS.map(i => i.label)" :value="typeIdx" @change="typeIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pe__field"><text class="pe__label">联系人</text><input v-model="contactName" class="pe__input" maxlength="32" placeholder="对接人姓名" /></view>
       <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input" type="number" maxlength="20" placeholder="手机号或固话" /></view>
+      <view class="pe__field"><text class="pe__label">关联品牌</text><input v-model="brandsText" class="pe__input" maxlength="512" placeholder="如：马可波罗、东鹏，用逗号分隔" /></view>
       <view class="pe__field"><text class="pe__label">地址</text><input v-model="addr" class="pe__input" maxlength="128" placeholder="门店/仓库地址" /></view>
       <view class="pe__field"><text class="pe__label">税号</text><input v-model="taxNo" class="pe__input" maxlength="32" placeholder="开票税号（可选）" /></view>
       <view class="pe__field"><text class="pe__label">开户行</text><input v-model="bankName" class="pe__input" maxlength="64" placeholder="付款银行" /></view>
@@ -126,7 +131,7 @@ async function save() {
       <view class="pe__field">
         <text class="pe__label">账期模式</text>
         <picker class="pe__picker" :range="MODE_OPTIONS.map(i => i.label)" :value="modeIdx" @change="modeIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ MODE_OPTIONS[modeIdx].label }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__value">{{ MODE_OPTIONS[modeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input" type="number" placeholder="默认 30" /></view>
@@ -134,7 +139,7 @@ async function save() {
       <view class="pe__field">
         <text class="pe__label">状态</text>
         <picker class="pe__picker" :range="STATUS_OPTIONS.map(i => i.label)" :value="statusIdx" @change="statusIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ STATUS_OPTIONS[statusIdx].label }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__value">{{ STATUS_OPTIONS[statusIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pe__field pe__field--col"><text class="pe__label">备注</text><input v-model="remark" class="pe__input pe__input--block" maxlength="200" placeholder="合作说明、特殊约定" /></view>

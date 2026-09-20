@@ -6,7 +6,7 @@ import type { Company } from '@/domains/identity/model'
 import { session } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
-import JzIcon from '@/components/JzIcon.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
 const company = ref<Company | null>(null)
 const editing = ref(false)
@@ -38,7 +38,7 @@ async function save() {
     <JzPageHeader title="我的企业" subtitle="企业身份与组织归属" :right-text="editable ? '编辑' : ''" @right="editing = true" />
     <view v-if="company" class="ci-body">
       <view class="jz-card ci-hero">
-        <view class="ci-logo"><JzIcon name="building" :size="54" color="#FFFFFF" /></view>
+        <view class="ci-logo"><JzBrandLogo variant="white" :size="54" /></view>
         <text class="ci-name">{{ company.name }}</text>
         <text class="ci-addr">{{ company.city || '未填写企业地址' }}</text>
       </view>

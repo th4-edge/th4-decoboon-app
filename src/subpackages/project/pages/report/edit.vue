@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -133,10 +134,10 @@ async function save() {
       <view class="rp__imgs">
         <view v-for="(im, i) in images" :key="i" class="rp__img">
           <image :src="im" mode="aspectFill" @tap="preview(i)" />
-          <view class="rp__img-del" @tap.stop="removeImage(i)"><JzIcon name="close" :size="22" color="#FFFFFF" :stroke-width="2.4" /></view>
+          <view class="rp__img-del" @tap.stop="removeImage(i)"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.4" /></view>
         </view>
         <view v-if="images.length < 9" class="rp__img rp__img--add" @tap="chooseImage">
-          <JzIcon name="camera" :size="36" color="#778390" /><text class="rp__add-text">拍照/相册</text>
+          <JzIcon name="camera" :size="36" :color="TOKEN_COLOR.text3" /><text class="rp__add-text">拍照/相册</text>
         </view>
       </view>
 
@@ -145,13 +146,13 @@ async function save() {
           <text class="rp__vis-title">同步给业主</text>
           <text class="rp__vis-sub">开启后客户同频可见</text>
         </view>
-        <switch :checked="visibleToCustomer" color="#16A394" style="transform:scale(0.8);" @change="onVis" />
+        <switch :checked="visibleToCustomer" :color="TOKEN_COLOR.primaryBase" style="transform:scale(0.8);" @change="onVis" />
       </view>
     </view>
 
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--primary jz-grow rp__submit-btn" @tap="save"><JzIcon name="send" :size="28" color="#FFFFFF" /><text>发布汇报</text></button>
+        <button class="jz-btn jz-btn--primary jz-grow rp__submit-btn" @tap="save"><JzIcon name="send" :size="28" :color="TOKEN_COLOR.white" /><text>发布汇报</text></button>
       </view>
     </view>
   </view>

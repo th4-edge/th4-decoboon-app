@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const props = withDefaults(defineProps<{ percent: number; color?: string; height?: number; showLabel?: boolean }>(), {
-  percent: 0, color: '#16A394', height: 10, showLabel: false
+  percent: 0, color: TOKEN_COLOR.primaryBase, height: 10, showLabel: false
 })
 const safePercent = computed(() => Math.min(100, Math.max(0, Number(props.percent) || 0)))
 const barStyle = computed(() => ({
   width: `${safePercent.value}%`,
-  background: props.color === '#16A394' ? 'linear-gradient(90deg, #2BC4B4 0%, #16A394 60%, #0E8A7D 100%)' : props.color
+  background: props.color === TOKEN_COLOR.primaryBase ? `linear-gradient(90deg, ${TOKEN_COLOR.primaryLight} 0%, ${TOKEN_COLOR.primaryBase} 60%, ${TOKEN_COLOR.primary} 100%)` : props.color
 }))
 </script>
 

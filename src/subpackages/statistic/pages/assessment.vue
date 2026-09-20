@@ -8,8 +8,11 @@ import type { EmployeePerformance, PerformanceReport } from '@/domains/statistic
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
+import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 type RoleFilter = 'all' | EmployeePerformance['role']
 
@@ -17,6 +20,8 @@ const month = ref(currentMonth())
 const storeId = ref('')
 const roleFilter = ref<RoleFilter>('all')
 const report = ref<PerformanceReport | null>(null)
+const loading = ref(false)
+const loadError = ref('')
 
 const tabs: { key: RoleFilter; label: string }[] = [
   { key: 'all', label: '全部' },
@@ -44,10 +49,15 @@ async function load() {
     uni.reLaunch({ url: P.home })
     return
   }
+  loading.value = true
+  loadError.value = ''
   try {
     report.value = await statisticApi.performance(`${month.value}-01`, roleFilter.value === 'all' ? undefined : roleFilter.value, storeId.value || undefined)
   } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '绩效报表加载失败'
     toastError(error, '绩效报表加载失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -96,13 +106,16 @@ function currentMonth() {
 
       <view class="assess-toolbar jz-card">
         <picker mode="date" fields="month" :value="month" @change="onMonthChange">
-          <view class="assess-month"><JzIcon name="calendar" :size="30" color="#0E8A7D" /><text>{{ month }}</text></view>
+          <view class="assess-month"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ month }}</text></view>
         </picker>
         <view class="assess-tabs">
           <text v-for="tab in tabs" :key="tab.key" class="assess-tab" :class="{ 'assess-tab--on': roleFilter === tab.key }" @tap="changeRole(tab.key)">{{ tab.label }}</text>
         </view>
       </view>
 
+      <PageState v-if="loadError && !report" state="error" title="绩效报表加载失败" :subtitle="loadError" @retry="load" />
+      <JzSkeleton v-else-if="loading && !report" :rows="6" />
+      <template v-else>
       <view class="assess-summary">
         <view v-for="item in summary" :key="item.label" class="jz-card assess-summary__item">
           <text class="assess-summary__label">{{ item.label }}</text>
@@ -126,6 +139,7 @@ function currentMonth() {
         </view>
       </view>
       <JzEmpty v-else text="暂无绩效考核数据" sub="选择月份后，系统将按员工业务事实自动汇总" />
+      </template>
       <view class="assess-bottom" />
     </view>
   </view>

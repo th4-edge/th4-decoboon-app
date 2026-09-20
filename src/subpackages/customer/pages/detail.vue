@@ -19,14 +19,17 @@ import { tradeApi } from '@/domains/trade/api'
 import JzActionSheet from '@/components/JzActionSheet.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
 import HouseCard from '@/subpackages/customer/components/HouseCard/HouseCard.vue'
 import SalesSteps, { type SalesStageKey } from '@/subpackages/customer/components/SalesSteps/SalesSteps.vue'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { designApi } from '@/domains/design/api'
+import type { DesignScheme } from '@/domains/design/model'
 
-type PrimaryActionKind = 'follow' | 'scheduleMeasure' | 'assignDesigner' | 'recordMeasure' | 'design' | 'quote' | 'project' | 'edit'
+type PrimaryActionKind = 'follow' | 'scheduleMeasure' | 'assignDesigner' | 'recordMeasure' | 'design' | 'quote' | 'project' | 'edit' | 'viewFlow'
 
 interface PrimaryAction {
   kind: PrimaryActionKind
@@ -37,6 +40,8 @@ const id = ref('')
 const customer = ref<Customer | null>(null)
 const follows = ref<CustomerFollow[]>([])
 const quotes = ref<Quote[]>([])
+const designs = ref<DesignScheme[]>([])
+const talkCount = ref(0)
 const customerProjects = ref<Project[]>([])
 const properties = ref<Property[]>([])
 const activePropertyId = ref('')
@@ -46,6 +51,8 @@ const loadError = ref('')
 const sectionError = ref('')
 const actionLoading = ref(false)
 const designerSheetOpen = ref(false)
+/** FIX-006：评级依据从独立卡片改为评级标签旁的 ? 图标，点击弹出浮层。 */
+const showGradePopup = ref(false)
 
 const WAY_META: Record<CustomerFollow['way'], string> = {
   phone: '电话',
@@ -71,19 +78,50 @@ const canFollow = computed(() => can(session.role, 'act:followCustomer'))
 const canQuote = computed(() => can(session.role, 'edit:quote'))
 const canRecordWechat = computed(() => can(session.role, 'act:recordWechat'))
 const canRecordVisit = computed(() => can(session.role, 'act:recordVisit'))
+/**
+ * 是否允许展示"约定量房"主按钮。
+ * 业务口径：约定量房必须挂到具体房屋上，且这套房屋还没量过房。
+ * - 不再用 customer.addr 判断：客户档案地址和房屋地址是两份数据，有客户地址不代表有房屋档案；
+ * - 必须有 properties 数据（房屋档案）；
+ * - 当前选中房屋尚未量房（latestMeasureAt 为空）。
+ */
 const canScheduleMeasure = computed(() => can(session.role, 'act:scheduleMeasure')
-  && hasAddress.value && !!customer.value
-  && ['intention', 'following', 'pendingMeasure'].includes(customer.value.stage)
+  && !!customer.value
+  && properties.value.length > 0
+  && !hasMeasureRecord.value
+  && ['following', 'pendingMeasure'].includes(customer.value.stage)
   && (!customer.value.designer || isStoreManager.value || session.role === 'boss'))
 const canRecordMeasure = computed(() => can(session.role, 'edit:design')
   && !!activeProperty.value && !activeProperty.value.latestMeasureAt)
 const canAssignDesigner = computed(() => can(session.role, 'act:assignDesigner')
   && customer.value?.stage === 'pendingMeasure' && !!customer.value.measureAt)
+/** 字段级变更/指定设计师入口：有 assignDesigner 权限即可，不受阶段限制（设计师离职、客户要求更换等场景）。 */
+const canChangeDesigner = computed(() => can(session.role, 'act:assignDesigner'))
 const hasAddress = computed(() => !!customer.value?.addr?.trim())
 const activeProperty = computed(() => properties.value.find((item) => item.id === activePropertyId.value)
   || properties.value[0] || null)
-const project = computed(() => customerProjects.value.find((item) => item.property?.id === activeProperty.value?.id)
-  || customerProjects.value[0] || null)
+/** 当前选中房屋是否已量房（有 latestMeasureAt 即视为量过）。 */
+const hasMeasureRecord = computed(() => !!activeProperty.value?.latestMeasureAt)
+/**
+ * 已约定的量房时间：仅当当前选中房屋尚未量房时才回显 customer.measureAt，
+ * 否则房屋已经量完，再展示"约定时间"会误导。
+ */
+const scheduledAt = computed(() => {
+  if (hasMeasureRecord.value) return ''
+  return customer.value?.measureAt || ''
+})
+/**
+ * 当前客户、当前房屋对应的项目。
+ * 必须同时满足两个条件：
+ *   1. project.customer.id === 当前客户 id（防御性校验，customerProjects 已按 customerId 拉取，这里双保险）；
+ *   2. project.property.id === 当前选中的房屋 id。
+ * 禁止使用 `|| customerProjects.value[0]` 兜底——历史上这个兜底会把 BOSS 视角下全公司项目列表
+ * 的第一条（往往是别的客户，例如李明）错当成当前客户（例如跟进中的王武）的工地，
+ * 导致详情页错误显示"查看工地"按钮，点击后跳转串号到他人工地。
+ */
+const project = computed(() => customerProjects.value.find(
+  (item) => item.customer?.id === id.value && item.property?.id === activeProperty.value?.id
+) ?? null)
 const propertyQuotes = computed(() => activeProperty.value
   ? quotes.value.filter((item) => item.property?.id === activeProperty.value?.id)
   : [])
@@ -91,6 +129,67 @@ const confirmedQuote = computed(() => propertyQuotes.value.find((item) => item.s
   || propertyQuotes.value.find((item) => item.status === 'accepted')
   || null)
 const activeQuote = computed(() => propertyQuotes.value.find((item) => !['rejected', 'superseded', 'accepted', 'converted'].includes(item.status)) || null)
+const canEditPortrait = computed(() => !['pm', 'finance', 'projectSupport'].includes(session.role || ''))
+function openPortraitEdit() { uni.navigateTo({ url: `${P.customerPortraitEdit}?customerId=${id.value}` }) }
+function openTagManage() { uni.navigateTo({ url: `${P.customerTagManage}?customerId=${id.value}` }) }
+
+const portraitFieldLabels: Array<[string, string]> = [
+  ['decisionRole', '决策角色'], ['purpose', '装修动机'], ['houseCondition', '房屋现状'],
+  ['startWindow', '计划开工'], ['style', '风格偏好'], ['eco', '环保要求'],
+  ['household', '居住人口'], ['payment', '付款方式'], ['competitor', '竞品对比']
+]
+const portraitValueLabels: Record<string, Record<string, string>> = {
+  decisionRole: { Self: '本人决策', Couple: '夫妻共同', Parents: '父母出资', Children: '子女代订', Unknown: '待确认' },
+  purpose: { FirstHome: '自住首装', Improve: '改善', Wedding: '婚房', SchoolDistrict: '学区', Investment: '投资出租', Partial: '局部改造' },
+  houseCondition: { Rough: '毛坯', Old: '旧房翻新', Refined: '精装改造', Pending: '待交付' },
+  startWindow: { WithinOneMonth: '1个月内', OneToThreeMonths: '1-3个月', ThreeToSixMonths: '3-6个月', HalfYearPlus: '半年以上', Undecided: '待定' },
+  style: { Modern: '现代简约', Luxury: '轻奢', NewChinese: '新中式', Cream: '奶油风', Wood: '原木', Industrial: '工业', Undecided: '待定' },
+  eco: { Elder: '有老人', Infant: '有婴幼儿', Pregnant: '有孕妇', None: '无特殊要求' },
+  household: { Single: '独居', Couple: '两口', ThreePlus: '三口及以上', ThreeGenerations: '三代同堂', Unknown: '待确认' },
+  payment: { Full: '全款', Installment: '分期', Loan: '贷款', Unknown: '待确认' },
+  competitor: { None: '未对比', ComparingOneTwo: '在对比1-2家', ComparingThreePlus: '在对比3家以上', ChosenOther: '已选定同行' }
+}
+const concernLabels: Record<string, string> = { Price: '价格', Duration: '工期', Quality: '质量', Eco: '环保', AfterSales: '售后' }
+
+/** 客户标签：优先服务端，缺失时用本地事实兜底（与 Web 口径一致） */
+const customerTagList = computed(() => {
+  const tags = customer.value?.tags
+  if (tags && tags.length) {
+    return tags.map((tag) => ({ key: tag.key || `manual:${tag.id}`, label: tag.name, category: tag.category }))
+  }
+  const list: Array<{ key: string; label: string; category: string }> = []
+  const current = customer.value
+  if (!current) return list
+  if (current.source) list.push({ key: `source:${current.source}`, label: CUSTOMER_SOURCE_META[current.source] || '其他', category: 'source' })
+  if (current.wechatAdded) list.push({ key: 'wechat', label: '已加微信', category: 'behavior' })
+  const visits = Number(current.visitCount || 0)
+  if (visits >= 2) list.push({ key: 'visit:multi', label: '多次到店', category: 'behavior' })
+  else if (visits === 1) list.push({ key: 'visit:once', label: '已到店', category: 'behavior' })
+  if (current.measureAt || activeProperty.value?.latestMeasureAt) list.push({ key: 'measured', label: '已量房', category: 'behavior' })
+  return list
+})
+const customerGrade = computed(() => customer.value?.grade)
+const gradeText = computed(() => {
+  const grade = customerGrade.value
+  if (!grade) return ''
+  return `评级 ${grade.level} · ${grade.score}`
+})
+const gradeDetail = computed(() => {
+  const breakdown = customerGrade.value?.breakdown
+  if (!breakdown?.length) return '分级由服务端规则自动计算'
+  return breakdown.map((item) => `${item.label} ${item.score}/${item.weight || '-'}：${item.reason}`).join('\n')
+})
+const portraitItems = computed(() => {
+  const portrait = customer.value?.portrait
+  if (!portrait) return []
+  const items = portraitFieldLabels
+    .map(([key, label]) => ({ label, value: portraitValueLabels[key]?.[String((portrait as Record<string, unknown>)[key])] || '未填写' }))
+    .filter((item) => item.value !== '未填写')
+  const concerns = portrait.concerns || []
+  if (concerns.length) items.push({ label: '主要顾虑', value: concerns.map((item) => concernLabels[item] || item).join('、') })
+  return items
+})
+
 const marketingProgress = computed(() => {
   if (!customer.value) return '—'
   const map: Record<string, string> = {
@@ -108,14 +207,20 @@ const marketingProgress = computed(() => {
 const salesStage = computed<SalesStageKey>(() => {
   if (!customer.value) return 'visit'
   if (project.value || confirmedQuote.value || activeQuote.value || ['quote', 'sign', 'construction', 'done'].includes(customer.value.stage)) return 'quote'
-  if (customer.value.designer && (customer.value.measureAt || activeProperty.value?.latestMeasureAt)) return 'design'
+  // 历史坑 FIX-008：design 阶段必须以"当前选中房屋已量完房"为准，不能用客户级 customer.measureAt。
+  // 多套房客户只要约定过一次量房，customer.measureAt 就永久有值，会导致所有房屋都被误判为 design 阶段，
+  // 选中未量房房屋时主按钮错误显示"进入设计转化"，用户卡死无法进行下一步。
+  if (customer.value.designer && activeProperty.value?.latestMeasureAt) return 'design'
   if (customer.value.measureAt || customer.value.stage === 'pendingMeasure') return 'measure'
   if (customer.value.stage === 'following') return 'follow'
   return 'visit'
 })
 const primaryAction = computed<PrimaryAction | null>(() => {
   if (project.value) return { kind: 'project', label: '查看工地' }
-  if (confirmedQuote.value || activeQuote.value) return { kind: 'quote', label: '查看报价' }
+  if (confirmedQuote.value || activeQuote.value) return { kind: 'quote', label: '查看报价流转' }
+  if (isMarketer.value && (customer.value?.measureAt || activeProperty.value?.latestMeasureAt || customer.value?.designer)) {
+    return { kind: 'viewFlow', label: '查看业务流转' }
+  }
   if (salesStage.value === 'quote' && canQuote.value) return { kind: 'quote', label: '生成报价' }
   if (salesStage.value === 'design' && canQuote.value) return { kind: 'design', label: '进入设计转化' }
   if (salesStage.value === 'measure') {
@@ -129,9 +234,7 @@ const primaryAction = computed<PrimaryAction | null>(() => {
       : { kind: 'follow', label: '写跟进' }
   }
   if (salesStage.value === 'visit' && canFollow.value) {
-    return canScheduleMeasure.value
-      ? { kind: 'scheduleMeasure', label: '约定量房' }
-      : { kind: 'edit', label: '完善客户资料' }
+    return { kind: 'follow', label: '完成首次跟进' }
   }
   return null
 })
@@ -169,19 +272,35 @@ async function load() {
       return
     }
     customer.value = detail
-    const [followResult, quoteResult, projectResult, propertyResult] = await Promise.allSettled([
+    const [followResult, quoteResult, projectResult, propertyResult, designResult] = await Promise.allSettled([
       crmApi.follows(id.value),
       tradeApi.quotes({ customerId: id.value }),
-      projectApi.list(),
-      propertyApi.list(id.value)
+      // 必须按当前客户拉项目：BOSS 视角下 project/project/page 默认返回全公司项目，
+      // 不传 customerId 会把别人的项目混进 customerProjects，下游 project computed 再兜底取 [0]
+      // 就会出现"跟进中客户显示查看工地、点击跳到别人工地"的串号问题。
+      projectApi.list({ customerId: id.value }),
+      propertyApi.list(id.value),
+      designApi.schemes(id.value)
     ])
     if (followResult.status === 'fulfilled') follows.value = followResult.value
     if (quoteResult.status === 'fulfilled') quotes.value = quoteResult.value
     if (projectResult.status === 'fulfilled') customerProjects.value = projectResult.value
     if (propertyResult.status === 'fulfilled') properties.value = propertyResult.value
+    if (designResult.status === 'fulfilled') {
+      designs.value = designResult.value
+      // 并行拉每套非归档方案的谈单材料数（N+1，方案数通常 1-3，可接受）
+      const visibleDesigns = designs.value.filter((d) => d.status !== 'archived')
+      const talkResults = await Promise.allSettled(
+        visibleDesigns.map((d) => designApi.talks(d.id))
+      )
+      talkCount.value = talkResults.reduce((sum, r) =>
+        r.status === 'fulfilled' ? sum + r.value.length : sum, 0)
+    }
     const failed = [followResult, quoteResult, projectResult, propertyResult]
       .filter((item) => item.status === 'rejected')
     if (failed.length) sectionError.value = '部分关联数据加载失败，请重试'
+    // 进入页面时优先把"有项目的那套房屋"作为选中房屋；customerProjects 已按 customerId 过滤，
+    // 这里取到的 propertyId 一定属于当前客户。
     const defaultPropertyId = customerProjects.value.find((item) => item.customer?.id === id.value)?.property?.id
     const currentId = activePropertyId.value
     activePropertyId.value = properties.value.some((item) => item.id === currentId)
@@ -246,6 +365,10 @@ async function runPrimaryAction() {
   if (!action) return
   if (action.kind === 'project') { openProject(); return }
   if (action.kind === 'quote') { toQuote(); return }
+  if (action.kind === 'viewFlow') {
+    uni.navigateTo({ url: `${P.customerFlow}?customerId=${id.value}&propertyId=${activeProperty.value?.id || ''}` })
+    return
+  }
   if (action.kind === 'design') { toDesign(); return }
   if (action.kind === 'follow') { follow(); return }
   if (action.kind === 'edit') { edit(); return }
@@ -295,9 +418,10 @@ async function assignDesigner() {
 async function onDesignerSelect(index: number) {
   const designer = designers.value[index]
   if (!designer) return
+  if (!activeProperty.value?.id) { toast('请先建立并选择装修房屋'); return }
   loading('正在指定设计师…')
   try {
-    customer.value = await crmApi.handoff(id.value, designer.id, activeProperty.value?.id)
+    customer.value = await crmApi.handoff(id.value, designer.id, activeProperty.value.id)
     toast(`已指定${designer.name}`, 'success')
     await load()
   } catch (error) {
@@ -311,6 +435,18 @@ function addProperty() {
   if (!customer.value) return
   uni.navigateTo({ url: `${P.customerPropertyEdit}?customerId=${id.value}` })
 }
+/** 编辑房屋档案：跳到 property-edit 并带 propertyId，页面内部会走 update 分支。 */
+function editProperty(property: Property) {
+  uni.navigateTo({ url: `${P.customerPropertyEdit}?customerId=${id.value}&propertyId=${property.id}` })
+}
+/** 调整已约定的量房时间：measure 页 onLoad 会按 customer.measureAt 回填日期时间，保存即更新。 */
+function rescheduleMeasure(property: Property) {
+  uni.navigateTo({ url: `${P.customerMeasure}?id=${id.value}&propertyId=${property.id}` })
+}
+/** 查看量房记录：跳转到量房录入/详情页，页面内部按 propertyId 拉取已有量房数据回填。 */
+function viewMeasure(property: Property) {
+  uni.navigateTo({ url: `${P.customerMeasureRecord}?customerId=${id.value}&propertyId=${property.id}` })
+}
 </script>
 
 <template>
@@ -323,10 +459,25 @@ function addProperty() {
           <view class="cd__identity">
             <text class="cd__name">{{ customer.name }}</text>
             <JzTag :text="CUSTOMER_STAGE_META[customer.stage].label" :color="CUSTOMER_STAGE_META[customer.stage].color" />
+            <view v-if="customerGrade" class="cd__grade" :class="`cd__grade--${customerGrade.level.toLowerCase()}`">
+              <text>{{ gradeText }}</text>
+              <!-- FIX-006：评级依据入口从独立卡片改为 ? 图标，点击弹出浮层 -->
+              <view v-if="customerGrade.breakdown?.length" class="cd__grade-help" @tap="showGradePopup = true">
+                <JzIcon name="info" :size="24" color="currentColor" />
+              </view>
+            </view>
           </view>
           <view class="cd__contact">
-            <JzIcon name="phone" :size="24" color="#778390" />
-            <text>{{ customer.phone || '电话待补充' }}</text>
+            <JzIcon name="phone" :size="24" :color="TOKEN_COLOR.text3" />
+            <!-- 空值统一为 —（§15.11），原"电话待补充"与客户信息区"—"写法不一致 -->
+            <text>{{ customer.phone || '—' }}</text>
+          </view>
+          <view class="cd__tags">
+            <text v-for="tag in customerTagList" :key="tag.key" class="cd__tag" :class="`cd__tag--${tag.category}`">{{ tag.label }}</text>
+            <view v-if="canEditPortrait" class="cd__tag cd__tag--manage" @tap="openTagManage">
+              <JzIcon name="plus" :size="20" :color="TOKEN_COLOR.primary" />
+              <text>标签</text>
+            </view>
           </view>
         </view>
       </view>
@@ -336,12 +487,16 @@ function addProperty() {
           <text class="cd__role-value">{{ customer.owner?.name || '—' }}</text>
         </view>
         <view class="cd__role-divider" />
-        <view class="cd__role">
+        <view class="cd__role" :class="{ 'cd__role--clickable': canChangeDesigner }" @tap="canChangeDesigner && assignDesigner()">
           <text class="cd__role-label">接手设计师</text>
-          <text class="cd__role-value">{{ customer.designer?.name || '—' }}</text>
+          <view class="cd__role-value-row">
+            <text class="cd__role-value">{{ customer.designer?.name || '—' }}</text>
+            <JzIcon v-if="canChangeDesigner" name="arrow-right" :size="22" :color="TOKEN_COLOR.text3" />
+          </view>
         </view>
       </view>
     </view>
+
     <view class="cd__contact-actions">
       <button class="jz-btn jz-btn--ghost jz-grow" @tap="call">
         <JzIcon name="phone" :size="28" :color="TOKEN_COLOR.primary" />
@@ -380,8 +535,12 @@ function addProperty() {
           :key="property.id"
           :property="property"
           :active="property.id === activeProperty?.id"
+          :scheduled-at="property.id === activeProperty?.id ? scheduledAt : ''"
           @select="activePropertyId = $event.id"
           @copy="copyPropertyNo"
+          @edit="editProperty"
+          @reschedule="rescheduleMeasure"
+          @viewMeasure="viewMeasure"
         />
       </view>
     </scroll-view>
@@ -406,6 +565,27 @@ function addProperty() {
       <view class="cd__info-row"><text class="cd__info-label">户型面积</text><text class="cd__info-value">{{ customer.area ? `${customer.area}㎡` : '—' }}</text></view>
       <view class="cd__info-row"><text class="cd__info-label">预算</text><text class="cd__info-value">{{ customer.budget ? `${customer.budget} 万` : '—' }}</text></view>
       <view class="cd__info-row"><text class="cd__info-label">备注</text><text class="cd__info-value">{{ customer.remark || '—' }}</text></view>
+      <!-- GAP-1：原 SalesBoard 中的业务进度已由 SalesSteps 步骤条承载，这里仅下沉两个只读事实，不可点击、无 chevron -->
+      <view class="cd__info-row"><text class="cd__info-label">谈单材料</text><text class="cd__info-value">{{ talkCount }} 份</text></view>
+      <view class="cd__info-row"><text class="cd__info-label">转化项目</text><text class="cd__info-value">{{ project?.no || '—' }}</text></view>
+    </view>
+
+    <!-- FIX-006：客户画像从头部下方移到客户信息下方，符合"基础信息→画像→跟进"的阅读顺序 -->
+    <view class="jz-card cd__portrait">
+      <view class="cd__section-head">
+        <text class="cd__section-title">客户画像</text>
+        <view v-if="canEditPortrait" class="cd__section-action" @tap="openPortraitEdit">
+          <JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" />
+          <text>{{ portraitItems.length ? '编辑画像' : '完善画像' }}</text>
+        </view>
+      </view>
+      <view v-if="portraitItems.length" class="cd__portrait-grid">
+        <view v-for="item in portraitItems" :key="item.label" class="cd__portrait-item">
+          <text class="cd__portrait-label">{{ item.label }}</text>
+          <text class="cd__portrait-value">{{ item.value }}</text>
+        </view>
+      </view>
+      <text v-else class="cd__portrait-empty">尚未填写画像，补充决策角色、装修动机与工期后可提升跟进针对性。</text>
     </view>
 
     <view class="jz-section"><text class="jz-section__title">跟进记录</text></view>
@@ -431,15 +611,32 @@ function addProperty() {
       <JzEmpty v-if="!follows.length" text="暂无跟进记录" sub="记录每次沟通，保持客户转化上下文" />
     </view>
 
-    <view v-if="canFollow && primaryAction?.kind !== 'follow'" class="jz-actionbar">
-      <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--neutral jz-grow" @tap="follow">
-          <JzIcon name="message" :size="28" :color="TOKEN_COLOR.text2" />
-          <text>写跟进</text>
-        </button>
+    <!-- FIX-006：评级依据浮层——点击头部评级旁的 ? 图标弹出，点击遮罩关闭 -->
+    <view v-if="showGradePopup" class="cd__grade-mask" @tap="showGradePopup = false">
+      <view class="cd__grade-popup" @tap.stop>
+        <view class="cd__grade-popup-head">
+          <text class="cd__grade-popup-title">评级依据</text>
+          <text class="cd__grade-popup-sub">等级由系统根据以下维度自动计算</text>
+        </view>
+        <view class="cd__grade-popup-rows">
+          <view v-for="item in customerGrade?.breakdown" :key="item.dimension" class="cd__grade-popup-row">
+            <view class="cd__grade-popup-row-top">
+              <text class="cd__grade-popup-row-label">{{ item.label }}</text>
+              <text class="cd__grade-popup-row-score">{{ item.score }}/{{ item.weight || '-' }}</text>
+            </view>
+            <text class="cd__grade-popup-row-reason">{{ item.reason }}</text>
+          </view>
+        </view>
       </view>
     </view>
   </view>
+
+  <!--
+    FIX-007：修复 v-else 链断裂 BUG——JzFloatAdd 曾插在主内容与错误态之间，
+    导致 v-else-if="loadError" 和 v-else（客户不存在）错误挂到 JzFloatAdd 的 v-if 上。
+    当主按钮本身是"写跟进"时（JzFloatAdd 不渲染），页面底部会误显示"客户不存在"。
+    正确做法：错误/空态紧跟主内容的 v-else-if 链，JzFloatAdd 独立放在链外。
+  -->
   <view v-else-if="loadError" class="cd__error">
     <JzIcon name="alert-circle" :size="72" :color="TOKEN_COLOR.danger" />
     <text class="cd__error-title">{{ loadError }}</text>
@@ -449,6 +646,19 @@ function addProperty() {
     <JzIcon name="inbox" :size="72" :color="TOKEN_COLOR.text4" />
     <text class="cd__error-title">客户不存在</text>
   </view>
+
+  <!--
+    右下角悬浮"写跟进"入口：与客户列表页"登记客户" FAB 同一交互样式。
+    主按钮（SalesSteps 内）承担当前阶段唯一主 CTA（跟进阶段为"约定量房"），
+    "写跟进"作为高频次级操作放在 FAB，避免底部固定栏和主 CTA 并列造成主次混淆。
+    主按钮本身已是"写跟进"时（无地址、不能约定量房的纯跟进场景）不再重复展示 FAB。
+  -->
+  <JzFloatAdd
+    v-if="customer && canFollow && primaryAction?.kind !== 'follow'"
+    text="写跟进"
+    icon="message"
+    @tap="follow"
+  />
 
   <JzActionSheet
     :visible="designerSheetOpen"
@@ -460,18 +670,64 @@ function addProperty() {
 </template>
 
 <style lang="scss" scoped>
-.cd { padding-bottom: 160rpx; }
+/* 底部留白：原底部固定栏已替换为右下角 FAB（JzFloatAdd），需要给 FAB 留出垂直空间，
+   保证最后一条跟进记录可以滚动到 FAB 上方，不被遮挡。 */
+.cd { padding-bottom: 260rpx; }
 .cd__head { margin: 24rpx 24rpx 16rpx; padding: 32rpx; }
 .cd__head-top { display: flex; align-items: center; }
 .cd__who { flex: 1; min-width: 0; margin-left: 24rpx; }
+.cd__grade { flex: 0 0 auto; display: inline-flex; align-items: center; white-space: nowrap; padding: 2rpx 14rpx; border-radius: 999rpx; font-size: 20rpx; font-weight: 700; }
+.cd__grade--a { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.cd__grade--b { color: $jzb-info; background: $jzb-info-soft; }
+.cd__grade--c { color: $jzb-text-3; background: $jzb-bg-page; }
+/* FIX-006：评级标签内的 ? 图标 */
+.cd__grade-help { display: flex; align-items: center; margin-left: 6rpx; opacity: 0.7; }
+/* FIX-006：评级依据浮层 */
+.cd__grade-mask { position: fixed; inset: 0; z-index: 1100; background: $jzb-bg-mask; display: flex; align-items: flex-end; }
+.cd__grade-popup { width: 100%; padding: 40rpx 32rpx calc(40rpx + env(safe-area-inset-bottom)); background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
+.cd__grade-popup-head { margin-bottom: 24rpx; }
+.cd__grade-popup-title { display: block; font-size: 32rpx; font-weight: 700; color: $jzb-text-1; }
+.cd__grade-popup-sub { display: block; margin-top: 6rpx; font-size: 22rpx; color: $jzb-text-3; }
+.cd__grade-popup-rows { display: flex; flex-direction: column; gap: 20rpx; margin-bottom: 32rpx; }
+.cd__grade-popup-row { padding: 20rpx; background: $jzb-bg-page; border-radius: 16rpx; }
+.cd__grade-popup-row-top { display: flex; align-items: center; justify-content: space-between; }
+.cd__grade-popup-row-label { font-size: 24rpx; font-weight: 600; color: $jzb-text-2; }
+.cd__grade-popup-row-score { font-size: 24rpx; font-weight: 700; color: $jzb-primary-dark; }
+.cd__grade-popup-row-reason { display: block; margin-top: 8rpx; font-size: 22rpx; color: $jzb-text-3; line-height: 1.5; }
+.cd__tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 12rpx; }
+.cd__tag { padding: 4rpx 14rpx; border-radius: 999rpx; font-size: 20rpx; }
+.cd__tag--source { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.cd__tag--behavior { color: $jzb-info; background: $jzb-info-soft; }
+.cd__tag--intent, .cd__tag--demand, .cd__tag--preference, .cd__tag--value { color: $jzb-purple; background: $jzb-purple-soft; }
+.cd__tag--risk { color: $jzb-danger; background: $jzb-danger-soft; }
+.cd__tag--manage { display: flex; align-items: center; gap: 4rpx; color: $jzb-primary-dark; background: transparent; border: 1rpx dashed $jzb-primary; }
+.cd__section-action { display: flex; align-items: center; gap: 6rpx; color: $jzb-primary-dark; font-size: 22rpx; }
+.cd__section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16rpx; }
+.cd__section-title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.cd__section-more { color: $jzb-text-3; font-size: 20rpx; }
+/* FIX-006：画像卡片与客户信息卡片对齐，加左右边距和上下间距 */
+.cd__portrait { margin: 20rpx 24rpx; padding: 24rpx; }
+.cd__grade-rows { margin-top: 16rpx; display: flex; flex-direction: column; gap: 12rpx; }
+.cd__grade-row { display: flex; align-items: baseline; gap: 12rpx; }
+.cd__grade-row-label { flex: 0 0 120rpx; color: $jzb-text-2; font-size: 22rpx; }
+.cd__grade-row-score { flex: 0 0 90rpx; color: $jzb-primary-dark; font-size: 22rpx; font-weight: 700; }
+.cd__grade-row-reason { flex: 1; color: $jzb-text-3; font-size: 20rpx; }
+.cd__portrait-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }
+.cd__portrait-item { padding: 14rpx; background: $jzb-bg-page; border-radius: 12rpx; }
+.cd__portrait-label { display: block; color: $jzb-text-3; font-size: 20rpx; }
+.cd__portrait-value { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: 24rpx; font-weight: 600; }
+.cd__portrait-empty { display: block; margin-top: 14rpx; padding: 16rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.6; background: $jzb-bg-page; border-radius: 12rpx; }
 .cd__identity { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; }
 .cd__name { color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 700; }
 .cd__contact { display: flex; align-items: center; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .cd__contact text { margin-left: 8rpx; }
 .cd__roles { display: flex; align-items: center; margin-top: 24rpx; padding-top: 24rpx; border-top: 1rpx solid $jzb-border-light; }
 .cd__role { flex: 1; min-width: 0; }
+.cd__role--clickable:active { opacity: 0.6; }
 .cd__role-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cd__role-value { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 600; }
+.cd__role-value-row { display: flex; align-items: center; gap: 4rpx; margin-top: 8rpx; }
+.cd__role-value-row .cd__role-value { margin-top: 0; }
 .cd__role-divider { width: 1rpx; height: 48rpx; margin: 0 24rpx; background: $jzb-border-light; }
 .cd__contact-actions { display: flex; gap: 16rpx; margin: 0 24rpx 18rpx; }
 .cd__contact-actions .jz-btn { margin: 0; }

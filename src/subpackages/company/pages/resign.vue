@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -50,7 +51,7 @@ function total() {
     <JzPageHeader title="退出企业" subtitle="退出后历史数据归属保留，但立即失去原企业访问权限" />
     <view class="resign-body">
       <view class="jz-card resign-company">
-        <JzIcon name="building" :size="44" color="#E5484D" />
+        <JzIcon name="building" :size="44" :color="TOKEN_COLOR.danger" />
         <view><text class="resign-company__name">{{ session.company?.name || '当前企业' }}</text><text class="resign-company__sub">{{ session.emp?.name }} · {{ session.emp?.role }}</text></view>
       </view>
       <view class="jz-section"><text class="jz-section__title">交接清单</text></view>
@@ -58,7 +59,7 @@ function total() {
         <view v-for="item in items" :key="item.key"><text>{{ handover?.[item.key] || 0 }}</text><text>{{ item.label }}</text></view>
       </view>
       <view v-if="total() > 0" class="resign-warning">
-        <JzIcon name="alert-circle" :size="30" color="#E67E22" />
+        <JzIcon name="alert-circle" :size="30" :color="TOKEN_COLOR.warning" />
         <text>存在未完成交接的数据。请先联系管理员指定接收人；如需立即退出，可确认强制退出。</text>
       </view>
       <view class="jz-card resign-form">

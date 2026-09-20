@@ -15,6 +15,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -58,8 +59,8 @@ function openProject(id?: string) { if (id) uni.navigateTo({ url: `${P.financePr
           <text class="fin-card__amount fin-card__amount--expense">-{{ money(item.amount) }}</text>
         </view>
         <view class="fin-card__facts">
-          <view class="fin-fact"><JzIcon name="users" :size="22" color="#778390" /><text>{{ item.payeeName || item.payable?.payeeName || '收款方' }}</text></view>
-          <view class="fin-fact"><JzIcon name="wallet" :size="22" color="#778390" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
+          <view class="fin-fact"><JzIcon name="users" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.payeeName || item.payable?.payeeName || '收款方' }}</text></view>
+          <view class="fin-fact"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
           <text v-if="item.payable">{{ PAYABLE_TYPE_META[item.payable.type].label }}</text>
           <text v-if="item.transactionNo">{{ item.transactionNo }}</text>
         </view>

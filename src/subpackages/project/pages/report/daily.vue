@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -69,7 +70,7 @@ function write() {
           <text class="dr__title">施工日报</text>
           <text class="dr__sub">{{ projectName }} · 以任务节点为时间线</text>
         </view>
-        <view v-if="canPost" class="dr__write"><button class="jz-btn jz-btn--primary jz-btn--sm dr__write-btn" @tap="write"><JzIcon name="edit" :size="24" color="#FFFFFF" /><text>写日报/汇报</text></button></view>
+        <view v-if="canPost" class="dr__write"><button class="jz-btn jz-btn--primary jz-btn--sm dr__write-btn" @tap="write"><JzIcon name="edit" :size="24" :color="TOKEN_COLOR.white" /><text>写日报/汇报</text></button></view>
       </view>
     </view>
 
@@ -97,7 +98,7 @@ function write() {
             <view v-if="e.medias?.length" class="dr__medias">
               <view v-for="(m, mi) in e.medias || []" :key="mi" class="dr__media" @tap="preview(m)">
                 <image v-if="m.type === 'image'" :src="m.url" mode="aspectFill" />
-                <view v-else class="dr__video"><JzIcon name="play" :size="34" color="#FFFFFF" :stroke-width="2" /><text class="dr__video-tip">视频证据</text></view>
+                <view v-else class="dr__video"><JzIcon name="play" :size="34" :color="TOKEN_COLOR.white" :stroke-width="2" /><text class="dr__video-tip">视频证据</text></view>
               </view>
             </view>
           </view>

@@ -1,7 +1,8 @@
 import type { ReportType } from './model'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 export const REPORT_TYPE_META: Record<ReportType, { label: string; color: string }> = {
-  stage_open:  { label: '阶段开工', color: '#16A394' },
+  stage_open:  { label: '阶段开工', color: TOKEN_COLOR.primaryBase },
   task_done:   { label: '任务完成', color: '#00B42A' },
   progress:    { label: '进度更新', color: '#13C2C2' },
   accept_req:  { label: '验收申请', color: '#FF7D00' },

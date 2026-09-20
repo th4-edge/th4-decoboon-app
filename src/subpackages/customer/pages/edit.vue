@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -11,6 +12,7 @@ import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 const id = ref('')
 const name = ref('')
 const phone = ref('')
+const phoneLocked = ref(false)
 const gender = ref<'M' | 'F'>('M')
 const genderIdx = ref(0)
 const source = ref<CustomerSource>('walkin')
@@ -37,6 +39,7 @@ async function load() {
   const c = await crmApi.info(id.value)
   if (!c) return
   name.value = c.name; phone.value = c.phone
+  phoneLocked.value = Boolean(c.lastFollowAt)
   gender.value = c.gender || 'M'; genderIdx.value = gender.value === 'F' ? 1 : 0
   source.value = c.source
   community.value = c.community || ''; addr.value = c.addr || ''
@@ -79,18 +82,21 @@ async function save() {
       </view>
       <view class="ce__row">
         <text class="ce__label">手机号 <text class="req">*</text></text>
-        <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" />
+        <view class="ce__phone">
+          <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" :disabled="phoneLocked" />
+          <text v-if="phoneLocked" class="ce__phone-lock">首联跟进后不可修改</text>
+        </view>
       </view>
       <view class="ce__row">
         <text class="ce__label">性别</text>
         <picker :range="GENDERS" :value="genderIdx" @change="genderIdx = Number($event.detail.value); gender = genderIdx === 1 ? 'F' : 'M'">
-          <view class="ce__picker"><text>{{ GENDERS[genderIdx] }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view>
+          <view class="ce__picker"><text>{{ GENDERS[genderIdx] }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="ce__row">
         <text class="ce__label">客户来源</text>
         <picker :range="SOURCES.map(s => s.label)" @change="source = SOURCES[Number($event.detail.value)].key">
-          <view class="ce__picker"><text>{{ SOURCES.find(s => s.key === source)?.label }}</text><JzIcon name="chevron-right" :size="26" color="#AEB8C2" /></view>
+          <view class="ce__picker"><text>{{ SOURCES.find(s => s.key === source)?.label }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="ce__row">
@@ -133,6 +139,9 @@ async function save() {
 .ce__row--col .ce__label { width: auto; }
 .req { color: $jzb-danger; }
 .ce__row input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
+.ce__phone { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; }
+.ce__phone input { width: 100%; }
+.ce__phone-lock { margin-top: 6rpx; color: $jzb-text-4; font-size: 20rpx; }
 /* 纵向行的输入框：整行宽度 + 左对齐 */
 .ce__row--col input { flex: none; width: 100%; margin-top: 12rpx; text-align: left; }
 /* picker 撑满剩余宽度，选中值才能真正靠右 */

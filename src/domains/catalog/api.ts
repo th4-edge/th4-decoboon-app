@@ -92,6 +92,7 @@ export interface CatalogQuery {
   keyword?: string
   current?: number
   size?: number
+  includeInactive?: boolean
 }
 
 export interface CatalogInput {
@@ -107,6 +108,7 @@ export interface CatalogInput {
   pricingMode: CatalogPricingMode
   materialPrice: number
   manualPrice: number
+  costPrice?: number
   craft?: string
   criterion?: string
   description?: string
@@ -133,7 +135,8 @@ export const catalogApi = {
       spec: query.spec,
       keyword: query.keyword,
       current: query.current ?? 1,
-      size: query.size ?? 30
+      size: query.size ?? 30,
+      includeInactive: query.includeInactive
     })
     return {
       list: await Promise.all(listOf(result).map(signCatalogItem)),
@@ -154,6 +157,7 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
+      costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
       description: input.description,
@@ -175,11 +179,36 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
+      costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
       description: input.description,
       images: input.images?.map((path) => fileApi.storagePath(path) || path),
       active: input.active,
       sort: input.sort
+    }).then(signCatalogItem),
+
+  /** 启用/停用项目，复用当前完整数据，仅切换 active 字段 */
+  toggleActive: (item: CatalogItem, active: boolean) =>
+    post<RawRecord>('catalog/item/update', {
+      itemId: item.id,
+      type: TYPE_API[item.type],
+      code: item.code,
+      category: item.category,
+      brand: item.brand,
+      series: item.series,
+      spec: item.spec,
+      name: item.name,
+      unit: UNIT_API[item.unit] || item.unit,
+      pricingMode: MODE_API[item.pricingMode],
+      materialPrice: item.materialPrice,
+      manualPrice: item.manualPrice,
+      costPrice: item.costPrice,
+      craft: item.craft,
+      criterion: item.criterion,
+      description: item.description,
+      images: item.images?.map((path) => fileApi.storagePath(path) || path),
+      active,
+      sort: item.sort
     }).then(signCatalogItem)
 }

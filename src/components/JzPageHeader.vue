@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSystem } from '@/composables/system'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
 const props = withDefaults(defineProps<{
@@ -28,7 +29,7 @@ const totalTop = computed(() => `${(system.value.statusBarHeight || 20) + 8 + 54
           <text v-if="subtitle" class="jz-header__subtitle">{{ subtitle }}</text>
         </view>
         <view v-if="rightText || rightIcon" class="jz-header__action" @tap="emit('right')">
-          <JzIcon v-if="rightIcon" :name="rightIcon" :size="30" color="#FFFFFF" :stroke-width="2.2" />
+          <JzIcon v-if="rightIcon" :name="rightIcon" :size="30" :color="TOKEN_COLOR.white" :stroke-width="2.2" />
           <text v-if="rightText" class="jz-header__right-text">{{ rightText }}</text>
         </view>
         <slot name="right" />
@@ -71,7 +72,7 @@ const totalTop = computed(() => `${(system.value.statusBarHeight || 20) + 8 + 54
 }
 .jz-header__titles { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .jz-header__title {
-  color: #fff;
+  color: $jzb-text-inverse;
   font-size: 42rpx;
   font-weight: 700;
   letter-spacing: -0.5rpx;
@@ -88,7 +89,7 @@ const totalTop = computed(() => `${(system.value.statusBarHeight || 20) + 8 + 54
   justify-content: center;
   gap: 8rpx;
   padding: 0 20rpx;
-  color: #fff;
+  color: $jzb-text-inverse;
   background: rgba(255, 255, 255, 0.14);
   border: 1rpx solid rgba(255, 255, 255, 0.14);
   border-radius: $jzb-radius-pill;

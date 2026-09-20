@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import JzIcon from '@/components/JzIcon.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
-withDefaults(defineProps<{ text?: string }>(), { text: '' })
+// 右下角悬浮行动按钮（FAB）。默认图标 plus 用于"新增/登记"，
+// 业务页需要其他语义时通过 icon 覆盖（如"写跟进"传 message），保持同一视觉样式。
+withDefaults(defineProps<{ text?: string; icon?: IconName }>(), {
+  text: '',
+  icon: 'plus'
+})
 const emit = defineEmits<{ (e: 'tap'): void }>()
 </script>
 
 <template>
   <view class="jz-fab" @tap="emit('tap')">
-    <view class="jz-fab__icon"><JzIcon name="plus" :size="34" color="#FFFFFF" :stroke-width="2.2" /></view>
+    <view class="jz-fab__icon"><JzIcon :name="icon" :size="34" :color="TOKEN_COLOR.white" :stroke-width="2.2" /></view>
     <text v-if="text" class="jz-fab__text">{{ text }}</text>
   </view>
 </template>
@@ -22,7 +28,7 @@ const emit = defineEmits<{ (e: 'tap'): void }>()
   align-items: center;
   min-height: 88rpx;
   padding: 0 30rpx 0 18rpx;
-  color: #fff;
+  color: $jzb-text-inverse;
   background: linear-gradient(135deg, $jzb-primary-light 0%, $jzb-primary 55%, $jzb-primary-dark 100%);
   border-radius: $jzb-radius-pill;
   box-shadow: 0 16rpx 38rpx rgba(14, 138, 125, 0.28);

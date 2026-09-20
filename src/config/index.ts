@@ -37,6 +37,9 @@ export const P = {
   accountPassword: '/subpackages/account/pages/password',
   customerList: '/pages/customer/list',
   customerDetail: '/subpackages/customer/pages/detail',
+  customerFlow: '/subpackages/customer/pages/flow',
+  customerPortraitEdit: '/subpackages/customer/pages/portrait-edit',
+  customerTagManage: '/subpackages/customer/pages/tag-manage',
   customerEdit: '/subpackages/customer/pages/edit',
   customerFollow: '/subpackages/customer/pages/follow',
   customerMeasure: '/subpackages/customer/pages/measure',
@@ -60,10 +63,17 @@ export const P = {
   designRequirement: '/subpackages/design/pages/requirement',
   designScheme: '/subpackages/design/pages/scheme',
   designTalk: '/subpackages/design/pages/talk',
+  designWorkbench: '/subpackages/design/pages/workbench',
+  quoteWorkbench: '/subpackages/quote/pages/workbench',
+  signWorkbench: '/subpackages/project/pages/sign-workbench',
   catalogManage: '/subpackages/quote/pages/catalog/manage',
   quoteList: '/subpackages/quote/pages/list',
   quoteDetail: '/subpackages/quote/pages/detail',
   quoteEdit: '/subpackages/quote/pages/edit',
+  packageManage: '/subpackages/quote/pages/package-manage',
+  packageEdit: '/subpackages/quote/pages/package-edit',
+  quoteAdjust: '/subpackages/quote/pages/adjust',
+  quoteConfirm: '/subpackages/quote/pages/quote-confirm',
   acceptEdit: '/subpackages/project/pages/accept/edit',
   teamList: '/subpackages/team/pages/list',
   subscription: '/subpackages/subscription/pages/index',
@@ -90,7 +100,7 @@ export const P = {
   supply: '/subpackages/supply/pages/index'
 } as const
 
-export const TAB_PATHS = [P.home, P.projectList, P.customerList, P.dynamic, P.mine, P.financeHome]
+export const TAB_PATHS = [P.home, P.projectList, P.customerList, P.dynamic, P.mine, P.financeHome, P.designWorkbench, P.quoteWorkbench]
 
 export function isTabPath(path: string): boolean {
   return TAB_PATHS.includes(path as (typeof TAB_PATHS)[number])

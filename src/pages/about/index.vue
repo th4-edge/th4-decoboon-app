@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed } from 'vue'
 import { P, runtime } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -83,7 +84,7 @@ function go(url: string) {
         <text class="about-section__subtitle">把散落在 Excel、微信群和个人经验里的经营事实，收束到同一条项目链路。</text>
         <view class="about-pillars">
           <view v-for="item in pillars" :key="item.title" class="about-pillar jz-card">
-            <view class="about-pillar__icon"><JzIcon :name="item.icon" :size="38" color="#0E8A7D" /></view>
+            <view class="about-pillar__icon"><JzIcon :name="item.icon" :size="38" :color="TOKEN_COLOR.primary" /></view>
             <text class="about-pillar__title">{{ item.title }}</text>
             <text class="about-pillar__desc">{{ item.description }}</text>
           </view>
@@ -95,7 +96,7 @@ function go(url: string) {
         <text class="about-section__subtitle">客户、设计、报价、合同、项目、材料、变更、验收和财务围绕项目形成闭环。</text>
         <view class="about-modules jz-card">
           <view v-for="item in moduleCards" :key="item.title" class="about-module">
-            <view class="about-module__icon"><JzIcon :name="item.icon" :size="34" color="#0E8A7D" /></view>
+            <view class="about-module__icon"><JzIcon :name="item.icon" :size="34" :color="TOKEN_COLOR.primary" /></view>
             <view class="jz-grow"><text class="about-module__title">{{ item.title }}</text><text class="about-module__subtitle">{{ item.subtitle }}</text></view>
           </view>
         </view>
@@ -121,21 +122,21 @@ function go(url: string) {
         <text class="about-section__subtitle">遇到账号、功能、业务配置或使用问题，可以直接联系客服。</text>
         <view class="about-support jz-card">
           <button class="jz-btn jz-btn--primary jz-btn--block about-support__primary" open-type="contact">
-            <JzIcon name="message" :size="30" color="#FFFFFF" /><text>微信在线客服</text>
+            <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" /><text>微信在线客服</text>
           </button>
           <button class="jz-btn jz-btn--ghost jz-btn--block about-support__button" @tap="copyEmail">
-            <JzIcon name="copy" :size="28" color="#0E8A7D" /><text>复制客服邮箱</text>
+            <JzIcon name="copy" :size="28" :color="TOKEN_COLOR.primary" /><text>复制客服邮箱</text>
           </button>
           <button class="jz-btn jz-btn--plain jz-btn--block about-support__button" @tap="copyIssueTemplate">
-            <JzIcon name="doc" :size="28" color="#0E8A7D" /><text>复制问题反馈模板</text>
+            <JzIcon name="doc" :size="28" :color="TOKEN_COLOR.primary" /><text>复制问题反馈模板</text>
           </button>
           <text class="about-support__email">客服邮箱：{{ contactEmail }}</text>
         </view>
       </view>
 
       <view class="about-links jz-card">
-        <view class="jz-cell" @tap="go(P.userAgreement)"><text class="jz-grow">用户协议</text><JzIcon name="chevron-right" :size="28" color="#AEB8C2" /></view>
-        <view class="jz-cell" @tap="go(P.privacyPolicy)"><text class="jz-grow">隐私政策</text><JzIcon name="chevron-right" :size="28" color="#AEB8C2" /></view>
+        <view class="jz-cell" @tap="go(P.userAgreement)"><text class="jz-grow">用户协议</text><JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" /></view>
+        <view class="jz-cell" @tap="go(P.privacyPolicy)"><text class="jz-grow">隐私政策</text><JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" /></view>
       </view>
 
       <view class="about-footer">
@@ -150,14 +151,14 @@ function go(url: string) {
 <style lang="scss" scoped>
 .about-page { min-height: 100vh; background: $jzb-bg-page; }
 .about-body { padding: 24rpx $jzb-page-pad calc($jzb-safe-bottom + 48rpx); }
-.about-hero { position: relative; padding: 42rpx 34rpx; overflow: hidden; background: linear-gradient(145deg, #0E8A7D, #147D73 62%, #0B665F); color: #fff; }
+.about-hero { position: relative; padding: 42rpx 34rpx; overflow: hidden; background: linear-gradient(145deg, $jzb-primary-dark, #147D73 62%, #0B665F); color: $jzb-text-inverse; }
 .about-hero__glow { position: absolute; right: -90rpx; top: -110rpx; width: 300rpx; height: 300rpx; border-radius: 50%; background: rgba(255,255,255,.14); }
 .about-hero__logo { border-radius: 34rpx; }
 .about-hero__name { display: block; margin-top: 24rpx; font-size: 52rpx; font-weight: 800; letter-spacing: 2rpx; }
 .about-hero__slogan { display: block; margin-top: 8rpx; font-size: 32rpx; font-weight: 700; }
 .about-hero__desc { display: block; margin-top: 18rpx; color: rgba(255,255,255,.82); font-size: $jzb-font-sm; line-height: 1.7; }
 .about-hero__chips { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 24rpx; }
-.about-hero__chips text { padding: 9rpx 18rpx; border-radius: $jzb-radius-pill; background: rgba(255,255,255,.14); color: #fff; font-size: $jzb-font-xs; }
+.about-hero__chips text { padding: 9rpx 18rpx; border-radius: $jzb-radius-pill; background: rgba(255,255,255,.14); color: $jzb-text-inverse; font-size: $jzb-font-xs; }
 .about-section { margin-top: 36rpx; }
 .about-section__title { display: block; color: $jzb-text-1; font-size: 34rpx; font-weight: 760; }
 .about-section__subtitle { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.65; }

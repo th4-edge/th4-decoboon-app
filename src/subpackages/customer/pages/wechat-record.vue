@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { crmApi } from '@/domains/crm/api'
@@ -53,7 +54,7 @@ async function save() {
 
     <view class="wr__customer jz-card">
       <view class="wr__customer-row">
-        <JzIcon name="user" :size="30" color="#0E8A7D" />
+        <JzIcon name="user" :size="30" :color="TOKEN_COLOR.primary" />
         <text class="wr__customer-name">{{ customer?.name || '客户' }}</text>
         <text class="wr__customer-phone">{{ customer?.phone || '—' }}</text>
       </view>
@@ -64,7 +65,7 @@ async function save() {
       <text class="wr__label">客户微信号（可选）</text>
       <input v-model="wechatNo" class="wr__input" maxlength="64" placeholder="填写后便于团队统一查找" />
       <view class="wr__tip">
-        <JzIcon name="info" :size="24" color="#778390" />
+        <JzIcon name="info" :size="24" :color="TOKEN_COLOR.text3" />
         <text>确认已添加客户微信后再记录，重复记录只更新微信号。</text>
       </view>
     </view>

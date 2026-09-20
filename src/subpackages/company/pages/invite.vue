@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -75,21 +76,21 @@ function pickTeam(event: { detail: { value: string } }) {
         <view class="ci-field">
           <text>岗位</text>
           <picker :range="roles.map(item => item.label)" :value="roleIndex" @change="pickRole">
-            <view class="ci-picker">{{ roles[roleIndex]?.label || '请选择' }}<JzIcon name="chevron-down" :size="26" color="#778390" /></view>
+            <view class="ci-picker">{{ roles[roleIndex]?.label || '请选择' }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
           </picker>
         </view>
         <view v-if="role === 'teamLeader' && !teamId" class="ci-field"><text>新团队</text><input v-model="teamName" maxlength="128" placeholder="团队负责人新团队名称" /></view>
         <view v-if="teams.length" class="ci-field">
           <text>团队</text>
           <picker :range="['未分配', ...teams.map(item => item.name)]" :value="teamIndex + 1" @change="pickTeam">
-            <view class="ci-picker">{{ teamId ? teams[teamIndex]?.name : '未分配' }}<JzIcon name="chevron-down" :size="26" color="#778390" /></view>
+            <view class="ci-picker">{{ teamId ? teams[teamIndex]?.name : '未分配' }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
           </picker>
         </view>
       </view>
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="submitting" @tap="create">生成邀请</button>
 
       <view v-if="generated" class="jz-card ci-result">
-        <view class="ci-result__head"><JzTag text="邀请已创建" color="#07A35A" /><text>有效期 7 天</text></view>
+        <view class="ci-result__head"><JzTag text="邀请已创建" :color="TOKEN_COLOR.success" /><text>有效期 7 天</text></view>
         <text class="ci-result__name">{{ generated.inviteName }}</text>
         <text class="ci-result__phone">{{ generated.telNo }} · 邀请编号 {{ generated.id }}</text>
         <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share">微信分享邀请卡片</button>

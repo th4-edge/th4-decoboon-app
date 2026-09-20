@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -18,7 +19,7 @@ const editableRoles: { value: EmployeeRole; label: string }[] = [
   { value: 'finance', label: '财务' }
 ]
 const roleIndex = ref(0)
-const status = { active: ['在职', '#07A35A'], suspended: ['停用', '#E67E22'], resigned: ['已离职', '#E5484D'] }
+const status = { active: ['在职', TOKEN_COLOR.success], suspended: ['停用', TOKEN_COLOR.warning], resigned: ['已离职', TOKEN_COLOR.danger] }
 onLoad(async (query) => {
   empId.value = query?.empId || ''
   try {
@@ -64,7 +65,7 @@ function handover() { uni.navigateTo({ url: `${P.companyHandover}?empId=${empId.
 .md-body { padding: 28rpx; }
 .md-card { padding: 28rpx; }
 .md-head { display: flex; align-items: center; gap: 18rpx; padding-bottom: 24rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.md-avatar { display: flex; align-items: center; justify-content: center; width: 90rpx; height: 90rpx; color: #fff; background: $jzb-gradient; border-radius: 30rpx; font-size: 40rpx; font-weight: 750; }
+.md-avatar { display: flex; align-items: center; justify-content: center; width: 90rpx; height: 90rpx; color: $jzb-text-inverse; background: $jzb-gradient; border-radius: 30rpx; font-size: 40rpx; font-weight: 750; }
 .md-name { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .md-role { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .md-row { display: flex; justify-content: space-between; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; font-size: $jzb-font-sm; }

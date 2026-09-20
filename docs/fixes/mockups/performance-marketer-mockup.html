@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>业务员业绩页 Mockup（优化后）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f7f8;
+    padding: 32px;
+    color: #17212b;
+  }
+  .page { max-width: 1400px; margin: 0 auto; }
+
+  /* PageHeader */
+  .eyebrow { color: #0e8a7d; font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+  h1 { font-size: 26px; font-weight: 700; margin: 6px 0 4px; }
+  .desc { color: #7a8694; font-size: 13px; }
+
+  /* 通用 card */
+  .card {
+    background: #fff;
+    border: 1px solid #e6ecee;
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-top: 16px;
+  }
+  .card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .card-head h2 { font-size: 15px; font-weight: 600; }
+  .card-head p { color: #8d98a5; font-size: 12px; margin-top: 3px; }
+  .btn { padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid #e6ecee; background: #fff; color: #465260; }
+  .btn--primary { background: #0e8a7d; color: #fff; border-color: #0e8a7d; }
+  .btn--text { border: none; background: transparent; color: #0e8a7d; padding: 6px 8px; }
+
+  /* ============ 优化后的 hero：一体化 ============ */
+  .hero {
+    display: grid;
+    grid-template-columns: auto 1px 1fr 1fr;
+    align-items: center;
+    gap: 28px;
+    padding: 22px 26px;
+    background: #fff;
+    border: 1px solid #e6ecee;
+    border-radius: 12px;
+    margin-top: 16px;
+  }
+  .hero__main .label { color: #7a8694; font-size: 12px; }
+  .hero__main .value { font-size: 44px; font-weight: 700; color: #0e8a7d; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .hero__main .hint { color: #9aa6b2; font-size: 11px; margin-top: 6px; }
+  .hero__divider { width: 1px; height: 56px; background: #e6ecee; }
+  .hero__metric .label { color: #7a8694; font-size: 12px; }
+  .hero__metric .value { font-size: 28px; font-weight: 700; color: #17212b; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .hero__metric .hint { color: #9aa6b2; font-size: 11px; margin-top: 4px; }
+
+  /* ============ 优化后的经营节奏：横向三行 ============ */
+  .rhythm-table { width: 100%; }
+  .rhythm-head { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid #eef2f4; }
+  .rhythm-head span { color: #7a8694; font-size: 12px; font-weight: 600; }
+  .rhythm-head span:first-child { color: transparent; }
+  .rhythm-row { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px dashed #eef2f4; }
+  .rhythm-row:last-child { border-bottom: none; }
+  .rhythm-row__period { color: #465260; font-size: 13px; font-weight: 500; }
+  .rhythm-cell { display: flex; align-items: baseline; gap: 8px; }
+  .rhythm-cell__value { font-size: 22px; font-weight: 700; color: #17212b; font-variant-numeric: tabular-nums; }
+  .rhythm-cell__delta { font-size: 11px; font-weight: 500; }
+  .up { color: #22a06b; }
+  .down { color: #e5484d; }
+  .flat { color: #9aa6b2; }
+
+  /* ============ 优化后的今日待办：紧凑横条 ============ */
+  .todo-bar { display: flex; border: 1px solid #e6ecee; border-radius: 10px; overflow: hidden; }
+  .todo-bar__item { flex: 1; padding: 16px 12px; text-align: center; border-right: 1px solid #eef2f4; }
+  .todo-bar__item:last-child { border-right: none; }
+  .todo-bar__item .num { font-size: 26px; font-weight: 700; color: #17212b; line-height: 1; font-variant-numeric: tabular-nums; }
+  .todo-bar__item .lbl { font-size: 11px; color: #7a8694; margin-top: 6px; }
+  .todo-bar__item--danger { background: #fdecec; }
+  .todo-bar__item--danger .num { color: #d74b50; }
+  .todo-bar__item--warning { background: #fdf4e3; }
+  .todo-bar__item--warning .num { color: #e8943a; }
+
+  /* ============ 客户健康度：紧凑条 ============ */
+  .golden-list { display: flex; flex-direction: column; gap: 10px; }
+  .golden-row { display: flex; align-items: center; gap: 12px; }
+  .golden-row__label { width: 140px; flex: 0 0 auto; font-size: 12px; color: #465260; }
+  .golden-row__track { flex: 1; height: 6px; background: #f0f4f5; border-radius: 999px; overflow: hidden; }
+  .golden-row__bar { height: 100%; border-radius: 999px; }
+  .golden-row__val { width: 24px; text-align: right; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ============ 我的排名：紧凑一行 ============ */
+  .my-rank { display: flex; gap: 32px; padding: 4px 0; }
+  .my-rank__item .lbl { color: #7a8694; font-size: 12px; }
+  .my-rank__item .val { font-size: 24px; font-weight: 700; color: #0e8a7d; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .my-rank__item .sub { color: #9aa6b2; font-size: 11px; margin-top: 2px; }
+
+  /* ============ 空态折叠 ============ */
+  .empty-inline { padding: 20px; text-align: center; color: #9aa6b2; font-size: 12px; }
+
+  .compare-label { font-size: 13px; font-weight: 700; color: #17212b; margin: 32px 0 12px; padding-left: 10px; border-left: 3px solid #0e8a7d; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="eyebrow">PERFORMANCE / MARKETER DATASCOPE</div>
+  <h1>我的营销业绩</h1>
+  <div class="desc">按客户录入量、量房率与跟进动作衡量营销业绩。</div>
+
+  <!-- hero：一体化，不用浅灰卡片 -->
+  <div class="hero">
+    <div class="hero__main">
+      <div class="label">本月录入客户</div>
+      <div class="value">3</div>
+      <div class="hint">客户海录入规模</div>
+    </div>
+    <div class="hero__divider"></div>
+    <div class="hero__metric">
+      <div class="label">本月量房率</div>
+      <div class="value">0%</div>
+      <div class="hint">已量房 / 新增客户</div>
+    </div>
+    <div class="hero__metric">
+      <div class="label">本月跟进数</div>
+      <div class="value">1</div>
+      <div class="hint">跟进动作密度</div>
+    </div>
+  </div>
+
+  <!-- 经营节奏：横向三行，每行三个指标 -->
+  <div class="card">
+    <div class="card-head">
+      <div><h2>本月经营节奏</h2><p>日 / 周 / 月三个维度，与上一周期对比</p></div>
+      <button class="btn btn--text">去录入 / 跟进客户 →</button>
+    </div>
+    <div class="rhythm-table">
+      <div class="rhythm-head">
+        <span></span>
+        <span>客户录入</span>
+        <span>量房率</span>
+        <span>跟进活跃</span>
+      </div>
+      <div class="rhythm-row">
+        <div class="rhythm-row__period">今日</div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">3</span><span class="rhythm-cell__delta up">↑100%</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">0%</span><span class="rhythm-cell__delta flat">持平</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">1</span><span class="rhythm-cell__delta up">↑100%</span></div>
+      </div>
+      <div class="rhythm-row">
+        <div class="rhythm-row__period">本周</div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">3</span><span class="rhythm-cell__delta up">↑100%</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">0%</span><span class="rhythm-cell__delta flat">持平</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">1</span><span class="rhythm-cell__delta up">↑100%</span></div>
+      </div>
+      <div class="rhythm-row">
+        <div class="rhythm-row__period">本月</div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">3</span><span class="rhythm-cell__delta up">↑100%</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">0%</span><span class="rhythm-cell__delta flat">持平</span></div>
+        <div class="rhythm-cell"><span class="rhythm-cell__value">1</span><span class="rhythm-cell__delta up">↑100%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日待办：紧凑横条 -->
+  <div class="card">
+    <div class="card-head">
+      <div><h2>今日待办</h2><p>先处理逾期，再处理今日待跟进</p></div>
+      <button class="btn btn--primary">去跟进客户</button>
+    </div>
+    <div class="todo-bar">
+      <div class="todo-bar__item"><div class="num">0</div><div class="lbl">今日待跟进</div></div>
+      <div class="todo-bar__item todo-bar__item--danger"><div class="num">0</div><div class="lbl">逾期未跟进</div></div>
+      <div class="todo-bar__item todo-bar__item--warning"><div class="num">1</div><div class="lbl">待量房</div></div>
+      <div class="todo-bar__item"><div class="num">0</div><div class="lbl">待推进报价</div></div>
+      <div class="todo-bar__item"><div class="num">0</div><div class="lbl">流失客户</div></div>
+    </div>
+  </div>
+
+  <!-- 客户健康度：紧凑条 -->
+  <div class="card">
+    <div class="card-head">
+      <div><h2>客户健康度</h2><p>按建档时长划分黄金营销时段</p></div>
+    </div>
+    <div class="golden-list">
+      <div class="golden-row">
+        <div class="golden-row__label">0-3 天 · 黄金期</div>
+        <div class="golden-row__track"><div class="golden-row__bar" style="width:100%;background:#0e8a7d"></div></div>
+        <div class="golden-row__val" style="color:#0e8a7d">3</div>
+      </div>
+      <div class="golden-row">
+        <div class="golden-row__label">4-7 天 · 热度期</div>
+        <div class="golden-row__track"><div class="golden-row__bar" style="width:4%;background:#7fbb9b"></div></div>
+        <div class="golden-row__val" style="color:#7fbb9b">0</div>
+      </div>
+      <div class="golden-row">
+        <div class="golden-row__label">8-15 天 · 降温期</div>
+        <div class="golden-row__track"><div class="golden-row__bar" style="width:4%;background:#e8943a"></div></div>
+        <div class="golden-row__val" style="color:#e8943a">0</div>
+      </div>
+      <div class="golden-row">
+        <div class="golden-row__label">15 天+ · 风险期</div>
+        <div class="golden-row__track"><div class="golden-row__bar" style="width:4%;background:#d74b50"></div></div>
+        <div class="golden-row__val" style="color:#d74b50">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的排名：紧凑一行，不用浅灰卡片 -->
+  <div class="card">
+    <div class="card-head">
+      <div><h2>我的排名</h2><p>按本月录入 → 量房率 → 跟进数综合排序</p></div>
+    </div>
+    <div class="my-rank">
+      <div class="my-rank__item">
+        <div class="lbl">企业业务员排名</div>
+        <div class="val">#1</div>
+        <div class="sub">共 1 人</div>
+      </div>
+      <div class="my-rank__item">
+        <div class="lbl">门店排名</div>
+        <div class="val">#1</div>
+        <div class="sub">共 1 店</div>
+      </div>
+      <div class="my-rank__item">
+        <div class="lbl">客户总数</div>
+        <div class="val">3</div>
+        <div class="sub">成交 0 · 项目 0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 排行：只有 1 人时折叠成一行 -->
+  <div class="card">
+    <div class="card-head">
+      <div><h2>排行</h2><p>企业与门店业务员排名</p></div>
+    </div>
+    <div class="empty-inline">
+      本月仅你 1 人产生数据，暂无更多排行对比。录入更多客户后自动形成排名。
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

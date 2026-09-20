@@ -6,6 +6,7 @@ import { isLoggedIn } from '@/domains/identity/session'
 import type { Contract, Quote } from '@/domains/trade/model'
 import { tradeApi } from '@/domains/trade/api'
 import { money } from '@/core/format'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -17,6 +18,7 @@ const customerId = ref('')
 const propertyId = ref('')
 const quotes = ref<Quote[]>([])
 const contract = ref<Contract | null>(null)
+const finalSignedAmount = ref<number | string>('')
 const signedAt = ref(new Date().toISOString().slice(0, 10))
 const startDate = ref(new Date().toISOString().slice(0, 10))
 const planEndDate = ref(new Date(Date.now() + 120 * 86400000).toISOString().slice(0, 10))
@@ -79,6 +81,7 @@ async function load() {
 async function selectQuote(quote: Quote) {
   quoteId.value = quote.id
   contract.value = await tradeApi.contractByQuote(quote.id).catch(() => null)
+  finalSignedAmount.value = contract.value?.signedAmount ?? quote.amount
   if (contract.value?.signedAt) signedAt.value = contract.value.signedAt.slice(0, 10)
   if (quote.property?.id) propertyId.value = quote.property.id
 }
@@ -106,12 +109,17 @@ async function submit() {
     toast('计划完工日期不能早于开工日期')
     return
   }
+  if (!finalSignedAmount.value || Number(finalSignedAmount.value) <= 0) {
+    toast('请填写大于 0 的最终签约价格')
+    return
+  }
   submitting.value = true
   loading(contract.value ? '合同生效并生成项目…' : '生成合同基线…')
   try {
     if (!contract.value) {
       contract.value = await tradeApi.generateContract(quote.id, {
         signedAt: signedAt.value || undefined,
+        signedAmount: Number(finalSignedAmount.value),
         startDate: startDate.value,
         planEndDate: planEndDate.value,
         paymentTerms: paymentTerms.value.trim() || undefined
@@ -119,6 +127,12 @@ async function submit() {
       hideLoading()
       toast('合同基线已生成，请确认签约生效', 'success')
       return
+    }
+    if (contract.value.status === 'draft' || contract.value.status === 'pendingSign') {
+      contract.value = await tradeApi.updateContract(contract.value.id, 'signed', {
+        signedAt: signedAt.value || undefined,
+        signedAmount: Number(finalSignedAmount.value)
+      })
     }
     contract.value = await tradeApi.updateContract(contract.value.id, 'effective', {
       startDate: startDate.value,
@@ -139,9 +153,9 @@ async function submit() {
 <template>
   <view class="pc">
     <view class="pc__notice jz-card">
-      <view class="pc__notice-icon"><JzIcon name="shield-check" :size="38" color="#6958C8" /></view>
+      <view class="pc__notice-icon"><JzIcon name="shield-check" :size="38" :color="TOKEN_COLOR.purple" /></view>
       <view class="jz-grow">
-        <text class="pc__notice-title">报价确认 → 合同签约 → 唯一项目</text>
+        <text class="pc__notice-title">报价确认 · 合同签约 · 唯一项目</text>
         <text class="pc__notice-sub">一个房屋最多确认一份报价、生成一份合同和一个项目；合同生效后才进入施工履约。</text>
       </view>
     </view>
@@ -171,12 +185,12 @@ async function submit() {
           <view class="jz-grow pc__value" :class="{ 'pc__value--empty': !quoteId }">
             {{ selectedQuote ? `${selectedQuote.customer?.name} · ${selectedQuote.no}` : '选择报价' }}
           </view>
-          <JzIcon class="pc__arrow" name="chevron-right" :size="28" color="#AEB8C2" />
+          <JzIcon class="pc__arrow" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
       </picker>
       <view v-else-if="loadingData" class="pc__loading">正在加载客户已确认报价…</view>
       <view v-else class="pc__empty">
-        <JzIcon name="file-text" :size="34" color="#6958C8" />
+        <JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.purple" />
         <text>暂无客户已确认报价，请先在报价详情完成客户确认。</text>
       </view>
 
@@ -190,12 +204,22 @@ async function submit() {
       <view v-if="contract" class="pc__contract-state">
         <view class="jz-grow">
           <text class="pc__contract-no">{{ contract.no }}</text>
-          <text class="pc__contract-sub">合同金额 {{ money(contract.currentAmount) }}</text>
+          <text class="pc__contract-sub">当前合同金额 {{ money(contract.currentAmount) }}</text>
         </view>
-        <JzTag :text="contractStatusText" :color="contract.status === 'effective' ? '#07A35A' : '#E67E22'" />
+        <JzTag :text="contractStatusText" :color="contract.status === 'effective' ? TOKEN_COLOR.success : TOKEN_COLOR.warning" />
       </view>
 
       <text class="pc__group pc__group--gap">二、合同与计划</text>
+      <view class="pc__row">
+        <text class="pc__label">最终签约价</text>
+        <input
+          v-model="finalSignedAmount"
+          class="jz-grow pc__value"
+          type="digit"
+          :disabled="Boolean(contract && contract.status !== 'draft' && contract.status !== 'pendingSign')"
+          placeholder="客户最终确认的合同价格"
+        />
+      </view>
       <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
       <view class="pc__row"><text class="pc__label">计划开工</text><picker mode="date" :value="startDate" @change="startDate = $event.detail.value"><view class="jz-grow pc__value">{{ startDate || '请选择' }}</view></picker></view>
       <view class="pc__row"><text class="pc__label">计划完工</text><picker mode="date" :value="planEndDate" @change="planEndDate = $event.detail.value"><view class="jz-grow pc__value">{{ planEndDate || '请选择' }}</view></picker></view>

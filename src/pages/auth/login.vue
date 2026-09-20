@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P, goTab, runtime } from '@/config'
@@ -128,9 +129,9 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
       <view class="login__hero">
         <text class="login__hero-title">让项目进度、现场协作与验收确认始终同频</text>
         <view class="login__features">
-          <view class="login__feature"><JzIcon name="briefcase" :size="28" color="#0E8A7D" /><text>项目经营</text></view>
-          <view class="login__feature"><JzIcon name="camera" :size="28" color="#0E8A7D" /><text>现场留证</text></view>
-          <view class="login__feature"><JzIcon name="shield-check" :size="28" color="#0E8A7D" /><text>验收闭环</text></view>
+          <view class="login__feature"><JzIcon name="briefcase" :size="28" :color="TOKEN_COLOR.primary" /><text>项目经营</text></view>
+          <view class="login__feature"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场留证</text></view>
+          <view class="login__feature"><JzIcon name="shield-check" :size="28" :color="TOKEN_COLOR.primary" /><text>验收闭环</text></view>
         </view>
       </view>
 
@@ -141,17 +142,17 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
         </view>
         <button v-if="!needPhone" class="login__submit jz-btn jz-btn--primary jz-btn--block"
                 :loading="submitting" @tap="wxLogin">
-          <JzIcon name="message" :size="30" color="#FFFFFF" />
+          <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" />
           <text>微信登录</text>
         </button>
         <button v-else class="login__submit jz-btn jz-btn--primary jz-btn--block" open-type="getPhoneNumber"
                 :loading="submitting" @getphonenumber="wxPhoneLogin">
-          <JzIcon name="message" :size="30" color="#FFFFFF" />
+          <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" />
           <text>首次使用，授权手机号继续</text>
         </button>
         <view class="login__agree" @tap="toggleAgreed">
           <view class="login__checkbox" :class="{ 'login__checkbox--on': agreed }">
-            <JzIcon v-if="agreed" name="check" :size="22" color="#FFFFFF" :stroke-width="2.6" />
+            <JzIcon v-if="agreed" name="check" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
           </view>
           <text class="login__agree-text">我已阅读并同意</text>
           <text class="login__link" @tap.stop="openAgreement(P.userAgreement)">《用户协议》</text>

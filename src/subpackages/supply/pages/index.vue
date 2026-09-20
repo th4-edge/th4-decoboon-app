@@ -5,12 +5,13 @@ import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { materialApi } from '@/domains/material/api'
 import type { MaterialPlan, PurchaseOrder, PurchaseStatus } from '@/domains/material/model'
-import { supplyApi } from '@/subpackages/supply/domains/supply/api'
-import type { InventoryStock, Partner, PartnerPrice, StockMovement } from '@/subpackages/supply/domains/supply/model'
+import { supplyApi } from '@/domains/supply/api'
+import type { InventoryStock, Partner, PartnerPrice, StockMovement } from '@/domains/supply/model'
 import { toast, toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 type Tab = 'purchase' | 'inventory' | 'partner' | 'price'
 const tab = ref<Tab>('purchase')
@@ -65,10 +66,10 @@ function purchaseStatusText(status: PurchaseStatus) {
   return ({ draft: '草稿', submitted: '待确认', approved: '已确认', ordered: '已下单', partiallyReceived: '部分到货', received: '已到货', rejected: '已驳回', cancelled: '已取消', closed: '已结清' })[status]
 }
 function purchaseStatusColor(status: PurchaseStatus) {
-  if (status === 'rejected' || status === 'cancelled') return '#E5484D'
-  if (status === 'received' || status === 'closed') return '#0E8A7D'
-  if (status === 'submitted') return '#E67E22'
-  return '#16A394'
+  if (status === 'rejected' || status === 'cancelled') return TOKEN_COLOR.danger
+  if (status === 'received' || status === 'closed') return TOKEN_COLOR.primary
+  if (status === 'submitted') return TOKEN_COLOR.warning
+  return TOKEN_COLOR.primaryBase
 }
 function deliveryText(mode: PurchaseOrder['deliveryMode']) {
   return mode === 'warehouse' ? '入仓库' : '直送工地'
@@ -121,12 +122,12 @@ async function approve(item: PurchaseOrder) {
         <view><text>{{ waitingReceiptCount }}</text><text>待到货</text></view>
       </view>
       <view class="supply__add jz-card" @tap="addPurchase()">
-        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>从材料计划创建采购单</text>
+        <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>从材料计划创建采购单</text>
       </view>
 
       <view v-if="pendingPlans.length" class="supply__section">待采购材料</view>
       <view v-for="plan in pendingPlans" :key="plan.id" class="jz-card supply__card">
-        <view class="jz-between"><text class="supply__name">{{ plan.name }}</text><JzTag text="待采购" color="#E67E22" /></view>
+        <view class="jz-between"><text class="supply__name">{{ plan.name }}</text><JzTag text="待采购" :color="TOKEN_COLOR.warning" /></view>
         <text class="supply__meta">{{ plan.project?.name || '项目材料' }} · {{ plan.quantity }}{{ plan.unit }} · 要求到场 {{ plan.requiredAt || '未设置' }}</text>
         <view class="supply__actions"><button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="addPurchase(plan.id)">去采购</button></view>
       </view>
@@ -146,19 +147,20 @@ async function approve(item: PurchaseOrder) {
 
     <view v-else-if="tab === 'partner'" class="supply__list">
       <view class="supply__add jz-card" @tap="addPartner()">
-        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增供应商</text>
+        <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>新增供应商</text>
       </view>
       <view v-for="item in partners" :key="item.id" class="jz-card supply__card" @tap="editPartner(item.id)">
         <view class="jz-between"><text class="supply__name">{{ item.name }}</text><JzTag :text="item.status === 'active' ? '合作中' : '已停用'" /></view>
         <text class="supply__meta">{{ partnerTypeText(item.type) }} · {{ item.contactName || '-' }} {{ item.telNo || '' }}</text>
-        <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
+
+        <text class="supply__meta">关联品牌：{{ (item.brands || []).join('、') || '未维护' }}</text>        <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
       </view>
       <JzEmpty v-if="!partners.length" text="暂无供应商" />
     </view>
 
     <view v-else-if="tab === 'price'" class="supply__list">
       <view class="supply__add jz-card" @tap="addPrice()">
-        <JzIcon name="plus" :size="30" color="#0E8A7D" /><text>新增采购价</text>
+        <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>新增采购价</text>
       </view>
       <view v-for="item in prices" :key="item.id" class="jz-card supply__card" @tap="editPrice(item.id)">
         <view class="jz-between"><text class="supply__name">{{ item.itemName }}</text><JzTag :text="item.active === false ? '已停用' : '有效'" /></view>
@@ -170,7 +172,7 @@ async function approve(item: PurchaseOrder) {
 
     <view v-else class="supply__list">
       <view v-for="item in warnings" :key="item.id" class="jz-card supply__card">
-        <view class="jz-between"><text class="supply__name">{{ item.itemName }}</text><JzTag text="库存预警" color="#E67E22" /></view>
+        <view class="jz-between"><text class="supply__name">{{ item.itemName }}</text><JzTag text="库存预警" :color="TOKEN_COLOR.warning" /></view>
         <text class="supply__meta">可用 {{ item.availableQuantity }} · 安全库存 {{ item.safetyStock }}</text>
       </view>
       <view v-for="item in inventory" :key="item.id" class="jz-card supply__card">
@@ -189,8 +191,8 @@ async function approve(item: PurchaseOrder) {
 <style lang="scss" scoped>
 .supply { padding-bottom: 40rpx; }
 .supply__tabs { display: flex; gap: 12rpx; padding: 20rpx $jzb-page-pad 10rpx; overflow-x: auto; }
-.supply__tab { flex-shrink: 0; padding: 14rpx 26rpx; color: $jzb-text-2; background: #fff; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
-.supply__tab--on { color: #fff; background: $jzb-primary; font-weight: 650; }
+.supply__tab { flex-shrink: 0; padding: 14rpx 26rpx; color: $jzb-text-2; background: $jzb-text-inverse; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
+.supply__tab--on { color: $jzb-text-inverse; background: $jzb-primary; font-weight: 650; }
 .supply__list { padding: 14rpx $jzb-page-pad; }
 .supply__summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-bottom: 16rpx; }
 .supply__summary view { padding: 20rpx 8rpx; text-align: center; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.12); border-radius: $jzb-radius-sm; }

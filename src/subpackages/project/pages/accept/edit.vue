@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -150,12 +151,12 @@ async function submit() {
 
       <!-- 业主确认大按钮 -->
       <view v-if="waitingCustomer" class="ac__confirm">
-        <button class="jz-btn jz-btn--danger-ghost jz-grow" @tap="confirm(false)"><JzIcon name="close" :size="28" color="#E5484D" /><text>有异议，驳回</text></button>
-        <button class="jz-btn jz-btn--primary jz-grow" style="margin-left:20rpx;" @tap="confirm(true)"><JzIcon name="check" :size="30" color="#FFFFFF" :stroke-width="2.4" /><text>确认验收</text></button>
+        <button class="jz-btn jz-btn--danger-ghost jz-grow" @tap="confirm(false)"><JzIcon name="close" :size="28" :color="TOKEN_COLOR.danger" /><text>有异议，驳回</text></button>
+        <button class="jz-btn jz-btn--primary jz-grow" style="margin-left:20rpx;" @tap="confirm(true)"><JzIcon name="check" :size="30" :color="TOKEN_COLOR.white" :stroke-width="2.4" /><text>确认验收</text></button>
       </view>
       <text v-if="waitingCustomer" class="ac__tip">业主确认后，验收结果将同步给项目经理与企业负责人</text>
       <view v-else-if="acceptance.customerStatus === 'rejected' && canSubmit" class="ac__resubmit">
-        <button class="jz-btn jz-btn--plain jz-btn--block ac__resubmit-btn" @tap="resubmit"><text>整改完成，重新提交验收</text><JzIcon name="chevron-down" :size="26" color="#0E8A7D" /></button>
+        <button class="jz-btn jz-btn--plain jz-btn--block ac__resubmit-btn" @tap="resubmit"><text>整改完成，重新提交验收</text><JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.primary" /></button>
       </view>
     </view>
 
@@ -176,12 +177,12 @@ async function submit() {
       <view class="ac__imgs">
         <view v-for="(im, i) in images" :key="i" class="ac__img ac__img--rel">
           <image :src="im" mode="aspectFill" @tap="preview(i)" />
-          <view class="ac__del" @tap.stop="removeImage(i)"><JzIcon name="close" :size="22" color="#FFFFFF" :stroke-width="2.4" /></view>
+          <view class="ac__del" @tap.stop="removeImage(i)"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.4" /></view>
         </view>
-        <view v-if="images.length < 9" class="ac__img ac__add" @tap="chooseImage"><JzIcon name="plus" :size="42" color="#778390" /></view>
+        <view v-if="images.length < 9" class="ac__img ac__add" @tap="chooseImage"><JzIcon name="plus" :size="42" :color="TOKEN_COLOR.text3" /></view>
       </view>
       <view class="ac__submit">
-        <button class="jz-btn jz-btn--primary jz-btn--block ac__submit-btn" @tap="submit"><JzIcon name="check-circle" :size="28" color="#FFFFFF" /><text>提交验收（等待业主确认）</text></button>
+        <button class="jz-btn jz-btn--primary jz-btn--block ac__submit-btn" @tap="submit"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.white" /><text>提交验收（等待业主确认）</text></button>
       </view>
     </view>
 
@@ -203,7 +204,7 @@ async function submit() {
 .ac__issue { font-size: $jzb-font-sm; color: $jzb-warning; line-height: 1.9; }
 .ac__results { flex-wrap: wrap; }
 .ac__result { padding: 12rpx 26rpx; margin: 0 16rpx 12rpx 0; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
-.ac__result--on { background: $jzb-primary; color: #fff; }
+.ac__result--on { background: $jzb-primary; color: $jzb-text-inverse; }
 .req { color: $jzb-danger; }
 .ac__ta { width: 100%; height: 220rpx; background: $jzb-bg-hover; border-radius: $jzb-radius; padding: 18rpx; box-sizing: border-box; font-size: $jzb-font; }
 .ac__ta--sm { height: 140rpx; }

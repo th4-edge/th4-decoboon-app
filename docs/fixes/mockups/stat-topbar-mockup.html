@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>客户 360 顶部统计条 Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f7f8;
+    padding: 40px;
+    color: #1a2733;
+  }
+  .label {
+    font-size: 13px;
+    color: #6b7a8a;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  /* ============ 方案 A：GitLab 风格横条（推荐） ============ */
+  .stat-bar {
+    display: flex;
+    align-items: stretch;
+    background: #fff;
+    border: 1px solid #e6ecee;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(15,40,60,.04);
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .stat-bar__item {
+    flex: 1;
+    padding: 14px 18px;
+    border-right: 1px solid #eef2f4;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  .stat-bar__item:last-child { border-right: none; }
+  .stat-bar__value {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #17212b;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.3px;
+  }
+  .stat-bar__label {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #8d98a5;
+  }
+  .stat-bar__item--danger .stat-bar__value { color: #d74b50; }
+  .stat-bar__item--warning .stat-bar__value { color: #e8943a; }
+  .stat-bar__item--brand .stat-bar__value { color: #0e8a7d; }
+
+  /* ============ 方案 B：带 icon 的紧凑卡（对比用） ============ */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  .stat-chip {
+    background: #fff;
+    border: 1px solid #e6ecee;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stat-chip__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    flex: 0 0 auto;
+  }
+  .stat-chip__icon--brand { background: #e8f7f5; color: #0e8a7d; }
+  .stat-chip__icon--info { background: #e8f1fd; color: #3b7de8; }
+  .stat-chip__icon--warning { background: #fdf4e3; color: #e8943a; }
+  .stat-chip__icon--danger { background: #fdecec; color: #d74b50; }
+  .stat-chip__icon--purple { background: #f1ebfd; color: #7b5cd6; }
+  .stat-chip__body { min-width: 0; }
+  .stat-chip__value {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #17212b;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-chip__label {
+    font-size: 11px;
+    color: #8d98a5;
+    margin-top: 2px;
+  }
+
+  /* ============ 对比：当前实现 ============ */
+  .stat-current {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .stat-current__card {
+    background: #fff;
+    border: 1px solid #e6ecee;
+    border-radius: 10px;
+    padding: 18px;
+    min-height: 104px;
+  }
+  .stat-current__icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: #e8f7f5;
+    color: #0e8a7d;
+    display: grid; place-items: center;
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+  .stat-current__label { font-size: 12px; color: #8d98a5; }
+  .stat-current__value { font-size: 28px; font-weight: 700; margin-top: 8px; line-height: 1; }
+  .stat-current__hint { font-size: 11px; color: #8d98a5; margin-top: 8px; }
+
+  .compare-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #17212b;
+    margin: 32px 0 12px;
+    padding-left: 10px;
+    border-left: 3px solid #0e8a7d;
+  }
+  .compare-note {
+    font-size: 12px;
+    color: #6b7a8a;
+    margin: 8px 0 16px;
+    padding-left: 13px;
+  }
+  .dim { opacity: .55; }
+</style>
+</head>
+<body>
+
+<div class="compare-title">方案 A：GitLab 风格横条（推荐）— 高度 60px</div>
+<div class="compare-note">一行排开，竖线分隔，数字大字 + 标签小字；逾期/今日跟进用颜色突出；无 icon、无 hint、无卡片阴影。</div>
+
+<div class="stat-bar">
+  <div class="stat-bar__item">
+    <span class="stat-bar__value">3</span>
+    <span class="stat-bar__label">客户总数</span>
+  </div>
+  <div class="stat-bar__item">
+    <span class="stat-bar__value">0</span>
+    <span class="stat-bar__label">线索客户</span>
+  </div>
+  <div class="stat-bar__item">
+    <span class="stat-bar__value">3</span>
+    <span class="stat-bar__label">黄金营销期</span>
+  </div>
+  <div class="stat-bar__item stat-bar__item--danger">
+    <span class="stat-bar__value">0</span>
+    <span class="stat-bar__label">已逾期跟进</span>
+  </div>
+  <div class="stat-bar__item stat-bar__item--warning">
+    <span class="stat-bar__value">0</span>
+    <span class="stat-bar__label">今日跟进</span>
+  </div>
+  <div class="stat-bar__item stat-bar__item--brand">
+    <span class="stat-bar__value">1</span>
+    <span class="stat-bar__label">3 日内跟进</span>
+  </div>
+</div>
+
+<div class="compare-title">方案 B：紧凑 icon 条 — 高度 56px</div>
+<div class="compare-note">保留 icon 但压扁，每项一行；适合需要 icon 辅助识别的场景。</div>
+
+<div class="stat-row">
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--brand">👥</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">3</div>
+      <div class="stat-chip__label">客户总数</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--info">💬</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">0</div>
+      <div class="stat-chip__label">线索客户</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--warning">📈</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">3</div>
+      <div class="stat-chip__label">黄金营销期</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--danger">⚠️</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">0</div>
+      <div class="stat-chip__label">已逾期跟进</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--purple">📅</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">0</div>
+      <div class="stat-chip__label">今日跟进</div>
+    </div>
+  </div>
+  <div class="stat-chip">
+    <div class="stat-chip__icon stat-chip__icon--brand">⏰</div>
+    <div class="stat-chip__body">
+      <div class="stat-chip__value">1</div>
+      <div class="stat-chip__label">3 日内跟进</div>
+    </div>
+  </div>
+</div>
+
+<div class="compare-title">当前实现（对照）— 高度 ~130px</div>
+<div class="compare-note">每个卡片独立、icon 42px、大数字 28px、hint 小字；占首屏 1/3 但信息密度低。</div>
+
+<div class="stat-current">
+  <div class="stat-current__card">
+    <div class="stat-current__icon">👥</div>
+    <div class="stat-current__label">客户总数</div>
+    <div class="stat-current__value">3</div>
+    <div class="stat-current__hint">当前数据范围</div>
+  </div>
+  <div class="stat-current__card">
+    <div class="stat-current__icon" style="background:#e8f1fd;color:#3b7de8">💬</div>
+    <div class="stat-current__label">线索客户</div>
+    <div class="stat-current__value">0</div>
+    <div class="stat-current__hint">短视频/视频线索</div>
+  </div>
+  <div class="stat-current__card">
+    <div class="stat-current__icon" style="background:#fdf4e3;color:#e8943a">📈</div>
+    <div class="stat-current__label">黄金营销期</div>
+    <div class="stat-current__value">3</div>
+    <div class="stat-current__hint">建档 3 天内优先跟进</div>
+  </div>
+  <div class="stat-current__card">
+    <div class="stat-current__icon" style="background:#fdecec;color:#d74b50">⚠️</div>
+    <div class="stat-current__label">已逾期跟进</div>
+    <div class="stat-current__value">0</div>
+    <div class="stat-current__hint">需要优先处理</div>
+  </div>
+  <div class="stat-current__card">
+    <div class="stat-current__icon" style="background:#f1ebfd;color:#7b5cd6">📅</div>
+    <div class="stat-current__label">今日跟进</div>
+    <div class="stat-current__value">0</div>
+    <div class="stat-current__hint">按下一跟进时间统计</div>
+  </div>
+  <div class="stat-current__card">
+    <div class="stat-current__icon" style="background:#e8f7f5;color:#0e8a7d">⏰</div>
+    <div class="stat-current__label">3日内跟进</div>
+    <div class="stat-current__value">1</div>
+    <div class="stat-current__hint">未来 3 天待联系</div>
+  </div>
+</div>
+
+</body>
+</html>

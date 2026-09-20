@@ -43,6 +43,7 @@ const hasAction = computed(() => !!props.actionLabel)
     </view>
 
     <view class="sales-steps__rail">
+      <!-- 静态步骤条，不重排/不增删，index 仅用于计算 currentIndex -->
       <view
         v-for="(step, index) in steps"
         :key="step.key"

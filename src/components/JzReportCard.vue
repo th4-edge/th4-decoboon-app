@@ -4,6 +4,7 @@ import type { SiteReport } from '@/domains/site/model'
 import { REPORT_TYPE_META } from '@/domains/site/meta'
 import { ROLE_META } from '@/roles/catalog'
 import { timeText } from '@/core/format'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from './JzTag.vue'
 import JzAvatar from './JzAvatar.vue'
 import JzIcon from './JzIcon.vue'
@@ -49,7 +50,7 @@ function preview(url: string) {
             @tap.stop="preview(im)"
           />
           <view v-if="report.images.length > 1" class="jz-report__media-count">
-            <JzIcon name="camera" :size="24" color="#FFFFFF" />
+            <JzIcon name="camera" :size="24" :color="TOKEN_COLOR.white" />
             <text>{{ report.images.length }}</text>
           </view>
         </view>
@@ -59,7 +60,7 @@ function preview(url: string) {
           <view class="jz-report__type-dot" />
           <text>{{ typeMeta.label }}记录</text>
         </view>
-        <view v-if="showProject" class="jz-report__project"><text>查看项目</text><JzIcon name="chevron-right" :size="24" color="#0E8A7D" /></view>
+        <view v-if="showProject" class="jz-report__project"><text>查看项目</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
       </view>
     </view>
   </view>
@@ -97,7 +98,7 @@ function preview(url: string) {
   display: flex;
   align-items: center;
   padding: 6rpx 12rpx;
-  color: #fff;
+  color: $jzb-text-inverse;
   background: rgba(15, 23, 42, 0.64);
   border-radius: $jzb-radius-pill;
   font-size: $jzb-font-xs;

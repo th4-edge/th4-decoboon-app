@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
@@ -70,15 +71,16 @@ const groups = computed(() => {
   if (employee && can(role.value, 'act:inviteMember')) organization.push(cell('user-plus', '邀请员工加入', '生成邀请并分配岗位', () => uni.navigateTo({ url: P.companyInvite })))
 
   if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
+  if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
   if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应商协作', '项目采购、到货、采购价与月结', () => uni.navigateTo({ url: P.supply })))
   if (role.value === 'boss') business.push(cell('chart', '经营驾驶舱', '签约、回款、毛利与经营风险', () => uni.navigateTo({ url: P.analysis })))
   if (role.value === 'boss') business.push(cell('users', '人员绩效考核', '设计师、顾问与项目经理履约', () => uni.navigateTo({ url: P.performanceAssessment })))
-  if (role.value === 'marketer') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'teamLeader') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'storeManager') business.push(cell('users', '设计调度', '客户指派与设计师负荷', () => uni.navigateTo({ url: P.managerDesigners })))
-  if (role.value === 'storeManager') business.push(cell('chart', '门店业绩', '客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'pm') business.push(cell('chart', '履约驾驶舱', '任务、验收、材料与项目风险', () => uni.navigateTo({ url: P.managerWorkbench })))
-  if (role.value === 'pm') business.push(cell('chart', '履约业绩', '项目交付、准时率与验收通过率', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'marketer'||role.value === 'boss') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'teamLeader'||role.value === 'boss') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'storeManager'||role.value === 'boss') business.push(cell('users', '设计调度', '客户指派与设计师负荷', () => uni.navigateTo({ url: P.managerDesigners })))
+  if (role.value === 'storeManager'||role.value === 'boss') business.push(cell('chart', '门店业绩', '客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'pm'||role.value === 'boss') business.push(cell('chart', '履约驾驶舱', '任务、验收、材料与项目风险', () => uni.navigateTo({ url: P.managerWorkbench })))
+  if (role.value === 'pm'||role.value === 'boss') business.push(cell('chart', '履约业绩', '项目交付、准时率与验收通过率', () => uni.navigateTo({ url: P.performance })))
 
   if (employee) mine.push(cell('briefcase', '我参与的项目', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
   if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
@@ -123,16 +125,16 @@ async function doLogout() {
       <view class="mine__section-head"><text class="mine__section-title">{{ group.title }}</text><text class="mine__section-sub">{{ group.subtitle }}</text></view>
       <view class="mine__group jz-card">
         <view v-for="item in group.items" :key="item.label" class="jz-cell" @tap="item.cb && item.cb()">
-          <view class="mine__cell-icon"><JzIcon :name="item.icon" :size="34" color="#0E8A7D" :stroke-width="1.8" /></view>
+          <view class="mine__cell-icon"><JzIcon :name="item.icon" :size="34" :color="TOKEN_COLOR.primary" :stroke-width="1.8" /></view>
           <text class="jz-grow jz-cell__label">{{ item.label }}</text>
           <text v-if="item.value" class="jz-cell__value">{{ item.value }}</text>
-          <JzIcon v-if="item.cb" name="chevron-right" :size="28" color="#AEB8C2" />
+          <JzIcon v-if="item.cb" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
     </view>
 
     <button class="jz-btn jz-btn--ghost jz-btn--block mine__logout" @tap="doLogout">
-      <JzIcon name="logout" :size="30" color="#0E8A7D" /><text>退出登录</text>
+      <JzIcon name="logout" :size="30" :color="TOKEN_COLOR.primary" /><text>退出登录</text>
     </button>
 
     <view class="jz-tabbar-gap" />

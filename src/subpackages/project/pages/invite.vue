@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -75,14 +76,14 @@ onShareAppMessage(() => ({
       <view class="pi__field"><text class="pi__label">业主称呼</text><input v-model="customerName" placeholder="例：王先生" /></view>
       <view class="pi__field"><text class="pi__label">业主手机</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="必填，用于微信手机号一致性校验" /></view>
 
-      <button class="jz-btn jz-btn--primary jz-btn--block pi__gen-btn" @tap="gen"><JzIcon name="user-plus" :size="28" color="#FFFFFF" /><text>生成业主邀请</text></button>
+      <button class="jz-btn jz-btn--primary jz-btn--block pi__gen-btn" @tap="gen"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>生成业主邀请</text></button>
 
       <view v-if="generated" class="pi__code-box">
         <text class="pi__code-label">业主邀请令牌（绑定本工地）</text>
         <text class="pi__code">{{ generated.token || generated.code }}</text>
         <view class="jz-row pi__btns">
-          <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="copy"><JzIcon name="copy" :size="24" color="#0E8A7D" /><text>复制邀请语</text></button>
-          <button class="jz-btn jz-btn--plain jz-btn--sm" @tap="share"><JzIcon name="share" :size="24" color="#0E8A7D" /><text>微信发给业主</text></button>
+          <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="copy"><JzIcon name="copy" :size="24" :color="TOKEN_COLOR.primary" /><text>复制邀请语</text></button>
+          <button class="jz-btn jz-btn--plain jz-btn--sm" @tap="share"><JzIcon name="share" :size="24" :color="TOKEN_COLOR.primary" /><text>微信发给业主</text></button>
         </view>
       </view>
     </view>
@@ -90,9 +91,9 @@ onShareAppMessage(() => ({
     <view class="pi__flow jz-card">
       <text class="pi__flow-title">业主同频闭环</text>
       <view class="pi__step"><text class="pi__step-idx">1</text><text class="pi__step-text">生成邀请/分享卡片</text></view>
-      <view class="pi__step"><text class="pi__step-idx">2</text><text class="pi__step-text">业主微信打开 → 授权手机号 → 完成邀请令牌绑定</text></view>
+      <view class="pi__step"><text class="pi__step-idx">2</text><text class="pi__step-text">业主微信打开，授权手机号，完成邀请令牌绑定</text></view>
       <view class="pi__step"><text class="pi__step-idx">3</text><text class="pi__step-text">业主进入「我的家」随时查看进度与动态</text></view>
-      <view class="pi__step"><text class="pi__step-idx">4</text><text class="pi__step-text">阶段验收 → 业主一键确认 → 自动进入下一阶段</text></view>
+      <view class="pi__step"><text class="pi__step-idx">4</text><text class="pi__step-text">阶段验收，业主一键确认，自动进入下一阶段</text></view>
     </view>
   </view>
 </template>

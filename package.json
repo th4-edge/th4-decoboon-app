@@ -4,6 +4,8 @@
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
+    "dev": "npm run dev:mp-weixin",
+    "start": "npm run dev:mp-weixin",
     "dev:h5": "uni",
     "dev:mp-weixin": "uni -p mp-weixin",
     "build:h5": "uni build",
@@ -12,7 +14,7 @@
     "type-check": "vue-tsc --noEmit",
     "check:release-env": "node scripts/verify-release-env.mjs",
     "check:subpackages": "node scripts/check-subpackages.mjs",
-    "verify:mp-weixin": "npm run type-check && npm run build:mp-weixin && npm run check:subpackages"
+    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",

@@ -15,6 +15,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 type Filter = 'all' | PayableType
 const projectId = ref('')
@@ -82,9 +83,9 @@ function progress(item: Payable) { return Math.min(100, Math.round(item.paidAmou
           <text :style="{ color: PAYABLE_STATUS_META[item.status].color }">{{ PAYABLE_STATUS_META[item.status].label }}</text>
           <text>账期 {{ item.dueDate || '—' }}</text>
           <text v-if="item.period">{{ item.period }}</text>
-          <text v-if="item.urgent" style="color:#E5484D;">加急</text>
+          <text v-if="item.urgent" :style="{ color: TOKEN_COLOR.danger }">加急</text>
         </view>
-        <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${progress(item)}%`, background: item.type === 'salary' ? '#E67E22' : undefined }" /></view>
+        <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${progress(item)}%`, background: item.type === 'salary' ? TOKEN_COLOR.warning : undefined }" /></view>
         <view class="fin-card__foot">
           <text class="jz-caption">已付 {{ money(item.paidAmount) }} · 待付 {{ money(item.outstandingAmount) }}</text>
           <text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap.stop="pay(item)">安排付款</text>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -55,14 +56,14 @@ function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}`
     <view class="jz-card plan__arrange" v-if="editPlan">
       <view class="jz-grow">
         <text class="plan__arrange-title">设计师排期</text>
-        <text class="plan__arrange-sub">从系统工艺库选择任务 → 关联「阶段 × 区域」→ 设定总量，下发项目经理</text>
+        <text class="plan__arrange-sub">从系统工艺库选择任务，关联「阶段 × 区域」，设定总量，下发项目经理</text>
       </view>
       <button class="jz-btn jz-btn--plain jz-btn--sm" @tap="arrange">去排期</button>
     </view>
 
     <view class="jz-section">
       <text class="jz-section__title">阶段计划 · 任务落位</text>
-      <view class="plan__more" @tap="goMembers"><text>成员</text><JzIcon name="chevron-right" :size="24" color="#778390" /></view>
+      <view class="plan__more" @tap="goMembers"><text>成员</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
     </view>
     <view class="plan__list">
       <view v-for="s in sorted" :key="s.id" class="jz-card plan__item">
@@ -97,7 +98,7 @@ function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}`
 
     <view v-if="editPlan" class="jz-actionbar">
       <view class="jz-actionbar__inner">
-          <button class="jz-btn jz-btn--primary jz-grow plan__action" @tap="arrange"><JzIcon name="edit" :size="28" color="#FFFFFF" /><text>制定/调整施工计划排期</text></button>
+          <button class="jz-btn jz-btn--primary jz-grow plan__action" @tap="arrange"><JzIcon name="edit" :size="28" :color="TOKEN_COLOR.white" /><text>制定/调整施工计划排期</text></button>
       </view>
     </view>
   </view>
@@ -115,7 +116,7 @@ function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}`
 .plan__arrange-sub { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.6; }
 .plan__list { padding: 0 24rpx; }
 .plan__item { padding: 24rpx; margin-bottom: 16rpx; }
-.plan__idx { width: 40rpx; height: 40rpx; border-radius: $jzb-radius-sm; color: #fff; font-size: $jzb-font-sm; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; }
+.plan__idx { width: 40rpx; height: 40rpx; border-radius: $jzb-radius-sm; color: $jzb-text-inverse; font-size: $jzb-font-sm; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; }
 .plan__name { font-size: $jzb-font-md; font-weight: 600; }
 .plan__date { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .plan__task { display: flex; flex-direction: row; align-items: center; margin-top: 16rpx; background: $jzb-bg-page; border-radius: $jzb-radius-sm; padding: 16rpx 18rpx; }

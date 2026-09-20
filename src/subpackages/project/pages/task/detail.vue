@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -166,7 +167,7 @@ function openStageAccept() {
       </view>
       <view class="jz-row td__stage" @tap="goStage">
         <text class="td__stage-text">所属：{{ stage?.name || '-' }}（{{ stage ? STAGE_STATUS_META[stage.status].label : '' }}）· {{ project?.name }}</text>
-        <JzIcon class="td__stage-arrow" name="chevron-right" :size="26" color="#AEB8C2" />
+        <JzIcon class="td__stage-arrow" name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
       </view>
       <view class="jz-row td__chips">
         <text v-if="task.zone" class="td__chip td__chip--zone">{{ task.zone.name }}</text>
@@ -193,7 +194,7 @@ function openStageAccept() {
         <view class="td__node">
           <view class="td__node-head">
             <view class="td__node-dot" :style="{ backgroundColor: (nodes.find((n) => n.key === key)?.status === 'done' ? NODE_META[key].color : '#C9CDD4') }">
-              <JzIcon v-if="nodes.find((n) => n.key === key)?.status === 'done'" name="check" :size="19" color="#FFFFFF" :stroke-width="2.6" />
+              <JzIcon v-if="nodes.find((n) => n.key === key)?.status === 'done'" name="check" :size="19" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
             </view>
             <view class="jz-grow">
               <text class="td__node-title">{{ NODE_META[key].label }}</text>
@@ -208,23 +209,23 @@ function openStageAccept() {
           <view v-if="(nodes.find((n) => n.key === key)?.medias || []).length" class="td__node-medias">
             <view v-for="(m, mi) in nodes.find((n) => n.key === key)?.medias" :key="mi" class="td__node-media" @tap="previewMedia(m)">
               <image v-if="m.type === 'image'" :src="m.url" mode="aspectFill" />
-              <view v-else class="td__node-video"><JzIcon name="play" :size="36" color="#FFFFFF" :stroke-width="2" /></view>
+              <view v-else class="td__node-video"><JzIcon name="play" :size="36" :color="TOKEN_COLOR.white" :stroke-width="2" /></view>
             </view>
           </view>
           <button v-if="canConfirm(key)" class="td__node-action jz-btn jz-btn--primary jz-btn--sm" @tap="confirmNode(key)">
-            <JzIcon name="camera" :size="25" color="#FFFFFF" /><text>拍照/录像 · 确认{{ NODE_META[key].label }}</text>
+            <JzIcon name="camera" :size="25" :color="TOKEN_COLOR.white" /><text>拍照/录像 · 确认{{ NODE_META[key].label }}</text>
           </button>
         </view>
       </view>
       <view v-if="task.status === 'accepting' || task.status === 'done'" class="td__accept-tip" @tap="openStageAccept">
-        <text>{{ task.status === 'done' ? '任务已验收通过 · 查看阶段验收单' : '任务已完工待阶段验收 · 去提交/查看验收' }}</text><JzIcon name="chevron-right" :size="27" color="#0E8A7D" />
+        <text>{{ task.status === 'done' ? '任务已验收通过 · 查看阶段验收单' : '任务已完工待阶段验收 · 去提交/查看验收' }}</text><JzIcon name="chevron-right" :size="27" :color="TOKEN_COLOR.primary" />
       </view>
     </view>
 
     <!-- 其他动作 -->
     <view class="jz-card td__actions">
-      <button v-if="editable && task.status !== 'done'" class="jz-btn jz-btn--ghost jz-btn--block td__action-btn" @tap="edit"><JzIcon name="edit" :size="26" color="#0E8A7D" /><text>编辑任务（数量/区域/排期）</text></button>
-      <button v-if="can(role, 'act:report')" class="jz-btn jz-btn--text jz-btn--block td__act td__action-btn" @tap="report"><JzIcon name="edit" :size="26" color="#465260" /><text>补充现场文字汇报</text></button>
+      <button v-if="editable && task.status !== 'done'" class="jz-btn jz-btn--ghost jz-btn--block td__action-btn" @tap="edit"><JzIcon name="edit" :size="26" :color="TOKEN_COLOR.primary" /><text>编辑任务（数量/区域/排期）</text></button>
+      <button v-if="can(role, 'act:report')" class="jz-btn jz-btn--text jz-btn--block td__act td__action-btn" @tap="report"><JzIcon name="edit" :size="26" :color="TOKEN_COLOR.text2" /><text>补充现场文字汇报</text></button>
     </view>
 
     <view class="jz-section"><text class="jz-section__title">任务动态</text></view>
@@ -254,7 +255,7 @@ function openStageAccept() {
 .td__node-line--done { background: $jzb-success; opacity: 0.4; }
 .td__node { padding-bottom: 24rpx; }
 .td__node-head { display: flex; flex-direction: row; align-items: flex-start; }
-.td__node-dot { width: 32rpx; height: 32rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20rpx; flex-shrink: 0; margin-top: 2rpx; }
+.td__node-dot { width: 32rpx; height: 32rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: $jzb-text-inverse; font-size: 20rpx; flex-shrink: 0; margin-top: 2rpx; }
 .td__node-ok { font-size: 18rpx; }
 .td__node-title { display: block; font-size: $jzb-font-md; font-weight: 600; }
 .td__node-tip { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 4rpx; }

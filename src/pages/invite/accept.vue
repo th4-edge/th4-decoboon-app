@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -145,7 +146,7 @@ function roleLabel() {
             <text class="invite-company__name">{{ isCustomerInvite ? (invite.projectName || '我的家') : (invite.companyId || invite.company?.name || '邀请企业') }}</text>
             <text class="invite-company__sub">{{ isCustomerInvite ? (invite.propertyAddress || '项目进度同频授权') : `邀请人 ${invite.inviter?.name || '企业管理员'}` }}</text>
           </view>
-          <JzTag :text="statusText" :color="invite.status === 'pending' ? '#07A35A' : '#E5484D'" />
+          <JzTag :text="statusText" :color="invite.status === 'pending' ? TOKEN_COLOR.success : TOKEN_COLOR.danger" />
         </view>
         <view v-if="isCustomerInvite" class="invite-info">
           <view><text>项目</text><text>{{ invite.projectName || '待绑定' }}</text></view>
@@ -160,7 +161,7 @@ function roleLabel() {
           <view><text>门店</text><text>{{ invite.store?.name || '默认门店' }}</text></view>
           <view><text>团队</text><text>{{ invite.team?.name || '未分配' }}</text></view>
         </view>
-        <view class="invite-check"><JzIcon name="shield-check" :size="30" color="#0E8A7D" /><text>{{ isCustomerInvite ? '绑定后仅可查看本项目已授权内容，手机号由服务端校验' : '服务端将校验微信授权手机号与邀请手机号一致' }}</text></view>
+        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ isCustomerInvite ? '绑定后仅可查看本项目已授权内容，手机号由服务端校验' : '服务端将校验微信授权手机号与邀请手机号一致' }}</text></view>
       </view>
       <view v-else class="invite-loading jz-card"><text>正在加载邀请…</text></view>
 

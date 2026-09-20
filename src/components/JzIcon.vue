@@ -10,7 +10,7 @@ export type IconName =
   | 'inbox' | 'refresh' | 'more' | 'flag' | 'close' | 'minus' | 'play'
   | 'trash' | 'eye' | 'eye-off' | 'clock' | 'history' | 'upload' | 'download'
   | 'share' | 'send' | 'lock' | 'more-vertical' | 'doc' | 'calculator' | 'scan'
-  | 'truck' | 'star' | 'pause' | 'arrow-left' | 'external'
+  | 'truck' | 'star' | 'pause' | 'arrow-left' | 'arrow-right' | 'arrow-up' | 'arrow-down' | 'external'
 
 const props = withDefaults(defineProps<{
   name: IconName
@@ -19,6 +19,7 @@ const props = withDefaults(defineProps<{
   strokeWidth?: number
 }>(), {
   size: 40,
+  // 图标兜底色：未进入 $jzb 色板的中性灰，保留默认值，仅作未传 color 时回退（历史坑：勿擅自改色）
   color: '#4E5969',
   strokeWidth: 1.8
 })
@@ -38,6 +39,8 @@ const paths: Record<IconName, string> = {
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   'chevron-down': '<path d="m6 9 6 6 6-6"/>',
   'arrow-right': '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  'arrow-up': '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  'arrow-down': '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
   check: '<path d="m5 12 4 4L19 6"/>',
   'check-circle': '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 9"/>',
   camera: '<path d="M5 7h3l1.5-2h5L16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><circle cx="12" cy="13" r="4"/>',

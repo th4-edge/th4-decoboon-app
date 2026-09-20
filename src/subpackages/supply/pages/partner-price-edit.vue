@@ -4,11 +4,12 @@ import { onLoad } from '@dcloudio/uni-app'
 import { session } from '@/domains/identity/session'
 import { catalogApi } from '@/domains/catalog/api'
 import type { CatalogItem, CatalogType } from '@/domains/catalog/model'
-import { supplyApi } from '@/subpackages/supply/domains/supply/api'
-import type { Partner } from '@/subpackages/supply/domains/supply/model'
+import { supplyApi } from '@/domains/supply/api'
+import type { Partner } from '@/domains/supply/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
 
 const TYPE_OPTIONS: { value: CatalogType; label: string }[] = [
   { value: 'material', label: '主材' },
@@ -132,19 +133,19 @@ async function save() {
       <view class="pp__field">
         <text class="pp__label">供应商 <text class="pp__req">*</text></text>
         <picker class="pp__picker" :range="partners.map(i => i.name)" :value="partnerIdx" @change="partnerIdx = Number($event.detail.value)">
-          <view class="pp__value">{{ partners[partnerIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pp__value">{{ partners[partnerIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pp__field">
         <text class="pp__label">项目分类</text>
         <picker class="pp__picker" :range="TYPE_OPTIONS.map(i => i.label)" :value="typeIdx" @change="changeType">
-          <view class="pp__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pp__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pp__field">
         <text class="pp__label">报价项目 <text class="pp__req">*</text></text>
         <picker class="pp__picker" :range="items.map(i => i.name)" :value="itemIdx" @change="itemIdx = Number($event.detail.value)">
-          <view class="pp__value">{{ items[itemIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#AEB8C2" /></view>
+          <view class="pp__value">{{ items[itemIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
       <view class="pp__field"><text class="pp__label">采购价(元)</text><input v-model="purchasePrice" type="digit" class="pp__input" placeholder="供应商实际采购价" /></view>
@@ -154,7 +155,7 @@ async function save() {
       <view class="pp__field"><text class="pp__label">账期天数</text><input v-model="settlementDays" type="number" class="pp__input" /></view>
       <view class="pp__field"><text class="pp__label">生效日期</text><input v-model="effectiveFrom" class="pp__input" placeholder="YYYY-MM-DD" /></view>
       <view class="pp__field"><text class="pp__label">失效日期</text><input v-model="effectiveTo" class="pp__input" placeholder="YYYY-MM-DD" /></view>
-      <view class="pp__field"><text class="pp__label">启用</text><switch :checked="active" color="#0E8A7D" @change="active = ($event as any).detail.value" /></view>
+      <view class="pp__field"><text class="pp__label">启用</text><switch :checked="active" :color="TOKEN_COLOR.primary" @change="active = ($event as any).detail.value" /></view>
       <view class="pp__field pp__field--col"><text class="pp__label">备注</text><input v-model="remark" class="pp__input pp__input--block" maxlength="200" placeholder="供应商报价说明、特殊约定" /></view>
     </view>
     <view class="jz-actionbar"><view class="jz-actionbar__inner"><button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">保存采购价</button></view></view>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -149,7 +150,7 @@ async function save() {
 
     <!-- 搜索 + 工艺库 -->
     <view class="pe__search jz-card">
-      <view class="pe__search-icon"><JzIcon name="search" :size="32" color="#778390" /></view>
+      <view class="pe__search-icon"><JzIcon name="search" :size="32" :color="TOKEN_COLOR.text3" /></view>
       <input v-model="keyword" placeholder="搜索工艺名称/规格/工艺说明" />
     </view>
 
@@ -162,7 +163,7 @@ async function save() {
             <text class="pe__lib-name">{{ ct.name }}</text>
             <text v-if="ct.conceal" class="pe__lib-conceal">需隐蔽验收</text>
           </view>
-          <view class="pe__add" @tap="add(ct)"><JzIcon name="plus" :size="24" color="#0E8A7D" /><text>选择</text></view>
+          <view class="pe__add" @tap="add(ct)"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>选择</text></view>
         </view>
         <text class="pe__lib-craft">工艺：{{ ct.craft }}</text>
         <text class="pe__lib-spec">规格：{{ ct.spec }}</text>
@@ -186,11 +187,11 @@ async function save() {
             <text class="pe__basket-unit">单位：{{ it.ct.unit }}</text>
           </view>
           <view class="pe__stepper">
-            <view class="pe__step-btn" @tap="changeQty(i, -1)"><JzIcon name="minus" :size="26" color="#17212B" /></view>
+            <view class="pe__step-btn" @tap="changeQty(i, -1)"><JzIcon name="minus" :size="26" :color="TOKEN_COLOR.text1" /></view>
             <text class="pe__step-val">{{ it.qty }}</text>
-            <view class="pe__step-btn" @tap="changeQty(i, 1)"><JzIcon name="plus" :size="26" color="#17212B" /></view>
+            <view class="pe__step-btn" @tap="changeQty(i, 1)"><JzIcon name="plus" :size="26" :color="TOKEN_COLOR.text1" /></view>
           </view>
-          <view class="pe__basket-del" @tap="removeAt(i)"><JzIcon name="close" :size="24" color="#AEB8C2" /></view>
+          <view class="pe__basket-del" @tap="removeAt(i)"><JzIcon name="close" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </view>
       </view>
       <view class="jz-actionbar">
@@ -200,7 +201,7 @@ async function save() {
         </view>
       </view>
     </view>
-    <view v-if="savedCount" class="pe__saved-tip"><JzIcon name="check-circle" :size="28" color="#07A35A" /><text>本次已保存 {{ savedCount }} 项任务（已进入计划）</text></view>
+    <view v-if="savedCount" class="pe__saved-tip"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /><text>本次已保存 {{ savedCount }} 项任务（已进入计划）</text></view>
   </view>
 </template>
 
@@ -210,25 +211,25 @@ async function save() {
 .pe__ctx-name { font-size: $jzb-font-lg; font-weight: 700; }
 .pe__ctx-tip { font-size: $jzb-font-xs; color: $jzb-primary-dark; background: $jzb-primary-lighter; padding: 4rpx 16rpx; border-radius: $jzb-radius-pill; }
 .pe__ctx-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.6; }
-.pe__chips { width: 100%; white-space: nowrap; background: #fff; box-shadow: $jzb-shadow-xs; }
+.pe__chips { width: 100%; white-space: nowrap; background: $jzb-text-inverse; box-shadow: $jzb-shadow-xs; }
 .pe__chips-row { display: inline-flex; padding: 16rpx $jzb-page-pad; }
 .pe__chip { display: inline-flex; flex-direction: column; align-items: center; padding: 12rpx 24rpx; margin-right: 12rpx; background: $jzb-bg-page; border-radius: $jzb-radius; }
 .pe__chip--on { background: $jzb-primary; }
-.pe__chip--on .pe__chip-name, .pe__chip--on .pe__chip-date { color: #fff; }
+.pe__chip--on .pe__chip-name, .pe__chip--on .pe__chip-date { color: $jzb-text-inverse; }
 .pe__chip-name { font-size: $jzb-font-sm; font-weight: 600; color: $jzb-text-1; }
 .pe__chip-date { font-size: 18rpx; color: $jzb-text-3; margin-top: 2rpx; }
 .pe__zone-row { display: flex; flex-direction: row; align-items: center; margin: 20rpx $jzb-page-pad 0; }
 .pe__zone-label { font-size: $jzb-font-sm; color: $jzb-text-3; margin-right: 16rpx; flex-shrink: 0; }
 .pe__zones { flex: 1; white-space: nowrap; }
 .pe__zones-row { display: inline-flex; }
-.pe__zone { padding: 8rpx 22rpx; margin-right: 12rpx; background: #fff; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
+.pe__zone { padding: 8rpx 22rpx; margin-right: 12rpx; background: $jzb-text-inverse; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
 .pe__zone--on { background: $jzb-primary-lighter; border-color: $jzb-primary; color: $jzb-primary-dark; font-weight: 600; }
 .pe__search { margin: 16rpx $jzb-page-pad; display: flex; flex-direction: row; align-items: center; padding: 0 24rpx; height: 72rpx; }
 .pe__search-icon { font-size: 28rpx; margin-right: 12rpx; opacity: 0.6; }
 .pe__search input { flex: 1; font-size: $jzb-font; }
 .pe__lib { padding: 0 $jzb-page-pad; }
 .pe__lib-item { padding: 22rpx 24rpx; margin-bottom: 16rpx; }
-.pe__lib-code { font-size: $jzb-font-xs; color: #fff; background: $jzb-primary; border-radius: 6rpx; padding: 2rpx 10rpx; margin-right: 12rpx; }
+.pe__lib-code { font-size: $jzb-font-xs; color: $jzb-text-inverse; background: $jzb-primary; border-radius: 6rpx; padding: 2rpx 10rpx; margin-right: 12rpx; }
 .pe__lib-name { font-size: $jzb-font-md; font-weight: 600; }
 .pe__lib-conceal { font-size: 18rpx; color: $jzb-warning; border: 1rpx solid rgba(255,125,0,0.5); border-radius: $jzb-radius-pill; padding: 0 10rpx; margin-left: 12rpx; }
 .pe__add { background: $jzb-primary-lighter; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 600; padding: 8rpx 22rpx; border-radius: $jzb-radius-pill; }
