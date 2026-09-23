@@ -71,6 +71,8 @@ export interface DesignItem {
   cost: number
   formula?: string
   criterion?: string
+  /** 施工工艺快照：设计分项生成时从材料库 CatalogItem.craft 冻结 */
+  craft?: string
   remark?: string
   sort: number
   images?: string[]

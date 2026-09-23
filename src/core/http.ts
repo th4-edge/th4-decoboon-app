@@ -73,6 +73,13 @@ function requestFailure(error: unknown): Error {
   return new Error('网络异常，请检查网络后重试')
 }
 
+/** 把后端返回的相对文件地址补成绝对地址（下载/打开文件用）；已是 http(s) 的原样返回。 */
+export function absoluteUrl(path: string): string {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path)) return path
+  return runtime.apiBase.replace(/\/$/, '') + (path.startsWith('/') ? path : `/${path}`)
+}
+
 export function post<T>(uri: string, data: any = {}, options: { token?: string } = {}): Promise<T> {
   return new Promise((resolve, reject) => {
     uni.request({

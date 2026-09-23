@@ -1,4 +1,5 @@
 import { post, listOf } from '@/core/http'
+import { dateTimeValue } from '@/core/format'
 import type { PageResult } from '@/domains/common/model'
 import type {
   BillingOrder, BillingOrderItem, PlanAddon, PlanAddonType, PlanModule, SubscriptionInfo,
@@ -80,7 +81,8 @@ function normalizeSubscription(raw: RawRecord): SubscriptionInfo {
     plan: normalizePlan(raw.plan),
     planVersion: version,
     status: STATUS_MAP[String(raw.status?.value ?? raw.status ?? '')] || 'expired',
-    serviceEndTime: raw.serviceEndTime?.dateTime ?? raw.serviceEndTime,
+    // 框架 DateTime 序列化成 { dateTime: "20260924103500", ... }，直接取 dateTime 会拿到 14 位裸数字
+    serviceEndTime: dateTimeValue(raw.serviceEndTime?.dateTime ?? raw.serviceEndTime),
     remainingDays: Number(raw.remainingDays ?? 0),
     usedSeats: Number(raw.usedSeats ?? 0),
     usedStores: Number(raw.usedStores ?? 0),
@@ -91,7 +93,7 @@ function normalizeSubscription(raw: RawRecord): SubscriptionInfo {
     writable: raw.writable !== false,
     expired: raw.expired === true,
     trialActivated: raw.trialActivated,
-    lastRenewTime: raw.lastRenewTime
+    lastRenewTime: dateTimeValue(raw.lastRenewTime?.dateTime ?? raw.lastRenewTime)
   }
 }
 
@@ -125,9 +127,9 @@ function normalizeOrder(raw: RawRecord): BillingOrder {
     payChannel: PAY_CHANNEL_MAP[channel],
     outTradeNo: raw.outTradeNo,
     transactionId: raw.transactionId,
-    paidTime: raw.paidTime,
-    expireTime: raw.expireTime,
-    createdAt: raw.createTime?.dateTime ?? raw.createTime,
+    paidTime: dateTimeValue(raw.paidTime?.dateTime ?? raw.paidTime),
+    expireTime: dateTimeValue(raw.expireTime?.dateTime ?? raw.expireTime),
+    createdAt: dateTimeValue(raw.createTime?.dateTime ?? raw.createTime),
     items: Array.isArray(raw.items) ? raw.items.map(normalizeOrderItem) : []
   }
 }

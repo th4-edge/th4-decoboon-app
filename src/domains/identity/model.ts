@@ -6,7 +6,6 @@ export type EmployeeRole =
   | 'marketer'
   | 'designer'
   | 'pm'
-  | 'projectSupport'
   | 'finance'
 
 /** 小程序可见角色 = 企业员工岗位 + 业主客户。 */

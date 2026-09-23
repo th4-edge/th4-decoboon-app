@@ -404,14 +404,14 @@ async function openItem(item?: DesignItem) {
   itemType.value = item?.type || (activeTab.value === 'material' ? 'material' : activeTab.value === 'other' ? 'general' : 'construction')
   catalogType.value = catalogTypeFor(itemType.value)
   selectedCatalogs.value = item?.catalogItem ? [item.catalogItem] : []
-  quantities.value = item?.catalogItem ? { [item.catalogItem.id]: item.quantity ? String(item.quantity) : '1' } : {}
+  quantities.value = item?.catalogItem ? { [item.catalogItem.id]: item.quantity != null ? String(item.quantity) : '1' } : {}
   itemSpaceId.value = item?.space?.id || ''
   itemCategory.value = item?.category || '拆除'
   itemName.value = item?.name || ''
   itemBrand.value = item?.brand || ''
   itemSpec.value = item?.spec || ''
   itemUnit.value = item?.unit || '㎡'
-  quantity.value = item?.quantity ? String(item.quantity) : '1'
+  quantity.value = item?.quantity != null ? String(item.quantity) : '1'
   materialPrice.value = item ? String(item.materialPrice || '') : ''
   manualPrice.value = item ? String(item.manualPrice || '') : ''
   costPrice.value = item ? String(item.costPrice || '') : ''
@@ -481,14 +481,14 @@ async function saveItem() {
     toast(editingItemId.value ? '历史分项不可直接保存，请先从企业报价项目库重新选择项目' : '请先从企业报价项目库选择项目')
     return
   }
-  if (!selectedCatalogs.value.length && (!quantity.value || Number(quantity.value) <= 0)) {
-    toast('工程量必须大于0')
+  if (!selectedCatalogs.value.length && (quantity.value === '' || Number(quantity.value) < 0)) {
+    toast('工程量不能为负数，赠送项目数量填0')
     return
   }
   for (const catalog of selectedCatalogs.value) {
     const value = quantities.value[catalog.id]
-    if (!value || Number(value) <= 0) {
-      toast(`“${catalog.name}”的工程量必须大于0`)
+    if (value === '' || Number(value) < 0) {
+      toast(`“${catalog.name}”的工程量不能为负数，赠送项目数量填0`)
       return
     }
   }
@@ -703,7 +703,12 @@ function toQuote() {
               <text class="ds__item-name jz-clamp-2">{{ item.name }}</text>
               <text class="ds__item-price">{{ money(item.amount) }}</text>
             </view>
-            <text class="ds__item-meta jz-clamp-2">{{ item.category }} · {{ item.quantity }}{{ item.unit }} · {{ designMeta.pricingMode[item.pricingMode] }}</text>
+            <text class="ds__item-meta jz-clamp-2">{{ item.category }} · {{ item.quantity === 0 ? '赠送' : `${item.quantity}${item.unit}` }} · {{ designMeta.pricingMode[item.pricingMode] }}</text>
+            <!-- 施工工艺：设计师/店长核对与客户讲解的关键依据，随分项从材料库冻结 -->
+            <view v-if="item.craft" class="ds__item-craft">
+              <JzIcon name="wrench" :size="20" :color="TOKEN_COLOR.primary" />
+              <text class="ds__item-craft-text jz-clamp-3">{{ item.craft }}</text>
+            </view>
             <view class="ds__item-foot"><text class="jz-clamp-2">{{ item.formula || '企业计价公式' }}</text><text>成本 {{ money(item.cost) }}</text></view>
           </view>
           <view v-if="!activeSpaceItems.length" class="ds__item-side-empty"><text>该区域暂无分项</text></view>

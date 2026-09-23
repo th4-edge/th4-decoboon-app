@@ -44,7 +44,8 @@ const ROLE_MAP: Record<string, EmployeeRole> = {
   marketer: 'marketer', Marketer: 'marketer',
   designer: 'designer', Designer: 'designer',
   pm: 'pm', Pm: 'pm', PM: 'pm',
-  projectSupport: 'projectSupport', ProjectSupport: 'projectSupport',
+  // 兼容旧后端/旧缓存：履约专员已在 2026-09-22 合并进财务。
+  projectSupport: 'finance', ProjectSupport: 'finance',
   finance: 'finance', Finance: 'finance'
 }
 
@@ -55,7 +56,6 @@ const ROLE_API_MAP: Record<EmployeeRole, string> = {
   marketer: 'Marketer',
   designer: 'Designer',
   pm: 'Pm',
-  projectSupport: 'ProjectSupport',
   finance: 'Finance'
 }
 
@@ -70,6 +70,20 @@ function enumValue(raw: unknown): string {
 
 function normalizeRole(raw: unknown): EmployeeRole | undefined {
   return ROLE_MAP[enumValue(raw)]
+}
+
+/**
+ * 岗位显示名：后端返回的是 role 枚举对象 { name, value, key }，
+ * Employee 实体本身没有 title 字段。历史缺陷：直接取 raw.title 得到 undefined，
+ * 导致任务负责人选择器等位置渲染成「张三（undefined）」（BUG-OWNER-UNDEFINED）。
+ */
+function roleDisplayName(raw: unknown): string | undefined {
+  if (raw && typeof raw === 'object') {
+    const value = raw as RawRecord
+    const name = value.name ?? value.title
+    if (typeof name === 'string' && name.trim()) return name.trim()
+  }
+  return undefined
 }
 
 function normalizeCompany(raw: RawRecord | null | undefined): Employee['company'] {
@@ -165,7 +179,7 @@ export function normalizeEmployee(raw: RawRecord): Employee {
     name: raw.name ?? '',
     phone: raw.phone ?? raw.telNo ?? '',
     role: normalizeRole(raw.role) || 'marketer',
-    title: raw.title,
+    title: raw.title ?? roleDisplayName(raw.role),
     companyId: company?.id,
     storeId: store?.id,
     teamId: team?.id,

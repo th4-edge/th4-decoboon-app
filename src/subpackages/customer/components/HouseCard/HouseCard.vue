@@ -97,8 +97,8 @@ function copyNo() {
       </view>
       <!-- 房屋信息编辑入口：客户信息地址与房屋地址是两份数据，必须允许维护房屋档案本身 -->
       <view class="house-card__edit" @tap.stop="emit('edit', property)">
-        <JzIcon name="edit" :size="24" :color="TOKEN_COLOR.text3" />
-        <text>编辑</text>
+        <JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" />
+        <text>编辑房屋</text>
       </view>
     </view>
   </view>
@@ -187,8 +187,9 @@ function copyNo() {
   display: inline-flex;
   align-items: center;
   gap: 6rpx;
-  color: $jzb-text-3;
+  color: $jzb-primary-dark;
   font-size: $jzb-font-xs;
+  font-weight: 600;
 }
 .house-card__edit:active { color: $jzb-primary-dark; }
 </style>

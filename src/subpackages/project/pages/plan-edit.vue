@@ -6,17 +6,19 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import type { CraftTask, Zone } from '@/domains/base/model'
 import type { Project, ProjectStage } from '@/domains/project/model'
+import type { Task } from '@/domains/schedule/model'
 import { projectApi } from '@/domains/project/api'
 import { baseApi } from '@/domains/base/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import JzIcon from '@/components/JzIcon.vue'
-import { toast, loading, hideLoading, confirm } from '@/composables/toast'
+import { toast, toastError, loading, hideLoading, confirm } from '@/composables/toast'
 
 const projectId = ref('')
 const project = ref<Project | null>(null)
 const stages = ref<ProjectStage[]>([])
 const zones = ref<Zone[]>([])
 const allCraft = ref<CraftTask[]>([])
+const existingTasks = ref<Task[]>([])
 const keyword = ref('')
 
 const stageId = ref('')
@@ -30,11 +32,12 @@ onLoad((q) => {
   load()
 })
 async function load() {
-  const [p, st, zn, ct] = await Promise.all([
+  const [p, st, zn, ct, tk] = await Promise.all([
     projectApi.info(projectId.value), projectApi.stages(projectId.value),
-    baseApi.zones(), baseApi.craftCatalog()
+    baseApi.zones(), baseApi.craftCatalog(), scheduleApi.tasks(projectId.value).catch(() => [])
   ])
   project.value = p || null
+  existingTasks.value = tk
   stages.value = [...st].sort((a, b) => a.sort - b.sort)
   zones.value = zn
   allCraft.value = ct
@@ -44,12 +47,31 @@ async function load() {
 }
 
 const stage = computed(() => stages.value.find((s) => s.id === stageId.value))
+/**
+ * 可选区域 = 系统空间枚举 ∪ 项目既有任务里的区域名。
+ * 合同施工行带入的是自由文本区域（如「客餐厅」「主卧」），不在 SpaceType 枚举内；
+ * 若只给枚举区域，设计师既看不到既有区域，也无法据此去重（BUG-ZONE-DICT-MISMATCH）。
+ */
+const zoneOptions = computed(() => {
+  const list = zones.value.map((z) => ({ ...z }))
+  const known = new Set(list.map((z) => z.name))
+  for (const task of existingTasks.value) {
+    const name = task.zone?.name || task.zone?.id
+    if (name && !known.has(name)) {
+      known.add(name)
+      list.push({ id: name, name, sort: 900 })
+    }
+  }
+  return list
+})
 /** 当前阶段可落位的区域（取该阶段工艺库覆盖的区域，保证可选项都有任务） */
+const enumZoneIds = computed(() => new Set(zones.value.map((z) => z.id)))
 const stageZones = computed(() => {
   const ids = new Set(allCraft.value
     .filter((c) => !c.defaultStageId || c.defaultStageId === stageId.value)
     .flatMap((c) => c.zoneIds))
-  return zones.value.filter((z) => ids.has(z.id))
+  // 既有任务的区域名（非系统枚举）始终保留，保证可以选中并做去重
+  return zoneOptions.value.filter((z) => ids.has(z.id) || !enumZoneIds.value.has(z.id))
 })
 function applyZone() {
   const zs = stageZones.value
@@ -64,16 +86,35 @@ function onZone(i: number) {
   zoneId.value = zs[i]?.id || ''
 }
 
+/** 当前区域是否为系统空间枚举（自由文本区域不做工艺适用范围过滤，否则工艺库会整片为空） */
+const isEnumZone = computed(() => zones.value.some((z) => z.id === zoneId.value))
 const lib = computed(() => {
   const k = keyword.value.trim().toLowerCase()
   return allCraft.value.filter((c) => {
     if (c.defaultStageId && c.defaultStageId !== stageId.value) return false
-    if (zoneId.value && !c.zoneIds.includes(zoneId.value)) return false
+    if (zoneId.value && isEnumZone.value && !c.zoneIds.includes(zoneId.value)) return false
     if (k && !(c.name + c.code + c.craft + c.spec).toLowerCase().includes(k)) return false
     return true
   })
 })
 const zoneOf = (id: string) => zones.value.find((z) => z.id === id)
+
+/**
+ * 已下发识别：同一「项目 × 阶段 × 区域 × 工艺」只允许一条未取消任务。
+ * 历史缺陷：重复下发会生成多条重复任务（BUG-TASK-DUPLICATE-DISPATCH），服务端已拦截，
+ * 前端在此提前标记「已下发」并阻止重复选择。
+ */
+const dispatchedKeys = computed(() => new Set(
+  existingTasks.value
+    .filter((t) => t.status !== 'overdue' && t.catalogId)
+    // 后端施工任务的 zone 存的是中文区域名（ProjectTask.resolveZone → SpaceType.name），
+    // 因此这里统一用区域名做键，避免「LivingRoom」与「客厅」对不上导致已下发识别失效。
+    .map((t) => `${t.stageId}|${t.zone?.name || t.zone?.id || ''}|${t.catalogId}`)
+))
+function isDispatched(ct: CraftTask) {
+  const zoneName = zoneOf(zoneId.value)?.name || zoneId.value
+  return dispatchedKeys.value.has(`${stageId.value}|${zoneName}|${ct.id}`)
+}
 
 function defaultQty(ct: CraftTask): number {
   const map: Record<string, number> = { '㎡': 20, 'm': 10, '个': 10, '点': 6, '樘': 2, '套': 1, '项': 1 }
@@ -81,6 +122,9 @@ function defaultQty(ct: CraftTask): number {
 }
 function add(ct: CraftTask) {
   if (!zoneId.value) { toast('请先选择施工区域'); return }
+  if (isDispatched(ct)) {
+    toast('该工艺已在当前阶段·区域下发，请在原任务上调整数量'); return
+  }
   if (selected.value.some((x) => x.ct.id === ct.id && x.zone.id === zoneId.value)) {
     toast('该区域下已选此工艺'); return
   }
@@ -97,21 +141,35 @@ async function save() {
   const ok = await confirm('保存排期', `将为「${stage.value?.name}」添加 ${selected.value.length} 项施工任务，确认保存？`, '保存')
   if (!ok) return
   loading('保存排期中…')
+  const failed: string[] = []
   for (const it of selected.value) {
-    await scheduleApi.addTaskFromCatalog({
-      projectId: projectId.value,
-      stageId: stageId.value,
-      zoneId: it.zone.id,
-      catalogId: it.ct.id,
-      quantity: it.qty,
-      ownerId: session.emp?.id
-    })
+    try {
+      await scheduleApi.addTaskFromCatalog({
+        projectId: projectId.value,
+        stageId: stageId.value,
+        zoneId: it.zone.id,
+        catalogId: it.ct.id,
+        quantity: it.qty,
+        ownerId: session.emp?.id
+      })
+      existingTasks.value.push({
+        id: '', projectId: projectId.value, stageId: stageId.value, catalogId: it.ct.id,
+        name: it.ct.name, status: 'todo', zone: it.zone
+      } as Task)
+    } catch (error) {
+      failed.push(`${it.ct.name}（${it.zone.name}）`)
+      toastError(error, '下发失败')
+    }
   }
-  savedCount.value += selected.value.length
+  savedCount.value += selected.value.length - failed.length
   selected.value = []
   hideLoading()
-  toast('排期已保存，任务已下发', 'success')
-  setTimeout(() => uni.navigateBack(), 450)
+  if (failed.length) {
+    toast(`以下任务未下发：${failed.join('、')}`, 'none')
+  } else {
+    toast('排期已保存，任务已下发', 'success')
+    setTimeout(() => uni.navigateBack(), 450)
+  }
 }
 </script>
 
@@ -163,7 +221,10 @@ async function save() {
             <text class="pe__lib-name">{{ ct.name }}</text>
             <text v-if="ct.conceal" class="pe__lib-conceal">需隐蔽验收</text>
           </view>
-          <view class="pe__add" @tap="add(ct)"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>选择</text></view>
+          <view class="pe__add" :class="{ 'pe__add--dispatched': isDispatched(ct) }" @tap="add(ct)">
+            <JzIcon v-if="!isDispatched(ct)" name="plus" :size="24" :color="TOKEN_COLOR.primary" />
+            <text>{{ isDispatched(ct) ? '已下发' : '选择' }}</text>
+          </view>
         </view>
         <text class="pe__lib-craft">工艺：{{ ct.craft }}</text>
         <text class="pe__lib-spec">规格：{{ ct.spec }}</text>
@@ -232,6 +293,8 @@ async function save() {
 .pe__lib-code { font-size: $jzb-font-xs; color: $jzb-text-inverse; background: $jzb-primary; border-radius: 6rpx; padding: 2rpx 10rpx; margin-right: 12rpx; }
 .pe__lib-name { font-size: $jzb-font-md; font-weight: 600; }
 .pe__lib-conceal { font-size: 18rpx; color: $jzb-warning; border: 1rpx solid rgba(255,125,0,0.5); border-radius: $jzb-radius-pill; padding: 0 10rpx; margin-left: 12rpx; }
+.pe__add--dispatched { color: $jzb-text-4; background: $jzb-bg-page; }
+.pe__add--dispatched text { color: $jzb-text-4; }
 .pe__add { background: $jzb-primary-lighter; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 600; padding: 8rpx 22rpx; border-radius: $jzb-radius-pill; }
 .pe__lib-craft, .pe__lib-spec { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.6; }
 .pe__lib-foot { margin-top: 12rpx; }

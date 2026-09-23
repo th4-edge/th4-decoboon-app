@@ -17,6 +17,9 @@ export type Capability =
   | 'view:material'
   | 'view:supply'
   | 'view:finance'
+  | 'view:worker'
+  | 'edit:worker'
+  | 'edit:doc-template'
   | 'edit:finance'
   | 'view:contract'
   | 'view:quote'
@@ -49,9 +52,12 @@ export type Capability =
   | 'view:notice'
   | 'view:performance'
   | 'view:workbench'
+  | 'view:measure-workbench'
 
 const MATRIX: Record<RoleKey, Capability[]> = {
   boss: [
+    'edit:doc-template',
+    'view:worker',
     'edit:catalog',
     'view:catalog',
     'view:design', 'edit:design', 'act:talk',
@@ -63,16 +69,20 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'act:report', 'act:startStage', 'act:acceptRequest', 'act:quote', 'act:followCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure', 'act:assignDesigner',
     'act:convertCustomer', 'act:inviteMember', 'act:inviteCustomer', 'act:issue',
-    'act:material', 'view:notice', 'view:performance'
+    'act:material', 'view:notice', 'view:performance', 'view:measure-workbench'
   ],
   storeManager: [
+    'edit:doc-template',
+    'view:worker',
     'view:catalog', 'edit:catalog',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
     'view:cost',
     'view:schedule', 'view:task', 'edit:quote',
+    // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成
+    'act:startStage',
     'act:quote', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
-    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance'
+    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
   ],
   teamLeader: [
     'view:catalog',
@@ -80,15 +90,16 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:myProjects', 'view:customers', 'view:team', 'view:schedule', 'view:task',
     'view:quote', 'edit:quote', 'act:quote', 'act:assignDesigner', 'act:inviteMember',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'act:inviteCustomer', 'view:notice', 'view:performance'
+    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
   ],
   marketer: [
     'view:design', 'view:quote',
     'view:myProjects', 'view:customers',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'act:inviteCustomer', 'view:notice', 'view:performance'
+    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
   ],
   designer: [
+    'view:worker',
     'view:catalog',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
@@ -96,24 +107,22 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance'
   ],
   pm: [
+    'view:worker', 'edit:worker',
     'view:catalog',
     'view:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:material', 'view:supply', 'view:quote',
     'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest',
     'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance'
   ],
-  projectSupport: [
-    'edit:catalog',
-    'view:catalog',
-    'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material', 'view:supply',
-    'view:cost',
-    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice'
-  ],
   finance: [
+    'edit:doc-template',
+    'view:worker',
     'view:catalog', 'edit:catalog',
-    'view:myProjects', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
+    'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
+    'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
-    'view:approval', 'view:supply', 'view:notice'
+    'view:approval', 'view:supply',
+    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice'
   ],
   customer: [
     'view:myProjects', 'view:contract', 'act:acceptConfirm', 'view:notice'

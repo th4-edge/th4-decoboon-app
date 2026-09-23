@@ -2,7 +2,7 @@ import { post, listOf } from '@/core/http'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Customer, CustomerFollow, CustomerGrade, CustomerStage, CustomerTag } from './model'
+import type { Customer, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 
@@ -72,6 +72,7 @@ export function normalizeCustomer(raw: RawRecord): Customer {
     pendingMeasureAt: raw.pendingMeasureAt,
     measureRequestedAt: raw.measureRequestedAt,
     handedOffAt: raw.handedOffAt,
+    projectId: raw.projectId == null ? undefined : String(raw.projectId),
     owner: owner ? {
       ...owner,
       id: String(owner.id ?? owner.empId ?? ''),
@@ -105,8 +106,40 @@ export function normalizeCustomer(raw: RawRecord): Customer {
         score: Number(item.score ?? 0),
         reason: item.reason ?? ''
       })) : undefined
-    } : undefined
+    } : undefined,
+    idleDays: raw.idleDays == null ? undefined : Number(raw.idleDays),
+    riskLevel: raw.riskLevel ? enumValue(raw.riskLevel).toLowerCase() as Customer['riskLevel'] : undefined,
+    riskReason: raw.riskReason ? String(raw.riskReason) : undefined,
+    nextAction: raw.nextAction ? String(raw.nextAction) : undefined,
+    quoteAmount: raw.quoteAmount == null ? undefined : Number(raw.quoteAmount),
+    signedAmount: raw.signedAmount == null ? undefined : Number(raw.signedAmount),
+    projectName: raw.projectName ? String(raw.projectName) : undefined
   }
+}
+
+function normalizeMetric(raw: RawRecord): CustomerMetricCard {
+  return {
+    key: String(raw.key ?? ''),
+    label: String(raw.label ?? ''),
+    value: Number(raw.value ?? 0),
+    valueType: String(raw.valueType ?? 'count'),
+    status: String(raw.status ?? 'normal'),
+    subText: String(raw.subText ?? ''),
+    trendRate: raw.trendRate == null ? null : Number(raw.trendRate),
+    periods: (Array.isArray(raw.periods) ? raw.periods : []).map((item) => {
+      const period = item as RawRecord
+      return {
+        key: String(period.key ?? ''),
+        label: String(period.label ?? ''),
+        value: Number(period.value ?? 0),
+        valueType: String(period.valueType ?? 'count')
+      }
+    })
+  }
+}
+
+function normalizeStageCount(raw: RawRecord): CustomerStageCount {
+  return { key: String(raw.key ?? ''), label: String(raw.label ?? ''), count: Number(raw.count ?? 0) }
 }
 
 function writePayload(customer: Partial<Customer>): RawRecord {
@@ -155,6 +188,42 @@ export interface CustomerPageQuery {
 }
 
 export const crmApi = {
+  overview: async (query: { current?: number; size?: number; keyword?: string; stage?: string; sort?: string; storeId?: string; ownerId?: string } = {}): Promise<CustomerOverviewReport> => {
+    const raw = await post<RawRecord>('customer/customer/overview', {
+      current: query.current ?? 1,
+      size: query.size ?? 20,
+      keyword: query.keyword || undefined,
+      stage: query.stage || 'all',
+      sort: query.sort || 'risk',
+      storeId: query.storeId || undefined,
+      ownerId: query.ownerId || undefined
+    })
+    return {
+      asOf: raw.asOf ? String(raw.asOf) : undefined,
+      month: raw.month ? String(raw.month) : undefined,
+      metrics: (Array.isArray(raw.metrics) ? raw.metrics : []).map((item) => normalizeMetric(item as RawRecord)),
+      stageCounts: (Array.isArray(raw.stageCounts) ? raw.stageCounts : []).map((item) => normalizeStageCount(item as RawRecord)),
+      ownerGroups: (Array.isArray(raw.ownerGroups) ? raw.ownerGroups : []).map((item) => {
+        const group = item as RawRecord
+        return {
+          ownerId: group.ownerId != null ? String(group.ownerId) : null,
+          ownerName: String(group.ownerName ?? '未分配负责人'),
+          storeName: group.storeName ? String(group.storeName) : null,
+          customerCount: Number(group.customerCount ?? 0),
+          riskCustomerCount: Number(group.riskCustomerCount ?? 0),
+          pendingMeasureCount: Number(group.pendingMeasureCount ?? 0),
+          signedCustomerCount: Number(group.signedCustomerCount ?? 0),
+          quoteAmount: Number(group.quoteAmount ?? 0),
+          signedAmount: Number(group.signedAmount ?? 0)
+        }
+      }),
+      customers: (Array.isArray(raw.customers) ? raw.customers : []).map((item) => normalizeCustomer(item as RawRecord)),
+      current: Number(raw.current ?? query.current ?? 1),
+      size: Number(raw.size ?? query.size ?? 20),
+      total: Number(raw.total ?? 0),
+      hasMore: raw.hasMore === true
+    }
+  },
   page: async (query: CustomerPageQuery = {}): Promise<PageData<Customer>> => {
     const current = query.current ?? 1
     const size = query.size ?? 20
@@ -223,7 +292,7 @@ export const crmApi = {
   tagList: async (category?: string) =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/customer-tag/list', { category })).map(normalizeTag),
 
-  /** 标签字典：全部（老板/店长维护） */
+  /** 标签字典：全部（企业负责人/店长维护） */
   tagPage: async () =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/customer-tag/page', { current: 1, size: 200 })).map(normalizeTag),
 

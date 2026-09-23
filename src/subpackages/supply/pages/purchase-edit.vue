@@ -24,7 +24,7 @@ const expectedAt = ref('')
 const remark = ref('')
 const submitting = ref(false)
 const queryPlanId = ref('')
-const canViewCost = computed(() => ['boss', 'storeManager', 'projectSupport', 'finance'].includes(session.role || ''))
+const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const currentPlan = computed(() => plans.value[planIdx.value])
 const currentPartner = computed(() => partners.value[partnerIdx.value])
 
@@ -32,7 +32,7 @@ onLoad(async (q) => {
   queryPlanId.value = q?.planId || ''
   try {
     const [planList, partnerList] = await Promise.all([materialApi.plans(), supplyApi.partners()])
-    plans.value = planList.filter((item) => ['planned', 'requested', 'approved'].includes(item.status))
+    plans.value = planList.filter((item) => ['planned', 'readyToOrder', 'requested', 'approved'].includes(item.status))
     allPartners.value = partnerList.filter((item) => item.status === 'active')
     partners.value = allPartners.value
     const planAt = queryPlanId.value ? plans.value.findIndex((item) => item.id === queryPlanId.value) : 0
@@ -83,7 +83,7 @@ async function save() {
   submitting.value = true
   loading('提交采购单…')
   try {
-    await materialApi.savePurchase({
+    const created = await materialApi.savePurchase({
       materialPlanId: plan.id,
       supplierId: partner.id,
       supplierName: partner.name,
@@ -93,7 +93,13 @@ async function save() {
       expectedAt: expectedAt.value || undefined,
       remark: remark.value.trim() || undefined
     })
-    toast('采购单已创建', 'success')
+    // 企业负责人/财务直接确认下单：下单即形成应付（DEC-MP-01）
+    if (['boss', 'finance'].includes(session.role || '')) {
+      await materialApi.orderPurchase(created.id)
+      toast('已确认下单并形成应付', 'success')
+    } else {
+      toast('采购单已提交待审批', 'success')
+    }
     setTimeout(() => uni.navigateBack(), 400)
   } catch (error) {
     toastError(error, '采购单创建失败')

@@ -58,21 +58,35 @@ onLoad(async (query) => {
     const idx = list.findIndex((p) => p.id === propertyId.value)
     propertyIdx.value = idx >= 0 ? idx : 0
     propertyId.value = list[propertyIdx.value]?.id || ''
-    // 客户级 measureAt 回填日期时间（约定量房时间目前挂在客户上，不随房屋区分）
-    if (customer.value?.measureAt) {
-      date.value = customer.value.measureAt.slice(0, 10)
-      time.value = customer.value.measureAt.slice(11, 16)
-    }
+    await loadScheduledForProperty()
   } catch (error) {
     toastError(error, '客户信息加载失败')
   }
 })
 
-function onPropertyChange(e: { detail: { value: number } }) {
+async function loadScheduledForProperty() {
+  date.value = ''
+  time.value = ''
+  if (!propertyId.value) return
+  try {
+    const measures = await propertyApi.measures(propertyId.value)
+    const scheduled = measures.find((item) => item.status === 'scheduled') || measures[0]
+    const scheduledAt = scheduled?.scheduledAt || scheduled?.measureTime
+    if (scheduledAt) {
+      date.value = scheduledAt.slice(0, 10)
+      time.value = scheduledAt.slice(11, 16)
+    }
+  } catch {
+    // 没有历史预约时保持空白，由用户重新选择。
+  }
+}
+
+async function onPropertyChange(e: { detail: { value: number } }) {
   const idx = Number(e.detail.value)
   if (idx < 0 || idx >= properties.value.length) return
   propertyIdx.value = idx
   propertyId.value = properties.value[idx].id
+  await loadScheduledForProperty()
 }
 
 async function save() {
@@ -99,7 +113,7 @@ async function save() {
       <view class="cm__icon"><JzIcon name="calendar" :size="42" :color="TOKEN_COLOR.primary" /></view>
       <view class="jz-grow">
         <text class="cm__title">约定客户量房时间</text>
-        <text class="cm__sub">确认客户已同意量房后录入时间，客户将进入"待量房"，由团队负责人或门店店长指定设计师。</text>
+        <text class="cm__sub">确认客户已同意量房后录入时间，客户将进入"待量房"，由团队负责人或店长指定设计师。</text>
       </view>
     </view>
 

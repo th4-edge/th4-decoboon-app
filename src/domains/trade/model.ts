@@ -1,4 +1,5 @@
 import type { Customer } from '../crm/model'
+import type { ContractConstructionPlan, ContractPaymentPlan } from '@/domains/plan/model'
 import type { Property } from '@/domains/property/model'
 import type { DesignScheme } from '../design/model'
 import type { Employee } from '@/domains/identity/model'
@@ -32,6 +33,8 @@ export interface QuoteItem {
   amount?: number
   cost: number
   formula?: string
+  /** 施工工艺快照：生成报价时从设计分项/材料库冻结 */
+  craft?: string
   role?: string
   differenceType?: string
   differenceStatus?: string
@@ -94,6 +97,8 @@ export interface Contract {
   startDate?: string
   planEndDate?: string
   paymentTerms?: string
+  paymentPlan?: ContractPaymentPlan
+  constructionPlan?: ContractConstructionPlan
   property?: Property
   receivableCount: number
   receivableAmount: number
@@ -141,4 +146,110 @@ export interface ContractChange {
   conclusion?: string
   approvedAt?: string
   createdAt?: string
+}
+
+/** 合同基线行：签约时对报价行的冻结快照，签约后主数据变化不回写。 */
+export interface ContractLine {
+  id: string
+  contractId?: string
+  type?: string
+  category?: string
+  name: string
+  brand?: string
+  spec?: string
+  unit: string
+  quantity: number
+  materialPrice?: number
+  manualPrice?: number
+  pricingMode?: string
+  amount: number
+  /** 成本字段按角色过滤：无成本权限时不返回 */
+  cost?: number
+  formula?: string
+  role?: string
+  spaceName?: string
+  sort?: number
+}
+
+export interface ContractWorkbenchReceivable {
+  receivableTotal: number
+  receivedTotal: number
+  outstandingTotal: number
+  overdueTotal: number
+  overdueCount: number
+  totalCount: number
+}
+
+export interface ContractPaymentNodeState {
+  nodeId?: string
+  code?: string
+  name?: string
+  ratio?: number
+  amount: number
+  receivedAmount: number
+  outstandingAmount: number
+  triggerType?: string
+  triggerStageName?: string
+  dueDate?: string
+  status?: string
+  statusName?: string
+  receivableId?: string
+}
+
+export interface ContractWorkbenchCost {
+  estimatedCost: number
+  actualCost: number
+  costComplete: boolean
+  incompleteItemCount: number
+  /** 成本不完整时为 null，禁止用 0 冒充利润 */
+  grossProfit?: number | null
+  grossMargin?: number | null
+}
+
+export interface ContractWorkbenchProgress {
+  projectId?: string
+  projectNo?: string
+  projectName?: string
+  status?: string
+  statusName?: string
+  percent: number
+  currentStageName?: string
+  stageTotal: number
+  stageDone: number
+  pendingAcceptanceCount: number
+  startDate?: string
+  planEndDate?: string
+}
+
+export interface ContractWorkbenchChange {
+  totalCount: number
+  pendingCount: number
+  approvedCount: number
+  confirmedCount: number
+  closedCount: number
+  confirmedAmount: number
+}
+
+export interface ContractWorkbenchSelection {
+  selectionId?: string
+  version?: number
+  status?: string
+  statusName?: string
+  title?: string
+  summary?: string
+  designerName?: string
+  confirmerName?: string
+  confirmedAt?: string
+  totalCount: number
+}
+
+/** 合同履约档案聚合：一屏回答钱、货、工、变、选。 */
+export interface ContractWorkbench {
+  contract: Contract
+  receivable: ContractWorkbenchReceivable
+  paymentNodes: ContractPaymentNodeState[]
+  cost: ContractWorkbenchCost
+  progress: ContractWorkbenchProgress
+  change: ContractWorkbenchChange
+  selection: ContractWorkbenchSelection
 }

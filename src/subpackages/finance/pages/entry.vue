@@ -5,6 +5,8 @@ import { P } from '@/config'
 import { projectApi } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { financeApi } from '@/domains/finance/api'
+import { laborApi } from '@/domains/labor/api'
+import type { Worker } from '@/domains/labor/model'
 import type {
   FundAccount, LedgerDirection, Payable, PayableType, Receivable
 } from '@/domains/finance/model'
@@ -24,12 +26,14 @@ const editId = ref('')
 const projects = ref<Project[]>([])
 const receivables = ref<Receivable[]>([])
 const payables = ref<Payable[]>([])
+const workers = ref<Worker[]>([])
 const submitting = ref(false)
 
 const form = reactive({
   projectId: '',
   receivableId: '',
   payableId: '',
+  workerId: '',
   name: '',
   stageName: '',
   receivableType: 'first' as Receivable['type'],
@@ -76,6 +80,13 @@ const payableOptions = computed(() => payables.value
   .filter((item) => item.outstandingAmount > 0)
   .map((item) => ({ label: `${item.name} · 待付¥${item.outstandingAmount}`, value: item.id })))
 const payableIndex = computed(() => Math.max(payableOptions.value.findIndex((item) => item.value === form.payableId), 0))
+const selectedPayable = computed(() => payables.value.find((item) => item.id === form.payableId))
+/** 工资类应付付款时才需要选择个人工人，用于生成个人工资凭证。 */
+const isSalaryPayment = computed(() => type.value === 'payment' && selectedPayable.value?.type === 'salary')
+const workerOptions = computed(() => workers.value
+  .filter((item) => item.status === 'active')
+  .map((item) => ({ label: `${item.name} · ${item.trade || '工种未填'}`, value: item.id })))
+const workerIndex = computed(() => Math.max(workerOptions.value.findIndex((item) => item.value === form.workerId), 0))
 const receivableTypeOptions = [
   { label: '首期款', value: 'first' }, { label: '进度款', value: 'progress' },
   { label: '尾款', value: 'final' }, { label: '质保金', value: 'retention' }, { label: '其他应收', value: 'other' }
@@ -108,6 +119,7 @@ async function boot() {
   loadError.value = ''
   try {
     projects.value = await projectApi.list()
+    if (can(session.role, 'view:worker')) workers.value = await laborApi.workers()
     await hydrate(editId.value)
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '表单数据加载失败'
@@ -163,6 +175,7 @@ function onReceivable(event: any) { form.receivableId = receivableOptions.value[
 function onPayable(event: any) { form.payableId = payableOptions.value[Number(event.detail.value)]?.value || ''; const target = payables.value.find((item) => item.id === form.payableId); if (target) { form.payeeName = target.payeeEmployee?.name || target.payeeName || ''; form.amount = String(target.outstandingAmount) } }
 function onReceivableType(event: any) { form.receivableType = receivableTypeOptions[Number(event.detail.value)]?.value as Receivable['type'] || 'other' }
 function onPayableType(event: any) { form.payableType = payableTypeOptions[Number(event.detail.value)]?.value as PayableType || 'other' }
+function onWorker(event: any) { form.workerId = workerOptions.value[Number(event.detail.value)]?.value || '' }
 function onAccount(event: any) { form.account = accountOptions[Number(event.detail.value)]?.value as FundAccount || 'companyBank' }
 function onDirection(event: any) { form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income' }
 function onInvoiceSwitch(event: any) { form.invoiceRequired = !!event.detail.value }
@@ -187,7 +200,8 @@ async function submit() {
       if (editId.value) await financeApi.updatePayable({ id: editId.value, name: form.name, amount, dueDate: form.date, urgent: form.urgent, period: form.period, remark: form.remark })
       else await financeApi.savePayable({ projectId: form.projectId || undefined, name: form.name, type: form.payableType, payeeName: form.payeeName, period: form.period, amount, dueDate: form.date, urgent: form.urgent, sourceNo: form.sourceNo, remark: form.remark })
     } else if (type.value === 'payment') {
-      await financeApi.createPayment({ payableId: form.payableId, amount, account: form.account, paidAt: form.date, payeeName: form.payeeName, remark: form.remark })
+      if (isSalaryPayment.value && !form.workerId) { toast('工资付款请选择发放工人'); return }
+      await financeApi.createPayment({ payableId: form.payableId, amount, account: form.account, paidAt: form.date, payeeName: form.payeeName, workerId: isSalaryPayment.value ? form.workerId : undefined, remark: form.remark })
     } else {
       await financeApi.saveLedger({ projectId: form.projectId || undefined, direction: form.direction, category: form.category, amount, account: form.account, occurredAt: form.date, counterparty: form.counterparty, summary: form.summary, remark: form.remark })
     }
@@ -250,6 +264,7 @@ async function submit() {
         <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">付款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">付款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><picker :range="workerOptions" range-key="label" :value="workerIndex" @change="onWorker"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.workerId }">{{ form.workerId ? selectLabel(workerOptions, workerIndex) : '请选择工人（用于工资凭证）' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" placeholder="默认应付收款方" /></view>
       </template>
 

@@ -14,8 +14,8 @@ import JzIcon from '@/components/JzIcon.vue'
 
 const pickerVisible = ref(true)
 const pickerRef = ref<InstanceType<typeof CatalogPicker> | null>(null)
-// 标准采购成本敏感：仅企业负责人 / 门店店长 / 财务可见（后端同样裁剪，前端仅控制展示）
-const canViewCost = computed(() => ['boss', 'storeManager', 'projectSupport', 'finance'].includes(session.role || ''))
+// 标准采购成本敏感：仅企业负责人 / 店长 / 财务可见（后端同样裁剪，前端仅控制展示）
+const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const authorized = ref(false)
 const editorOpen = ref(false)
 const editingId = ref('')
@@ -383,7 +383,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
               <text class="cm__cost-tag">{{ Number(costPrice || 0) > 0 ? '已维护' : '待维护' }}</text>
             </view>
             <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input" placeholder="企业当前标准成本价" />
-            <text class="cm__cost-hint">成本价由企业负责人、店长、材料员和财务维护；合同签约时按当时成本冻结，后续调整不回溯已签约成本。</text>
+            <text class="cm__cost-hint">成本价由企业负责人、店长和财务维护；合同签约时按当时成本冻结，后续调整不回溯已签约成本。</text>
             <button class="jz-btn jz-btn--ghost jz-btn--sm cm__cost-action" @tap="openSupplierBrands">维护供应商品牌关系</button>
           </view>
           <text class="cm__label">施工工艺</text>

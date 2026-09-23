@@ -10,6 +10,7 @@ import { isLoggedIn } from '@/domains/identity/session'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
@@ -78,7 +79,7 @@ function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId
         <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${Math.min(item.collectionRate, 100)}%` }" /></view>
         <view class="fin-card__foot">
           <text v-if="item.costComplete !== false" class="jz-caption">预计利润 {{ money(item.profitAmount) }} · 付款进度 {{ item.paymentRate }}%</text>
-          <text v-else class="jz-caption fin-card__warning">成本未完整（{{ item.costIncompleteCount || 0 }} 项待补） · 付款进度 {{ item.paymentRate }}%</text>
+          <view v-else class="jz-caption fin-card__warning fin-card__warning-row"><JzCostIncomplete :count="item.costIncompleteCount || 0" reason="项目成本未完整，利润暂不展示。" compact /><text>付款进度 {{ item.paymentRate }}%</text></view>
           <text class="fin-card__action">项目核算</text>
         </view>
       </view>
@@ -90,4 +91,5 @@ function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId
 
 <style lang="scss" scoped>
 @import '@/styles/finance.scss';
+.fin-card__warning-row { display: flex; align-items: center; gap: 8rpx; }
 </style>

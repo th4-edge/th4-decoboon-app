@@ -41,6 +41,7 @@ async function normalizeReport(raw: RawRecord): Promise<SiteReport> {
     id,
     projectId: String(raw.projectId ?? raw.project?.projectId ?? ''),
     stageId: stageId == null ? undefined : String(stageId),
+    stageName: raw.stage?.name ?? raw.stageName,
     taskId: taskId == null ? undefined : String(taskId),
     type: REPORT_TYPE[enumValue(raw.type)] || 'notice',
     title: raw.title ?? '',

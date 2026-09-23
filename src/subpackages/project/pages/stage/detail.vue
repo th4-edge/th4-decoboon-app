@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
-import type { Acceptance } from '@/domains/acceptance/model'
+import type { Acceptance, AcceptanceRound } from '@/domains/acceptance/model'
 import type { Project, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
 import type { SiteReport } from '@/domains/site/model'
@@ -15,6 +15,7 @@ import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import { siteApi } from '@/domains/site/api'
 import { acceptanceApi } from '@/domains/acceptance/api'
+import { acceptanceRoundApi } from '@/domains/acceptance/api'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -28,6 +29,7 @@ const project = ref<Project | null>(null)
 const tasks = ref<Task[]>([])
 const reports = ref<SiteReport[]>([])
 const acceptance = ref<Acceptance | null>(null)
+const rounds = ref<AcceptanceRound[]>([])
 const role = computed(() => session.role || 'customer')
 const loadingPage = ref(true)
 const loadError = ref('')
@@ -55,6 +57,9 @@ async function load() {
     tasks.value = taskList
     reports.value = reportList.filter((r) => r.stageId === stageId)
     acceptance.value = acceptanceValue
+    rounds.value = acceptanceValue
+      ? await acceptanceRoundApi.rounds(acceptanceValue.id).catch(() => [])
+      : []
   } catch (error) {
     stage.value = null
     loadError.value = error instanceof Error ? error.message : '阶段加载失败'
@@ -72,6 +77,9 @@ const canAcceptRequest = computed(() => {
 const canAddTask = computed(() => can(role.value, 'edit:task') && stage.value?.status !== 'done')
 const hasStageActions = computed(() => canOpen.value || canReport.value || canAcceptRequest.value || canAddTask.value)
 const isWaitingCustomer = computed(() => acceptance.value?.customerStatus === 'waiting' && isCustomer(role.value))
+const stageStatusMeta = computed(() => acceptance.value?.customerStatus === 'rejected'
+  ? { label: '整改中', color: STATUS_COLOR.blocked }
+  : STAGE_STATUS_META[stage.value?.status || 'todo'])
 
 async function start() {
   const emp = session.emp
@@ -106,11 +114,11 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
             <view class="sd__project" @tap="openProject"><text>{{ project?.name || '' }}</text><JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text3" /></view>
           </view>
         </view>
-        <JzTag :text="STAGE_STATUS_META[stage.status].label" :color="STAGE_STATUS_META[stage.status].color" />
+        <JzTag :text="stageStatusMeta.label" :color="stageStatusMeta.color" />
       </view>
       <view class="jz-between sd__prog">
         <text class="sd__prog-pct">{{ stage.progress }}%</text>
-        <JzProgress :percent="stage.progress" :height="14" :color="STAGE_STATUS_META[stage.status].color" />
+        <JzProgress :percent="stage.progress" :height="14" :color="stageStatusMeta.color" />
       </view>
       <view class="sd__meta-grid">
         <view class="sd__meta"><text class="sd__meta-label">计划</text><text class="sd__meta-val">{{ stage.plannedStart?.slice(5) }}~{{ stage.plannedEnd?.slice(5) }}</text></view>
@@ -132,6 +140,18 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
     <view v-else-if="acceptance && acceptance.customerStatus === 'confirmed'" class="sd__banner sd__banner--ok" @tap="acceptPage">
       <view class="sd__banner-icon"><JzIcon name="check-circle" :size="38" :color="TOKEN_COLOR.success" /></view>
       <text class="sd__banner-title">业主已确认验收（{{ acceptance.confirmAt?.slice(5, 16) }}）</text>
+    </view>
+
+    <view v-if="acceptance && (acceptance.customerStatus === 'rejected' || (acceptance.issues && acceptance.issues.length))" class="jz-card sd__rectify" @tap="acceptPage">
+      <view class="jz-between"><text class="sd__rectify-title">客户整改要求</text><JzTag text="整改中" :color="STATUS_COLOR.blocked" /></view>
+      <text v-for="(issue, index) in acceptance.issues || []" :key="index" class="sd__rectify-issue">· {{ issue }}</text>
+      <view class="sd__rectify-meta">
+        <text v-if="acceptance.projectManager">责任人：{{ acceptance.projectManager.name }}</text>
+        <text v-if="acceptance.rectificationTypeName">类型：{{ acceptance.rectificationTypeName }}</text>
+        <text v-if="acceptance.rectificationDueDate">截止：{{ acceptance.rectificationDueDate }}</text>
+        <text v-if="rounds.length">第 {{ rounds.length }} 轮</text>
+      </view>
+      <view class="sd__rectify-foot"><text>整改完成后在同一验收单提交复验</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
     </view>
 
     <!-- 操作 -->
@@ -183,6 +203,11 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 .sd__banner-title { font-size: $jzb-font; font-weight: 600; }
 .sd__banner-sub { display: block; margin-top: 2rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .sd__banner-arrow { margin-left: 8rpx; }
+.sd__rectify { margin: 0 24rpx 20rpx; padding: 24rpx; border-left: 8rpx solid $jzb-warning; }
+.sd__rectify-title { font-size: $jzb-font-md; font-weight: 700; }
+.sd__rectify-issue { display: block; margin-top: 12rpx; color: $jzb-warning; font-size: $jzb-font-sm; line-height: 1.6; }
+.sd__rectify-meta { display: flex; flex-wrap: wrap; gap: 18rpx; margin-top: 14rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.sd__rectify-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; padding-top: 14rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary; font-size: $jzb-font-xs; }
 .sd__ops { margin: 0 24rpx; padding: 24rpx; }
 .sd__section-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12rpx; }
 .sd__section-tip { color: $jzb-text-3; font-size: $jzb-font-xs; }

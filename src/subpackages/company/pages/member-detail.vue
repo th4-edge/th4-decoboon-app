@@ -14,9 +14,9 @@ import JzTag from '@/components/JzTag.vue'
 const member = ref<Employee | null>(null)
 const empId = ref('')
 const editableRoles: { value: EmployeeRole; label: string }[] = [
-  { value: 'marketer', label: '家装顾问' }, { value: 'designer', label: '设计师' },
-  { value: 'pm', label: '项目经理' }, { value: 'projectSupport', label: '履约专员' },
-  { value: 'finance', label: '财务' }
+  { value: 'storeManager', label: '店长' }, { value: 'designer', label: '设计师' },
+  { value: 'marketer', label: '业务员' }, { value: 'pm', label: '项目经理' },
+  { value: 'finance', label: '财务' }, { value: 'teamLeader', label: '团队负责人' }
 ]
 const roleIndex = ref(0)
 const status = { active: ['在职', TOKEN_COLOR.success], suspended: ['停用', TOKEN_COLOR.warning], resigned: ['已离职', TOKEN_COLOR.danger] }

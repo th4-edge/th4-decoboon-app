@@ -4,7 +4,9 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { statisticApi } from '@/domains/statistic/api'
+import { workbenchApi } from '@/domains/workbench/api'
 import type { EmployeePerformance, PerformanceReport } from '@/domains/statistic/model'
+import type { BossMeasureItem, BossMeasureReport } from '@/domains/workbench/model'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -20,6 +22,7 @@ const month = ref(currentMonth())
 const storeId = ref('')
 const roleFilter = ref<RoleFilter>('all')
 const report = ref<PerformanceReport | null>(null)
+const measureReport = ref<BossMeasureReport | null>(null)
 const loading = ref(false)
 const loadError = ref('')
 
@@ -52,7 +55,12 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    report.value = await statisticApi.performance(`${month.value}-01`, roleFilter.value === 'all' ? undefined : roleFilter.value, storeId.value || undefined)
+    const [performance, measure] = await Promise.all([
+      statisticApi.performance(`${month.value}-01`, roleFilter.value === 'all' ? undefined : roleFilter.value, storeId.value || undefined),
+      workbenchApi.bossMeasure({ month: `${month.value}-01`, storeId: storeId.value || undefined })
+    ])
+    report.value = performance
+    measureReport.value = measure
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '绩效报表加载失败'
     toastError(error, '绩效报表加载失败')
@@ -72,7 +80,7 @@ function onMonthChange(event: { detail: { value: string } }) {
 }
 
 function roleLabel(role: EmployeePerformance['role']) {
-  return role === 'Designer' ? '设计师' : role === 'Marketer' ? '家装顾问' : '项目经理'
+  return role === 'Designer' ? '设计师' : role === 'Marketer' ? '业务员' : '项目经理'
 }
 
 function primaryRate(item: EmployeePerformance) {
@@ -90,6 +98,38 @@ function primaryMetric(item: EmployeePerformance) {
 function secondaryMetric(item: EmployeePerformance) {
   if (item.role !== 'Pm') return ''
   return `验收通过 ${item.acceptedAcceptanceCount}/${item.acceptanceCount}`
+}
+
+const measureGroups = computed(() => {
+  if (roleFilter.value !== 'all' && roleFilter.value !== 'Marketer') return []
+  return (measureReport.value?.marketerGroups || []).map((group) => ({
+    ...group,
+    periods: buildMeasurePeriods(group.items)
+  }))
+})
+
+function buildMeasurePeriods(items: BossMeasureItem[]) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const day = 86400000
+  const windows = [
+    { key: 'today', label: '日增', start: today, end: now.getTime() },
+    { key: 'yesterday', label: '昨日', start: today - day, end: today },
+    { key: 'last7Days', label: '近7日增', start: today - 6 * day, end: now.getTime() },
+    { key: 'month', label: '月增', start: new Date(now.getFullYear(), now.getMonth(), 1).getTime(), end: now.getTime() }
+  ]
+  return windows.map((window) => ({
+    key: window.key,
+    label: window.label,
+    scheduledCount: items.filter((item) => inMeasureWindow(item.scheduledAt, window.start, window.end)).length,
+    completedCount: items.filter((item) => inMeasureWindow(item.completedAt, window.start, window.end)).length
+  }))
+}
+
+function inMeasureWindow(value: string | null | undefined, start: number, end: number): boolean {
+  if (!value) return false
+  const timestamp = new Date(value.replace(' ', 'T')).getTime()
+  return !Number.isNaN(timestamp) && timestamp >= start && timestamp < end
 }
 
 function currentMonth() {
@@ -123,6 +163,36 @@ function currentMonth() {
           <text class="assess-summary__sub">{{ item.sub }}</text>
         </view>
       </view>
+
+      <template v-if="measureGroups.length">
+        <view class="jz-section"><text class="jz-section__title">业务员量房业绩</text><text class="jz-section__more">{{ measureGroups.length }} 人</text></view>
+        <view class="assess-measure-list">
+          <view v-for="group in measureGroups" :key="group.marketerId || 'unassigned'" class="jz-card assess-measure">
+            <view class="assess-measure__head">
+              <view class="jz-grow">
+                <text class="assess-measure__name">{{ group.marketerName || '未分配业务员' }}</text>
+                <text class="assess-measure__sub">{{ group.storeName || '当前数据范围' }} · {{ group.itemCount }} 户</text>
+              </view>
+              <text class="assess-measure__rate">{{ group.appointmentRate ?? 0 }}%</text>
+            </view>
+            <view class="assess-measure__stats">
+              <view><text>预约量房</text><text>{{ group.scheduledCount }}</text></view>
+              <view><text>完成量房</text><text>{{ group.completedCount }}</text></view>
+              <view><text>预约率</text><text>{{ group.appointmentRate ?? 0 }}%</text></view>
+              <view><text>完成率</text><text>{{ group.completionRate ?? 0 }}%</text></view>
+              <view><text>4h 逾期</text><text class="is-danger">{{ group.overdue4hCount }}</text></view>
+              <view><text>待指派</text><text>{{ group.unassignedCount }}</text></view>
+            </view>
+            <view class="assess-measure__periods">
+              <view v-for="period in group.periods" :key="period.key" class="assess-measure__period">
+                <text>{{ period.label }}</text>
+                <text>预约 +{{ period.scheduledCount }}</text>
+                <text>完成 +{{ period.completedCount }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </template>
 
       <view class="jz-section"><text class="jz-section__title">员工明细</text><text class="jz-section__more">{{ report?.performances?.length || 0 }} 人</text></view>
       <view v-if="report?.performances?.length" class="assess-list jz-card">
@@ -158,6 +228,22 @@ function currentMonth() {
 .assess-summary__label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .assess-summary__value { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: 38rpx; font-weight: 760; }
 .assess-summary__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.assess-measure-list { display: flex; flex-direction: column; gap: 16rpx; }
+.assess-measure { padding: 24rpx; }
+.assess-measure__head { display: flex; align-items: center; gap: 12rpx; }
+.assess-measure__name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 750; }
+.assess-measure__sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
+.assess-measure__rate { color: $jzb-primary-dark; font-size: 38rpx; font-weight: 760; }
+.assess-measure__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 20rpx; }
+.assess-measure__stats > view { padding: 14rpx 10rpx; text-align: center; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.assess-measure__stats text { display: block; color: $jzb-text-3; font-size: 18rpx; }
+.assess-measure__stats text:last-child { margin-top: 4rpx; color: $jzb-text-1; font-size: 26rpx; font-weight: 700; }
+.assess-measure__stats text.is-danger { color: $jzb-danger; }
+.assess-measure__periods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10rpx; margin-top: 16rpx; }
+.assess-measure__period { padding: 12rpx 14rpx; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; }
+.assess-measure__period text { display: block; color: $jzb-text-3; font-size: 18rpx; }
+.assess-measure__period text:first-child { margin-bottom: 4rpx; color: $jzb-primary-dark; font-size: 22rpx; font-weight: 700; }
+.assess-measure__period text:last-child { margin-top: 2rpx; }
 .assess-list { padding: 4rpx 24rpx; }
 .assess-person { padding: 24rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .assess-person:last-child { border-bottom: none; }

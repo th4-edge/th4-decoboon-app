@@ -33,6 +33,7 @@ const talks = ref<Record<string, TalkPlan>>({})
 const project = ref<Project | null>(null)
 const loadingData = ref(false)
 const hasLoadedOnce = ref(false)
+const loadError = ref('')
 const copyingId = ref('')
 const deletingId = ref('')
 let loadSeq = 0
@@ -100,8 +101,9 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 async function load() {
   const seq = ++loadSeq
   loadingData.value = true
+  loadError.value = ''
   try {
-    const [c, reqs, schemeList, quoteList, projects, properties] = await Promise.all([
+    const results = await Promise.allSettled([
       crmApi.info(customerId.value),
       designApi.requirements(customerId.value, propertyId.value || undefined),
       designApi.schemes(customerId.value),
@@ -109,27 +111,54 @@ async function load() {
       projectApi.list(),
       propertyApi.list(customerId.value)
     ])
-    const activeSchemes = schemeList.filter((item) => item.status !== 'archived'
-      && (!propertyId.value || item.property?.id === propertyId.value))
-    const details = await Promise.all(activeSchemes.map((item) => designApi.scheme(item.id)))
-    const talkTargets = details.filter((item) =>
-      ['ready', 'presented', 'selected'].includes(item.status) && (item.spaces?.length || 0) > 0
-    )
-    const talkPairs = await Promise.all(talkTargets.map(async (item) => [
-      item.id, (await designApi.talks(item.id))[0]
-    ] as const))
     if (seq !== loadSeq) return
-    customer.value = c
-    property.value = properties.find((item) => item.id === propertyId.value) || properties[0] || null
-    requirements.value = reqs
-    quotes.value = quoteList.filter((item) => !propertyId.value || item.property?.id === propertyId.value)
-    project.value = projects.find((item) => item.customer?.id === customerId.value
-      && (!propertyId.value || item.property?.id === propertyId.value)) || null
-    designs.value = details
-    talks.value = Object.fromEntries(talkPairs.filter(([, talk]) => !!talk)) as Record<string, TalkPlan>
+
+    const [customerResult, requirementResult, schemeResult, quoteResult, projectResult, propertyResult] = results
+    if (customerResult.status === 'rejected') throw customerResult.reason
+
+    const failures: string[] = []
+    customer.value = customerResult.value
+    if (requirementResult.status === 'fulfilled') requirements.value = requirementResult.value
+    else { requirements.value = []; failures.push('诉求') }
+    if (quoteResult.status === 'fulfilled') {
+      quotes.value = quoteResult.value.filter((item) => !propertyId.value || item.property?.id === propertyId.value)
+    } else { quotes.value = []; failures.push('报价') }
+    if (projectResult.status === 'fulfilled') {
+      project.value = projectResult.value.find((item) => item.customer?.id === customerId.value
+        && (!propertyId.value || item.property?.id === propertyId.value)) || null
+    } else { project.value = null; failures.push('项目') }
+    if (propertyResult.status === 'fulfilled') {
+      property.value = propertyResult.value.find((item) => item.id === propertyId.value) || propertyResult.value[0] || null
+    } else { property.value = null; failures.push('房屋') }
+
+    if (schemeResult.status === 'fulfilled') {
+      const activeSchemes = schemeResult.value.filter((item) => item.status !== 'archived'
+        && (!propertyId.value || item.property?.id === propertyId.value))
+      const detailResults = await Promise.allSettled(activeSchemes.map((item) => designApi.scheme(item.id)))
+      if (seq !== loadSeq) return
+      const details = detailResults.flatMap((item) => item.status === 'fulfilled' ? [item.value] : [])
+      if (detailResults.some((item) => item.status === 'rejected')) failures.push('方案详情')
+      designs.value = details
+      const talkTargets = details.filter((item) =>
+        ['ready', 'presented', 'selected'].includes(item.status) && (item.spaces?.length || 0) > 0
+      )
+      const talkPairs = await Promise.all(talkTargets.map(async (item) => [
+        item.id, (await designApi.talks(item.id).catch(() => []))[0]
+      ] as const))
+      talks.value = Object.fromEntries(talkPairs.filter(([, talk]) => !!talk)) as Record<string, TalkPlan>
+    } else {
+      designs.value = []
+      talks.value = {}
+      failures.push('设计方案')
+    }
+
+    if (failures.length) loadError.value = `${failures.join('、')}加载失败，以下内容可能不完整`
     hasLoadedOnce.value = true
   } catch (error) {
-    if (seq === loadSeq) toastError(error, '设计转化数据加载失败')
+    if (seq === loadSeq) {
+      loadError.value = error instanceof Error ? error.message : '设计转化数据加载失败'
+      toastError(error, '设计转化数据加载失败')
+    }
   } finally {
     if (seq === loadSeq) loadingData.value = false
   }
@@ -252,6 +281,15 @@ function statusClass(status: DesignStatus) {
 
 <template>
   <view class="dl">
+    <view v-if="loadError" class="jz-card dl__load-error">
+      <JzIcon name="alert-circle" :size="30" :color="TOKEN_COLOR.danger" />
+      <view class="jz-grow">
+        <text class="dl__load-error-title">部分数据加载失败</text>
+        <text class="dl__load-error-text">{{ loadError }}</text>
+      </view>
+      <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="load">重试</button>
+    </view>
+
     <view class="dl__customer-bar">
       <text class="dl__customer-bar-name">{{ customer?.name || '客户' }}</text>
       <text class="dl__customer-bar-phone">{{ customer?.phone || '—' }}</text>
@@ -324,7 +362,7 @@ function statusClass(status: DesignStatus) {
           </view>
           <view class="dl__scheme-price-row">
             <view class="dl__scheme-price">
-              <text v-if="item.quote" class="dl__scheme-price-value">¥{{ money(item.quote.amount) }}</text>
+              <text v-if="item.quote" class="dl__scheme-price-value">{{ money(item.quote.amount) }}</text>
               <text v-else class="dl__scheme-price-empty">待报价</text>
             </view>
             <view v-if="canEdit && !locked" class="dl__scheme-actions">
@@ -375,6 +413,9 @@ function statusClass(status: DesignStatus) {
 
 <style lang="scss" scoped>
 .dl { min-height: 100vh; padding-bottom: 60rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
+.dl__load-error { margin: 20rpx 24rpx; padding: 22rpx 24rpx; display: flex; flex-direction: row; align-items: center; gap: 16rpx; border-color: $jzb-danger-soft; }
+.dl__load-error-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.dl__load-error-text { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 
 /* 客户信息条 */
 .dl__customer-bar {

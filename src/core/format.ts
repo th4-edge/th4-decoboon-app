@@ -12,6 +12,45 @@ export function dateTimeValue(value?: string | number | null): string | undefine
   return raw
 }
 
+interface DateTimeParts {
+  year: string
+  month: string
+  day: string
+  hour?: string
+  minute?: string
+}
+
+/** 把 `2026-09-10T05:03:07` / `2026-09-10 05:03:07` / `yyyyMMddHHmmss` 拆成展示用的年月日时分。 */
+function dateTimeParts(value?: string | number | null): DateTimeParts | null {
+  const normalized = dateTimeValue(value)
+  if (!normalized) return null
+  const matched = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/.exec(normalized)
+  if (!matched) return null
+  return { year: matched[1], month: matched[2], day: matched[3], hour: matched[4], minute: matched[5] }
+}
+
+/**
+ * 友好日期时间：`2026-09-10T05:03:07` → `2026-09-10 05:03`。
+ *
+ * 历史坑：后端 `DateTime` / `LocalDateTime` 直接 `toString()` 会把 ISO 原文（带 T 和秒）
+ * 透传到页面，业主端「量房档案」曾原样展示 `2026-09-10T05:03:07`。
+ * 所有面向用户的日期时间统一走本函数，禁止在页面里对原始字符串 `slice`。
+ */
+export function dateTimeText(value?: string | number | null): string {
+  const parts = dateTimeParts(value)
+  if (!parts) return dateTimeValue(value) ?? ''
+  const time = parts.hour === undefined ? '' : ` ${parts.hour}:${parts.minute}`
+  return `${parts.year}-${parts.month}-${parts.day}${time}`
+}
+
+/** 紧凑日期时间：`2026-09-10T05:03:07` → `09-10 05:03`，用于统计位等窄栏。 */
+export function dateTimeShortText(value?: string | number | null): string {
+  const parts = dateTimeParts(value)
+  if (!parts) return dateTimeValue(value) ?? ''
+  const time = parts.hour === undefined ? '' : ` ${parts.hour}:${parts.minute}`
+  return `${parts.month}-${parts.day}${time}`
+}
+
 /** 金额：分 -> 元展示（入参统一为元） */
 export interface MoneyPart {
   /** 数值部分（不含单位） */
@@ -59,10 +98,77 @@ export function dateText(s?: string): string {
   return s.slice(0, 10)
 }
 
-/** 相对今天：x天前/后 */
+/** 主材选材结果字段：键顺序即录入顺序，与后端 SelectionText 对齐。 */
+const SELECTION_LABELS: Array<[string, string]> = [
+  ['color', '颜色/花色'],
+  ['spec', '规格/型号'],
+  ['brand', '品牌/系列'],
+  ['craft', '工艺'],
+  ['remark', '备注']
+]
+
+export interface SelectionField {
+  key: string
+  label: string
+  value: string
+}
+
+/**
+ * 主材选材结果结构化：优先解析 `selection_json`，否则拆「标签：值；标签：值」文本。
+ *
+ * 历史坑：后端曾把 `selection_json` 原样塞进旅程 lines，业主端直接渲染出
+ * `{"color":"暖灰石纹","spec":"800×800"}` 一长串 JSON。展示层必须转成字段再渲染。
+ */
+export function selectionFields(json?: string, fallbackText?: string): SelectionField[] {
+  const fields: SelectionField[] = []
+  const raw = (json || '').trim()
+  if (raw.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>
+      for (const [key, label] of SELECTION_LABELS) {
+        const value = parsed[key]
+        if (value === null || value === undefined) continue
+        const text = String(value).trim()
+        if (text) fields.push({ key, label, value: text })
+      }
+      if (fields.length) return fields
+    } catch {
+      // 解析失败时落到可读文本解析
+    }
+  }
+  const text = (fallbackText || '').trim()
+  if (!text) return fields
+  text.split('；').forEach((segment, index) => {
+    const trimmed = segment.trim()
+    if (!trimmed) return
+    const colon = trimmed.indexOf('：')
+    if (colon <= 0) {
+      fields.push({ key: `segment-${index}`, label: '', value: trimmed })
+      return
+    }
+    fields.push({
+      key: `field-${index}`,
+      label: trimmed.slice(0, colon).trim(),
+      value: trimmed.slice(colon + 1).trim()
+    })
+  })
+  return fields
+}
+
+/** 把可能残留 JSON 的一行选材结果转回「标签：值；…」，非 JSON 文本原样返回。 */
+export function selectionLineText(line?: string): string {
+  const raw = (line || '').trim()
+  if (!raw) return ''
+  const fields = raw.startsWith('{') ? selectionFields(raw) : selectionFields(undefined, raw)
+  if (!fields.length) return raw
+  return fields.map((field) => (field.label ? `${field.label}：${field.value}` : field.value)).join('；')
+}
+
+/** 相对今天：x天前/后（只取日期部分，避免 ISO 带 T 时解析失败） */
 export function diffDays(s?: string): number {
   if (!s) return 0
-  const target = new Date(s.replace(/-/g, '/')).getTime()
+  const target = new Date(s.slice(0, 10).replace(/-/g, '/')).getTime()
+  if (Number.isNaN(target)) return 0
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   return Math.round((target - today) / 86400000)
@@ -75,6 +181,33 @@ export function daysText(s?: string): string {
   if (d === -1) return '昨天'
   if (d > 1) return `${d}天后`
   return `${-d}天前`
+}
+
+/** 截止/到期相对今天：今天到期 / 还差 N 天 / 已逾期 N 天（前端计算，不依赖后端）。 */
+export function dueText(s?: string): string {
+  if (!s || s === '—') return ''
+  const days = diffDays(s)
+  if (days === 0) return '今天到期'
+  if (days > 0) return `还差 ${days} 天`
+  return `已逾期 ${-days} 天`
+}
+
+/**
+ * 事实值展示：金额补 ¥、日期收敛成可读格式，其余原样。
+ *
+ * 历史坑：业主端各"我的家"事实条原样渲染后端值，`valueType === 'date'` 的事实
+ * （签约日期、整改截止日期等）会直接显示 `2026-09-10T05:03:07`。
+ */
+export function factDisplay(value?: string, valueType?: string): string {
+  const raw = value ?? ''
+  if (!raw) return raw
+  if (valueType === 'money') {
+    const amount = Number(raw)
+    // 后端下发的是「30000.00」这种分/元原值，这里统一成「3万 / ¥9,800」，避免丢单位或长尾小数
+    return Number.isNaN(amount) ? raw : money(amount)
+  }
+  if (valueType === 'date') return dateTimeText(raw).slice(0, 10)
+  return raw
 }
 
 export function timeText(s?: string): string {

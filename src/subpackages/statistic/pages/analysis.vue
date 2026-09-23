@@ -104,7 +104,9 @@ function metricCard(label: string, metric: BossDashboard['signedAmount'] | undef
     icon,
     color,
     tone: incomplete ? TOKEN_COLOR.warningSoft : tone,
-    value: incomplete ? '成本未完整' : (isMoney ? money(metric?.value ?? 0) : `${metric?.value ?? 0}`),
+    incomplete,
+    reason: metric?.warning || '成本未完整，暂不展示可靠经营结果。',
+    value: incomplete ? '' : (isMoney ? money(metric?.value ?? 0) : `${metric?.value ?? 0}`),
     target: incomplete ? (metric?.warning || '补齐成本后展示可靠毛利') : (isMoney ? `目标 ${money(metric?.target ?? 0)}` : `目标 ${metric?.target ?? 0} 个`),
     achievement: incomplete ? '暂不计算达成率' : `达成 ${metric?.achievementRate ?? 0}%`,
     month: incomplete ? '成本口径待补齐' : `环比 ${signed(metric?.monthOverMonthRate ?? 0)}%`,
@@ -232,7 +234,8 @@ function currentMonth() {
             <view class="ana-metric__icon" :style="{ background: item.tone }"><JzIcon :name="item.icon" :size="30" :color="item.color" /></view>
             <text class="ana-metric__label">{{ item.label }}</text>
           </view>
-          <text class="ana-metric__value">{{ item.value }}</text>
+          <JzCostIncomplete v-if="item.incomplete" :count="1" :reason="item.reason" compact />
+          <text v-else class="ana-metric__value">{{ item.value }}</text>
           <text class="ana-metric__target">{{ item.target }} · {{ item.achievement }}</text>
           <view class="ana-metric__compare"><text>{{ item.month }}</text><text>{{ item.year }}</text></view>
         </view>

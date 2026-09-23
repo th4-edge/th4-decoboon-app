@@ -5,9 +5,11 @@ import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
-import type { ProjectMember } from '@/domains/identity/model'
+import type { Employee, ProjectMember } from '@/domains/identity/model'
 import type { Project } from '@/domains/project/model'
+import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
+import { toast, toastError } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -16,18 +18,57 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 const id = ref('')
 const project = ref<Project | null>(null)
 const members = ref<ProjectMember[]>([])
+const employees = ref<Employee[]>([])
+const picking = ref<'' | 'pm' | 'designer'>('')
 const canInviteOwner = computed(() => can(session.role || 'boss', 'act:inviteCustomer') && !isCustomer(session.role))
 const canInviteMember = computed(() => can(session.role || 'boss', 'act:inviteMember'))
+/** 成员切换：企业负责人或本门店店长（服务端 requireMemberEditor 强校验） */
+const canSwitchMember = computed(() => ['boss', 'storeManager'].includes(session.role || '') && !isCustomer(session.role))
+const manager = computed(() => project.value?.manager)
+const designer = computed(() => project.value?.designer)
+const candidates = computed(() => {
+  if (!picking.value) return []
+  const wanted = picking.value === 'pm' ? ['pm', 'boss'] : ['designer', 'boss']
+  return employees.value.filter((e) => wanted.includes(e.role))
+})
+const pickingTitle = computed(() => (picking.value === 'pm' ? '项目经理' : '设计师'))
 
 onLoad((q) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
   id.value = q?.id || ''
+  if (q?.mode === 'assign') picking.value = 'pm'
   load()
 })
 async function load() {
-  const [p, m] = await Promise.all([projectApi.info(id.value), projectApi.members(id.value)])
-  project.value = p || null
+  let p: Project | null = null
+  let m: ProjectMember[] = []
+  try {
+    [p, m] = await Promise.all([projectApi.info(id.value), projectApi.members(id.value)])
+  } catch (error) {
+    toastError(error, '项目成员加载失败')
+  }
+  project.value = p
   members.value = m
+  if (canSwitchMember.value && !employees.value.length) {
+    employees.value = await identityApi.employees().catch(() => [])
+  }
+}
+function openPicker(role: 'pm' | 'designer') {
+  if (!canSwitchMember.value) return
+  picking.value = role
+}
+async function choose(emp: Employee) {
+  const target = picking.value
+  if (!target) return
+  try {
+    // 后端 project/member/save 需要 empId + EmployeeRole 枚举名（Pm / Designer）
+    await projectApi.addMember(id.value, { empId: emp.id, role: target === 'pm' ? 'Pm' : 'Designer' } as never)
+    picking.value = ''
+    toast(target === 'pm' ? `项目经理已切换为 ${emp.name}` : `设计师已切换为 ${emp.name}`, 'success')
+    await load()
+  } catch (error) {
+    toastError(error, '切换失败')
+  }
 }
 const emps = computed(() => members.value.filter((m) => m.kind === 'employee'))
 const custs = computed(() => members.value.filter((m) => m.kind === 'customer'))
@@ -49,6 +90,25 @@ function joinedText(value?: string | number) {
 
 <template>
   <view class="mb">
+    <view class="jz-section"><text class="jz-section__title">工地岗位</text></view>
+    <view class="jz-card mb__roles">
+      <view class="mb__role-row" @tap="openPicker('pm')">
+        <view class="jz-grow">
+          <text class="mb__role-label">项目经理</text>
+          <text class="mb__role-value" :class="{ 'mb__role-value--empty': !manager }">{{ manager?.name || '未指定（工地无法开工）' }}</text>
+        </view>
+        <text v-if="canSwitchMember" class="mb__role-action">{{ manager ? '切换' : '指定' }}</text>
+      </view>
+      <view class="mb__role-row" @tap="openPicker('designer')">
+        <view class="jz-grow">
+          <text class="mb__role-label">设计师</text>
+          <text class="mb__role-value" :class="{ 'mb__role-value--empty': !designer }">{{ designer?.name || '未指定' }}</text>
+        </view>
+        <text v-if="canSwitchMember" class="mb__role-action">{{ designer ? '切换' : '指定' }}</text>
+      </view>
+      <text v-if="!canSwitchMember" class="mb__role-tip">仅企业负责人或本门店店长可以切换工地岗位</text>
+    </view>
+
     <view class="jz-section"><text class="jz-section__title">项目团队（{{ emps.length }}）</text></view>
     <view class="jz-card mb__list">
       <view v-for="m in emps" :key="m.id" class="mb__row">
@@ -81,11 +141,49 @@ function joinedText(value?: string | number) {
       <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>邀请业主同频</text></button>
       <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" :color="TOKEN_COLOR.primary" /><text>邀请设计师 / 项目经理加入团队</text></button>
     </view>
+    <!-- 员工选择（工地下发岗位） -->
+    <view v-if="picking" class="mb__mask" @tap="picking = ''">
+      <view class="mb__sheet" @tap.stop>
+        <view class="mb__sheet-head">
+          <text class="mb__sheet-title">选择{{ pickingTitle }}</text>
+          <text class="mb__sheet-close" @tap="picking = ''">取消</text>
+        </view>
+        <scroll-view scroll-y class="mb__sheet-list">
+          <view v-for="e in candidates" :key="e.id" class="mb__sheet-item" @tap="choose(e)">
+            <JzAvatar :src="e.avatarUrl || ''" :name="e.name" :color="e.role === 'pm' ? '#FA8C16' : '#722ED1'" :size="68" />
+            <view class="jz-grow mb__sheet-who">
+              <text class="mb__sheet-name">{{ e.name }}</text>
+              <text class="mb__sheet-role">{{ e.title || e.role }} · {{ e.store?.name || '总店' }}</text>
+            </view>
+            <JzIcon v-if="(picking === 'pm' ? manager?.id : designer?.id) === e.id" name="check" :size="30" :color="TOKEN_COLOR.primary" />
+          </view>
+          <view v-if="!candidates.length" class="mb__empty">暂无可选员工（可先在「我的-企业成员」添加）</view>
+        </scroll-view>
+      </view>
+    </view>
   </view>
 </template>
 
 <style lang="scss" scoped>
 .mb { padding-bottom: 60rpx; }
+.mb__roles { margin: 0 24rpx; padding: 8rpx 24rpx; }
+.mb__role-row { display: flex; flex-direction: row; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.mb__role-row:last-child { border-bottom: none; }
+.mb__role-label { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.mb__role-value { display: block; margin-top: 6rpx; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.mb__role-value--empty { color: $jzb-danger; }
+.mb__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 6rpx 18rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
+.mb__role-tip { display: block; padding: 14rpx 0 6rpx; font-size: $jzb-font-xs; color: $jzb-text-4; }
+.mb__mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, .45); display: flex; flex-direction: column; justify-content: flex-end; z-index: 900; }
+.mb__sheet { background: $jzb-bg-card; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); max-height: 70vh; }
+.mb__sheet-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.mb__sheet-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
+.mb__sheet-close { font-size: $jzb-font-sm; color: $jzb-text-3; }
+.mb__sheet-list { max-height: 52vh; margin-top: 12rpx; }
+.mb__sheet-item { display: flex; flex-direction: row; align-items: center; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.mb__sheet-who { margin-left: 18rpx; }
+.mb__sheet-name { display: block; font-size: $jzb-font-sm; font-weight: 600; color: $jzb-text-1; }
+.mb__sheet-role { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .mb__list { margin: 0 24rpx; padding: 8rpx 24rpx; }
 .mb__row { display: flex; flex-direction: row; align-items: center; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .mb__row:last-child { border-bottom: none; }

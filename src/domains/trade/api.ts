@@ -3,8 +3,9 @@ import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeProperty } from '@/domains/property/api'
+import { normalizeContractConstructionPlan, normalizeContractPaymentPlan } from '../plan/api'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Contract, ContractChange, Quote, QuoteGroup, QuoteItem, QuoteMode, QuoteStatus } from './model'
+import type { Contract, ContractChange, ContractLine, ContractWorkbench, Quote, QuoteGroup, QuoteItem, QuoteMode, QuoteStatus } from './model'
 import { normalizeScheme } from '../design/api'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
@@ -69,8 +70,8 @@ function normalizeItem(raw: RawRecord): QuoteItem {
     price: Number(raw.price ?? 0),
     amount: Number(raw.amount ?? 0),
     cost: Number(raw.cost ?? 0),
-    formula: raw.formula
-    ,
+    formula: raw.formula,
+    craft: raw.craft,
     role: enumValue(raw.role),
     differenceType: enumValue(raw.differenceType),
     differenceStatus: enumValue(raw.differenceStatus),
@@ -185,6 +186,8 @@ function normalizeContract(raw: RawRecord): Contract {
     startDate: raw.startDate,
     planEndDate: raw.planEndDate,
     paymentTerms: raw.paymentTerms,
+    paymentPlan: normalizeContractPaymentPlan(raw.paymentPlan),
+    constructionPlan: normalizeContractConstructionPlan(raw.constructionPlan),
     property: raw.property ? normalizeProperty(raw.property) : undefined,
     receivableCount: Number(raw.receivableCount ?? 0),
     receivableAmount: Number(raw.receivableAmount ?? 0),
@@ -295,10 +298,19 @@ export const tradeApi = {
     const raw = await post<RawRecord | null>('project/contract/info', { quoteId })
     return raw ? normalizeContract(raw) : null
   },
-  generateContract: (quoteId: string, input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
+  generateContract: (quoteId: string, input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string; paymentPlanCode?: string; constructionPlanCode?: string } = {}) =>
     post<RawRecord>('project/contract/save', { quoteId, ...input }).then(normalizeContract),
-  updateContract: (contractId: string, status: Contract['status'], input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string } = {}) =>
+  updateContract: (contractId: string, status: Contract['status'], input: { signedAt?: string; signedAmount?: number; startDate?: string; planEndDate?: string; paymentTerms?: string; paymentPlanCode?: string; constructionPlanCode?: string } = {}) =>
     post<RawRecord>('project/contract/update', { contractId, status: status[0].toUpperCase() + status.slice(1), ...input }).then(normalizeContract),
+  contractWorkbench: async (params: { projectId?: string; contractId?: string }): Promise<ContractWorkbench> => {
+    const uri = session.role === 'customer' ? 'customer/contract/workbench' : 'project/contract/workbench'
+    return normalizeContractWorkbench(await post<RawRecord>(uri, params))
+  },
+  contractLines: async (params: { projectId?: string; contractId?: string }): Promise<ContractLine[]> => {
+    const uri = session.role === 'customer' ? 'customer/contract-line/page' : 'project/contract-line/page'
+    return Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>(uri, params))
+      .map(normalizeContractLine))
+  },
   contractChanges: async (projectId: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/contract-change/page', { projectId }))
       .map(normalizeContractChange)),
@@ -329,5 +341,139 @@ export const tradeApi = {
       ...input,
       signatureUrl: fileApi.storagePath(input.signatureUrl),
       evidenceImages: input.evidenceImages?.map((path) => fileApi.storagePath(path) || path)
+    }).then(normalizeContractChange),
+  cancelContractChange: (changeId: string) =>
+    post<RawRecord>('project/contract-change/cancel', { changeId }).then(normalizeContractChange),
+  contractChangeInfo: (changeId: string) =>
+    post<RawRecord>('project/contract-change/info', { changeId }).then(normalizeContractChange),
+  batchSaveContractChange: (input: {
+    contractId: string
+    reason: string
+    type?: NonNullable<ContractChange['type']>
+    evidenceImages?: string[]
+    signatureUrl?: string
+    items: Array<{
+      name: string
+      itemType?: string
+      changeType?: NonNullable<ContractChange['type']>
+      amountDelta: number
+      costDelta: number
+      remark?: string
+    }>
+  }) =>
+    post<RawRecord>('project/contract-change/batch-save', {
+      contractId: input.contractId,
+      reason: input.reason,
+      type: input.type ? CHANGE_TYPE_API[input.type] : undefined,
+      evidenceImages: input.evidenceImages?.map((path) => fileApi.storagePath(path) || path),
+      signatureUrl: fileApi.storagePath(input.signatureUrl),
+      items: input.items.map((item) => ({
+        name: item.name,
+        itemType: item.itemType,
+        changeType: item.changeType ? CHANGE_TYPE_API[item.changeType] : undefined,
+        amountDelta: item.amountDelta,
+        costDelta: item.costDelta,
+        remark: item.remark
+      }))
     }).then(normalizeContractChange)
+}
+
+function normalizeContractLine(raw: RawRecord): ContractLine {
+  const contract = raw.contract || {}
+  return {
+    id: String(raw.id ?? raw.lineId ?? ''),
+    contractId: contract.contractId ? String(contract.contractId) : undefined,
+    type: raw.type ? String(enumValue(raw.type)).toLowerCase() : undefined,
+    category: raw.category,
+    name: raw.name ?? '',
+    brand: raw.brand,
+    spec: raw.spec,
+    unit: UNIT_NAMES[enumValue(raw.unit)] || enumValue(raw.unit) || '项',
+    quantity: Number(raw.quantity ?? 0),
+    materialPrice: raw.materialPrice === undefined ? undefined : Number(raw.materialPrice),
+    manualPrice: raw.manualPrice === undefined ? undefined : Number(raw.manualPrice),
+    pricingMode: raw.pricingMode ? String(enumValue(raw.pricingMode)) : undefined,
+    amount: Number(raw.amount ?? 0),
+    cost: raw.cost === undefined || raw.cost === null ? undefined : Number(raw.cost),
+    formula: raw.formula,
+    role: raw.role ? String(enumValue(raw.role)) : undefined,
+    spaceName: raw.spaceName,
+    sort: raw.sort === undefined ? undefined : Number(raw.sort)
+  }
+}
+
+function normalizeContractWorkbench(raw: RawRecord): ContractWorkbench {
+  const receivable = raw.receivable || {}
+  const cost = raw.cost || {}
+  const progress = raw.progress || {}
+  const change = raw.change || {}
+  const selection = raw.selection || {}
+  return {
+    contract: normalizeContract(raw.contract || {}),
+    receivable: {
+      receivableTotal: Number(receivable.receivableTotal ?? 0),
+      receivedTotal: Number(receivable.receivedTotal ?? 0),
+      outstandingTotal: Number(receivable.outstandingTotal ?? 0),
+      overdueTotal: Number(receivable.overdueTotal ?? 0),
+      overdueCount: Number(receivable.overdueCount ?? 0),
+      totalCount: Number(receivable.totalCount ?? 0)
+    },
+    paymentNodes: Array.isArray(raw.paymentNodes) ? raw.paymentNodes.map((node: RawRecord) => ({
+      nodeId: node.nodeId === undefined || node.nodeId === null ? undefined : String(node.nodeId),
+      code: node.code,
+      name: node.name,
+      ratio: node.ratio === undefined || node.ratio === null ? undefined : Number(node.ratio),
+      amount: Number(node.amount ?? 0),
+      receivedAmount: Number(node.receivedAmount ?? 0),
+      outstandingAmount: Number(node.outstandingAmount ?? 0),
+      triggerType: node.triggerType,
+      triggerStageName: node.triggerStageName,
+      dueDate: node.dueDate,
+      status: node.status,
+      statusName: node.statusName,
+      receivableId: node.receivableId === undefined || node.receivableId === null ? undefined : String(node.receivableId)
+    })) : [],
+    cost: {
+      estimatedCost: Number(cost.estimatedCost ?? 0),
+      actualCost: Number(cost.actualCost ?? 0),
+      costComplete: cost.costComplete === true,
+      incompleteItemCount: Number(cost.incompleteItemCount ?? 0),
+      grossProfit: cost.grossProfit === undefined || cost.grossProfit === null ? null : Number(cost.grossProfit),
+      grossMargin: cost.grossMargin === undefined || cost.grossMargin === null ? null : Number(cost.grossMargin)
+    },
+    progress: {
+      projectId: progress.projectId === undefined || progress.projectId === null ? undefined : String(progress.projectId),
+      projectNo: progress.projectNo,
+      projectName: progress.projectName,
+      status: progress.status,
+      statusName: progress.statusName,
+      percent: Number(progress.percent ?? 0),
+      currentStageName: progress.currentStageName,
+      stageTotal: Number(progress.stageTotal ?? 0),
+      stageDone: Number(progress.stageDone ?? 0),
+      pendingAcceptanceCount: Number(progress.pendingAcceptanceCount ?? 0),
+      startDate: progress.startDate,
+      planEndDate: progress.planEndDate
+    },
+    change: {
+      totalCount: Number(change.totalCount ?? 0),
+      pendingCount: Number(change.pendingCount ?? 0),
+      approvedCount: Number(change.approvedCount ?? 0),
+      confirmedCount: Number(change.confirmedCount ?? 0),
+      closedCount: Number(change.closedCount ?? 0),
+      confirmedAmount: Number(change.confirmedAmount ?? 0)
+    },
+    selection: {
+      selectionId: selection.selectionId === undefined || selection.selectionId === null ? undefined : String(selection.selectionId),
+      version: selection.version === undefined || selection.version === null ? undefined : Number(selection.version),
+      status: selection.status,
+      statusName: selection.statusName,
+      title: selection.title,
+      summary: selection.summary,
+      designerName: selection.designerName,
+      confirmerName: selection.confirmerName,
+      confirmedAt: selection.confirmedAt,
+      totalCount: Number(selection.totalCount ?? 0)
+    }
+  }
 }

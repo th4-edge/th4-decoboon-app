@@ -5,6 +5,7 @@
 
 /* Brand */
 $jzb-primary: #16A394;
+$jzb-primary-base: #16A394; /* 与 TS TOKEN_COLOR.primaryBase 对齐 */
 $jzb-primary-light: #2BC4B4;
 $jzb-primary-dark: #0E8A7D;
 $jzb-primary-deep: #096C64;
@@ -25,6 +26,22 @@ $jzb-info: #4E5969;
 $jzb-info-soft: #F1F4F7;
 $jzb-purple: #6958C8;
 $jzb-purple-soft: #F0EEFC;
+
+/* 业务状态色板（状态标签专用，与 TS STATUS_COLOR 对齐；新增页面禁止再写裸色值） */
+$jzb-status-idle: #C9CDD4;
+$jzb-status-todo: #86909C;
+$jzb-status-muted: #8B93A1;
+$jzb-status-closed: #7A7F87;
+$jzb-status-dark: #4E5969;
+$jzb-status-doing: #13C2C2;
+$jzb-status-progress: #168A96;
+$jzb-status-alert: #FA8C16;
+$jzb-status-pending: #FF7D00;
+$jzb-status-done: #00B42A;
+$jzb-status-blocked: #F53F3F;
+$jzb-status-info: #2F54EB;
+$jzb-status-special: #722ED1;
+$jzb-status-accent: #8A5CC7;
 
 /* Text */
 $jzb-text-1: #17212B;
@@ -51,6 +68,7 @@ $jzb-shadow-float: 0 16rpx 38rpx rgba(14, 138, 125, 0.28);
 /* Radius */
 $jzb-radius-xs: 8rpx;
 $jzb-radius-sm: 12rpx;
+$jzb-radius-md: 16rpx;
 $jzb-radius: 20rpx;
 $jzb-radius-lg: 28rpx;
 $jzb-radius-xl: 36rpx;

@@ -12,6 +12,7 @@ import { identityApi } from '@/domains/identity/api'
 import { baseApi } from '@/domains/base/api'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
+import { ROLE_META } from '@/roles/catalog'
 import JzIcon from '@/components/JzIcon.vue'
 import { toastError, toast, loading, hideLoading } from '@/composables/toast'
 
@@ -36,13 +37,19 @@ const spec = ref('')
 const employees = ref<Employee[]>([])
 const stages = ref<ProjectStage[]>([])
 const zones = ref<Zone[]>([])
-const owners = computed(() => employees.value.filter((e) => ['pm', 'designer', 'boss', 'marketer'].includes(e.role)))
+// 任务负责人候选：企业负责人 / 店长 / 项目经理 / 设计师 / 业务员（店长自 2026-09-23 起可操作施工任务）
+const OWNER_ROLES = ['boss', 'storeManager', 'pm', 'designer', 'marketer']
+const owners = computed(() => employees.value.filter((e) => OWNER_ROLES.includes(e.role)))
 const stageLabel = computed(() => {
   const s = stages.value.find((x) => x.id === stageId.value)
   return s ? `${s.sort}. ${s.name}` : ''
 })
 const zoneLabel = computed(() => zones.value.find((z) => z.id === zoneId.value)?.name || '')
 const ownerLabel = computed(() => owners.value.find((o) => o.id === ownerId.value)?.name || '')
+/** 负责人下拉文案：岗位名缺失时回退角色短名，绝不再渲染 undefined。 */
+function ownerDisplay(o: Employee) {
+  return `${o.name}（${o.title || ROLE_META[o.role]?.short || o.role}）`
+}
 const PRIOS = [
   { key: 'low', label: '低' }, { key: 'normal', label: '中' }, { key: 'high', label: '高' }, { key: 'urgent', label: '紧急' }
 ] as const
@@ -81,28 +88,33 @@ async function save() {
   if (!projectId.value) { toast('缺少项目'); return }
   if (!name.value.trim()) { toast('请填写任务名称'); return }
   loading('保存中…')
-  await scheduleApi.saveTask({
+  try {
+    await scheduleApi.saveTask({
     id: id.value || undefined,
-    projectId: projectId.value,
-    stageId: stageId.value || stages.value[0]?.id,
-    name: name.value.trim(),
-    content: content.value.trim() || undefined,
-    zone: zones.value.find((z) => z.id === zoneId.value),
-    quantity: quantity.value ? Number(quantity.value) : undefined,
-    unit: unit.value.trim() || undefined,
-    craft: craft.value.trim() || undefined,
-    spec: spec.value.trim() || undefined,
-    acceptStandard: acceptStandard.value.trim() || spec.value.trim() || undefined,
-    owner: owners.value.find((e) => e.id === ownerId.value),
-    creator: session.emp || undefined,
-    priority: priority.value,
-    plannedStart: plannedStart.value || undefined,
-    plannedEnd: plannedEnd.value || undefined,
-    remark: remark.value.trim() || undefined
-  })
-  hideLoading()
-  toast('保存成功', 'success')
-  setTimeout(() => uni.navigateBack(), 350)
+      projectId: projectId.value,
+      stageId: stageId.value || stages.value[0]?.id,
+      name: name.value.trim(),
+      content: content.value.trim() || undefined,
+      zone: zones.value.find((z) => z.id === zoneId.value),
+      quantity: quantity.value ? Number(quantity.value) : undefined,
+      unit: unit.value.trim() || undefined,
+      craft: craft.value.trim() || undefined,
+      spec: spec.value.trim() || undefined,
+      acceptStandard: acceptStandard.value.trim() || spec.value.trim() || undefined,
+      owner: owners.value.find((e) => e.id === ownerId.value),
+      creator: session.emp || undefined,
+      priority: priority.value,
+      plannedStart: plannedStart.value || undefined,
+      plannedEnd: plannedEnd.value || undefined,
+      remark: remark.value.trim() || undefined
+    })
+    hideLoading()
+    toast('保存成功', 'success')
+    setTimeout(() => uni.navigateBack(), 350)
+  } catch (error) {
+    hideLoading()
+    toastError(error, '保存失败')
+  }
 }
 </script>
 
@@ -127,7 +139,7 @@ async function save() {
         <input v-model="unit" class="te__unit" placeholder="单位(㎡/m/项…)" />
       </view>
       <view class="te__row"><text class="te__label">负责人</text>
-        <picker :range="owners.map(o => o.name + '（' + o.title + '）')" @change="ownerId = owners[Number($event.detail.value)].id">
+        <picker :range="owners.map(ownerDisplay)" @change="ownerId = owners[Number($event.detail.value)].id">
           <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }"><text>{{ ownerLabel || '选择负责人' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>

@@ -73,7 +73,7 @@ function onPickProject(index: number) {
 
 <template>
   <view class="dy">
-    <JzPageHeader title="同频动态" :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'" right-text="写汇报" right-icon="edit" @right="startReport" />
+    <JzPageHeader title="工地同频动态" :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'" right-text="写汇报" right-icon="edit" @right="startReport" />
 
     <view class="dy__scope jz-card">
       <text class="dy__scope-label">{{ isCustomer(role) ? '我的工地动态' : '我参与的工地动态' }}</text>

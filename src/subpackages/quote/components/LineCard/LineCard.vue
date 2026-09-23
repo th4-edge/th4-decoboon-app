@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { PackageLine } from '@/domains/pack/model'
 import { money } from '@/core/format'
 import JzIcon from '@/components/JzIcon.vue'
+import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
@@ -42,10 +43,7 @@ const pricingLabel: Record<string, string> = {
     <view class="lcard__main">
       <view class="lcard__head">
         <text class="lcard__name">{{ line.name }}</text>
-        <view v-if="hasZeroCost" class="lcard__warning">
-          <JzIcon name="alert-circle" :size="24" :color="TOKEN_COLOR.warning" />
-          <text class="lcard__warning-text">成本未设置</text>
-        </view>
+        <JzCostIncomplete v-if="hasZeroCost" :count="1" reason="该报价项目尚未维护标准成本，补齐后才能计算成本和利润。" compact />
       </view>
       <text v-if="line.item?.brand || line.item?.spec" class="lcard__spec">
         {{ line.item?.brand || '无品牌' }} · {{ line.item?.spec || '无规格' }}

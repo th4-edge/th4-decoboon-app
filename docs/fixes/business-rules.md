@@ -166,6 +166,19 @@
 * 由店长 / 老板操作，从在职设计师列表中选择。
 
 
+### 3.4 量房档案（业主端）展示口径【FIX-009】
+
+* 入口：`我的家 · 量房档案`（`P.ownerMeasure`），数据来自 `customer/project/journey/info` 的 `measure` 段，只展示业主可见事实；
+
+* 时间一律以 `YYYY-MM-DD HH:mm` 呈现（窄栏位可用 `MM-DD HH:mm`），禁止把后端 ISO 原文（`2026-09-10T05:03:07`）、时间戳或 `yyyyMMddHHmmss` 直出给业主；
+
+* 量房记录卡片里，"量房设计师"是**人**的事实 → 用头像卡（`JzAvatar` + 姓名 + 标签）突出；"原始结构""尺寸记录"是**房屋事实** → 整行铺开、允许换行，禁止塞进 50% 两栏网格；
+
+* "需求 / 结论"以 `需求：xxx`、`结论：xxx` 的形式下发，前端按全角冒号拆成标签胶囊 + 正文，标签不参与换行缩进错位；
+
+* `CustomerJourneyContext.date()` 输出的是原始 `toString()`，**格式化收敛在前端展示层**（`src/core/format.ts` 的 `dateTimeText` / `dateTimeShortText`），不要依赖后端改口径。
+
+
 
 ***
 
@@ -282,9 +295,9 @@ const x = filteredList.find(item => item.y === activeId && item.customerId === c
 
 
 
-* [ ] 报价（Quote）：版本 / 明细 / 状态流转
+* [ ] 报价（Quote）：版本 / 明细 / 状态流转（业主可见的"区域分项 + 施工工艺"口径已沉淀，见 §10）【FIX-010】
 
-* [ ] 设计转化（Design）：诉求 → 方案 → 谈单 PPT
+* [ ] 设计转化（Design）：诉求 → 方案 → 谈单 PPT（业主可见的"区域设计内容 + 施工工艺"口径已沉淀，见 §10）【FIX-010】
 
 * [ ] 施工履约：阶段 / 任务 / 工地汇报 / 验收
 
@@ -322,3 +335,247 @@ const x = filteredList.find(item => item.y === activeId && item.customerId === c
 - 分包页面可以引用主包公共组件和主包领域 API；主包不得反向依赖分包。
 - 修改主包组件的领域依赖后，必须同时重新生成 `dist/dev/mp-weixin` 和 `dist/build/mp-weixin`，并检查编译产物中的 `require()` 路径。
 
+***
+
+## 10. 设计分项与报价（施工工艺与区域展示口径）
+
+### 10.1 施工工艺必须快照，不能现取主数据
+
+* 施工工艺主数据在材料库 `CatalogItem.craft`，工艺/验收标准在 `CatalogItem.criterion`；
+* **`DesignItem` 与 `QuoteLine` 各自持有 `craft` 长文本快照列**（迁移 59）：设计分项生成时从材料库冻结，报价行生成时从设计分项冻结；
+* 取值口径统一走 `CraftText.firstNonBlank()`：**自身快照 → 上游快照 → 材料库主数据**；禁止读取端只读 `catalogItem.craft` 而不看快照；
+* 改材料库工艺**不得回溯**已生成的设计分项与报价；报价转项目生成施工任务时，任务工艺也优先取报价行快照；
+* 业主旅程 `customer/project/journey/info` 的 `PriceRow` 必须下发 `craft` 与 `criterion`，`@AllowProperties(PriceRow)` 白名单必须同时放开；
+* 读取工艺关联必须 `@EntityGraph` 预取（`DesignItem.catalogItem`；`QuoteLine.catalogItem` + `designItem`）：`CustomerJourneyContext` 是无事务边界的 `@Component`，禁止逐行懒加载；
+* 写入口径与回填见 `docs/design/migrations/59-设计分项与报价行施工工艺快照.sql`。【FIX-010 / FIX-011】
+
+### 10.2 施工工艺必须在员工端与业主端同时可见
+
+* 员工端「方案编辑」分项卡必须显示施工工艺（列表可用 `jz-clamp-3` 截断，完整内容在分项编辑页）；
+* 员工端「报价详情」`QuoteItemRow` 必须显示施工工艺，并与业主端使用同一视觉语言：品牌色底 + 左侧色条 + 扳手图标 + "施工工艺"标签 + 可换行正文；
+* `craft` 为空时整块隐藏，不留空标签；`criterion` 以"验收标准：xxx"次要行展示（业主端）；
+* 不允许"业主端读快照、员工端读主数据"这类两套口径。【FIX-010 / FIX-011】
+
+### 10.3 区域分组：区域全可见、明细默认收缩
+
+* 业主端「我的家 · 设计方案 / 报价清单」的区域分组必须**全部平铺渲染**：一个区域一张卡；不得再用 `scroll-view scroll-x` 横向 Tab 只露一个区域；
+* **明细默认收缩**，点区域标题展开/收起；区域标题显示"点击展开/收起"与 chevron；
+* 顶部区域索引：`共 N 个区域 · M 项`（报价页含合计）+ 平铺换行的区域胶囊（含序号与项数），点按跳转到对应区域**并自动展开**；
+* 区域数量不设上限，超出换行铺满；不允许"后面的区域看不到、也没有任何提示"。【FIX-010 / FIX-011】
+
+### 10.4 设计方案页信息层级
+
+* 「设计风格 / 套内面积 / 户型」是辅助事实，做成紧凑三栏并放在**「区域尺寸」上方**；
+* 卡片取值字号不超过 26rpx、字重不超过 600，禁止与区块标题（36rpx/700）同级，避免"大字抢视觉"。【FIX-011】
+
+***
+
+## 11. 材料与选材展示口径
+
+### 11.1 结构化快照不得直出给用户
+
+* `MaterialSelection.selectionJson` 是给前端回显表单用的结构化快照，**禁止直接进入面向用户的文本字段**（业主旅程 `lines`、打印稿、PDF、导出）；
+* 后端统一走 `com.th4.edge.decoboon.common.support.SelectionText`，把快照解析成有序字段（`color / spec / brand / craft / remark` → 颜色/花色、规格/型号、品牌/系列、工艺、备注）；
+* 前端统一走 `src/core/format.ts` 的 `selectionFields()` / `selectionLineText()`；`selectionLineText()` 同时负责把历史残留的 JSON 行转回「标签：值」，避免缓存或历史数据再次暴露 JSON；
+* 解析顺序固定：**JSON 优先 → 可读文本（content）兜底**；坏 JSON 回退文本，不得抛错、不得把原文当结果展示。【FIX-012】
+
+### 11.2 选材结果必须以「标签 + 值」成对展示
+
+* 业主端：选材结果以 `facts` 下发，卡片内两栏展示；标签 `text-3` 20rpx，值 `text-1` 26rpx/650；
+* 员工端：「主材选材」结果区为独立卡片（品牌色左条 + 结果图标 + 版本号），逐行「标签 / 值」，标签 `text-3`、值 `text-1` 600；
+* 未选材时用灰底降级块 + 明确下一步文案，不得用空字符串或 `—` 冒充结果。【FIX-012】
+
+### 11.3 文本层级与颜色基线（材料/选材卡片）
+
+* 标题 `text-1` 加粗、副标题 `text-3`、正文 `text-2`、次要信息（时间、字段标签）`text-3`，占位/禁用才用 `text-4`；
+* 状态、下一步、金额这类可操作/可比较信息用品牌色 `primary-dark`，不得与标签同为灰阶；
+* 值必须比标签更"重"（字号或字重至少占一项），否则"标签 + 值"会读成一串灰字。【FIX-012】
+
+### 11.4 共用组件的回归边界
+
+* `OwnerFactList` 被「选材记录 / 合同 / 增减项 / 付款 / 验收」5 个业主事实页共用：改文案、颜色、结构时必须 5 个页面一起回归；
+* `selectionLineText()` 对非选材文本必须幂等（如 `需求：客厅通铺` 原样返回），不得改写其他域的 lines。【FIX-012】
+
+***
+
+## 12. 状态标签与图标规范
+
+### 12.1 图标只用 JzIcon，禁止 emoji
+
+* 正式 UI 的状态/提示图标统一走 `src/components/JzIcon.vue` 的线性图标；**禁止使用 emoji 字符或 Unicode 符号**（✅ ⏰ ✓ → 等）当图标；
+* 需要新图标时在 `IconName` 与 `paths` 中增补，不要在页面里另存图片或内联 SVG。【FIX-013】
+
+### 12.2 带图标的状态标签统一走 JzTag.icon
+
+* `JzTag` 支持可选 `icon`：**不带 icon 时仍是 `<text>` 根节点**（既有调用零影响），带 icon 时切到 `<view>` 根节点包 `JzIcon`——因为小程序 `<text>` 内不能嵌 `<image>`；
+* 图标尺寸随 `sm / md / lg` 取 22 / 26 / 30rpx，颜色跟随标签语义色（solid 时取白）；
+* 禁止在页面里自造"图标 + 文字"的胶囊样式，避免同类状态出现多套视觉。【FIX-013】
+
+### 12.3 选材状态口径
+
+* 已确认 → `check-circle` + 语义色 `done`；未确认（未发起 / 选材草稿 / 待客户确认）→ `clock` + 对应灰/橙语义色；
+* 图标由**枚举**（`confirmed / pendingConfirm / draft / none`）推导，禁止用中文字符串匹配判断状态；
+* 订单/采购状态与选材状态是两个维度，图标只加在选材状态上，不要混用。【FIX-013】
+
+### 12.4 条目数可增长的行必须可换行
+
+* 事实条、指标条、标签流这类条目数会增长的行，必须 `flex-wrap: wrap` 且子项设 `min-width`（如 `flex: 1 1 200rpx`），不得用纯 `flex: 1` 硬均分；
+* 长文案的取值要单独降字号，避免"待客户确认"这类词把整行撑破。【FIX-013】
+
+***
+
+## 13. 业主端（我的家）金额、状态与日期口径
+
+### 13.1 只读投影必须用业主口径
+
+* `CustomerJourney`（`customer/project/journey/info`）是**业主只读投影**：金额与状态文案必须是业主口径；
+* 付款域换算固定为：应付总额 / 已付 / 待付；节点状态 `Pending→待付款`、`Partial→部分付款`、`Received→已付清`、`Overdue→已逾期`、`Closed→已关闭`；
+* 装企台账口径（应收 / 已收 / 待收 / 部分收款 / 已收清）**只能留在员工端财务页面**，不得出现在业主端；换算只在投影层做（`CustomerJourneyContext.paymentStatusName()`），不要改 `ReceivableStatus` 枚举本身；
+* 付款节点的"待付"由后端按 `amount - receivedAmount` 计算后下发，前端只展示、不重算。【FIX-014】
+
+### 13.2 金额一律走 JzMoney / money()
+
+* 金额展示统一用 `JzMoney` 组件或 `money()`：≥1 万显示"3.84万"，<1 万显示"¥9,800"；
+* **禁止 `money(x, false)` 再手工拼 `¥`** —— `money(x,false)` 只返回数值部分，≥1 万时会把"3万"渲染成"¥3"（历史缺陷，见 FIX-014）；
+* 事实值展示统一走 `factDisplay(value, valueType)`：money 走 `money()`、date 走日期格式化、其余原样。【FIX-014】
+
+### 13.3 业主端日期与截止提示
+
+* 业主端禁止直出后端 ISO（`2026-09-10T05:03:07`）：事实值走 `factDisplay()`，卡片日期走 `dateTimeText()`；
+* 截止/到期类日期必须由**前端**补相对提示：今天到期 / 还差 N 天 / 已逾期 N 天（`dueText()`），逾期用 `danger` 色、未到期用 `warning` 色；
+* 相对天数只取日期部分计算（`diffDays()` 内部 `slice(0,10)`），不要直接 `new Date(ISO)`。【FIX-014】
+
+### 13.4 付款计划展示结构
+
+* "下一节点"必须是独立**横向卡片**（左：节点名 + 到期日 + 相对天数；右：待付金额 + 应付金额），不挤在事实条小格子里；逾期整卡换危险色；
+* 付款明细卡片同时给出"已付 + 待付"两条事实，业主不必自己减。【FIX-014】
+
+### 13.5 业主端导航与投影边界话术
+
+* 业主角色进入"进度"Tab 时，若可见工地只有 1 个，直接 `redirectTo` 工地详情，不再展示只有一条的列表；
+* 项目旅程页脚"只展示业主可见事实，不展示企业内部成本和利润"**只对员工展示**，业主端不出现成本/利润字眼。【FIX-014】
+
+***
+
+## 14. 项目状态与"当前阶段"口径
+
+> 上游业务裁决：`DEC-009` 决策二「Accepting 统一表达为阶段待验收」；`GAP-010`「Accepting 不等同竣工验收」。本节是小程序侧的实现口径。
+
+### 14.1 项目级状态与当前阶段不得互相矛盾
+
+* 项目状态（`Preparing / Ongoing / Suspended / Accepting / Finished / Settled`）与"当前阶段"是**同一项目的两个维度**，任何页面都不得让它们表达相反结论（例如状态"待验收"、当前阶段"待开工"）；
+* 前端禁止 `currentStageName || '待开工'` 这类硬编码兜底，统一走 `domains/project/meta.ts` 的 `projectStageText(project)`：**真实阶段名优先，缺失时回退项目状态文案**；
+* `ProjectStatus.Accepting` 统一表达为"待验收"（或"阶段待验收"）；只有项目进入最终竣工阶段才使用"竣工验收"语义。【FIX-015】
+* **定稿（2026-09-24 用户决策）**：`Accepting` 在**所有页面统一显示"待验收"**；曾做过的"阶段待验收 / 竣工验收"细分已回退。DEC-009 允许"待验收"或"阶段待验收"二选一，统一为"待验收"即可，且因不再声称"竣工验收"，天然满足"只有最终阶段才用竣工验收语义"。【FIX-015】
+
+### 14.2 派生列不得当事实源
+
+* `Project.currentStageName` 是需要回填的**派生列**（只有项目分页/经营总览投影会临时赋值），不能作为事实源读取；
+* 需要"当前阶段"的投影（业主旅程、项目分页、经营总览）必须按阶段事实现场推导，且口径一致：**正在施工 / 待验收的阶段优先，否则取第一个阶段**；
+* 同类派生字段（如项目进度、回款汇总）如需展示，同样以领域事实为准，不要读缓存列。【FIX-015】
+
+### 14.3 状态机推进方向
+
+* **开工**（`stages/update`）只允许把项目从"待开工"推进为"施工中"；不得把"待验收（Accepting）"或"停工（Suspended）"降级为"施工中"；
+* 进度刷新（`refreshProject`）判定"阶段已开工"必须同时看 `actualStart` 与既有 `Doing` 状态，**不能只看任务进度**，否则刚开工、任务还没报进度的阶段会被刷回"未开始"，项目掉回"待开工"；
+* 阶段状态以验收事实为准：存在 Pending 验收单 → 阶段"待验收"且项目"待验收"；驳回 → 阶段回到"进行中"。【FIX-015】
+
+### 14.4 业主端项目详情的页签与品牌色
+
+* 业主端项目详情固定展示五件事：**进度 / 计划 / 增减项 / 动态 / 建议**（任务、成员是内部视角，不对业主开放）；
+* 增减项页签对业主只读，明细走"我的家 · 增减项"，**不得暴露内部成本与利润**；
+* 建议页签对业主展示自己提交的意见/建议及处理回复、处理时限，数据走 `customer/feedback/page`；
+* 项目详情卡片统一使用品牌色卡面（白 → 品牌极浅渐变 + 品牌描边），避免整页纯白灰。【FIX-015】
+
+### 14.5 对外可见投影必须显式组装（含业主详情）
+
+* **业主端四条投影必须口径一致**：`customer/project/page`（我的家首页/进度 Tab）、**`customer/project/info`（业主详情）**、`customer/project/journey/info`（项目旅程），以及员工侧 `project/project/page|overview` 的同源字段；
+* 禁止投影直接返回实体；派生字段（`status` / `currentStageName` / 计数 / 金额汇总）必须按领域事实现场推导，并由**同一处实现**产出；
+* 前端兜底（`projectStageText()`）只用于字段确实缺失时的降级展示，**不得用来掩盖后端未组装**；
+* 回归必须断言"同一项目在首页 / 详情 / 旅程三处状态与当前阶段相等"，并覆盖"验收驳回后三处同时由待验收变施工中"。
+* 完整规范见 `rules.md` §5.6，错误模式见 `code-error-catalog.md` ECD-011。【FIX-015 / XA-20260924-003 / XA-20260924-009】
+
+***
+
+## 15. 框架 DateTime 的展示与计算口径
+
+> 背景：框架 `com.th4.edge.framework.data.date.model.DateTime` 是 `@Embedded` 且**没有覆写 `toString()`**；`ProjectReport`、`Project` 等继承 `AuditModel` 的实体，审计时间都是这个类型。
+
+### 15.1 展示必须走 DateTimeText
+
+* 框架 `DateTime` **禁止直接 `toString()` 或字符串拼接**，否则页面会输出 `com.th4.edge.framework.data.date.model.DateTime@1a2b`；
+* 统一走 `com.th4.edge.decoboon.common.support.DateTimeText.format(DateTime)`，输出 `yyyy-MM-dd HH:mm:ss`，空值 `—`；
+* 拿到的是 14 位数字（见 15.2）时走 `DateTimeText.formatPacked(Long)`；非 14 位原样降级，不抛错。【FIX-016】
+
+### 15.2 getDateTime() 是 14 位数字，不是 epoch 毫秒
+
+* `DateTime.getDateTime()` 返回的是 **`yyyyMMddHHmmss` 的 14 位数字**（构造函数用 `DateTimeFormatter.ofPattern("yyyyMMddHHmmss")` 生成），**不是毫秒时间戳**；
+* 禁止把 `getDateTime()` 传给 `Instant.ofEpochMilli(...)` —— 会得到 2612 年这种结果（`CustomerTagContext` 的"建档 ≤3 天"标签曾因此永远不成立）；
+* 需要日期/时间计算时用框架提供的 `toLocalDateTime()` / `toLocalDate()`，或用 `DateTimeText.formatPacked()` 转字符串。【FIX-016】
+
+### 15.3 框架 DateTime 在 JSON 里的三种形态（必须都识别）
+
+* **带 `@DateTime` 注解的字段** → 框架 `MyJacksonAnnotationIntrospector` 套用 `DateTimeJsonSerializer`，输出 `yyyy-MM-dd HH:mm:ss` 字符串；
+* **不带该注解的 `DateTime` 字段**（如 `AuditModel.createTime/updateTime`、`Subscription.serviceEndTime`）→ 序列化成对象 `{ dateTime: "20260924103500", date: 20260924, ... }`，其中 `dateTime` 是 14 位数字字符串（`Long` 另受 `JacksonLongConfigure` 影响按字符串输出）；
+* **直接调 `getDateTime()` 写进 Long/String 字段** → 也是 14 位数字，不是毫秒。
+* 因此：前端禁止直接展示 `.dateTime` 或裸 14 位数字，必须经 `dateTimeValue()/dateTimeText()`；后端投影输出时间一律走 `DateTimeText`。【FIX-016 / FIX-017】
+
+### 15.4 全量普查结论（FIX-017）
+
+* 96 处 `getCreateTime()/getUpdateTime()` 已逐条分类：统计/看板/平台适配层全部 `toLocalDateTime()/toLocalDate()`，正确；
+* `updatedAt`（Long，14 位）在 `MaterialSelectionContext`、`SelectionBoard.Board` 属既有约定，前端 `dateTimeValue()` / `timestampOf()` 已显式识别 14 位，**不要改成 `toLocalDateTime()`**（会引入 ISO 泄漏，需要同时改前端）；
+* 全后端**禁止再出现** `Instant.ofEpochMilli(...getDateTime())`；日期计算统一用 `toLocalDateTime()/toLocalDate()`；
+* 订阅/账单域时间字段必须在 API 归一化层套 `dateTimeValue()`，页面侧 `formatTime` 必须用 `dateTimeText()` 兜底。【FIX-017】
+
+### 15.5 业主可见投影的时间字段基线
+
+* 业主旅程里所有 `item.date`、`fact(valueType=date)` 的来源（汇报 `createTime`、验收 `createTime/confirmedAt`、设计 `updateTime`、量房/付款/合同时间）都必须经过上述口径；
+* 前端禁止直出 ISO 原文（见 §13.3），后端禁止直出类名或 14 位裸数字。【FIX-014 / FIX-016】
+
+***
+
+## 16. 工地相册（履约证据链）口径
+
+### 16.1 相册是证据链，不是图片墙
+
+* 工地相册的每一条记录必须保留四要素：**谁（作者 + 角色）/ 何时 / 哪个阶段 / 做了什么（标题 + 正文）**；只展示图片、丢掉上下文的做法视为缺陷；
+* 证据来源固定为两路：**现场汇报**（`ProjectReport`，仅 `visibleToCustomer=true`）+ **阶段验收**（`Acceptance`：验收影像 + 整改问题图）；缺任一路都视为不完整；
+* 跨来源时间线统一走 `customer/project/album/page` 聚合接口——**服务端合并、排序、分页**；禁止前端分别拉两个分页列表再拼（排序与分页边界必然错）；
+* 业主端需要落款人时只暴露 `Employee{empId,name,role}`，**不得暴露手机号等敏感字段**。【FIX-018 / FIX-019】
+
+### 16.2 分组与排序（日期 → 阶段 → 记录）
+
+* 相册固定**三层结构**：第一层日期、第二层阶段、第三层记录卡；同一天跨阶段必须分块展示；
+* 日期倒序（最新在最上），组头显示"今天 / 昨天 / N月N日 · 周X"与当天条数；阶段组头显示阶段名与条数；
+* "今天/昨天"必须按**本地时区**计算，禁止用 `toISOString()`（东八区凌晨会算成前一天）；
+* 验收单的 `occurredAt` 取**提交时间**（createTime），确认时间不另开一条记录，仅通过状态标签体现；
+* 分页首屏 20 条、触底加载更早记录、下拉刷新；顶部给出"共 N 条记录 · M 张照片"。【FIX-018 / FIX-019】
+
+### 16.3 照片排布（朋友圈规则）
+
+* 1 张 → 单张大图；2 张、4 张 → 两列；其余（3、5-9）→ 三列；
+* 超过 9 张时只渲染前 9 张，第 9 格蒙层显示 `+N`；点击进入 `previewImage` 全屏查看，预览集合为该条记录自己的照片（不是全相册）；
+* 网格与整页都必须无横向溢出。【FIX-018】
+
+### 16.4 验收影像的合并规则
+
+* 影像 = 验收影像（`evidenceUrls`）+ 整改问题图（`rectificationIssueImages`），**保序去重**；
+* 正文 = 验收结论（`conclusion`）优先，为空时用问题清单（`issues`）以「；」拼接；
+* 状态着色：已确认 → done、驳回 → blocked、其余（待确认等）→ pending；不得与汇报类型色混用。【FIX-019】
+
+## 17. 卡片内"值"的层级（金额 vs 日期）
+
+* 同一张卡片内不允许所有值同字号同字重（历史缺陷：合同履约档案的金额/签约日期/计划工期统一 32rpx/600，日期区间又长又粗）；
+* 规则：**核心金额**用大字 + 品牌色 + 等宽数字（如 32rpx/750）；**日期、工期等辅助信息**收敛到 26rpx/500 的次要色；
+* 日期禁止直出 ISO 原文，统一 `dateTimeText().slice(0,10)`；日期区间用「至」分隔并缩小分隔符字号；
+* 长文本值必须 `word-break`，与标签同行时应给标签 `flex-shrink: 0`。【FIX-018】
+
+***
+
+## 18. 预约量房经营口径
+
+* “今日预约”按 `scheduledAt` 的**自然日**统计，包含今天已完成和今天尚未到时的预约；不能用 `completedAt == null` 或“当前时刻之前”截断；
+* 4 小时逾期统一：后端 `OVERDUE_HOURS=4`，App 筛选也必须为 `4 * 3600 * 1000`，边界口径一致；
+* 全企业日期窗口必须保留已签约、服务中、已完工客户的**历史量房事实**，不能先按客户当前状态截断；当前状态只影响“待派单/待上门”等经营视图，不篡改历史事件；
+* 人员绩效页的月份、门店筛选必须透传到量房业绩；业务员拥有 `view:measure-workbench`，可进入“我的量房”；
+* 量房报告的数据源是 `Property + Measure`，不得为页面状态推断新建人工工作流状态。【FIX-021】

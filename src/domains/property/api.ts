@@ -56,6 +56,8 @@ async function normalizeMeasure(raw: RawRecord): Promise<Measure> {
     propertyId: String(raw.propertyId ?? raw.property?.propertyId ?? ''),
     designer: raw.designer ? normalizeEmployee(raw.designer) : undefined,
     measureTime: dateTimeValue(raw.measureTime),
+    scheduledAt: dateTimeValue(raw.scheduledAt),
+    completedAt: dateTimeValue(raw.completedAt),
     status: MEASURE_STATUS[enumValue(raw.status)] || 'scheduled',
     sitePhotos,
     originalStructure: raw.originalStructure,
@@ -101,6 +103,8 @@ export const propertyApi = {
     post<RawRecord>('property/measure/save', {
       propertyId: measure.propertyId,
       measureTime: measure.measureTime,
+      scheduledAt: measure.scheduledAt,
+      completedAt: measure.completedAt,
       status: measure.status ? measure.status[0].toUpperCase() + measure.status.slice(1) : undefined,
       sitePhotos: measure.sitePhotos?.map((path) => fileApi.storagePath(path) || path),
       originalStructure: measure.originalStructure,

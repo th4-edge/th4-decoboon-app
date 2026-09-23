@@ -47,9 +47,10 @@ onLoad(async (query) => {
     const latest = measures[0]
     if (latest) {
       sitePhotos.value = Array.isArray(latest.sitePhotos) ? [...latest.sitePhotos] : []
-      if (latest.measureTime) {
-        measureDate.value = latest.measureTime.slice(0, 10)
-        measureTime.value = latest.measureTime.slice(11, 16)
+      const scheduledAt = latest.scheduledAt || latest.measureTime
+      if (scheduledAt) {
+        measureDate.value = scheduledAt.slice(0, 10)
+        measureTime.value = scheduledAt.slice(11, 16)
       }
     }
   } catch (error) {
@@ -99,6 +100,7 @@ async function save() {
     await propertyApi.saveMeasure({
       propertyId: propertyId.value,
       measureTime: `${measureDate.value}T${measureTime.value}:00`,
+      completedAt: `${measureDate.value}T${measureTime.value}:00`,
       status: 'completed',
       sitePhotos: uploadedPaths
     })

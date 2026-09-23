@@ -237,7 +237,7 @@ defineExpose({
           <view v-else class="cp__loading">已加载全部 {{ items.length }} 项</view>
         </view>
         <view v-else-if="!loading" class="cp__empty">
-          <JzEmpty :text="`暂无${typeLabel}项目`" :sub="manage ? '点击下方按钮新增到企业报价项目库' : '请联系企业负责人或材料员维护报价项目库'" />
+          <JzEmpty :text="`暂无${typeLabel}项目`" :sub="manage ? '点击下方按钮新增到企业报价项目库' : '请联系企业负责人或财务维护报价项目库'" />
           <button v-if="manage" class="jz-btn jz-btn--ghost jz-btn--sm cp__empty-action" @tap="emit('create', activeType)">
             <JzIcon name="plus" :size="20" :color="TOKEN_COLOR.primary" />
             <text>新增{{ typeLabel }}</text>

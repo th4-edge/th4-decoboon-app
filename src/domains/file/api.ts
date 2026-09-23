@@ -4,6 +4,7 @@ import { runtime } from '@/config'
 export type PrivateFileScope =
   | 'Report'
   | 'Acceptance'
+  | 'Feedback'
   | 'ContractChange'
   | 'Design'
   | 'Talk'

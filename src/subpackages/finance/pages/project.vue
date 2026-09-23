@@ -11,6 +11,7 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { confirm, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
@@ -98,7 +99,7 @@ async function releaseRetention() {
     <view v-if="report" class="fp-head">
       <view class="jz-between">
         <JzTag v-if="p" :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
-        <text class="fp-head__profit">{{ report.costComplete === false ? `成本未完整 · ${report.costIncompleteCount || 0} 项待补` : `项目毛利 ${money(report.grossProfit)} · ${report.grossMargin ?? 0}%` }}</text>
+        <view class="fp-head__profit"><text v-if="report.costComplete !== false">项目毛利 {{ money(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
       </view>
       <text class="fp-head__label">合同收入</text>
       <text class="fp-head__amount fin-amount">{{ money(report.contractRevenue) }}</text>
@@ -120,7 +121,7 @@ async function releaseRetention() {
         <view class="fp-metric"><text>已收工程款</text><text class="fp-metric--income">{{ money(report.receivedAmount) }}</text></view>
         <view class="fp-metric"><text>待收工程款</text><text class="fp-metric--danger">{{ money(report.outstandingAmount) }}</text></view>
         <view class="fp-metric"><text>项目总成本</text><text>{{ money(report.totalCost) }}</text></view>
-        <view class="fp-metric"><text>项目毛利</text><text class="fp-metric--income">{{ report.costComplete === false ? '成本未完整' : `${money(report.grossProfit)} · ${report.grossMargin ?? 0}%` }}</text></view>
+        <view class="fp-metric"><text>项目毛利</text><text v-if="report.costComplete !== false" class="fp-metric--income">{{ money(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
       </view>
 
       <view class="fp-section-card">
@@ -181,7 +182,7 @@ async function releaseRetention() {
       <template v-else>
         <view class="fp-settle-hero">
           <view class="jz-between"><text>结算状态</text><JzTag :text="SETTLEMENT_STATUS_META[report.settlement.status].label" :color="SETTLEMENT_STATUS_META[report.settlement.status].color" /></view>
-          <template v-if="report.settlement.costComplete !== false"><text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ money(report.settlement.profitAmount) }}</text></template><template v-else><text class="fp-settle-hero__label">成本未完整 · {{ report.settlement.costIncompleteCount || 0 }} 项待补</text><text class="fp-settle-hero__amount">暂不展示可靠利润</text></template>
+          <template v-if="report.settlement.costComplete !== false"><text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ money(report.settlement.profitAmount) }}</text></template><template v-else><view class="fp-settle-hero__label"><JzCostIncomplete :count="report.settlement.costIncompleteCount || 0" reason="结算成本不完整，最终利润暂不展示。" compact /></view><text class="fp-settle-hero__amount">—</text></template>
         </view>
         <view class="fp-grid">
           <view class="fp-metric"><text>合同金额</text><text>{{ money(report.settlement.contractAmount) }}</text></view>
@@ -219,7 +220,7 @@ async function releaseRetention() {
 <style lang="scss" scoped>
 @import '@/styles/finance.scss';
 .fp-head { margin: 18rpx $jzb-page-pad 0; padding: 30rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, $jzb-primary-dark, $jzb-role-finance 58%, $jzb-primary-deep); border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.22); }
-.fp-head__profit { color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 650; }
+.fp-head__profit { display: flex; align-items: center; gap: 8rpx; color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 650; }
 .fp-head__label { display: block; margin-top: 26rpx; color: rgba(255,255,255,.7); font-size: $jzb-font-xs; }
 .fp-head__amount { display: block; margin-top: 2rpx; font-size: 58rpx; font-weight: 760; }
 .fp-head__bar { height: 12rpx; margin-top: 20rpx; overflow: hidden; background: rgba(255,255,255,.18); border-radius: $jzb-radius-pill; }

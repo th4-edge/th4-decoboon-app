@@ -1,91 +1,168 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { catalogApi } from '@/domains/catalog/api'
-import { crmApi } from '@/domains/crm/api'
-import { identityApi } from '@/domains/identity/api'
-import { supplyApi } from '@/domains/supply/api'
+import { P, isTabPath } from '@/config'
+import { onboardingApi } from '@/domains/onboarding/api'
+import type { GuideStep, OnboardingGuide } from '@/domains/onboarding/model'
 import { session } from '@/domains/identity/session'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 
-interface Step {
-  key: string
-  label: string
-  description: string
-  path: string
-  done: boolean
-  optional?: boolean
-  count?: number
+const ACTION_PATHS: Record<string, string> = {
+  'boss.catalog': P.catalogManage,
+  'boss.cost': P.catalogManage,
+  'boss.customer': P.customerEdit,
+  'boss.partner': `${P.supply}?tab=partner`,
+  'boss.member': P.companyInvite,
+  'store.scope': P.customerList,
+  'store.customers': P.customerList,
+  'team.scope': P.managerWorkbench,
+  'team.customers': P.managerWorkbench,
+  'marketer.customer': P.customerEdit,
+  'designer.workbench': P.designWorkbench,
+  'pm.workbench': P.managerWorkbench,
+  'support.projects': P.projectList,
+  'finance.home': P.financeHome,
+  'customer.projects': P.projectList
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  done: '已完成',
+  todo: '待完成',
+  waiting: '等待分配',
+  unknown: '暂不可确认'
 }
 
 const loading = ref(true)
-const catalogCount = ref(0)
-const costCount = ref(0)
-const customerCount = ref(0)
-const partnerCount = ref(0)
-const memberCount = ref(1)
-const steps = computed<Step[]>(() => [
-  { key: 'catalog', label: '维护报价项目库', description: '建立可报价项目，填写单位、计价方式和销售价。', path: '/subpackages/quote/pages/catalog/manage', done: catalogCount.value > 0, count: catalogCount.value },
-  { key: 'cost', label: '维护标准成本价', description: '成本价直接维护在报价项目，不要求先建供应商。', path: '/subpackages/quote/pages/catalog/manage', done: costCount.value > 0, count: costCount.value },
-  { key: 'partner', label: '维护供应商品牌关系', description: '需要采购时再维护；新增有效供应商并填写关联品牌即算完成。', path: '/subpackages/supply/pages/index?tab=partner', done: partnerCount.value > 0, count: partnerCount.value, optional: true },
-  { key: 'customer', label: '创建第一个客户', description: '客户和房屋建立后，开始跟进、量房和报价。', path: '/subpackages/customer/pages/edit', done: customerCount.value > 0, count: customerCount.value },
-  { key: 'member', label: '邀请关键成员', description: '按需要邀请店长、业务员、设计师、项目经理、材料和财务。', path: '/subpackages/company/pages/invite', done: memberCount.value > 1, count: memberCount.value, optional: true }
-])
-const requiredSteps = computed(() => steps.value.filter((step) => !step.optional))
-const completed = computed(() => requiredSteps.value.filter((step) => step.done).length)
-/* FIX-009：必做步骤全部完成后自动隐藏引导卡片，不再常驻工作台 */
-const allDone = computed(() => completed.value >= requiredSteps.value.length)
-const visible = computed(() => session.role === 'boss' && !allDone.value)
-const nextStep = computed(() => requiredSteps.value.find((step) => !step.done) || null)
-const progress = computed(() => requiredSteps.value.length ? Math.round(completed.value / requiredSteps.value.length * 100) : 100)
+const error = ref('')
+const guide = ref<OnboardingGuide | null>(null)
+
+const allDone = computed(() => guide.value?.status === 'completed')
+const visible = computed(() => Boolean(session.role) && !allDone.value)
+const requiredSteps = computed(() => guide.value?.steps.filter((step) => step.required) ?? [])
+const completed = computed(() => guide.value?.requiredCompleted ?? 0)
+const requiredTotal = computed(() => guide.value?.requiredTotal ?? 0)
+const progress = computed(() => requiredTotal.value ? Math.round(completed.value / requiredTotal.value * 100) : 0)
+const nextStep = computed(() => guide.value?.steps.find((step) => step.action === guide.value?.nextAction) ?? null)
+const progressLabel = computed(() => guide.value?.audience === 'Boss' ? '必做' : '岗位')
 
 async function load() {
-  if (!visible.value) { loading.value = false; return }
+  if (!session.role) {
+    guide.value = null
+    loading.value = false
+    return
+  }
+  loading.value = true
+  error.value = ''
   try {
-    const types = ['construction', 'material', 'soft', 'appliance', 'general', 'custom'] as const
-    const [pages, customers, members, partners] = await Promise.all([
-      Promise.all(types.map((type) => catalogApi.page({ type, current: 1, size: 100 }).catch(() => ({ list: [], total: 0 })))),
-      crmApi.list().catch(() => []),
-      identityApi.memberPage({ current: 1, size: 1 }).catch(() => ({ list: [], total: 1 })),
-      supplyApi.partners().catch(() => [])
-    ])
-    const items = pages.flatMap((page) => page.list)
-    catalogCount.value = pages.reduce((sum, page) => sum + Number(page.total || 0), 0)
-    costCount.value = items.filter((item) => Number(item.costPrice || 0) > 0).length
-    customerCount.value = customers.length
-    // 历史坑：FIX-004 供应商步骤曾写死 done:false，维护后仍显示待完成。
-    partnerCount.value = partners.filter((item) => item.status === 'active' && item.type === 'supplier' && (item.brands?.length ?? 0) > 0).length
-    memberCount.value = Number((members as any).total || members.list?.length || 1)
+    guide.value = await onboardingApi.report()
+  } catch (reason) {
+    // 历史坑：FIX-004/ECD-008。异常不得吞成空数组，也不得继续展示旧状态冒充最新事实。
+    guide.value = null
+    error.value = reason instanceof Error ? reason.message : '启动状态暂不可确认，请稍后重试'
   } finally {
     loading.value = false
   }
 }
+
 onMounted(() => { void load() })
 
-function go(step: Step) {
-  uni.navigateTo({ url: step.path })
+function goAction(action?: string | null) {
+  if (!action) return
+  const path = ACTION_PATHS[action]
+  if (!path) {
+    uni.showToast({ title: '入口暂不可用', icon: 'none' })
+    return
+  }
+  if (isTabPath(path.split('?')[0])) uni.redirectTo({ url: path })
+  else uni.navigateTo({ url: path })
+}
+
+function goStep(step: GuideStep) {
+  if (step.status === 'unknown') {
+    void load()
+    return
+  }
+  goAction(step.action)
+}
+
+function stepIcon(step: GuideStep) {
+  if (step.status === 'done') return 'check-circle'
+  if (step.status === 'unknown') return 'refresh'
+  return 'alert-circle'
+}
+
+function stepColor(step: GuideStep) {
+  if (step.status === 'done') return TOKEN_COLOR.primaryBase
+  if (step.status === 'unknown' || step.status === 'waiting') return '#9AA6B2'
+  return TOKEN_COLOR.warning || TOKEN_COLOR.primary
+}
+
+function stepStatus(step: GuideStep) {
+  const label = STATUS_LABELS[step.status] || STATUS_LABELS.unknown
+  return step.count != null && step.status !== 'unknown' ? `${label} · ${step.count}` : label
 }
 
 defineExpose({ reload: load })
 </script>
 
 <template>
-  <view v-if="visible" class="onboarding jz-card">
+  <view v-if="visible && loading && !guide" class="onboarding onboarding--loading jz-card">
+    <view class="onboarding__skeleton onboarding__skeleton--title" />
+    <view class="onboarding__skeleton" />
+    <view class="onboarding__skeleton onboarding__skeleton--short" />
+  </view>
+
+  <view v-else-if="visible && error" class="onboarding onboarding--error jz-card" @tap="load">
     <view class="onboarding__head">
-      <view><text class="onboarding__eyebrow">首次入驻</text><text class="onboarding__title">开始使用装得清</text><text class="onboarding__sub">先完成报价基础和第一个客户，再按需要补充供应商。</text></view>
-      <view class="onboarding__progress"><text>{{ completed }}/{{ requiredSteps.length }}</text><text>必做</text></view>
+      <view>
+        <text class="onboarding__eyebrow">启动引导</text>
+        <text class="onboarding__title">状态暂不可确认</text>
+        <text class="onboarding__sub">{{ error }}</text>
+      </view>
+      <JzIcon name="refresh" :size="34" :color="TOKEN_COLOR.primary" />
     </view>
-    <view class="onboarding__bar"><view :style="{ width: `${progress}%` }" /></view>
-    <view v-if="nextStep" class="onboarding__next" @tap="go(nextStep)">
-      <view class="jz-grow"><text class="onboarding__next-label">下一步</text><text class="onboarding__next-title">{{ nextStep.label }}</text><text class="onboarding__next-sub">{{ nextStep.description }}</text></view>
-      <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.primary" />
+    <text class="onboarding__error-action">点击重新读取真实业务状态</text>
+  </view>
+
+  <view v-else-if="visible && guide" class="onboarding jz-card">
+    <view class="onboarding__head">
+      <view>
+        <text class="onboarding__eyebrow">{{ guide.audienceLabel }} · 启动引导</text>
+        <text class="onboarding__title">{{ guide.title }}</text>
+        <text class="onboarding__sub">{{ guide.subtitle }}</text>
+      </view>
+      <view v-if="requiredTotal" class="onboarding__progress">
+        <text>{{ completed }}/{{ requiredTotal }}</text>
+        <text>{{ progressLabel }}</text>
+      </view>
     </view>
+    <view v-if="requiredTotal" class="onboarding__bar"><view :style="{ width: `${progress}%` }" /></view>
+    <view v-if="nextStep" class="onboarding__next" @tap="goStep(nextStep)">
+      <view class="jz-grow">
+        <text class="onboarding__next-label">下一步</text>
+        <text class="onboarding__next-title">{{ nextStep.actionLabel || nextStep.label }}</text>
+        <text class="onboarding__next-sub">{{ nextStep.description }}</text>
+      </view>
+      <JzIcon :name="nextStep.status === 'unknown' ? 'refresh' : 'chevron-right'" :size="30" :color="TOKEN_COLOR.primary" />
+    </view>
+    <view v-else class="onboarding__message">{{ guide.message }}</view>
     <scroll-view scroll-x class="onboarding__scroll">
       <view class="onboarding__steps">
-        <view v-for="step in steps" :key="step.key" class="onboarding__step" :class="{ 'onboarding__step--done': step.done, 'onboarding__step--optional': step.optional }" @tap="go(step)">
-          <JzIcon :name="step.done ? 'check-circle' : 'alert-circle'" :size="28" :color="step.done ? TOKEN_COLOR.primaryBase : '#9AA6B2'" />
+        <view
+          v-for="step in guide.steps"
+          :key="step.key"
+          class="onboarding__step"
+          :class="{
+            'onboarding__step--done': step.status === 'done',
+            'onboarding__step--optional': !step.required,
+            'onboarding__step--unknown': step.status === 'unknown'
+          }"
+          @tap="goStep(step)"
+        >
+          <JzIcon :name="stepIcon(step)" :size="28" :color="stepColor(step)" />
           <text class="onboarding__step-title">{{ step.label }}</text>
-          <text class="onboarding__step-sub">{{ step.done ? `已完成${step.count != null ? ` · ${step.count}` : ''}` : step.optional ? '可稍后完成' : '待完成' }}</text>
+          <text class="onboarding__step-sub">{{ stepStatus(step) }}</text>
+          <text v-if="!step.required" class="onboarding__optional">可选</text>
         </view>
       </view>
     </scroll-view>
@@ -94,6 +171,11 @@ defineExpose({ reload: load })
 
 <style lang="scss" scoped>
 .onboarding { margin: 0 $jzb-page-pad 24rpx; padding: 28rpx; border: 1rpx solid rgba(22,163,148,.18); background: linear-gradient(135deg, #F5FCFB 0%, $jzb-text-inverse 72%); }
+.onboarding--error { border-color: rgba(211,142,44,.24); background: linear-gradient(135deg, #FFFBF3 0%, $jzb-text-inverse 72%); }
+.onboarding--loading { display: flex; flex-direction: column; gap: 16rpx; }
+.onboarding__skeleton { width: 58%; height: 24rpx; background: #E8F1F0; border-radius: 99rpx; }
+.onboarding__skeleton--title { width: 78%; height: 36rpx; }
+.onboarding__skeleton--short { width: 38%; }
 .onboarding__head { display: flex; justify-content: space-between; gap: 20rpx; }
 .onboarding__eyebrow { display: block; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 700; letter-spacing: 2rpx; }
 .onboarding__title { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 760; }
@@ -107,11 +189,15 @@ defineExpose({ reload: load })
 .onboarding__next-label { display: block; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 700; }
 .onboarding__next-title { display: block; margin-top: 4rpx; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .onboarding__next-sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.45; }
+.onboarding__message { margin-top: 20rpx; padding: 18rpx 20rpx; color: $jzb-text-3; font-size: $jzb-font-xs; background: $jzb-text-inverse; border-radius: $jzb-radius-sm; }
+.onboarding__error-action { display: block; margin-top: 20rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .onboarding__scroll { width: 100%; margin-top: 18rpx; white-space: nowrap; }
 .onboarding__steps { display: inline-flex; gap: 14rpx; }
-.onboarding__step { width: 220rpx; min-height: 136rpx; padding: 18rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
+.onboarding__step { position: relative; width: 220rpx; min-height: 136rpx; padding: 18rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
 .onboarding__step--done { background: #F7FCFB; }
 .onboarding__step--optional { border-style: dashed; }
+.onboarding__step--unknown { border-color: rgba(211,142,44,.28); background: #FFFCF7; }
 .onboarding__step-title { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .onboarding__step-sub { display: block; margin-top: 6rpx; color: $jzb-text-4; font-size: 20rpx; }
+.onboarding__optional { position: absolute; top: 12rpx; right: 12rpx; color: $jzb-text-4; font-size: 18rpx; }
 </style>

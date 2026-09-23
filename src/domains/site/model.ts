@@ -8,6 +8,8 @@ export interface SiteReport {
   id: string
   projectId: string
   stageId?: string
+  /** 所属施工阶段名称（后端 stage.name） */
+  stageName?: string
   taskId?: string
   type: ReportType
   title: string

@@ -114,7 +114,7 @@ function go(url: string) {
 
       <view class="about-section">
         <text class="about-section__title">适合谁使用</text>
-        <view class="about-audience jz-card"><text>单店成长型装企</text><text>多项目并行团队</text><text>重视报价和利润的老板</text><text>需要沉淀组织能力的装企</text></view>
+        <view class="about-audience jz-card"><text>单店成长型装企</text><text>多项目并行团队</text><text>重视报价和利润的企业负责人</text><text>需要沉淀组织能力的装企</text></view>
       </view>
 
       <view class="about-section">

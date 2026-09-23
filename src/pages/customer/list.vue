@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
-import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
+import { computed, nextTick, ref, watch } from 'vue'
+import { onLoad, onPageScroll, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
-import type { Customer, CustomerStage } from '@/domains/crm/model'
+import type { Customer, CustomerMetricCard, CustomerOwnerGroup, CustomerOverviewReport, CustomerStage, CustomerStageCount } from '@/domains/crm/model'
 import { CUSTOMER_SOURCE_META, CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { crmApi } from '@/domains/crm/api'
 import JzAvatar from '@/components/JzAvatar.vue'
@@ -13,7 +13,9 @@ import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
+import JzTabBar from '@/components/JzTabBar.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 
@@ -22,6 +24,12 @@ const filter = ref<'all' | CustomerStage | 'assign'>('all')
 const followFilter = ref<'all' | 'overdue' | 'today' | 'upcoming' | 'unplanned'>('all')
 const keyword = ref('')
 const storeId = ref('')
+const sortMode = ref<'risk' | 'idle' | 'value' | 'newest'>('risk')
+const bossOverview = ref<CustomerOverviewReport | null>(null)
+const selectedOwnerId = ref('')
+const bossWorkspaceFocused = ref(false)
+const bossCustomerScrollTop = ref(0)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 const isBoss = computed(() => session.role === 'boss')
 const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
@@ -33,6 +41,10 @@ const loadMoreError = ref('')
 const current = ref(1)
 const pageSize = 20
 const hasMore = ref(false)
+const currentCustomerId = ref('')
+let customerTops: Array<{ key: string; top: number; bottom: number }> = []
+let bossCustomerTops: Array<{ key: string; top: number }> = []
+let viewportHeight = 0
 
 onLoad(() => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
@@ -45,7 +57,21 @@ onLoad(() => {
 onShow(() => refresh())
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
-
+onPageScroll(({ scrollTop }) => {
+  if (!customerTops.length) return
+  const center = scrollTop + viewportHeight / 2
+  let active = customerTops[0]
+  let distance = Number.POSITIVE_INFINITY
+  for (const item of customerTops) {
+    const itemCenter = (item.top + item.bottom) / 2
+    const nextDistance = Math.abs(itemCenter - center)
+    if (nextDistance < distance) {
+      active = item
+      distance = nextDistance
+    }
+  }
+  if (active) currentCustomerId.value = active.key
+})
 const ALL_FILTERS: { key: 'all' | CustomerStage | 'assign'; label: string }[] = [
   { key: 'all', label: '全部' }, { key: 'intention', label: '待首联' },
   { key: 'following', label: '跟进中' }, { key: 'pendingMeasure', label: '待量房' },
@@ -55,7 +81,7 @@ const ALL_FILTERS: { key: 'all' | CustomerStage | 'assign'; label: string }[] = 
 ]
 const filters = computed(() => isMarketer.value
   ? ALL_FILTERS.filter((item) => ['all', 'intention', 'following', 'pendingMeasure', 'lost'].includes(item.key))
-  : isStoreManager.value || isTeamLeader.value
+  : isBoss.value || isStoreManager.value || isTeamLeader.value
     ? [{ key: 'assign' as const, label: '待指派设计' }, ...ALL_FILTERS]
     : ALL_FILTERS)
 
@@ -123,7 +149,7 @@ const goldenStats = computed(() => {
   return stats
 })
 
-const shown = computed(() => {
+const clientShown = computed(() => {
   let out = list.value
   if (filter.value === 'assign') out = out.filter((c) => c.stage === 'pendingMeasure' && !!c.measureAt && !c.designer)
   else if (filter.value !== 'all') out = out.filter((c) => c.stage === filter.value)
@@ -133,18 +159,138 @@ const shown = computed(() => {
   return [...out].sort((a, b) => followMeta(a).rank - followMeta(b).rank || (a.nextFollowAt || '').localeCompare(b.nextFollowAt || ''))
 })
 
-const stageCount = computed(() => {
+const shown = computed(() => isBoss.value ? list.value : clientShown.value)
+
+watch(shown, async () => {
+  await nextTick()
+  if (isBoss.value) measureBossCustomerAnchors()
+  else measureCustomerAnchors()
+}, { immediate: true })
+
+function measureCustomerAnchors() {
+  const query = uni.createSelectorQuery() as any
+  query.selectViewport().scrollOffset()
+  query.selectAll('.cl__item').fields({ dataset: true, rect: true })
+  query.exec((result: any[]) => {
+    const scrollTop = Number((result?.[0] as { scrollTop?: number } | undefined)?.scrollTop || 0)
+    const rows = (result?.[1] as Array<Record<string, any>> | undefined) || []
+    viewportHeight = Number(uni.getSystemInfoSync().windowHeight || 0)
+    customerTops = rows.map((item) => ({
+      key: String(item.dataset?.custId || ''),
+      top: Number(item.top || 0) + scrollTop,
+      bottom: Number(item.bottom || 0) + scrollTop
+    })).filter((item) => item.key)
+  })
+}
+
+const clientStageCount = computed(() => {
   const m: Record<string, number> = {}
   list.value.forEach((c) => { m[c.stage] = (m[c.stage] || 0) + 1 })
   m.assign = list.value.filter((c) => c.stage === 'pendingMeasure' && !!c.measureAt && !c.designer).length
   return m
 })
 
+const stageCount = computed(() => {
+  if (isBoss.value && bossOverview.value) {
+    return bossOverview.value.stageCounts.reduce<Record<string, number>>((result, item) => {
+      result[item.key] = item.count
+      return result
+    }, {})
+  }
+  return clientStageCount.value
+})
+
+const bossMetrics = computed<CustomerMetricCard[]>(() => bossOverview.value?.metrics || [])
+const bossOwnerGroups = computed(() => bossOverview.value?.ownerGroups || [])
+const bossAllCustomerCount = computed(() =>
+  bossOwnerGroups.value.reduce((sum, group) => sum + group.customerCount, 0))
+const currentBossGroup = computed(() => selectedOwnerId.value
+  ? bossOwnerGroups.value.find((group) => bossGroupKey(group) === selectedOwnerId.value) || null
+  : null)
+const pageSubtitle = computed(() => {
+  if (isBoss.value) return '全公司客户经营与转化'
+  if (isStoreManager.value) return '门店客户经营与跟进'
+  if (isTeamLeader.value) return '团队客户经营与协同'
+  if (isMarketer.value) return '我的客户跟进与转化'
+  return '当前范围内的客户经营'
+})
+const sortOptions: { key: typeof sortMode.value; label: string }[] = [
+  { key: 'risk', label: '风险优先' },
+  { key: 'idle', label: '停留最长' },
+  { key: 'value', label: '金额最高' },
+  { key: 'newest', label: '最新录入' }
+]
+
+function bossGroupKey(group: CustomerOwnerGroup) {
+  return group.ownerId == null ? '0' : String(group.ownerId)
+}
+
+function selectBossGroup(group?: CustomerOwnerGroup) {
+  selectedOwnerId.value = group ? bossGroupKey(group) : ''
+  bossWorkspaceFocused.value = false
+  void refresh()
+}
+
+function onStoreChange() {
+  selectedOwnerId.value = ''
+  void refresh()
+}
+
+function onBossCustomerScroll(event: { detail: { scrollTop: number } }) {
+  const scrollTop = event.detail.scrollTop
+  if (!bossWorkspaceFocused.value && scrollTop > 8) bossWorkspaceFocused.value = true
+  const active = bossCustomerTops.filter((item) => item.top <= scrollTop + 90).at(-1)
+  if (active) currentCustomerId.value = active.key
+}
+
+function measureBossCustomerAnchors() {
+  const query = uni.createSelectorQuery() as any
+  query.select('.cl__customer-scroll').fields({ rect: true })
+  query.select('.cl__customer-scroll').scrollOffset()
+  query.selectAll('.cl__customer-row').fields({ dataset: true, rect: true })
+  query.exec((result: any[]) => {
+    const panel = result?.[0] as Record<string, any> | undefined
+    const scroll = result?.[1] as { scrollTop?: number } | undefined
+    const rows = result?.[2] as Array<Record<string, any>> | undefined || []
+    if (!panel) return
+    const scrollTop = Number(scroll?.scrollTop || 0)
+    bossCustomerTops = rows.map((item) => ({
+      key: String(item.dataset?.custId || ''),
+      top: Number(item.top || 0) - Number(panel.top || 0) + scrollTop
+    })).filter((item) => item.key)
+  })
+}
+
 async function refresh() {
   loading.value = true
   loadError.value = ''
   loadMoreError.value = ''
+  if (isBoss.value) {
+    list.value = []
+    current.value = 0
+    hasMore.value = false
+  }
   try {
+    if (isBoss.value) {
+      const report = await crmApi.overview({
+        current: 1,
+        size: pageSize,
+        keyword: keyword.value.trim() || undefined,
+        stage: filter.value === 'assign' ? 'assign' : filter.value,
+        sort: sortMode.value,
+        storeId: storeId.value || undefined,
+        ownerId: selectedOwnerId.value || undefined
+      })
+      bossOverview.value = report
+      if (selectedOwnerId.value && !report.ownerGroups.some((group) => bossGroupKey(group) === selectedOwnerId.value)) {
+        selectedOwnerId.value = ''
+      }
+      list.value = report.customers
+      currentCustomerId.value = report.customers[0]?.id || ''
+      current.value = 1
+      hasMore.value = report.hasMore
+      return
+    }
     const page = await crmApi.page({ current: 1, size: pageSize, storeId: storeId.value || undefined })
     list.value = page.list
     current.value = 1
@@ -161,6 +307,22 @@ async function loadMore() {
   loadingMore.value = true
   loadMoreError.value = ''
   try {
+    if (isBoss.value) {
+      const report = await crmApi.overview({
+        current: current.value + 1,
+        size: pageSize,
+        keyword: keyword.value.trim() || undefined,
+        stage: filter.value === 'assign' ? 'assign' : filter.value,
+        sort: sortMode.value,
+        storeId: storeId.value || undefined,
+        ownerId: selectedOwnerId.value || undefined
+      })
+      list.value = [...list.value, ...report.customers]
+      bossOverview.value = report
+      current.value += 1
+      hasMore.value = report.hasMore
+      return
+    }
     const page = await crmApi.page({ current: current.value + 1, size: pageSize, storeId: storeId.value || undefined })
     list.value = [...list.value, ...page.list]
     current.value += 1
@@ -175,18 +337,166 @@ async function loadMore() {
 function open(id: string) { uni.navigateTo({ url: `${P.customerDetail}?id=${id}` }) }
 function add() { uni.navigateTo({ url: P.customerEdit }) }
 function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
+
+function onKeywordInput() {
+  if (!isBoss.value) return
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { void refresh() }, 320)
+}
+
+function selectStage(key: typeof filter.value) {
+  filter.value = key
+  if (isBoss.value) void refresh()
+}
+
+function selectSort(key: typeof sortMode.value) {
+  sortMode.value = key
+  void refresh()
+}
+
+function riskLabel(customer: Customer) {
+  if (customer.riskLevel === 'high') return '高风险'
+  if (customer.riskLevel === 'attention') return '需关注'
+  return '正常'
+}
+
+function riskColor(customer: Customer) {
+  if (customer.riskLevel === 'high') return TOKEN_COLOR.danger
+  if (customer.riskLevel === 'attention') return TOKEN_COLOR.warning
+  return TOKEN_COLOR.success
+}
+
+function metricStatus(metric: CustomerMetricCard) {
+  return `cl__metric--${metric.status}`
+}
+
+function stageCountFor(key: string) {
+  return stageCount.value[key] || 0
+}
+
+function bossBusinessAmount(customer: Customer) {
+  if (customer.signedAmount) return `签约 ¥${customer.signedAmount.toLocaleString('zh-CN')}`
+  if (customer.quoteAmount) return `报价 ¥${customer.quoteAmount.toLocaleString('zh-CN')}`
+  return '暂未形成金额'
+}
 </script>
 
 <template>
-  <view class="cl">
-    <view class="cl__head">
+  <view class="cl" :class="{ 'cl--boss': isBoss, 'cl--focus': bossWorkspaceFocused }">
+    <JzPageHeader title="客户经营" :subtitle="pageSubtitle" />
+
+    <view v-if="!isBoss" class="cl__head">
       <view class="cl__search">
         <view class="cl__search-icon"><JzIcon name="search" :size="34" :color="TOKEN_COLOR.text3" /></view>
-        <input v-model="keyword" placeholder="搜索客户姓名 / 手机号 / 小区" placeholder-class="cl__ph" />
+        <input v-model="keyword" placeholder="搜索客户姓名 / 手机号 / 小区" placeholder-class="cl__ph" @input="onKeywordInput" @confirm="refresh" />
       </view>
     </view>
 
-    <JzStoreFilter v-model="storeId" @change="refresh" />
+    <view v-if="!isBoss">
+      <JzStoreFilter v-model="storeId" @change="onStoreChange" />
+    </view>
+
+    <view v-if="isBoss" class="cl__metrics">
+      <view v-for="metric in bossMetrics" :key="metric.key" class="cl__metric jz-card" :class="metricStatus(metric)">
+        <view class="cl__metric-head"><text>{{ metric.label }}</text><text class="cl__metric-dot" /></view>
+        <text class="cl__metric-value">{{ metric.value.toLocaleString('zh-CN') }}</text>
+        <text class="cl__metric-sub">{{ metric.subText }}</text>
+        <text v-if="metric.trendRate != null" class="cl__metric-trend" :class="{ 'cl__metric-trend--down': metric.trendRate < 0 }">环比 {{ metric.trendRate > 0 ? '+' : '' }}{{ metric.trendRate }}%</text>
+        <view v-if="metric.periods?.length" class="cl__metric-periods">
+          <view v-for="period in metric.periods" :key="period.key" class="cl__metric-period">
+            <text>{{ period.label }}</text>
+            <text>{{ period.value > 0 ? '+' : '' }}{{ period.value }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="isBoss" class="cl__workspace" :class="{ 'cl__workspace--focus': bossWorkspaceFocused }">
+      <view v-if="bossWorkspaceFocused" class="cl__focus-bar">
+        <view class="cl__focus-back" @tap="bossWorkspaceFocused = false"><JzIcon name="arrow-left" :size="26" :color="TOKEN_COLOR.primary" /><text>返回经营概览</text></view>
+        <text class="cl__focus-title">{{ currentBossGroup?.ownerName || '全部客户' }} · {{ bossOverview?.total || 0 }}客户</text>
+      </view>
+      <view class="cl__workspace-body">
+        <scroll-view scroll-y class="cl__owner-panel">
+          <view class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === '' }" @tap="selectBossGroup()">
+            <text class="cl__owner-name">全部客户</text>
+            <text class="cl__owner-meta">{{ bossAllCustomerCount }}客户</text>
+          </view>
+          <view v-for="group in bossOwnerGroups" :key="bossGroupKey(group)" class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === bossGroupKey(group) }" @tap="selectBossGroup(group)">
+            <text class="cl__owner-name">{{ group.ownerName }}</text>
+            <text class="cl__owner-meta">{{ group.customerCount }}客户</text>
+            <text v-if="group.riskCustomerCount > 0" class="cl__owner-risk">风险{{ group.riskCustomerCount }}</text>
+          </view>
+          <JzEmpty v-if="!bossOwnerGroups.length" text="暂无分组" sub="调整筛选条件" />
+        </scroll-view>
+
+        <view class="cl__customer-panel">
+          <view class="cl__panel-head">
+            <view class="jz-grow">
+              <text class="cl__panel-title">{{ currentBossGroup?.ownerName || '全部客户' }}</text>
+              <text class="cl__panel-sub">{{ currentBossGroup
+                ? `${currentBossGroup.customerCount}客户 · 风险 ${currentBossGroup.riskCustomerCount} · 签约 ${currentBossGroup.signedCustomerCount}`
+                : `${bossAllCustomerCount}客户 · 可按负责人下钻` }}</text>
+            </view>
+            <text v-if="!bossWorkspaceFocused" class="cl__panel-focus" @tap="bossWorkspaceFocused = true">放大客户区</text>
+          </view>
+          <view class="cl__panel-conditions">
+            <view class="cl__search cl__search--panel">
+              <view class="cl__search-icon"><JzIcon name="search" :size="30" :color="TOKEN_COLOR.text3" /></view>
+              <input v-model="keyword" placeholder="搜索客户 / 手机号 / 小区" placeholder-class="cl__ph" @input="onKeywordInput" @confirm="refresh" />
+            </view>
+            <JzStoreFilter v-model="storeId" @change="onStoreChange" />
+          </view>
+          <scroll-view scroll-x class="cl__filters cl__filters--panel" :show-scrollbar="false">
+            <view class="cl__filter-row">
+              <view v-for="f in filters" :key="f.key" class="cl__filter" :class="{ 'cl__filter--on': filter === f.key }" @tap="selectStage(f.key)">
+                {{ f.label }}<text v-if="stageCountFor(f.key)" class="cl__filter-count">{{ stageCountFor(f.key) }}</text>
+              </view>
+            </view>
+          </scroll-view>
+          <view class="cl__sort-row cl__sort-row--panel">
+            <text>排序</text>
+            <view v-for="item in sortOptions" :key="item.key" class="cl__sort" :class="{ 'cl__sort--on': sortMode === item.key }" @tap="selectSort(item.key)">{{ item.label }}</view>
+          </view>
+          <scroll-view scroll-y class="cl__customer-scroll" :scroll-top="bossCustomerScrollTop" @scroll="onBossCustomerScroll" @scrolltolower="loadMore">
+            <JzSkeleton v-if="loading && !list.length" :rows="3" />
+            <view v-for="c in list" :key="c.id" class="jz-card cl__item cl__customer-row" :class="{ 'cl__item--current': currentCustomerId === c.id }" :data-cust-id="c.id" @tap="open(c.id)">
+              <view class="cl__item-head">
+                <JzAvatar :name="c.name" :size="88" />
+                <view class="cl__item-ident">
+                  <view class="cl__item-name-row">
+                    <text class="cl__name">{{ c.name }}</text>
+                    <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
+                    <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
+                  </view>
+                  <text class="cl__boss-owner">负责人 {{ c.owner?.name || '未分配' }}<template v-if="c.designer"> · 设计 {{ c.designer.name }}</template></text>
+                </view>
+                <JzTag :text="riskLabel(c)" :color="riskColor(c)" />
+              </view>
+              <view class="cl__item-facts">
+                <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
+                <text class="cl__fact-name">{{ c.community || '未填小区' }}</text>
+                <text class="cl__fact-sep">·</text>
+                <text class="cl__fact-name">{{ c.area || '-' }}㎡</text>
+                <template v-if="c.budget"><text class="cl__fact-sep">·</text><text class="cl__fact-name">预算 {{ c.budget }} 万</text></template>
+              </view>
+              <view class="cl__boss-timeline">
+                <view><text>上次</text><text>{{ c.lastFollowAt ? c.lastFollowAt.slice(5, 10) : '暂无' }}</text></view>
+                <view><text>停留</text><text :class="{ 'cl__boss-danger-text': (c.idleDays || 0) >= 15 }">{{ c.idleDays || 0 }} 天</text></view>
+                <view><text>下次</text><text :class="{ 'cl__boss-danger-text': c.riskLevel === 'high' }">{{ c.nextFollowAt ? followMeta(c).label : '未安排' }}</text></view>
+              </view>
+              <view class="cl__boss-result"><text>{{ bossBusinessAmount(c) }}</text><text v-if="c.projectName">{{ c.projectName }}</text></view>
+              <view class="cl__boss-next"><text>下一步</text><text>{{ c.nextAction || '查看客户详情' }}</text></view>
+            </view>
+            <view v-if="loadError" class="jz-card cl__error"><text>{{ loadError }}</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="refresh">重新加载</button></view>
+            <JzEmpty v-else-if="!loading && !list.length" text="当前分组没有匹配客户" sub="调整分组、筛选或搜索条件后重试" />
+            <ListFooter v-if="!loadError && list.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
+          </scroll-view>
+        </view>
+      </view>
+    </view>
+
+    <template v-if="!isBoss">
 
     <view v-if="isMarketer" class="jz-card cl__golden">
       <view class="cl__golden-head">
@@ -211,7 +521,7 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
       <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
     </view>
 
-    <view class="jz-card cl__follow-tasks">
+    <view v-if="!isBoss" class="jz-card cl__follow-tasks">
       <view class="cl__follow-task" :class="{ 'cl__follow-task--on': followFilter === 'overdue' }" @tap="followFilter = followFilter === 'overdue' ? 'all' : 'overdue'"><text class="cl__follow-num cl__follow-num--danger">{{ followStats.overdue }}</text><text>已逾期</text></view>
       <view class="cl__follow-task" :class="{ 'cl__follow-task--on': followFilter === 'today' }" @tap="followFilter = followFilter === 'today' ? 'all' : 'today'"><text class="cl__follow-num cl__follow-num--warning">{{ followStats.today }}</text><text>今日跟进</text></view>
       <view class="cl__follow-task" :class="{ 'cl__follow-task--on': followFilter === 'upcoming' }" @tap="followFilter = followFilter === 'upcoming' ? 'all' : 'upcoming'"><text class="cl__follow-num">{{ followStats.upcoming }}</text><text>3日内</text></view>
@@ -220,67 +530,106 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 
     <scroll-view scroll-x class="cl__filters" :show-scrollbar="false">
       <view class="cl__filter-row">
-        <view v-for="f in filters" :key="f.key" class="cl__filter" :class="{ 'cl__filter--on': filter === f.key }" @tap="filter = f.key">
-          {{ f.label }}<text v-if="stageCount[f.key]" class="cl__filter-count">{{ stageCount[f.key] }}</text>
+        <view v-for="f in filters" :key="f.key" class="cl__filter" :class="{ 'cl__filter--on': filter === f.key }" @tap="selectStage(f.key)">
+          {{ f.label }}<text v-if="stageCountFor(f.key)" class="cl__filter-count">{{ stageCountFor(f.key) }}</text>
         </view>
       </view>
     </scroll-view>
 
     <view class="cl__list">
       <JzSkeleton v-if="loading && !shown.length" :rows="3" />
-      <view v-for="c in shown" :key="c.id" class="jz-card cl__item" @tap="open(c.id)">
-        <view class="cl__item-head">
-          <JzAvatar :name="c.name" :size="88" />
-          <view class="cl__item-ident">
-            <view class="cl__item-name-row">
-              <text class="cl__name">{{ c.name }}</text>
-              <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
-              <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
+      <view v-for="c in shown" :key="c.id" class="jz-card cl__item" :class="{ 'cl__item--current': currentCustomerId === c.id }" :data-cust-id="c.id" @tap="open(c.id)">
+        <template v-if="isBoss">
+          <view class="cl__item-head">
+            <JzAvatar :name="c.name" :size="88" />
+            <view class="cl__item-ident">
+              <view class="cl__item-name-row">
+                <text class="cl__name">{{ c.name }}</text>
+                <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
+                <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
+              </view>
+              <text class="cl__boss-owner">负责人 {{ c.owner?.name || '未分配' }}<template v-if="c.designer"> · 设计 {{ c.designer.name }}</template></text>
             </view>
-            <view class="cl__item-phone">
-              <JzIcon name="phone" :size="22" :color="TOKEN_COLOR.text3" />
-              <text>{{ c.phone }}</text>
-            </view>
+            <JzTag :text="riskLabel(c)" :color="riskColor(c)" />
           </view>
-          <text class="cl__follow" :class="'cl__follow--' + followMeta(c).tone">{{ followMeta(c).label }}</text>
-        </view>
-
-        <view class="cl__item-facts">
-          <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
-          <text class="cl__fact-name">{{ c.community || '未填小区' }}</text>
-          <text class="cl__fact-sep">·</text>
-          <text class="cl__fact-name">{{ c.area || '-' }}㎡</text>
-          <template v-if="c.budget">
+          <view class="cl__item-facts">
+            <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
+            <text class="cl__fact-name">{{ c.community || '未填小区' }}</text>
             <text class="cl__fact-sep">·</text>
-            <text class="cl__fact-name">预算 {{ c.budget }} 万</text>
-          </template>
-        </view>
-
-        <view class="cl__item-tags">
-          <JzTag :text="c.wechatAdded ? '已加微信' : '未加微信'" :color="c.wechatAdded ? TOKEN_COLOR.success : TOKEN_COLOR.text4" />
-          <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" :color="TOKEN_COLOR.text2" />
-          <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" :color="TOKEN_COLOR.text2" />
-          <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" :color="TOKEN_COLOR.text2" />
-          <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
-          <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
-        </view>
-
-        <view v-if="isMarketer" class="cl__item-foot">
-          <JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" />
-          <text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text>
-        </view>
+            <text class="cl__fact-name">{{ c.area || '-' }}㎡</text>
+            <template v-if="c.budget"><text class="cl__fact-sep">·</text><text class="cl__fact-name">预算 {{ c.budget }} 万</text></template>
+          </view>
+          <view class="cl__boss-timeline">
+            <view><text>上次</text><text>{{ c.lastFollowAt ? c.lastFollowAt.slice(5, 10) : '暂无' }}</text></view>
+            <view><text>停留</text><text :class="{ 'cl__boss-danger-text': (c.idleDays || 0) >= 15 }">{{ c.idleDays || 0 }} 天</text></view>
+            <view><text>下次</text><text :class="{ 'cl__boss-danger-text': c.riskLevel === 'high' }">{{ c.nextFollowAt ? followMeta(c).label : '未安排' }}</text></view>
+          </view>
+          <view class="cl__boss-result"><text>{{ bossBusinessAmount(c) }}</text><text v-if="c.projectName">{{ c.projectName }}</text></view>
+          <view class="cl__boss-next"><text>下一步</text><text>{{ c.nextAction || '查看客户详情' }}</text></view>
+        </template>
+        <template v-else>
+          <view class="cl__item-head">
+            <JzAvatar :name="c.name" :size="88" />
+            <view class="cl__item-ident">
+              <view class="cl__item-name-row">
+                <text class="cl__name">{{ c.name }}</text>
+                <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
+                <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
+              </view>
+              <view class="cl__item-phone"><JzIcon name="phone" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ c.phone }}</text></view>
+            </view>
+            <text class="cl__follow" :class="'cl__follow--' + followMeta(c).tone">{{ followMeta(c).label }}</text>
+          </view>
+          <view class="cl__item-facts">
+            <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
+            <text class="cl__fact-name">{{ c.community || '未填小区' }}</text>
+            <text class="cl__fact-sep">·</text>
+            <text class="cl__fact-name">{{ c.area || '-' }}㎡</text>
+            <template v-if="c.budget"><text class="cl__fact-sep">·</text><text class="cl__fact-name">预算 {{ c.budget }} 万</text></template>
+          </view>
+          <view class="cl__item-tags">
+            <JzTag :text="c.wechatAdded ? '已加微信' : '未加微信'" :color="c.wechatAdded ? TOKEN_COLOR.success : TOKEN_COLOR.text4" />
+            <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" :color="TOKEN_COLOR.text2" />
+            <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" :color="TOKEN_COLOR.text2" />
+            <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" :color="TOKEN_COLOR.text2" />
+            <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
+            <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
+          </view>
+          <view v-if="isMarketer" class="cl__item-foot"><JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" /><text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text></view>
+        </template>
       </view>
       <view v-if="loadError" class="jz-card cl__error"><text>{{ loadError }}</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="refresh">重新加载</button></view>
       <JzEmpty v-else-if="!loading && !shown.length" text="没有匹配的客户" sub="换个筛选条件，或登记一位新客户" />
       <ListFooter v-if="!loadError && shown.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
     </view>
+    </template>
 
     <JzFloatAdd v-if="canAdd()" text="登记客户" @tap="add" />
+    <view class="jz-tabbar-gap" />
+    <JzTabBar :current="P.customerList" />
   </view>
 </template>
 
 <style lang="scss" scoped>
 .cl__head { padding: 24rpx $jzb-page-pad 8rpx; }
+.cl__metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin: 8rpx $jzb-page-pad 18rpx; }
+.cl__metric { position: relative; min-height: 164rpx; padding: 22rpx; overflow: hidden; }
+.cl__metric::after { content: ''; position: absolute; right: -32rpx; top: -36rpx; width: 100rpx; height: 100rpx; border-radius: 50%; background: rgba(22,163,148,.05); }
+.cl__metric-head { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__metric-dot { width: 14rpx; height: 14rpx; border-radius: 50%; background: $jzb-success; }
+.cl__metric--attention .cl__metric-dot { background: $jzb-warning; }
+.cl__metric--danger .cl__metric-dot { background: $jzb-danger; }
+.cl__metric-value { display: block; margin-top: 12rpx; color: $jzb-text-1; font-size: 44rpx; font-weight: 760; line-height: 1; }
+.cl__metric-sub { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.4; }
+.cl__metric-trend { display: block; margin-top: 6rpx; color: $jzb-success; font-size: 20rpx; }
+.cl__metric-trend--down { color: $jzb-danger; }
+.cl__metric-periods { display: grid; grid-template-columns: 1fr 1fr; gap: 6rpx 10rpx; margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
+.cl__metric-period { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: 18rpx; }
+.cl__metric-period text:last-child { color: $jzb-primary-dark; font-size: 20rpx; font-weight: 700; }
+.cl__sort-row { display: flex; align-items: center; gap: 12rpx; padding: 0 $jzb-page-pad 18rpx; overflow-x: auto; white-space: nowrap; }
+.cl__sort-row > text { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__sort { flex-shrink: 0; padding: 10rpx 18rpx; border-radius: $jzb-radius-pill; color: $jzb-text-3; background: $jzb-text-inverse; font-size: $jzb-font-xs; }
+.cl__sort--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; font-weight: 650; }
 .cl__golden { margin: 16rpx $jzb-page-pad 16rpx; padding: 24rpx; background: $jzb-warning-soft; }
 .cl__golden-head { display: flex; align-items: center; justify-content: space-between; }
 .cl__golden-title { font-size: $jzb-font; font-weight: 700; }
@@ -313,11 +662,12 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 .cl__follow-num--danger { color: $jzb-danger; }
 .cl__follow-num--warning { color: $jzb-warning; }
 .cl__follow-num--muted { color: $jzb-text-2; }
-.cl__list { padding: 8rpx $jzb-page-pad 152rpx; }
+.cl__list { padding: 8rpx $jzb-page-pad 24rpx; }
 .cl__error { display: flex; align-items: center; justify-content: space-between; padding: 24rpx; color: $jzb-danger; font-size: $jzb-font-sm; }
 /* 客户卡片：主行(身份+跟进) / 信息行 / 标签行 三层结构 */
-.cl__item { padding: 24rpx; margin-bottom: 16rpx; transition: transform $jzb-duration-fast $jzb-ease-out; }
+.cl__item { padding: 24rpx; margin-bottom: 16rpx; transition: transform $jzb-duration-fast $jzb-ease-out, border-color $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
 .cl__item:active { transform: scale(.992); }
+.cl__item--current { border-color: $jzb-primary; box-shadow: 0 0 0 5rpx rgba(14,138,125,.10), $jzb-shadow-card; }
 .cl__item-head { display: flex; align-items: center; }
 .cl__item-ident { flex: 1; min-width: 0; margin-left: 20rpx; }
 .cl__item-name-row { display: flex; align-items: center; gap: 8rpx; }
@@ -339,4 +689,43 @@ function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 .cl__grade--a { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
 .cl__grade--b { color: $jzb-warning; background: $jzb-warning-soft; }
 .cl__grade--c { color: $jzb-text-3; background: $jzb-bg-page; }
+.cl__boss-owner { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__boss-timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12rpx; margin-top: 20rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.cl__boss-timeline > view { display: flex; flex-direction: column; align-items: center; gap: 6rpx; color: $jzb-text-3; font-size: 20rpx; }
+.cl__boss-timeline > view text:last-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.cl__boss-danger-text { color: $jzb-danger !important; }
+.cl__boss-result { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
+.cl__boss-result text:last-child { max-width: 340rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: $jzb-text-3; font-size: $jzb-font-xs; font-weight: 400; }
+.cl__boss-next { display: flex; align-items: flex-start; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.5; }
+.cl__boss-next text:first-child { flex-shrink: 0; margin-right: 12rpx; color: $jzb-primary-dark; font-weight: 700; }
+/* 企业负责人：条件 + 负责人分组 + 客户列表同屏，沿用报价谈单工作区交互。 */
+.cl--boss { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.cl--boss .cl__head, .cl--boss .cl__metrics, .cl--boss .cl__store-filter { flex-shrink: 0; }
+.cl__workspace { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 4rpx; border-top: 1rpx solid $jzb-border-light; }
+.cl__workspace-body { flex: 1; min-height: 0; display: flex; }
+.cl__focus-bar { flex-shrink: 0; min-height: 68rpx; padding: 0 18rpx; display: flex; align-items: center; justify-content: space-between; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__focus-back { display: flex; align-items: center; gap: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
+.cl__focus-title { color: $jzb-text-3; font-size: 20rpx; }
+.cl--focus .cl__head, .cl--focus .cl__metrics, .cl--focus .cl__store-filter { display: none; }
+.cl--focus .cl__workspace { margin-top: 0; border-top: 0; }
+.cl__owner-panel { width: 172rpx; height: 100%; flex-shrink: 0; background: $jzb-text-inverse; border-right: 1rpx solid $jzb-border-light; }
+.cl__owner-item { position: relative; min-height: 108rpx; padding: 14rpx 12rpx; display: flex; flex-direction: column; justify-content: center; gap: 6rpx; color: $jzb-text-2; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__owner-item--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; box-shadow: inset 5rpx 0 0 $jzb-primary; }
+.cl__owner-name { font-size: $jzb-font-sm; font-weight: 700; line-height: 1.3; }
+.cl__owner-meta { color: $jzb-text-3; font-size: 20rpx; }
+.cl__owner-risk { color: $jzb-danger; font-size: 20rpx; }
+.cl__customer-panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; background: $jzb-bg-page; }
+.cl__panel-head { flex-shrink: 0; display: flex; align-items: center; gap: 12rpx; padding: 18rpx 20rpx 12rpx; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__panel-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 750; }
+.cl__panel-sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
+.cl__panel-focus { flex-shrink: 0; padding: 8rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.cl__panel-conditions { flex-shrink: 0; padding: 12rpx 16rpx 0; background: $jzb-text-inverse; }
+.cl__search--panel { height: 72rpx; border-radius: $jzb-radius; box-shadow: none; }
+.cl__filters--panel { flex-shrink: 0; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__filters--panel .cl__filter-row { padding: 12rpx 16rpx; }
+.cl__filters--panel .cl__filter { min-height: 52rpx; padding: 0 18rpx; margin-right: 10rpx; font-size: 22rpx; }
+.cl__sort-row--panel { flex-shrink: 0; padding: 10rpx 16rpx 12rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__sort-row--panel .cl__sort { padding: 7rpx 14rpx; font-size: 20rpx; }
+.cl__customer-scroll { flex: 1; min-height: 0; padding: 12rpx 16rpx 24rpx; box-sizing: border-box; }
+.cl__customer-row { margin-bottom: 14rpx; }
 </style>

@@ -24,7 +24,7 @@ const plans = ref<MaterialPlan[]>([])
 const purchases = ref<PurchaseOrder[]>([])
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const canApprove = computed(() => ['boss', 'finance'].includes(session.role || ''))
-const pendingPlans = computed(() => plans.value.filter((item) => ['planned', 'requested', 'approved'].includes(item.status)).slice(0, 8))
+const pendingPlans = computed(() => plans.value.filter((item) => ['planned', 'readyToOrder', 'requested', 'approved'].includes(item.status)).slice(0, 8))
 const activePurchases = computed(() => purchases.value.filter((item) => !['cancelled', 'closed'].includes(item.status)).slice(0, 12))
 const pendingPurchaseCount = computed(() => purchases.value.filter((item) => ['submitted', 'approved', 'ordered', 'partiallyReceived'].includes(item.status)).length)
 const waitingReceiptCount = computed(() => purchases.value.filter((item) => ['ordered', 'partiallyReceived'].includes(item.status)).length)
@@ -81,6 +81,10 @@ function addPartner() { uni.navigateTo({ url: P.supplyPartnerEdit }) }
 function editPartner(partnerId: string) { uni.navigateTo({ url: `${P.supplyPartnerEdit}?id=${partnerId}` }) }
 function addPrice() { uni.navigateTo({ url: P.supplyPartnerPriceEdit }) }
 function editPrice(priceId: string) { uni.navigateTo({ url: `${P.supplyPartnerPriceEdit}?id=${priceId}` }) }
+function openMaterialWorkbench() {
+  uni.navigateTo({ url: P.materialPlanWorkbench })
+}
+
 function addPurchase(planId?: string) { uni.navigateTo({ url: `${P.supplyPurchaseEdit}${planId ? `?planId=${planId}` : ''}` }) }
 function receive(purchaseId: string) { uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchaseId}` }) }
 
@@ -123,6 +127,9 @@ async function approve(item: PurchaseOrder) {
       </view>
       <view class="supply__add jz-card" @tap="addPurchase()">
         <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>从材料计划创建采购单</text>
+      </view>
+      <view class="supply__add jz-card" @tap="openMaterialWorkbench()">
+        <JzIcon name="file-text" :size="30" :color="TOKEN_COLOR.primary" /><text>材料计划工作台</text>
       </view>
 
       <view v-if="pendingPlans.length" class="supply__section">待采购材料</view>

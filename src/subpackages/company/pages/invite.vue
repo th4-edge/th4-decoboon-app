@@ -21,12 +21,12 @@ const teamName = ref('')
 const generated = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const roles: { value: EmployeeRole; label: string }[] = [
-  { value: 'marketer', label: '家装顾问' },
+  { value: 'storeManager', label: '店长' },
   { value: 'designer', label: '设计师' },
-  { value: 'teamLeader', label: '团队负责人' },
+  { value: 'marketer', label: '业务员' },
   { value: 'pm', label: '项目经理' },
-  { value: 'projectSupport', label: '履约专员' },
-  { value: 'finance', label: '财务' }
+  { value: 'finance', label: '财务' },
+  { value: 'teamLeader', label: '团队负责人' }
 ]
 const roleIndex = computed(() => roles.findIndex(item => item.value === role.value))
 const teamIndex = computed(() => teams.value.findIndex(item => item.id === teamId.value))

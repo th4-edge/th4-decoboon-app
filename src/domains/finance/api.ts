@@ -1,4 +1,4 @@
-import { post, listOf } from '@/core/http'
+import { post, listOf, absoluteUrl } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
 import type { PageResult } from '@/domains/common/model'
 import { normalizeProject } from '@/domains/project/api'
@@ -184,6 +184,38 @@ function normalizeProjectReport(raw: Raw): FinanceProjectReport {
 }
 function paged<T>(result: PageResult<Raw> | Raw[], normalize: (raw: Raw) => T) { return listOf(result).map(normalize) }
 
+function normalizeVoucherItem(raw: Raw) {
+  return {
+    id: String(raw.id ?? raw.itemId ?? ''),
+    sourceNo: raw.sourceNo ?? '',
+    businessDate: raw.businessDate ?? '',
+    account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    amount: num(raw.amount),
+    category: raw.category ?? undefined,
+    remark: raw.remark ?? undefined
+  }
+}
+
+function normalizeVoucher(raw: Raw) {
+  return {
+    id: String(raw.id ?? raw.voucherId ?? ''),
+    project: rawProject(raw),
+    type: lower(raw.type) === 'receipt' ? 'receipt' as const : 'payment' as const,
+    voucherNo: raw.voucherNo ?? '',
+    title: raw.title ?? '收付凭证',
+    totalAmount: num(raw.totalAmount),
+    amountWords: raw.amountWords ?? '',
+    partyName: raw.partyName ?? undefined,
+    worker: raw.worker ? { id: String(raw.worker.id ?? raw.worker.workerId ?? ''), name: raw.worker.name, trade: raw.worker.trade } : undefined,
+    status: lower(raw.status) === 'voided' ? 'voided' as const : 'active' as const,
+    fileName: raw.fileName ?? undefined,
+    generatedAt: time(raw),
+    items: (raw.items || []).map(normalizeVoucherItem),
+    url: raw.url ? absoluteUrl(String(raw.url)) : undefined,
+    urlExpiresAt: raw.urlExpiresAt ?? undefined
+  }
+}
+
 export const financeApi = {
   /** 供应商应付台账：按供应商聚合待付、逾期与最近到期日。 */
   partnerLedger: (params: { partnerId?: string; overdueOnly?: boolean } = {}) =>
@@ -221,7 +253,7 @@ export const financeApi = {
     normalizePayable(await post<Raw>('finance/payable/update', { payableId: input.id, name: input.name, amount: input.amount, dueDate: input.dueDate, urgent: input.urgent, period: input.period, remark: input.remark })),
   payments: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
-  createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
+  createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
     normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
   ledgers: async (params: { projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/ledger/page', { ...params, current: params.current ?? 1, size: params.size ?? 300 }), normalizeLedger),
@@ -234,5 +266,22 @@ export const financeApi = {
   updateSettlement: async (id: string, status: SettlementStatus, remark?: string) =>
     normalizeSettlement(await post<Raw>('finance/settlement/update', { settlementId: id, status: SETTLEMENT_STATUS_API[status], remark })),
   releaseRetention: async (id: string, releasedAt?: string) =>
-    normalizeSettlement(await post<Raw>('finance/settlement/retention-release', { settlementId: id, releasedAt }))
+    normalizeSettlement(await post<Raw>('finance/settlement/retention-release', { settlementId: id, releasedAt })),
+  /** 凭证记录分页：服务端按企业数据范围过滤。 */
+  vouchers: async (params: {
+    projectId?: string; status?: string; keyword?: string; type?: string
+    startDate?: string; endDate?: string; current?: number; size?: number
+  } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('document/voucher/page', {
+      current: params.current ?? 1, size: params.size ?? 100,
+      projectId: params.projectId, status: params.status, keyword: params.keyword,
+      type: params.type, startDate: params.startDate, endDate: params.endDate
+    }), normalizeVoucher),
+  /** 常用项目：按凭证出单频次排序（近 90 天），无凭证时返回空。 */
+  frequentProjects: async (size = 8): Promise<Project[]> =>
+    listOf(await post<Raw[]>('document/frequent-project/list', { size })).map(normalizeProject),
+
+  /** 生成凭证：单笔直接生成；多笔需满足"收款方/付款方 + 项目 + 款项类型"三者相同。 */
+  buildVoucher: async (ledgerIds: string[]) =>
+    normalizeVoucher(await post<Raw>('document/voucher/build', { ledgerIds }))
 }

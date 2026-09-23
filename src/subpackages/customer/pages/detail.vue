@@ -50,6 +50,7 @@ const booted = ref(false)
 const loadError = ref('')
 const sectionError = ref('')
 const actionLoading = ref(false)
+const openDesignerOnLoad = ref(false)
 const designerSheetOpen = ref(false)
 /** FIX-006：评级依据从独立卡片改为评级标签旁的 ? 图标，点击弹出浮层。 */
 const showGradePopup = ref(false)
@@ -129,7 +130,7 @@ const confirmedQuote = computed(() => propertyQuotes.value.find((item) => item.s
   || propertyQuotes.value.find((item) => item.status === 'accepted')
   || null)
 const activeQuote = computed(() => propertyQuotes.value.find((item) => !['rejected', 'superseded', 'accepted', 'converted'].includes(item.status)) || null)
-const canEditPortrait = computed(() => !['pm', 'finance', 'projectSupport'].includes(session.role || ''))
+const canEditPortrait = computed(() => !['pm', 'finance'].includes(session.role || ''))
 function openPortraitEdit() { uni.navigateTo({ url: `${P.customerPortraitEdit}?customerId=${id.value}` }) }
 function openTagManage() { uni.navigateTo({ url: `${P.customerTagManage}?customerId=${id.value}` }) }
 
@@ -248,6 +249,7 @@ function formatDateTime(value?: string) {
 
 onLoad((query) => {
   id.value = query?.id || ''
+  openDesignerOnLoad.value = query?.designer === 'change'
   if (!isLoggedIn()) {
     uni.reLaunch({ url: P.login })
     return
@@ -312,6 +314,10 @@ async function load() {
     toastError(error, '客户详情加载失败')
   } finally {
     booted.value = true
+    if (openDesignerOnLoad.value) {
+      openDesignerOnLoad.value = false
+      if (canChangeDesigner.value) void assignDesigner()
+    }
   }
 }
 
@@ -419,13 +425,13 @@ async function onDesignerSelect(index: number) {
   const designer = designers.value[index]
   if (!designer) return
   if (!activeProperty.value?.id) { toast('请先建立并选择装修房屋'); return }
-  loading('正在指定设计师…')
+  loading('正在更新负责设计师…')
   try {
     customer.value = await crmApi.handoff(id.value, designer.id, activeProperty.value.id)
-    toast(`已指定${designer.name}`, 'success')
+    toast(`已更换负责设计师为 ${designer.name}`, 'success')
     await load()
   } catch (error) {
-    toastError(error, '指定设计师失败')
+    toastError(error, '更换负责设计师失败')
   } finally {
     hideLoading()
   }
@@ -488,7 +494,7 @@ function viewMeasure(property: Property) {
         </view>
         <view class="cd__role-divider" />
         <view class="cd__role" :class="{ 'cd__role--clickable': canChangeDesigner }" @tap="canChangeDesigner && assignDesigner()">
-          <text class="cd__role-label">接手设计师</text>
+          <text class="cd__role-label">负责设计师</text>
           <view class="cd__role-value-row">
             <text class="cd__role-value">{{ customer.designer?.name || '—' }}</text>
             <JzIcon v-if="canChangeDesigner" name="arrow-right" :size="22" :color="TOKEN_COLOR.text3" />
@@ -523,8 +529,8 @@ function viewMeasure(property: Property) {
 
     <view class="jz-section">
       <text class="jz-section__title">装修房屋（{{ properties.length }}）</text>
-      <view class="jz-section__more" @tap="addProperty">
-        <JzIcon name="plus" :size="24" :color="TOKEN_COLOR.text3" />
+      <view class="cd__section-action" @tap="addProperty">
+        <JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" />
         <text>新增房屋</text>
       </view>
     </view>
@@ -552,8 +558,8 @@ function viewMeasure(property: Property) {
 
     <view class="jz-section">
       <text class="jz-section__title">客户信息</text>
-      <view v-if="canFollow" class="jz-section__more" @tap="edit">
-        <JzIcon name="edit" :size="24" :color="TOKEN_COLOR.text3" />
+      <view v-if="canFollow" class="cd__section-action" @tap="edit">
+        <JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" />
         <text>编辑资料</text>
       </view>
     </view>
@@ -662,7 +668,7 @@ function viewMeasure(property: Property) {
 
   <JzActionSheet
     :visible="designerSheetOpen"
-    title="选择设计师"
+    title="选择负责设计师"
     :actions="designerActions"
     @select="onDesignerSelect"
     @update:visible="designerSheetOpen = $event"

@@ -296,6 +296,70 @@ export interface BusinessAlertReport {
   changeAnomalies: BusinessAlert[]
 }
 
+export type WorkbenchSignalStatus = 'normal' | 'attention' | 'danger' | 'unknown'
+
+export interface WorkbenchIndicator {
+  key: 'signedAmount' | 'receivedAmount' | 'grossProfit' | 'activeProjectCount' | string
+  label: string
+  value: number | null
+  valueType: 'amount' | 'count' | string
+  status: WorkbenchSignalStatus
+  statusText: string
+  detail: string
+}
+
+export interface WorkbenchProject {
+  projectId: string
+  no?: string
+  name: string
+  status: import('../project/model').Project['status']
+  progress: number
+  managerName?: string
+  riskLevel: BusinessAlertLevel
+  riskCount: number
+  mainRiskType: BusinessAlertType
+  riskReason: string
+  nextAction: string
+  amount?: number | null
+  dueDate?: string
+}
+
+export type BusinessEventCategory = 'customer' | 'contract' | 'project' | 'finance'
+export type BusinessEventLevel = 'normal' | 'attention' | 'milestone' | 'warning' | 'danger'
+export type BusinessEventType =
+  | 'customerCreated' | 'customerFollowed' | 'quoteSubmitted' | 'quoteAccepted' | 'quoteRejected' | 'quoteConverted'
+  | 'contractSigned' | 'contractEffective' | 'contractChangeSubmitted' | 'contractChangeApproved' | 'contractChangeRejected'
+  | 'stageStarted' | 'taskCompleted' | 'projectProgress' | 'acceptanceRequested' | 'acceptanceCompleted'
+  | 'acceptanceRejected' | 'issueReported' | 'materialArrived' | 'projectNotice'
+  | 'receiptReceived' | 'paymentPaid'
+
+export interface BusinessEvent {
+  eventId: string
+  category: BusinessEventCategory
+  type: BusinessEventType
+  level: BusinessEventLevel
+  title: string
+  content: string
+  occurredAt?: string
+  amount?: number | null
+  businessType: string
+  businessId: string
+  businessNo?: string
+  projectId?: string
+  projectName?: string
+  customerId?: string
+  customerName?: string
+  ownerName?: string
+}
+
+export interface BossWorkbench {
+  asOf: string
+  month: string
+  indicators: WorkbenchIndicator[]
+  attentionProjects: WorkbenchProject[]
+  businessEvents: BusinessEvent[]
+}
+
 export interface EmployeePerformance {
   employee?: import('@/domains/identity/model').Employee
   role: 'Designer' | 'Marketer' | 'Pm'

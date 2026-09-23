@@ -38,7 +38,7 @@ async function normalizeTask(raw: RawRecord): Promise<Task> {
     id,
     projectId: String(raw.projectId ?? raw.project?.projectId ?? ''),
     stageId: String(raw.stageId ?? raw.stage?.stageId ?? ''),
-    catalogId: raw.catalogId,
+    catalogId: raw.catalogId ?? raw.catalogItem?.itemId,
     name: raw.name ?? '',
     craft: raw.craft ?? raw.construction?.craft ?? raw.construction?.name,
     spec: raw.spec ?? (raw.construction?.criterions || []).join('；'),
@@ -123,8 +123,31 @@ export const scheduleApi = {
   task: (id: string) =>
     post<RawRecord>('project/task/info', { taskId: id }).then(normalizeTask),
 
+  /**
+   * 保存施工任务。
+   *
+   * 后端 Provider 入参是扁平字段（taskId / zoneId / ownerId / catalogId），而前端 Task 使用对象形态
+   * （owner / zone）。历史缺陷：直接提交对象导致「选择负责人」「区域」以及编辑时的 taskId 丢失，
+   * 保存后负责人回到项目经理、编辑任务会变成新建任务（BUG-OWNER-NOT-SAVED）。
+   */
   saveTask: (task: Partial<Task>) =>
-    post<Task>('project/task/save', task),
+    post<Task>('project/task/save', {
+      taskId: task.id || undefined,
+      projectId: task.projectId,
+      stageId: task.stageId,
+      catalogId: task.catalogId,
+      zoneId: task.zone?.id,
+      quantity: task.quantity,
+      ownerId: task.owner?.id,
+      name: task.name,
+      craft: task.craft,
+      spec: task.spec || task.acceptStandard,
+      priority: task.priority,
+      remark: task.remark,
+      plannedStart: task.plannedStart,
+      plannedEnd: task.plannedEnd,
+      unit: task.unit
+    }),
 
   removeTask: (id: string) =>
     post<void>('project/task/delete', { taskId: id }),

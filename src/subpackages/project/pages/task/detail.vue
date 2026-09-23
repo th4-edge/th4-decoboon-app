@@ -61,7 +61,8 @@ async function load() {
 
 const role = computed(() => session.role || 'boss')
 const editable = computed(() => can(role.value, 'edit:task'))
-const isOwnerRole = computed(() => ['pm', 'boss', 'designer'].includes(role.value) && !isCustomer(role.value))
+// 施工节点留证与任务推进：服务端为 企业负责人 / 店长 / 项目经理（设计师只负责排期，不确认节点）
+const isOwnerRole = computed(() => ['boss', 'storeManager', 'pm'].includes(role.value) && !isCustomer(role.value))
 const nodes = computed<TaskNode[]>(() => task.value?.nodes || [])
 const orderedKeys = computed<TaskNodeKey[]>(() => {
   const keys: TaskNodeKey[] = ['start', 'finish']

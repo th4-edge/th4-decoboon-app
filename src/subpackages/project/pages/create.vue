@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
 import type { Contract, Quote } from '@/domains/trade/model'
 import { tradeApi } from '@/domains/trade/api'
+import { planApi } from '@/domains/plan/api'
+import type { ConstructionPlanTemplate, PaymentPlanTemplate } from '@/domains/plan/model'
 import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
@@ -22,11 +24,20 @@ const finalSignedAmount = ref<number | string>('')
 const signedAt = ref(new Date().toISOString().slice(0, 10))
 const startDate = ref(new Date().toISOString().slice(0, 10))
 const planEndDate = ref(new Date(Date.now() + 120 * 86400000).toISOString().slice(0, 10))
-const paymentTerms = ref('合同签约款30% / 项目开工款40% / 竣工尾款30%')
+const paymentTerms = ref('')
+const paymentPlans = ref<PaymentPlanTemplate[]>([])
+const constructionPlans = ref<ConstructionPlanTemplate[]>([])
+const paymentPlanCode = ref('')
+const constructionPlanCode = ref('')
 const loadingData = ref(false)
 const submitting = ref(false)
 
 const selectedQuote = computed(() => quotes.value.find((item) => item.id === quoteId.value))
+const selectedPaymentPlan = computed(() => paymentPlans.value.find((item) => item.code === paymentPlanCode.value))
+const selectedConstructionPlan = computed(() => constructionPlans.value.find((item) => item.code === constructionPlanCode.value))
+watch(selectedPaymentPlan, (plan) => {
+  if (plan) paymentTerms.value = plan.nodes.map((node) => `${node.name}${(node.ratio * 100).toFixed(0)}%`).join(' / ')
+})
 const projectId = computed(() => contract.value?.projectId || '')
 const contractStatusText = computed(() => {
   if (!contract.value) return '待生成'
@@ -61,7 +72,14 @@ onShow(() => {
 async function load() {
   loadingData.value = true
   try {
-    const accepted = await tradeApi.quotes({ status: 'accepted' })
+    const [accepted, catalog] = await Promise.all([
+      tradeApi.quotes({ status: 'accepted' }),
+      planApi.catalog()
+    ])
+    paymentPlans.value = catalog.paymentPlans
+    constructionPlans.value = catalog.constructionPlans
+    if (!paymentPlanCode.value) paymentPlanCode.value = paymentPlans.value[0]?.code || ''
+    if (!constructionPlanCode.value) constructionPlanCode.value = constructionPlans.value[0]?.code || ''
     quotes.value = customerId.value
       ? accepted.filter((item) => item.customer?.id === customerId.value)
       : accepted
@@ -82,6 +100,8 @@ async function selectQuote(quote: Quote) {
   quoteId.value = quote.id
   contract.value = await tradeApi.contractByQuote(quote.id).catch(() => null)
   finalSignedAmount.value = contract.value?.signedAmount ?? quote.amount
+  paymentPlanCode.value = contract.value?.paymentPlan?.sourceCode || paymentPlanCode.value
+  constructionPlanCode.value = contract.value?.constructionPlan?.sourceCode || constructionPlanCode.value
   if (contract.value?.signedAt) signedAt.value = contract.value.signedAt.slice(0, 10)
   if (quote.property?.id) propertyId.value = quote.property.id
 }
@@ -113,6 +133,10 @@ async function submit() {
     toast('请填写大于 0 的最终签约价格')
     return
   }
+  if (!paymentPlanCode.value || !constructionPlanCode.value) {
+    toast('请选择付款计划和施工计划')
+    return
+  }
   submitting.value = true
   loading(contract.value ? '合同生效并生成项目…' : '生成合同基线…')
   try {
@@ -122,7 +146,9 @@ async function submit() {
         signedAmount: Number(finalSignedAmount.value),
         startDate: startDate.value,
         planEndDate: planEndDate.value,
-        paymentTerms: paymentTerms.value.trim() || undefined
+        paymentTerms: paymentTerms.value.trim() || undefined,
+        paymentPlanCode: paymentPlanCode.value,
+        constructionPlanCode: constructionPlanCode.value
       })
       hideLoading()
       toast('合同基线已生成，请确认签约生效', 'success')
@@ -131,7 +157,9 @@ async function submit() {
     if (contract.value.status === 'draft' || contract.value.status === 'pendingSign') {
       contract.value = await tradeApi.updateContract(contract.value.id, 'signed', {
         signedAt: signedAt.value || undefined,
-        signedAmount: Number(finalSignedAmount.value)
+        signedAmount: Number(finalSignedAmount.value),
+        paymentPlanCode: paymentPlanCode.value,
+        constructionPlanCode: constructionPlanCode.value
       })
     }
     contract.value = await tradeApi.updateContract(contract.value.id, 'effective', {
@@ -223,9 +251,23 @@ async function submit() {
       <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
       <view class="pc__row"><text class="pc__label">计划开工</text><picker mode="date" :value="startDate" @change="startDate = $event.detail.value"><view class="jz-grow pc__value">{{ startDate || '请选择' }}</view></picker></view>
       <view class="pc__row"><text class="pc__label">计划完工</text><picker mode="date" :value="planEndDate" @change="planEndDate = $event.detail.value"><view class="jz-grow pc__value">{{ planEndDate || '请选择' }}</view></picker></view>
+      <view class="pc__row">
+        <text class="pc__label">付款计划</text>
+        <picker class="jz-grow" mode="selector" :range="paymentPlans" range-key="name" @change="paymentPlanCode = paymentPlans[Number($event.detail.value)]?.code || ''">
+          <view class="pc__value">{{ selectedPaymentPlan?.name || '请选择' }}</view>
+        </picker>
+      </view>
+      <view v-if="selectedPaymentPlan" class="pc__plan-preview">{{ selectedPaymentPlan.nodes.map((node) => `${node.name} ${(node.ratio * 100).toFixed(0)}%`).join(' / ') }}</view>
+      <view class="pc__row">
+        <text class="pc__label">施工计划</text>
+        <picker class="jz-grow" mode="selector" :range="constructionPlans" range-key="name" @change="constructionPlanCode = constructionPlans[Number($event.detail.value)]?.code || ''">
+          <view class="pc__value">{{ selectedConstructionPlan?.name || '请选择' }}</view>
+        </picker>
+      </view>
+      <view v-if="selectedConstructionPlan" class="pc__plan-preview">{{ selectedConstructionPlan.stages.map((stage) => stage.name).join(' → ') }}</view>
       <view class="pc__terms">
-        <text class="pc__terms-label">付款条件</text>
-        <textarea v-model="paymentTerms" class="pc__terms-input" maxlength="128" auto-height placeholder="请输入合同付款节点" />
+        <text class="pc__terms-label">付款说明（补充）</text>
+        <textarea v-model="paymentTerms" class="pc__terms-input" maxlength="128" auto-height placeholder="默认使用付款计划节点，可补充特殊约定" />
       </view>
 
       <view class="pc__tip">
@@ -263,6 +305,7 @@ async function submit() {
 .pc__label { width: 170rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pc__value { padding: 0 8rpx; text-align: right; color: $jzb-text-1; font-size: $jzb-font; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc__value--empty { color: $jzb-text-4; }
+.pc__plan-preview { margin: 0 0 16rpx 170rpx; padding: 16rpx 18rpx; color: $jzb-text-3; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .pc__arrow { margin-left: 8rpx; flex-shrink: 0; }
 .pc__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx 12rpx; margin-top: 18rpx; padding: 20rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius; font-size: $jzb-font-xs; }
 .pc__quote view { min-width: 0; }

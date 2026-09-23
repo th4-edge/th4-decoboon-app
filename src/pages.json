@@ -48,6 +48,13 @@
       }
     },
     {
+      "path": "pages/owner/enter",
+      "style": {
+        "navigationStyle": "custom",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
       "path": "pages/auth/enterprise",
       "style": {
         "navigationBarTitleText": "创建企业",
@@ -85,7 +92,7 @@
     {
       "path": "pages/customer/list",
       "style": {
-        "navigationBarTitleText": "客户",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
       }
@@ -143,6 +150,14 @@
           "style": {
             "navigationBarTitleText": "跟进客户",
             "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/measure-workbench",
+          "style": {
+            "navigationBarTitleText": "量房经营工作台",
+            "backgroundColor": "#F4F7F8",
+            "enablePullDownRefresh": true
           }
         },
         {
@@ -288,6 +303,123 @@
           }
         },
         {
+          "path": "pages/selection",
+          "style": {
+            "navigationBarTitleText": "主材选材",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/selection-item",
+          "style": {
+            "navigationBarTitleText": "主材选材",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/selection-board",
+          "style": {
+            "navigationBarTitleText": "选材工作台",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/rectify-board",
+          "style": {
+            "navigationBarTitleText": "整改跟进",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/journey",
+          "style": {
+            "navigationBarTitleText": "项目旅程",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-measure",
+          "style": {
+            "navigationBarTitleText": "量房档案",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-design",
+          "style": {
+            "navigationBarTitleText": "设计方案",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-quote",
+          "style": {
+            "navigationBarTitleText": "报价清单",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-selection",
+          "style": {
+            "navigationBarTitleText": "选材记录",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-change",
+          "style": {
+            "navigationBarTitleText": "增减项",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-acceptance",
+          "style": {
+            "navigationBarTitleText": "验收整改",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-payment",
+          "style": {
+            "navigationBarTitleText": "付款计划",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-contract",
+          "style": {
+            "navigationBarTitleText": "合同",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/feedback-list",
+          "style": {
+            "navigationBarTitleText": "意见与投诉",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/feedback-edit",
+          "style": {
+            "navigationBarTitleText": "反馈处理",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
           "path": "pages/stage/detail",
           "style": {
             "navigationBarTitleText": "施工阶段",
@@ -335,6 +467,60 @@
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/contract",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/change",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/change-workbench",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/change-create",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/change-detail",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/material-plan",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/material-plan-workbench",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/material-category",
+          "style": {
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "pages/material-batch-order",
+          "style": {
+            "navigationStyle": "custom"
           }
         }
       ]
@@ -561,6 +747,65 @@
             "navigationBarTitleText": "财务登记",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/vouchers",
+          "style": {
+            "navigationBarTitleText": "收付凭证",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/voucher-templates",
+          "style": {
+            "navigationBarTitleText": "凭证模板",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/voucher-template",
+          "style": {
+            "navigationBarTitleText": "凭证模板配置",
+            "pageOrientation": "landscape",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/plan",
+      "pages": [
+        {
+          "path": "pages/payment-list",
+          "style": {
+            "navigationBarTitleText": "付款计划模板",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/payment-edit",
+          "style": {
+            "navigationBarTitleText": "付款计划编辑",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/construction-list",
+          "style": {
+            "navigationBarTitleText": "施工计划模板",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/construction-edit",
+          "style": {
+            "navigationBarTitleText": "施工计划编辑",
+            "backgroundColor": "#FFFFFF"
+          }
         }
       ]
     },
@@ -571,6 +816,14 @@
           "path": "pages/analysis",
           "style": {
             "navigationBarTitleText": "经营驾驶舱",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/business-dynamics",
+          "style": {
+            "navigationBarTitleText": "经营动态",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
@@ -656,6 +909,26 @@
             "navigationBarTitleText": "供应商协作",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/labor",
+      "pages": [
+        {
+          "path": "pages/workers",
+          "style": {
+            "navigationBarTitleText": "工人档案",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/worker-edit",
+          "style": {
+            "navigationBarTitleText": "工人信息",
+            "backgroundColor": "#FFFFFF"
           }
         }
       ]

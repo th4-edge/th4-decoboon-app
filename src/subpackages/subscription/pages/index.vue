@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { dateTimeText } from '@/core/format'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { toast, toastError } from '@/composables/toast'
@@ -276,9 +277,12 @@ function priceInteger(value: number) {
   return Math.floor(value / 100)
 }
 
-function formatTime(value?: string) {
-  if (!value) return '-'
-  return value.replace('T', ' ').slice(0, 16)
+/**
+ * 时间展示兜底：后端可能给 14 位 yyyyMMddHHmmss、ISO 串或已格式化串。
+ * 历史坑：这里原先是 `value.replace('T',' ')`，拿到 14 位数字时会原样显示 "20260924103500"。
+ */
+function formatTime(value?: string | number) {
+  return dateTimeText(value) || '-'
 }
 
 function moduleText(module: PlanModule) {

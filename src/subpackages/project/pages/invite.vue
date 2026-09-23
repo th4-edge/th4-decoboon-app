@@ -43,12 +43,14 @@ async function gen() {
 }
 function invitePath() {
   if (!generated.value) return P.home
+  // P0：业主邀请链接直接指向**业主专用页**（不再落到员工邀请页再重定向），
+  // 业主侧全程只看到"验证手机号，进入我的家"。
   const query = [
     'type=customer',
     generated.value.id ? `inviteId=${encodeURIComponent(generated.value.id)}` : '',
     generated.value.token ? `token=${encodeURIComponent(generated.value.token)}` : ''
   ].filter(Boolean).join('&')
-  return `${P.inviteAccept}?${query}`
+  return `${P.ownerEnter}?${query}`
 }
 function copy() {
   if (!generated.value) return

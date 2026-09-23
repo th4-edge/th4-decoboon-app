@@ -10,12 +10,13 @@ import type { Acceptance } from '@/domains/acceptance/model'
 import type { Project } from '@/domains/project/model'
 import type { SiteReport } from '@/domains/site/model'
 import type { Customer } from '@/domains/crm/model'
-import type { BossDashboard, BusinessAlertReport, DesignerReport, MarketerReport, PmReport, StoreManagerReport, TeamLeaderReport } from '@/domains/statistic/model'
+import type { BossWorkbench, BusinessAlertReport, BusinessEvent, DesignerReport, MarketerReport, PmReport, StoreManagerReport, TeamLeaderReport, WorkbenchIndicator, WorkbenchSignalStatus } from '@/domains/statistic/model'
 import type { FinanceSummary } from '@/domains/finance/model'
 import { financeApi } from '@/domains/finance/api'
-import { money } from '@/core/format'
-import { PROJECT_STATUS_META } from '@/domains/project/meta'
+import { money, timeText } from '@/core/format'
+import { PROJECT_STATUS_META, projectStageText } from '@/domains/project/meta'
 import { ROLE_ACTIONS, ROLE_META } from '@/roles/catalog'
+import { materialPlanWorkbenchApi } from '@/domains/material/api'
 import { projectApi } from '@/domains/project/api'
 import { siteApi } from '@/domains/site/api'
 import { acceptanceApi } from '@/domains/acceptance/api'
@@ -23,6 +24,7 @@ import { crmApi } from '@/domains/crm/api'
 import { collabApi } from '@/domains/collab/api'
 import { statisticApi } from '@/domains/statistic/api'
 import { projectMetrics, visibleProjects } from '@/domains/project/scope'
+import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import OnboardingChecklist from '@/components/OnboardingChecklist.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
@@ -30,9 +32,11 @@ import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
+import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 
 const role = computed(() => session.role || 'customer')
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
@@ -50,9 +54,11 @@ const storeReport = ref<StoreManagerReport | null>(null)
 const teamLeaderReport = ref<TeamLeaderReport | null>(null)
 const pmReport = ref<PmReport | null>(null)
 const financeSummary = ref<FinanceSummary | null>(null)
-const bossDashboard = ref<BossDashboard | null>(null)
+const bossWorkbench = ref<BossWorkbench | null>(null)
+const bossWorkbenchLoading = ref(true)
 const alertReport = ref<BusinessAlertReport | null>(null)
 const unreadCount = ref(0)
+const materialPlanSummary = ref({ projects: 0, readyToOrder: 0, inTransit: 0, delayed: 0 })
 
 onLoad(() => {
   if (!isLoggedIn()) goTab(P.login)
@@ -64,9 +70,11 @@ onShow(() => {
   refresh()
   void onboardingRef.value?.reload()
 })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onPullDownRefresh(() => Promise.all([refresh(), onboardingRef.value?.reload()])
+  .finally(() => uni.stopPullDownRefresh()))
 
 const myProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
+const customerProject = computed(() => isCustomer(role.value) ? myProjects.value[0] || null : null)
 const metrics = computed(() => projectMetrics(myProjects.value))
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -140,7 +148,7 @@ const attentionAlerts = computed<AttentionAlert[]>(() => {
     const t = marketerReport.value
     if (t.followOverdueCount) list.push({ key: 'mk-overdue', risk: true, icon: 'alert-circle', iconColor: TOKEN_COLOR.danger, iconTone: 'danger', title: `${t.followOverdueCount} 位客户跟进已逾期`, sub: '优先联系逾期客户，避免线索流失', tap: () => goTab(P.customerList) })
     if (t.followDueCount) list.push({ key: 'mk-due', risk: false, icon: 'calendar', iconColor: TOKEN_COLOR.warning, iconTone: 'none', title: `今日有 ${t.followDueCount} 位客户待跟进`, sub: '按约定时间联系，并记录沟通结果', tap: () => goTab(P.customerList) })
-    if (t.pendingMeasureCount) list.push({ key: 'mk-measure', risk: false, icon: 'shield-check', iconColor: TOKEN_COLOR.primary, iconTone: 'none', title: `${t.pendingMeasureCount} 位客户待量房`, sub: '确认量房时间并由团队负责人或门店店长指定设计师', tap: () => goTab(P.customerList) })
+    if (t.pendingMeasureCount) list.push({ key: 'mk-measure', risk: false, icon: 'shield-check', iconColor: TOKEN_COLOR.primary, iconTone: 'none', title: `${t.pendingMeasureCount} 位客户待量房`, sub: '确认量房时间并由团队负责人或店长指定设计师', tap: () => goTab(P.customerList) })
   }
   if (r === 'designer' && designerReport.value) {
     const t = designerReport.value
@@ -165,15 +173,35 @@ const visibleAttentionAlerts = computed(() => {
 })
 const foldedTodoCount = computed(() => Math.max(0, todoAlerts.value.length - 3))
 
-const statCards = computed((): { label: string; val: string | number; color: string; icon: IconName; tone: string; money?: boolean }[] => {
-  if (role.value === 'boss' && bossDashboard.value) {
-    const d = bossDashboard.value
-    return [
-      { label: '签约额', val: d.signedAmount.value ?? 0, color: TOKEN_COLOR.primary, icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, money: true },
-      { label: '回款额', val: d.receivedAmount.value ?? 0, color: TOKEN_COLOR.success, icon: 'wallet', tone: TOKEN_COLOR.successSoft, money: true },
-      { label: '项目毛利', val: d.grossProfit.complete ? (d.grossProfit.value ?? 0) : '成本未完整', color: TOKEN_COLOR.purple, icon: 'chart', tone: TOKEN_COLOR.purpleSoft, money: d.grossProfit.complete },
-      { label: '在建项目', val: d.activeProjectCount.value ?? 0, color: TOKEN_COLOR.warning, icon: 'briefcase', tone: TOKEN_COLOR.warningSoft }
-    ]
+interface StatCard {
+  label: string
+  val: string | number
+  color: string
+  icon: IconName
+  tone: string
+  money?: boolean
+  status?: WorkbenchSignalStatus
+  statusText?: string
+  detail?: string
+  costIncomplete?: boolean
+}
+
+const statCards = computed((): StatCard[] => {
+  if (role.value === 'boss' && !bossWorkbench.value) {
+    return ['签约额', '回款额', '项目毛利', '在建项目'].map((label) => ({
+      label,
+      val: '—',
+      color: TOKEN_COLOR.text3,
+      icon: 'chart' as IconName,
+      tone: TOKEN_COLOR.bgHover,
+      money: false,
+      status: 'unknown',
+      statusText: '暂不可判断',
+      detail: bossWorkbenchLoading.value ? '正在读取经营状态' : '经营状态暂不可确认'
+    }))
+  }
+  if (role.value === 'boss' && bossWorkbench.value) {
+    return bossWorkbench.value.indicators.map(indicatorCard)
   }
   if (role.value === 'finance' && financeSummary.value) {
     const r = financeSummary.value
@@ -239,15 +267,32 @@ const statCards = computed((): { label: string; val: string | number; color: str
 
 async function refresh() {
   if (role.value === 'boss') {
-    const [ps, bd, alerts, rs, unread] = await Promise.all([
-      projectApi.list(), statisticApi.bossDashboard(), statisticApi.alerts(), siteApi.allReports(), collabApi.unread(role.value)
-    ])
-    projects.value = ps
-    bossDashboard.value = bd
-    alertReport.value = alerts
-    reports.value = rs
-    unreadCount.value = Number(unread || 0)
-    acceptances.value = []
+    bossWorkbenchLoading.value = true
+    try {
+      const [workbench, alerts, unread, materialBenches] = await Promise.all([
+        statisticApi.bossWorkbench(), statisticApi.alerts(), collabApi.unread(role.value),
+        // 材料计划工作台指标：待下单 / 在途 / 逾期（服务端按数据范围聚合）
+        materialPlanWorkbenchApi.list().catch(() => [])
+      ])
+      bossWorkbench.value = workbench
+      alertReport.value = alerts
+      materialPlanSummary.value = {
+        projects: materialBenches.length,
+        readyToOrder: materialBenches.reduce((sum, item) => sum + item.readyToOrder, 0),
+        inTransit: materialBenches.reduce((sum, item) => sum + item.pendingArrival, 0),
+        delayed: materialBenches.reduce((sum, item) => sum + item.delayed, 0)
+      }
+      projects.value = []
+      reports.value = []
+      unreadCount.value = Number(unread || 0)
+      acceptances.value = []
+    } catch (error) {
+      bossWorkbench.value = null
+      alertReport.value = null
+      toastError(error, '经营状态暂不可确认')
+    } finally {
+      bossWorkbenchLoading.value = false
+    }
     return
   }
   if (role.value === 'finance') {
@@ -335,6 +380,23 @@ function openProject(id: string) {
   uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
 }
 
+function openOwnerFact(path: string) {
+  if (!customerProject.value) return
+  uni.navigateTo({ url: `${path}?projectId=${customerProject.value.id}` })
+}
+
+function openJourney(section?: string) {
+  if (!customerProject.value) return
+  const query = [`projectId=${customerProject.value.id}`]
+  if (section) query.push(`section=${section}`)
+  uni.navigateTo({ url: `${P.projectJourney}?${query.join('&')}` })
+}
+
+function openFeedbackList() {
+  const query = customerProject.value ? `?projectId=${customerProject.value.id}` : ''
+  uni.navigateTo({ url: `${P.feedbackList}${query}` })
+}
+
 function openPerformance() {
   uni.navigateTo({ url: P.performance })
 }
@@ -344,6 +406,83 @@ function openQuotes() {
 }
 
 const iconName = (name: string) => name as IconName
+
+function indicatorCard(indicator: WorkbenchIndicator): StatCard {
+  const visual: Record<string, { icon: IconName; color: string; tone: string }> = {
+    signedAmount: { icon: 'file-text', color: TOKEN_COLOR.primary, tone: TOKEN_COLOR.primaryLighter },
+    receivedAmount: { icon: 'wallet', color: TOKEN_COLOR.success, tone: TOKEN_COLOR.successSoft },
+    grossProfit: { icon: 'chart', color: TOKEN_COLOR.purple, tone: TOKEN_COLOR.purpleSoft },
+    activeProjectCount: { icon: 'briefcase', color: TOKEN_COLOR.warning, tone: TOKEN_COLOR.warningSoft }
+  }
+  const item = visual[indicator.key] || visual.activeProjectCount
+  const costIncomplete = indicator.key === 'grossProfit' && indicator.status === 'unknown'
+  return {
+    label: indicator.label,
+    val: costIncomplete ? '' : (indicator.value ?? 0),
+    color: item.color,
+    icon: item.icon,
+    tone: item.tone,
+    money: indicator.valueType === 'amount' && indicator.value !== null,
+    status: indicator.status,
+    statusText: indicator.statusText,
+    detail: indicator.detail,
+    costIncomplete
+  }
+}
+
+function showStatStatus(card: StatCard) {
+  if (!card.status || !card.statusText) return
+  uni.showModal({
+    title: `${card.label} · ${card.statusText}`,
+    content: card.detail?.trim() || '当前无更多状态说明',
+    showCancel: false,
+    confirmText: '知道了',
+    confirmColor: TOKEN_COLOR.primary
+  })
+}
+
+function bossIndicator(key: string) {
+  return bossWorkbench.value?.indicators.find((item) => item.key === key)
+}
+
+function bossValue(key: string) {
+  return bossIndicator(key)?.value ?? null
+}
+
+function eventTone(level: BusinessEvent['level']) {
+  if (level === 'danger') return 'danger'
+  if (level === 'warning' || level === 'attention') return 'warning'
+  if (level === 'milestone') return 'milestone'
+  return 'normal'
+}
+
+function riskText(level: 'low' | 'medium' | 'high') {
+  if (level === 'high') return '严重'
+  if (level === 'medium') return '警告'
+  return '关注'
+}
+
+function riskTone(level: 'low' | 'medium' | 'high') {
+  if (level === 'high') return 'danger'
+  if (level === 'medium') return 'warning'
+  return 'attention'
+}
+
+function openBusinessEvent(event: BusinessEvent) {
+  if (event.businessType === 'Customer' && event.customerId) {
+    go(`${P.customerDetail}?id=${event.customerId}`)
+    return
+  }
+  if (event.businessType === 'Quote' && event.businessId) {
+    go(`${P.quoteDetail}?id=${event.businessId}`)
+    return
+  }
+  if (event.projectId) {
+    go(`${P.projectDetail}?id=${event.projectId}`)
+    return
+  }
+  if (event.category === 'finance') go(P.financeHome)
+}
 
 const quicks = computed(() =>
   ROLE_ACTIONS[role.value]
@@ -379,7 +518,7 @@ const orgSubLine = computed(() => {
 /** 项目区块标题：企业负责人/店长/团队长关心的是全局项目，而不是"我的项目" */
 const projectSectionTitle = computed(() => {
   if (isCustomer(role.value)) return '我的家 · 施工进度'
-  if (role.value === 'boss') return '企业项目 · 全公司'
+  if (role.value === 'boss') return '需要关注的项目'
   if (role.value === 'storeManager') return '门店项目'
   if (role.value === 'teamLeader') return '团队项目'
   return '我的项目'
@@ -420,25 +559,63 @@ const projectSectionTitle = computed(() => {
         </view>
       </view>
 
-      <!-- 指标卡 -->
-      <view class="home__stats">
-        <view class="home__stat" v-for="s in statCards" :key="s.label">
-          <view class="home__stat-icon">
-            <JzIcon :name="s.icon" :size="34" :color="TOKEN_COLOR.primary" :stroke-width="2" />
+      <view v-if="isCustomer(role) && customerProject" class="jz-card home__owner-project" @tap="openProject(customerProject.id)">
+        <view class="jz-between"><text class="home__owner-project-title">我的家</text><JzTag :text="PROJECT_STATUS_META[customerProject.status].label" :color="PROJECT_STATUS_META[customerProject.status].color" /></view>
+        <text class="home__owner-project-name">{{ customerProject.name }}</text>
+        <text class="home__owner-project-address">{{ customerProject.community || customerProject.address }}</text>
+        <view class="home__owner-stage"><view><text class="home__owner-stage-label">当前阶段</text><text class="home__owner-stage-value">{{ projectStageText(customerProject) }}</text></view><text class="home__owner-progress">{{ customerProject.progress }}%</text></view>
+        <JzProgress :percent="customerProject.progress" :height="12" />
+        <view class="home__owner-enter" @tap.stop="openJourney()"><text>查看我的家全貌</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
+      </view>
+
+      <view v-if="isCustomer(role) && customerProject" class="jz-card home__owner-quicks">
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerMeasure)"><JzIcon name="ruler" :size="34" :color="TOKEN_COLOR.primary" /><text>量房档案</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerDesign)"><JzIcon name="edit" :size="34" :color="TOKEN_COLOR.purple" /><text>设计方案</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerQuote)"><JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.primary" /><text>报价清单</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerSelection)"><JzIcon name="package" :size="34" :color="TOKEN_COLOR.warning" /><text>选材记录</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerChange)"><JzIcon name="history" :size="34" :color="TOKEN_COLOR.danger" /><text>增减项</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerAcceptance)"><JzIcon name="shield-check" :size="34" :color="TOKEN_COLOR.success" /><text>验收整改</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerPayment)"><JzIcon name="wallet" :size="34" :color="TOKEN_COLOR.primary" /><text>付款计划</text></view>
+        <view class="home__owner-quick" @tap="openOwnerFact(P.ownerContract)"><JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.text2" /><text>合同档案</text></view>
+      </view>
+
+      <view v-if="isCustomer(role) && customerProject" class="home__owner-feedback jz-card" @tap="openFeedbackList">
+        <view class="home__owner-feedback-icon"><JzIcon name="message" :size="36" :color="TOKEN_COLOR.warning" /></view>
+        <view class="jz-grow"><text class="home__owner-feedback-title">意见与投诉</text><text class="home__owner-feedback-sub">现场发现问题，直接反馈给项目团队并跟踪处理</text></view>
+        <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
+      </view>
+
+      <!-- 指标卡：员工经营视角 -->
+      <view v-if="!isCustomer(role)" class="home__stats">
+        <view class="home__stat" :class="s.status ? `home__stat--${s.status}` : ''" v-for="s in statCards" :key="s.label">
+          <view class="home__stat-icon" :style="{ backgroundColor: s.tone }">
+            <JzIcon :name="s.icon" :size="34" :color="s.color" :stroke-width="2" />
           </view>
           <view class="home__stat-copy">
-            <view v-if="s.money" class="home__stat-val"><JzMoney :value="Number(s.val)" /></view>
+            <view class="home__stat-title-row">
+              <text class="home__stat-label">{{ s.label }}</text>
+              <view
+                v-if="s.status && !s.costIncomplete"
+                class="home__stat-status-hit"
+                :aria-label="`${s.label}${s.statusText || ''}`"
+                @tap.stop="showStatStatus(s)"
+              >
+                <view class="home__stat-dot" />
+              </view>
+            </view>
+            <JzCostIncomplete v-if="s.costIncomplete" :count="1" :reason="s.detail || '项目成本未完整，项目毛利暂不可判断。'" />
+            <view v-else-if="s.money" class="home__stat-val"><JzMoney :value="Number(s.val)" /></view>
             <text v-else class="home__stat-val">{{ s.val }}</text>
-            <text class="home__stat-label">{{ s.label }}</text>
           </view>
         </view>
       </view>
 
-      <view v-if="role === 'boss' && bossDashboard" class="jz-card home__performance" @tap="go(P.analysis)">
+      <view v-if="role === 'boss' && bossWorkbench" class="jz-card home__performance" @tap="go(P.analysis)">
         <view class="jz-grow">
           <text class="home__performance-label">经营驾驶舱</text>
-          <text class="home__performance-value">{{ bossDashboard.grossProfit.complete ? money(bossDashboard.grossProfit.value) : '成本未完整' }}</text>
-          <text class="home__performance-sub">签约 {{ money(bossDashboard.signedAmount.value) }} · 回款 {{ money(bossDashboard.receivedAmount.value) }} · 在建 {{ bossDashboard.activeProjectCount.value }} 个 · 风险 {{ alertReport?.totalCount || 0 }} 项</text>
+          <text v-if="bossIndicator('grossProfit')?.value != null" class="home__performance-value">{{ money(bossIndicator('grossProfit')?.value) }}</text>
+          <JzCostIncomplete v-else :count="bossWorkbench?.indicators.find(i => i.key === 'grossProfit')?.value == null ? 1 : 0" reason="当前毛利指标未完整，补齐相关项目标准成本后才能展示可靠利润。" />
+          <text class="home__performance-sub">签约 {{ money(bossValue('signedAmount')) }} · 回款 {{ money(bossValue('receivedAmount')) }} · 在建 {{ bossValue('activeProjectCount') ?? 0 }} 个 · 风险 {{ alertReport?.totalCount || 0 }} 项</text>
         </view>
         <JzIcon name="chart" :size="42" :color="TOKEN_COLOR.primary" />
       </view>
@@ -505,6 +682,33 @@ const projectSectionTitle = computed(() => {
         </view>
       </view>
 
+      <!-- 材料计划：企业负责人从首页直达材料计划工作台 -->
+      <view
+        v-if="role === 'boss' && (materialPlanSummary.readyToOrder + materialPlanSummary.inTransit + materialPlanSummary.delayed) > 0"
+        class="jz-card home__material"
+        @tap="go(P.materialPlanWorkbench)"
+      >
+        <view class="home__material-head">
+          <text class="home__material-title">材料计划</text>
+          <view class="home__more"><text>进入工作台</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
+        </view>
+        <view class="home__material-metrics">
+          <view class="home__material-metric">
+            <text class="home__material-value" :class="{ 'home__material-value--warn': materialPlanSummary.readyToOrder > 0 }">{{ materialPlanSummary.readyToOrder }}</text>
+            <text class="home__material-label">待下单</text>
+          </view>
+          <view class="home__material-metric">
+            <text class="home__material-value">{{ materialPlanSummary.inTransit }}</text>
+            <text class="home__material-label">在途</text>
+          </view>
+          <view class="home__material-metric">
+            <text class="home__material-value" :class="{ 'home__material-value--danger': materialPlanSummary.delayed > 0 }">{{ materialPlanSummary.delayed }}</text>
+            <text class="home__material-label">逾期未到场</text>
+          </view>
+        </view>
+        <text class="home__material-sub">选材确认后由财务逐条下单，材料到场由项目经理/设计负责人确认</text>
+      </view>
+
       <!-- 需要关注 -->
       <view v-if="attentionAlerts.length" class="home__section">
         <view class="jz-section"><text class="jz-section__title">需要关注</text></view>
@@ -525,51 +729,102 @@ const projectSectionTitle = computed(() => {
         <view v-if="showAllAttention && foldedTodoCount > 0" class="home__alert-more" @tap="showAllAttention = false">收起</view>
       </view>
 
-      <!-- 我的项目 -->
+      <!-- 项目区块：BOSS 只看风险项目，其他角色保持原业务列表 -->
       <view class="home__section">
         <view class="jz-section">
           <text class="jz-section__title">{{ projectSectionTitle }}</text>
-          <view class="home__more" @tap="goTab(P.projectList)"><text>全部</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
+          <view class="home__more" @tap="goTab(P.projectList)"><text>{{ role === 'boss' ? '项目台账' : '全部' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
         </view>
-        <view v-if="myProjects.length === 0" class="jz-card home__empty-card">
-          <JzEmpty :text="isCustomer(role) ? '您还没有关联工地' : '还没有项目'"
-            :sub="isCustomer(role) ? '请联系装修公司发送业主邀请码' : '点击「合同签约」从客户确认报价生成工地'" />
-        </view>
-        <view v-else class="home__projects">
-          <view v-for="p in myProjects.slice(0, isCustomer(role) ? 1 : 4)" :key="p.id" class="home__project jz-card" @tap="openProject(p.id)">
-            <view class="home__project-top">
-              <view class="home__project-icon"><JzIcon name="building" :size="38" :color="PROJECT_STATUS_META[p.status].color" :stroke-width="1.8" /></view>
-              <view class="home__project-title">
-                <text class="home__project-name">{{ p.name }}</text>
-                <text class="home__project-no">{{ p.no || p.community || '装修工地' }}</text>
+        <template v-if="role === 'boss'">
+          <JzSkeleton v-if="bossWorkbenchLoading" :rows="2" />
+          <view v-else-if="!bossWorkbench?.attentionProjects.length" class="jz-card home__empty-card">
+            <JzEmpty text="当前项目运行正常" sub="首页只展示逾期、停工、材料超领和变更异常等项目" />
+          </view>
+          <view v-else class="home__projects">
+            <view v-for="p in bossWorkbench?.attentionProjects" :key="p.projectId" :class="`home__project home__risk-project jz-card home__risk-project--${riskTone(p.riskLevel)}`" @tap="openProject(p.projectId)">
+              <view class="home__project-top">
+                <view class="home__project-icon home__project-icon--risk"><JzIcon name="alert-circle" :size="38" :color="p.riskLevel === 'high' ? TOKEN_COLOR.danger : TOKEN_COLOR.warning" :stroke-width="1.8" /></view>
+                <view class="home__project-title">
+                  <text class="home__project-name">{{ p.name }}</text>
+                  <text class="home__project-no">{{ p.no || '装修项目' }} · {{ p.managerName || '未分配项目经理' }}</text>
+                </view>
+                <JzTag :text="riskText(p.riskLevel)" :color="p.riskLevel === 'high' ? TOKEN_COLOR.danger : p.riskLevel === 'medium' ? TOKEN_COLOR.warning : TOKEN_COLOR.text3" />
               </view>
-              <JzTag :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
-            </view>
-            <view class="home__project-stage-row">
-              <view class="home__project-stage-chip"><JzIcon name="clipboard" :size="24" :color="TOKEN_COLOR.primary" /><text>{{ p.currentStageName || '待开工' }}</text></view>
-              <text class="home__project-pct">{{ p.progress }}%</text>
-            </view>
-            <JzProgress :percent="p.progress" :height="12" />
-            <view class="home__project-meta">
-              <view class="home__project-meta-item"><JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text4" /><text>{{ p.address || '地址待完善' }}</text></view>
-              <view class="home__project-meta-item"><JzIcon name="calendar" :size="24" :color="TOKEN_COLOR.text4" /><text>{{ p.planEndDate ? `计划完工 ${p.planEndDate.slice(5, 10)}` : '完工日期待排期' }}</text></view>
-            </view>
-            <view class="home__project-foot">
-              <text class="home__project-manager">{{ p.manager?.name ? `项目经理 ${p.manager.name}` : '查看任务、日报与验收' }}</text>
-              <view class="home__project-enter"><text>进入工地</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
+              <view class="home__risk-reason"><text>{{ p.riskReason }}</text></view>
+              <view class="home__project-stage-row">
+                <view class="home__project-stage-chip"><JzIcon name="clipboard" :size="24" :color="TOKEN_COLOR.primary" /><text>{{ PROJECT_STATUS_META[p.status].label }}</text></view>
+                <text class="home__project-pct">{{ p.progress }}%</text>
+              </view>
+              <JzProgress :percent="p.progress" :height="12" />
+              <view class="home__risk-next"><text>下一步</text><text>{{ p.nextAction }}</text></view>
+              <view class="home__project-foot">
+                <text class="home__project-manager">{{ p.riskCount }} 项风险与{{ riskText(p.riskLevel) }}级别</text>
+                <view class="home__project-enter"><text>进入处理</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
+              </view>
             </view>
           </view>
-        </view>
+        </template>
+        <template v-else>
+          <view v-if="myProjects.length === 0" class="jz-card home__empty-card">
+            <JzEmpty :text="isCustomer(role) ? '您还没有关联工地' : '还没有项目'"
+              :sub="isCustomer(role) ? '请联系装修公司发送业主邀请码' : '点击「合同签约」从客户确认报价生成工地'" />
+          </view>
+          <view v-else class="home__projects">
+            <view v-for="p in myProjects.slice(0, isCustomer(role) ? 1 : 4)" :key="p.id" class="home__project jz-card" @tap="openProject(p.id)">
+              <view class="home__project-top">
+                <view class="home__project-icon"><JzIcon name="building" :size="38" :color="PROJECT_STATUS_META[p.status].color" :stroke-width="1.8" /></view>
+                <view class="home__project-title">
+                  <text class="home__project-name">{{ p.name }}</text>
+                  <text class="home__project-no">{{ p.no || p.community || '装修工地' }}</text>
+                </view>
+                <JzTag :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
+              </view>
+              <view class="home__project-stage-row">
+                <view class="home__project-stage-chip"><JzIcon name="clipboard" :size="24" :color="TOKEN_COLOR.primary" /><text>{{ projectStageText(p) }}</text></view>
+                <text class="home__project-pct">{{ p.progress }}%</text>
+              </view>
+              <JzProgress :percent="p.progress" :height="12" />
+              <view class="home__project-meta">
+                <view class="home__project-meta-item"><JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text4" /><text>{{ p.address || '地址待完善' }}</text></view>
+                <view class="home__project-meta-item"><JzIcon name="calendar" :size="24" :color="TOKEN_COLOR.text4" /><text>{{ p.planEndDate ? `计划完工 ${p.planEndDate.slice(5, 10)}` : '完工日期待排期' }}</text></view>
+              </view>
+              <view class="home__project-foot">
+                <text class="home__project-manager">{{ p.manager?.name ? `项目经理 ${p.manager.name}` : '查看任务、日报与验收' }}</text>
+                <view class="home__project-enter"><text>进入工地</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
+              </view>
+            </view>
+          </view>
+        </template>
       </view>
 
-      <!-- 最新动态 -->
+      <!-- 经营动态：BOSS 只看经营事件，其他角色保持工地同频动态 -->
       <view class="home__section">
         <view class="jz-section">
-          <text class="jz-section__title">最新动态</text>
-          <view class="home__more" @tap="goTab(P.dynamic)"><text>全部</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
+          <text class="jz-section__title">{{ role === 'boss' ? '经营动态' : '最新动态' }}</text>
+          <view class="home__more" @tap="role === 'boss' ? go(P.businessDynamics) : goTab(P.dynamic)"><text>全部</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
         </view>
-        <JzReportCard v-for="r in visibleReports" :key="r.id" :report="r" />
-        <view v-if="!visibleReports.length" class="jz-card home__empty-card"><JzEmpty text="暂无动态" sub="现场汇报后这里会实时同步" /></view>
+        <template v-if="role === 'boss'">
+          <view v-if="bossWorkbench?.businessEvents.length" class="home__events">
+            <view v-for="event in bossWorkbench.businessEvents.slice(0, 4)" :key="event.eventId" class="home__event jz-card" :class="`home__event--${eventTone(event.level)}`" @tap="openBusinessEvent(event)">
+              <view class="home__event-head">
+                <view class="home__event-type">{{ event.title }}</view>
+                <text class="home__event-time">{{ timeText(event.occurredAt) }}</text>
+              </view>
+              <text class="home__event-content">{{ event.content }}</text>
+              <view class="home__event-foot">
+                <text>{{ event.projectName || event.customerName || event.businessNo || '企业经营' }}</text>
+                <text v-if="event.amount != null" class="home__event-amount">{{ money(event.amount) }}</text>
+                <text v-else>{{ event.ownerName || '系统' }}</text>
+              </view>
+            </view>
+          </view>
+          <view v-else-if="bossWorkbenchLoading" class="jz-card home__empty-card"><JzSkeleton :rows="2" /></view>
+          <view v-else class="jz-card home__empty-card"><JzEmpty text="暂无经营动态" sub="客户、合同、项目和资金发生变化后会自动形成事件" /></view>
+        </template>
+        <template v-else>
+          <JzReportCard v-for="r in visibleReports" :key="r.id" :report="r" />
+          <view v-if="!visibleReports.length" class="jz-card home__empty-card"><JzEmpty text="暂无动态" sub="现场汇报后这里会实时同步" /></view>
+        </template>
       </view>
     </view>
 

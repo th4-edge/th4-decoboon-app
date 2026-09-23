@@ -199,3 +199,35 @@ export interface FinanceProjectReport {
   payables: Payable[]
   recentLedgers: Ledger[]
 }
+
+export type VoucherStatus = 'active' | 'voided'
+
+/** 凭证明细行：来源单号可回溯到原始款项记录。 */
+export interface VoucherItem {
+  id: string
+  sourceNo: string
+  businessDate: string
+  account: FundAccount
+  amount: number
+  category?: string
+  remark?: string
+}
+
+/** 凭证记录：收付款单据的打印载体，落库保存凭证号与 PDF。 */
+export interface Voucher {
+  id: string
+  project?: Project
+  type: 'receipt' | 'payment'
+  voucherNo: string
+  title: string
+  totalAmount: number
+  amountWords: string
+  partyName?: string
+  worker?: { id?: string; name?: string; trade?: string }
+  status: VoucherStatus
+  fileName?: string
+  generatedAt?: string
+  items: VoucherItem[]
+  url?: string
+  urlExpiresAt?: string
+}

@@ -134,7 +134,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
             </view>
             <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>{{ catalog.formula }}，最终金额由服务端按工程量计算。</text></view>
             <text v-if="catalog.craft" class="ds__catalog-craft">{{ catalog.craft }}</text>
-            <view class="ds__quantity-row"><text>工程量（{{ catalog.unit }}）*</text><input :value="quantities[catalog.id] ?? '1'" type="digit" class="jz-form-input ds__quantity-input" placeholder="请输入工程量" @input="emit('quantity-input', catalog.id, $event)" /></view>
+            <view class="ds__quantity-row"><text>工程量（{{ catalog.unit }}，0为赠送）*</text><input :value="quantities[catalog.id] ?? '1'" type="digit" class="jz-form-input ds__quantity-input" placeholder="请输入工程量" @input="emit('quantity-input', catalog.id, $event)" /></view>
           </view>
         </view>
         <view v-else-if="editingItemId" class="ds__catalog-card ds__catalog-card--legacy">
@@ -146,8 +146,8 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         <text class="ds__field-label">施工区域</text>
         <picker :range="spaces.map(i => i.name).concat(['综合项目'])" @change="itemSpaceId = spaces[Number($event.detail.value)]?.id || ''"><view class="jz-form-input ds__picker"><text>{{ itemSpaceLabel }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view></picker>
         <template v-if="!selectedCatalogs.length && editingItemId">
-          <text class="ds__field-label">工程量 *</text>
-          <input v-model="quantity" type="digit" class="jz-form-input" placeholder="请输入实际工程量" />
+          <text class="ds__field-label">工程量（0为赠送）*</text>
+          <input v-model="quantity" type="digit" class="jz-form-input" placeholder="请输入实际工程量，0为赠送" />
         </template>
         <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>价格、规格、工艺和计算公式均来自企业报价项目库，设计师只填写所选项目及各自工程量。</text></view>
       </scroll-view>

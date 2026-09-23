@@ -1,0 +1,102 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { P } from '@/config'
+import { isLoggedIn } from '@/domains/identity/session'
+import { useOwnerJourney } from '@/domains/journey/useOwnerJourney'
+import { toastError } from '@/composables/toast'
+import OwnerFactHero from '@/components/owner/OwnerFactHero.vue'
+import OwnerFactList from '@/components/owner/OwnerFactList.vue'
+import PageState from '@/components/PageState/PageState.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
+
+const projectId = ref('')
+const loaded = ref(false)
+const { journey, loading, loadingError, load, section } = useOwnerJourney()
+
+const current = computed(() => section('material'))
+const items = computed(() => current.value?.items || [])
+const facts = computed(() => current.value?.facts || [])
+const pending = computed(() => !loading.value && items.value.length === 0)
+
+function factValue(value: string, type: string) {
+  return type === 'money' ? `¥${value}` : value
+}
+
+/** 最新一版选材（后端按版本倒序下发，第一条即最新）。 */
+const selectionStatus = computed(() =>
+  items.value.find((item) => item.key.startsWith('selection-'))?.status || ''
+)
+const selectionConfirmed = computed(() => ['Confirmed', 'confirmed'].includes(selectionStatus.value))
+/** 选材状态：已确认用对勾图标，未确认统一用等待时钟图标（JzIcon 线性图标，非 emoji）。 */
+const selectionStatusIcon = computed<IconName>(() => (selectionConfirmed.value ? 'check-circle' : 'clock'))
+const selectionStatusColor = computed(() => (selectionConfirmed.value ? STATUS_COLOR.done : STATUS_COLOR.pending))
+
+onLoad((query) => {
+  if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  projectId.value = query?.projectId || ''
+})
+onShow(() => { if (projectId.value && !loaded.value) void refresh() })
+onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+
+async function refresh() {
+  await load(projectId.value)
+  loaded.value = true
+  if (loadingError.value) toastError(new Error(loadingError.value), loadingError.value)
+}
+</script>
+
+<template>
+  <view class="oselect">
+    <PageState v-if="loading && !journey" state="loading" :rows="6" />
+    <PageState v-else-if="loadingError && !journey" state="error" title="选材记录暂不可确认" :subtitle="loadingError" @retry="refresh" />
+    <template v-else-if="journey">
+      <OwnerFactHero
+        eyebrow="我的家 · 选材记录"
+        :title="current?.summary || journey.projectName"
+        :subtitle="journey.projectName"
+        :address="journey.propertyAddress"
+        :progress="journey.progress"
+        :stage-name="journey.currentStageName || journey.projectStatusName || '待确认'"
+        :status-name="current?.statusName"
+      />
+
+      <view v-if="facts.length" class="factstrip">
+        <view v-for="fact in facts" :key="fact.key" class="factstrip__item">
+          <view v-if="fact.key === 'selectionStatus'" class="factstrip__status">
+            <JzIcon :name="selectionStatusIcon" :size="28" :color="selectionStatusColor" :stroke-width="2.2" />
+            <text class="factstrip__value factstrip__value--status">{{ fact.value }}</text>
+          </view>
+          <text v-else class="factstrip__value">{{ factValue(fact.value, fact.valueType) }}</text>
+          <text class="factstrip__label">{{ fact.label }}</text>
+        </view>
+      </view>
+
+      <view v-if="pending" class="oselect__empty jz-card">
+        <JzIcon name="package" :size="72" :color="TOKEN_COLOR.text4" />
+        <text class="oselect__empty-title">还没有选材记录</text>
+        <text class="oselect__empty-sub">签约后设计师会与您确认主材品牌、规格和型号，确认结果会在这里留档。</text>
+      </view>
+
+      <view v-else class="oselect__block">
+        <OwnerFactList :items="items" empty-text="还没有选材记录" />
+      </view>
+      <view class="jz-safe-bottom" />
+    </template>
+  </view>
+</template>
+
+<style lang="scss" scoped>
+.oselect { min-height: 100vh; background: $jzb-bg-page; padding-bottom: 40rpx; }
+.oselect__empty { margin: 28rpx 24rpx; padding: 70rpx 40rpx; text-align: center; }
+.oselect__empty-title { display: block; margin-top: 20rpx; font-size: $jzb-font-lg; font-weight: 700; }
+.oselect__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.7; }
+.oselect__block { margin-top: 30rpx; }
+.factstrip { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 24rpx 24rpx 0; }
+.factstrip__item { flex: 1 1 200rpx; min-width: 0; padding: 22rpx 16rpx; border-radius: $jzb-radius; background: $jzb-bg-card; border: 1rpx solid rgba(15,23,42,0.045); text-align: center; }
+.factstrip__value { display: block; font-size: 34rpx; font-weight: 750; color: $jzb-primary-dark; }
+.factstrip__value--status { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.factstrip__status { display: flex; align-items: center; justify-content: center; gap: 8rpx; min-height: 48rpx; }
+.factstrip__label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+</style>

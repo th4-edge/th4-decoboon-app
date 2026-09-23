@@ -49,6 +49,17 @@
 .ds__item-name { flex: 1; min-width: 0; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; word-break: break-word; }
 .ds__item-price { flex-shrink: 0; margin-left: 12rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 750; white-space: nowrap; }
 .ds__item-meta { display: block; margin-top: 14rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.45; }
+.ds__item-craft {
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: $jzb-radius-xs;
+  background: $jzb-primary-lightest;
+  border-left: 6rpx solid $jzb-primary;
+}
+.ds__item-craft-text { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-xs; line-height: 1.6; word-break: break-word; }
 .ds__item-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: 12rpx; margin-top: 12rpx; padding-top: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; border-top: 1rpx solid $jzb-border-light; }
 .ds__item-foot text:first-child { flex: 1; min-width: 0; line-height: 1.45; word-break: break-word; }
 .ds__item-foot text:last-child { flex-shrink: 0; white-space: nowrap; }

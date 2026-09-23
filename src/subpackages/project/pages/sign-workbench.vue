@@ -17,25 +17,44 @@ import JzMoney from '@/components/JzMoney.vue'
 
 const items = ref<SignWorkbenchItem[]>([])
 const loading = ref(false)
-const activeFilter = ref<'all' | 'pending' | 'converted'>('all')
+const activeFilter = ref<'all' | 'pending' | 'fulfilling' | 'done'>('all')
+
+/** 履约中/已完成按项目状态划分，不按合同状态；未生成项目时保持待立项。 */
+const FULFILLING_STATUSES = ['preparing', 'ongoing', 'suspended', 'accepting']
+const DONE_STATUSES = ['finished', 'settled']
+
+function isFulfilling(item: SignWorkbenchItem) {
+  return item.converted && FULFILLING_STATUSES.includes(item.projectStatus || '')
+}
+function isDone(item: SignWorkbenchItem) {
+  return item.converted && DONE_STATUSES.includes(item.projectStatus || '')
+}
 
 const filters = [
   { key: 'all', label: '全部' },
   { key: 'pending', label: '待签约' },
-  { key: 'converted', label: '已签约' }
+  { key: 'fulfilling', label: '履约中' },
+  { key: 'done', label: '已完成' }
 ] as const
 
 const filtered = computed(() => {
   if (activeFilter.value === 'all') return items.value
   if (activeFilter.value === 'pending') return items.value.filter((i) => !i.converted)
-  return items.value.filter((i) => i.converted)
+  if (activeFilter.value === 'fulfilling') return items.value.filter(isFulfilling)
+  return items.value.filter(isDone)
 })
 
 const counts = computed(() => ({
   all: items.value.length,
   pending: items.value.filter((i) => !i.converted).length,
-  converted: items.value.filter((i) => i.converted).length
+  fulfilling: items.value.filter(isFulfilling).length,
+  done: items.value.filter(isDone).length
 }))
+
+/** 履约中合同的当前合同金额合计（含已确认变更）。 */
+const fulfillingAmount = computed(() =>
+  items.value.filter(isFulfilling).reduce((sum, i) => sum + Number(i.currentAmount || i.acceptedAmount || 0), 0)
+)
 
 /** 待签约总金额（核心经营指标） */
 const pendingAmount = computed(() =>
@@ -68,8 +87,17 @@ function openProject(projectId: string) {
   uni.navigateTo({ url: `${P.projectDetail}?id=${projectId}` })
 }
 
+/** 已签约统一进入合同履约档案：钱、成本、变更、工地与选材在同一上下文。 */
+function openContract(contractId: string, projectId?: string | null) {
+  const query = [`contractId=${contractId}`]
+  if (projectId) query.push(`projectId=${projectId}`)
+  uni.navigateTo({ url: `${P.projectContract}?${query.join('&')}` })
+}
+
 function goSign(item: SignWorkbenchItem) {
-  if (item.converted && item.projectId) {
+  if (item.converted && item.contractId) {
+    openContract(item.contractId, item.projectId)
+  } else if (item.converted && item.projectId) {
     openProject(item.projectId)
   } else if (session.role === 'boss') {
     uni.navigateTo({ url: `${P.projectCreate}?customerId=${item.custId}&propertyId=${item.propertyId}&quoteId=${item.quoteId}` })
@@ -97,9 +125,9 @@ function riskColor(level: string): string {
 
 <template>
   <view class="wb">
-    <JzPageHeader title="签约工作台" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`" />
+    <JzPageHeader :title="session.role === 'boss' ? '企业合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
 
-    <!-- 签约漏斗概览 -->
+    <!-- 签约与履约概览 -->
     <view class="wb__summary jz-card">
       <view class="wb__summary-item">
         <text class="wb__summary-label">待签约</text>
@@ -113,9 +141,14 @@ function riskColor(level: string): string {
       </view>
       <view class="wb__summary-divider" />
       <view class="wb__summary-item">
-        <text class="wb__summary-label">已签约</text>
-        <text class="wb__summary-value">{{ counts.converted }}</text>
+        <text class="wb__summary-label">履约中</text>
+        <text class="wb__summary-value">{{ counts.fulfilling }}</text>
         <text class="wb__summary-unit">单</text>
+      </view>
+      <view class="wb__summary-divider" />
+      <view class="wb__summary-item">
+        <text class="wb__summary-label">履约中金额</text>
+        <JzMoney :value="fulfillingAmount" />
       </view>
     </view>
 
@@ -134,7 +167,10 @@ function riskColor(level: string): string {
 
     <view class="wb__body">
       <view v-if="!loading && filtered.length === 0" class="jz-card wb__empty">
-        <JzEmpty text="暂无待签约客户" sub="客户确认报价后会出现在这里，尽快推动签约" />
+        <JzEmpty
+          :text="activeFilter === 'pending' ? '暂无待签约客户' : activeFilter === 'fulfilling' ? '暂无履约中合同' : activeFilter === 'done' ? '暂无已完成合同' : '暂无签约记录'"
+          sub="客户确认报价后会出现在这里，签约生效后进入合同履约档案"
+        />
       </view>
 
       <view
@@ -150,7 +186,7 @@ function riskColor(level: string): string {
             <text class="wb__item-tel">{{ item.telNo }}</text>
           </view>
           <JzTag
-            :text="item.converted ? (item.contractStatusName || '已签约') : '待签约'"
+            :text="item.converted ? (item.projectStatusName || item.contractStatusName || '已签约') : '待签约'"
             :color="item.converted ? TOKEN_COLOR.success : TOKEN_COLOR.primary"
           />
         </view>
@@ -170,6 +206,10 @@ function riskColor(level: string): string {
         </view>
 
         <view class="wb__item-meta">
+          <view class="wb__meta-item">
+            <JzIcon name="user" :size="22" :color="TOKEN_COLOR.purple" />
+            <text>{{ item.designerName ? `设计 ${item.designerName}` : '设计待确认' }}</text>
+          </view>
           <view class="wb__meta-item">
             <JzIcon name="check-circle" :size="22" :color="TOKEN_COLOR.success" />
             <text>{{ item.acceptedAt ? `确认 ${item.acceptedAt.slice(0, 10)}` : '确认时间待同步' }}</text>
@@ -196,7 +236,7 @@ function riskColor(level: string): string {
           </text>
           <view class="wb__actions">
             <view class="wb__btn wb__btn--primary" @tap.stop="goSign(item)">
-              <text>{{ item.projectId ? '查看项目' : item.converted ? (session.role === 'boss' ? '完成立项' : '等待立项') : session.role === 'boss' ? '去签约' : '查看报价' }}</text>
+              <text>{{ item.converted ? '查看合同' : session.role === 'boss' ? '去签约' : '查看报价' }}</text>
               <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.white" />
             </view>
           </view>

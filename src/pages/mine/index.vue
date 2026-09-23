@@ -28,6 +28,7 @@ async function refresh() {
   if (can(role.value, 'view:team')) {
     memberCount.value = (await identityApi.employees()).length
   }
+  if (role.value === 'boss') return
   const projects = await projectApi.list()
   if (isCustomer(role.value)) {
     myProjectCount.value = projects.length
@@ -56,10 +57,13 @@ const groups = computed(() => {
   const employee = !isCustomer(role.value)
   const account: ReturnType<typeof cell>[] = []
   const organization: ReturnType<typeof cell>[] = []
+  const RECTIFY_FOLLOW_ROLES = ['boss', 'storeManager', 'teamLeader', 'pm', 'finance']
+  const SELECTION_FOLLOW_ROLES = ['boss', 'storeManager', 'teamLeader', 'designer', 'pm', 'finance']
   const business: ReturnType<typeof cell>[] = []
   const mine: ReturnType<typeof cell>[] = []
   const support: ReturnType<typeof cell>[] = []
 
+  account.push(cell('logout', '退出登录', '清除当前设备登录状态', doLogout))
   if (employee) account.push(cell('building', '我的企业', session.company?.name || '', () => uni.navigateTo({ url: P.companyInfo })))
   if (employee) account.push(cell('lock', '账号密码', session.user?.passwordSet ? '已设置' : '未设置', () => uni.navigateTo({ url: P.accountPassword })))
   if (employee && can(role.value, 'view:subscription')) account.push(cell('wallet', '订阅与门店', '年费、席位与功能模块', () => uni.navigateTo({ url: P.subscription })))
@@ -72,18 +76,23 @@ const groups = computed(() => {
 
   if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
   if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
+  if (role.value === 'boss') business.push(cell('file-text', '付款计划模板', '收款节点、比例与触发条件', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
+  if (role.value === 'boss') business.push(cell('calendar', '施工计划模板', '施工阶段、工期与验收方式', () => uni.navigateTo({ url: P.constructionPlanTemplates })))
   if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应商协作', '项目采购、到货、采购价与月结', () => uni.navigateTo({ url: P.supply })))
-  if (role.value === 'boss') business.push(cell('chart', '经营驾驶舱', '签约、回款、毛利与经营风险', () => uni.navigateTo({ url: P.analysis })))
-  if (role.value === 'boss') business.push(cell('users', '人员绩效考核', '设计师、顾问与项目经理履约', () => uni.navigateTo({ url: P.performanceAssessment })))
-  if (role.value === 'marketer'||role.value === 'boss') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'teamLeader'||role.value === 'boss') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'storeManager'||role.value === 'boss') business.push(cell('users', '设计调度', '客户指派与设计师负荷', () => uni.navigateTo({ url: P.managerDesigners })))
-  if (role.value === 'storeManager'||role.value === 'boss') business.push(cell('chart', '门店业绩', '客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
-  if (role.value === 'pm'||role.value === 'boss') business.push(cell('chart', '履约驾驶舱', '任务、验收、材料与项目风险', () => uni.navigateTo({ url: P.managerWorkbench })))
-  if (role.value === 'pm'||role.value === 'boss') business.push(cell('chart', '履约业绩', '项目交付、准时率与验收通过率', () => uni.navigateTo({ url: P.performance })))
+  if (employee && can(role.value, 'view:worker')) business.push(cell('users', '工人档案', '工人信息、工种与工资到账账户', () => uni.navigateTo({ url: P.laborWorkers })))
+  if (SELECTION_FOLLOW_ROLES.includes(role.value)) business.push(cell('package', role.value === 'boss' ? '选材工作台' : '主材选材跟进', '在建项目选材进度、卡点与下一步', () => uni.navigateTo({ url: P.selectionBoard })))
+  if (RECTIFY_FOLLOW_ROLES.includes(role.value)) business.push(cell('alert-circle', '整改跟进', '被驳回、待整改复验的阶段', () => uni.navigateTo({ url: P.rectifyBoard })))
+  if (employee && can(role.value, 'view:finance')) business.push(cell('file-text', '收付凭证', '按企业版式打印收款单与付款单', () => uni.navigateTo({ url: P.financeVouchers })))
+  if (role.value === 'marketer') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'teamLeader') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'storeManager') business.push(cell('chart', '门店业绩', '客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
+  if (role.value === 'storeManager') business.push(cell('users', '设计调度', '客户指派与设计师负荷', () => uni.navigateTo({ url: P.managerDesigners })))
+  if (role.value === 'pm') business.push(cell('chart', '履约业绩', '项目交付、准时率与验收通过率', () => uni.navigateTo({ url: P.performance })))
 
-  if (employee) mine.push(cell('briefcase', '我参与的项目', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
+  if (employee && role.value !== 'boss') mine.push(cell('briefcase', '我参与的项目', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
   if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
+  if (!employee) mine.push(cell('alert-circle', '我的意见投诉', '提交问题并查看处理进度', () => uni.navigateTo({ url: P.feedbackList })))
+  if (employee) business.push(cell('alert-circle', '客户意见投诉', '受理、回复和关闭客户事项', () => uni.navigateTo({ url: P.feedbackList })))
 
   support.push(cell('bell', '消息通知', '', () => uni.navigateTo({ url: P.msgList })))
   support.push(cell('message', '联系客服', '微信在线客服 / 客服邮箱', () => uni.navigateTo({ url: P.about })))
@@ -132,17 +141,12 @@ async function doLogout() {
         </view>
       </view>
     </view>
-
-    <button class="jz-btn jz-btn--ghost jz-btn--block mine__logout" @tap="doLogout">
-      <JzIcon name="logout" :size="30" :color="TOKEN_COLOR.primary" /><text>退出登录</text>
-    </button>
-
-    <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.mine" />
   </view>
 </template>
 
 <style lang="scss" scoped>
+.mine { min-height: 100vh; padding-bottom: calc(#{$jzb-tabbar-height} + #{$jzb-safe-bottom} + 24rpx); }
 .mine__profile { position: relative; margin: 0 $jzb-page-pad 24rpx; padding: 30rpx 28rpx; display: flex; align-items: center; border: 1rpx solid rgba(15,23,42,.045); border-radius: $jzb-radius-lg; overflow: hidden; }
 .mine__who { margin-left: 22rpx; }
 .mine__name { font-size: $jzb-font-xl; font-weight: 700; color: $jzb-text-1; margin-right: 16rpx; }
@@ -158,8 +162,6 @@ async function doLogout() {
 .mine__cell-label { font-size: $jzb-font; color: $jzb-text-1; }
 .mine__cell-value { font-size: $jzb-font-sm; color: $jzb-text-3; }
 .mine__cell-arrow { font-size: 36rpx; color: $jzb-text-4; margin-left: 12rpx; }
-.mine__logout { width: calc(100% - #{$jzb-page-pad} * 2); margin: 8rpx $jzb-page-pad 0; }
-.mine__logout text { margin-left: 8rpx; }
 .mine__profile::after { content: ''; position: absolute; right: -90rpx; top: -100rpx; width: 240rpx; height: 240rpx; border-radius: 50%; background: rgba(255,255,255,.5); }
 
 </style>

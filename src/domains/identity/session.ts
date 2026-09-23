@@ -46,6 +46,17 @@ function restore(): SessionState {
     const raw = uni.getStorageSync(KEY)
     if (raw) {
       const restored = { ...empty(), ...(typeof raw === 'string' ? JSON.parse(raw) : raw) } as SessionState
+      if ((restored.role as string | null) === 'projectSupport' || (restored.role as string | null) === 'ProjectSupport') {
+        restored.role = 'finance'
+      }
+      if (restored.emp && ((restored.emp.role as string) === 'projectSupport' || (restored.emp.role as string) === 'ProjectSupport')) {
+        restored.emp.role = 'finance'
+      }
+      if (restored.user?.currentEmployee
+          && ((restored.user.currentEmployee.role as string) === 'projectSupport'
+            || (restored.user.currentEmployee.role as string) === 'ProjectSupport')) {
+        restored.user.currentEmployee.role = 'finance'
+      }
       if (!restored.sessionType) {
         restored.sessionType = restored.role === 'customer' ? 'customer'
           : restored.emp ? 'employee' : restored.user ? 'user' : null

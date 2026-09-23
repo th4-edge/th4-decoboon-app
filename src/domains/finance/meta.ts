@@ -1,4 +1,4 @@
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import type { FundAccount, LedgerDirection, PayableStatus, PayableType, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
 
 export const RECEIVABLE_TYPE_META: Record<ReceivableType, { label: string; color: string }> = {
@@ -18,10 +18,10 @@ export const RECEIVABLE_STATUS_META: Record<ReceivableStatus, { label: string; c
 }
 
 export const PAYABLE_TYPE_META: Record<PayableType, { label: string; short: string; color: string }> = {
-  material: { label: '材料款', short: '材料', color: '#8A5CC7' },
+  material: { label: '材料款', short: '材料', color: STATUS_COLOR.accent },
   salary: { label: '工人工资', short: '工资', color: TOKEN_COLOR.warning },
   project: { label: '项目款', short: '项目', color: TOKEN_COLOR.primary },
-  supplier: { label: '供应商款', short: '供应商', color: '#168A96' },
+  supplier: { label: '供应商款', short: '供应商', color: STATUS_COLOR.progress },
   expense: { label: '费用支出', short: '费用', color: TOKEN_COLOR.purple },
   other: { label: '其他应付', short: '其他', color: TOKEN_COLOR.text3 }
 }

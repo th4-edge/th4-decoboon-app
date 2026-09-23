@@ -11,6 +11,754 @@
 
 ***
 
+## FIX-021・预约量房 2.0 独立验收遗留 P1 修复（今日口径 / 历史客户 / 4h / 业务员入口）
+
+* 日期：2026-09-24
+* 报告角色：发版前历史缺陷清理（来源：预约量房工作台 2.0 独立验收报告）
+* 影响模块：企业负责人预约量房工作台 / 人员绩效考核 / 业务员我的量房
+* 严重度：P1
+
+### 修复
+
+1. “今日预约”按 `scheduledAt` 自然日计数，今天已完成和未来时段均包含；
+2. 全企业日期窗口不再先按客户当前状态截断，签约客户的历史量房事实保留；
+3. App 逾期阈值由 84 小时改为 4 小时，与后端统一；
+4. 人员绩效页把月份、门店传给量房报告；
+5. 业务员补 `view:measure-workbench`，可进入“我的量房”；
+6. `build-release.sh` 迁移打包范围改为 24–59；迁移 56 改为可重试。
+
+### 验证
+
+* 后端全量 `319 tests / 0 failures / 0 errors / BUILD SUCCESS`；
+* `BossMeasureWorkspace2AcceptanceTest` 4/4 PASS，`ProviderSecurityAcceptanceTest` 312 路由 PASS；
+* App `verify:mp-weixin` PASS、release build PASS、103 页；
+* 迁移 56 在临时 MySQL 中连续执行两次 PASS。
+
+### 业务规则沉淀
+
+* 今日预约看自然日，历史事实不看客户当前状态；4 小时逾期和绩效筛选必须跨端一致；
+* 详见 `business-rules.md` §18。
+
+***
+
+## FIX-020・对外可见投影必须显式组装，业主详情纳入统一口径
+
+* 日期：2026-09-24
+
+* 报告角色：用户规范收口要求（承接 FIX-015 与业主端沉浸式审计）
+
+* 影响模块：后端投影规范 / 业主详情 / 我的家首页 / 项目旅程 / 员工侧同源项目投影
+
+* 严重度：P1 规范缺失（同类问题一次审计抓到 3 处）
+
+### 问题
+
+同一项目在业主端不同页面出现不同结论：首页显示"待验收"、旅程显示"施工中"；业主详情"当前阶段"为空白。根因不是单个页面，而是对外可见投影曾直接返回实体，`Project.status` / `Project.currentStageName` 等派生列只在部分投影临时回填，导致同一事实出现多种口径。
+
+### 规范收口
+
+1. `customer/project/page`、**`customer/project/info`**、`customer/project/journey/info`、`project/project/page|overview` 全部纳入"对外可见投影必须显式组装"的强制规范；
+2. 派生字段必须按领域事实现场推导，并与共享冻结口径一致：
+   - 当前阶段：`Doing` / `Accepting` 优先，否则取第一个阶段；
+   - 业主可见状态：存在 `Pending` 验收单 → `Accepting`；否则已开工 → `Ongoing`；全 `Done` → `Finished`；无开工 → `Preparing`；`Suspended` / 终态原样保留；
+3. 前端 `projectStageText()` 仅作为字段缺失时的降级展示，不得掩盖后端未组装；
+4. 回归必须覆盖"同一项目在首页 / 详情 / 旅程三处 `status` 与 `currentStageName` 相等"，以及验收驳回后的跨页状态迁移。
+
+### 实现与验证
+
+* 业主详情投影已补 `currentStageName` 与业主可见 `status` 推导；首页分页与旅程使用同一冻结口径；
+* 本轮相关代码在 2026-09-24 审计修复批次中已通过后端 `compile`、App `type-check`、`build:mp-weixin`；规范收口本身为文档变更；
+* 规范事实源：`rules.md` §5.6、`AGENTS.md`「对外可见投影必须显式组装」、`code-error-catalog.md` ECD-011、`business-rules.md` §14.5。
+
+***
+
+## FIX-019・相册并入验收证据 + 增加「阶段」分组（日期 → 阶段 → 记录）
+
+* 日期：2026-09-24
+
+* 报告角色：用户追加决策（在 FIX-018 之后）
+
+* 影响模块：业主端 / 工地相册（album）/ 新增后端聚合接口
+
+* 严重度：P2 业务完整性与组织方式
+
+### 需求
+
+1. 相册不能只有现场汇报的照片，**验收留痕（验收影像 + 整改问题图）也要进相册**；
+2. 相册在原"按日期分组"基础上**再分一层阶段**，同一天跨阶段时结构更清晰。
+
+### 决策：新增聚合接口，而不是前端拼两个列表
+
+* 前端拿两路数据（`customer/report/page` + `acceptanceApi.listByProject`）拼不出**正确的跨来源排序与分页**（各自的分页边界对不齐），也会多一次往返；
+* 因此新增 `customer/project/album/page`：服务端把「现场汇报」与「阶段验收」合并、按发生时间倒序、统一分页。
+
+### 实现
+
+**后端**
+
+1. 新增投影模型 `customer/model/ProjectAlbumEntry`（key / source / businessId / type / typeName / title / content / images / authorName / authorRole / stageName / statusName / occurredAt）；
+2. 新增 Provider：接口 `customer/service/project/album/page/Page.java`（`Provider<Project, Page<ProjectAlbumEntry>>, Security`）+ 实现 `.../page/support/Page.java`，`@Service("customer/project/album/page")`；
+   - 现场汇报：`visibleToCustomer=true`、按创建时间倒序，映射阶段/作者/角色/照片；
+   - 阶段验收：映射验收影像 + 整改问题图（**保序去重**）、结论优先、问题清单兜底、状态名（待确认/已确认/驳回）；
+   - 两路合并后按 `occurredAt` 倒序，再按 `current/size` 分页（单请求最多聚合 200 条原始记录）；
+3. 仓储补预取：`ProjectReportRepository` 客户可见查询加 `@EntityGraph({"stage","author"})`；`AcceptanceRepository.findByProject_ProjectIdOrderByAcceptanceIdDesc` 加 `@EntityGraph({"stage","submittedBy"})`（ManyToOne，不放大结果行，避免 N+1 与 OSIV 依赖）。
+
+**前端**
+
+4. `domains/project`：新增 `ProjectAlbumEntry` 模型 + `projectApi.album({projectId,current,size})`；影像按来源业务对象（`Report` / `Acceptance`）逐条 `fileApi.grant` 换取短期地址；时间统一 `dateTimeValue`；
+5. 相册页改为**三层结构：日期 → 阶段 → 记录**：
+   - 第一层：日期（今天 / 昨天 / N月N日 · 周X）+ 当天条数；
+   - 第二层：阶段（带扳手图标 + 条数徽标 + 左侧时间轴竖线）；
+   - 第三层：记录卡（作者 + 角色 / 类型标签 + 时间 / 标题 / 正文 / 照片网格），卡片左侧有节点圆点挂在时间轴上；
+6. 类型标签：汇报沿用类型名与语义色；**验收按状态着色**（已确认→done、驳回→blocked、其余→pending）。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过；
+* 750rpx 版式走查（375px 视口，构造"今天含 2 个阶段 3 条 + 昨天 1 条"，覆盖 1/2/4/9 张图与 `+12` 蒙层）：
+  - 双层分组正确：今天 → 水电改造(2) / 泥瓦工程(1)；昨天 → 其他记录(1)；
+  - 时间轴竖线与卡片节点圆点均渲染；4 条记录全部落在对应阶段下；
+  - 网格列数分别为 2 / 1 / 3 / 2，`+12` 蒙层正常；
+  - **页面无横向溢出**（`scrollWidth === clientWidth`）。
+
+### 待办 / 风险
+
+* 单请求聚合上限 200 条原始记录（汇报 200 + 验收全部）；超大工地（数百条验收）时更早的记录需要靠分页继续取，当前分页作用于合并后的列表，暂未触达上限；
+* 验收单的 `occurredAt` 取**提交时间**（createTime），与"照片什么时候拍的"一致；业主确认时间不另开一条时间线记录，仅通过状态标签体现。
+
+### 业务规则沉淀
+
+* 工地相册的证据来源固定为**现场汇报 + 阶段验收**两路，缺一不可；
+* 跨来源时间线必须在**服务端合并排序分页**，禁止前端拼接两个分页列表；
+* 相册固定三层：**日期 → 阶段 → 记录**；同一天跨阶段必须分块展示；
+* 详见 `business-rules.md` §16。
+
+***
+
+## FIX-018・工地相册是"一锅乱炖"的图片墙；项目详情合同履约档案日期金额字号一样大
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端 / 工地相册（album）/ 项目详情「合同履约档案」卡片
+
+* 严重度：P2 展示与业务可读性
+
+### 现象
+
+1. **工地相册**：进入后是一整片无差别图片墙——没有日期、没有分组、没有"谁在什么时候拍的、拍的是什么"，看起来像素材库而不是履约证据；
+2. **项目详情「合同履约档案」**：当前合同额、签约日期、计划工期三类值**字号字重完全相同**（32rpx / 600），日期区间又长又粗，视觉上很突兀，还挤在同一行右对齐。
+
+### 根因
+
+1. `album.vue` 原实现只是把 `project.cover` + 所有汇报图片拉平去重后丢进 flex 网格，**丢掉了日期、提交人、阶段、正文这些业务信息**；
+2. 后端 `customer/report/page`（业主侧动态）的白名单**没有暴露 `author`**（只给了 `authorRole`），业主端拿不到落款人；前端 `SiteReport` 也没有 `stageName`；
+3. `detail.vue` 的 `.pd__contract-val` 对所有值统一 32rpx/600，且日期直接渲染后端 ISO 原文。
+
+### 修复方案
+
+**后端（按需最小扩权，不新开接口）**
+
+* `customer/report/page` 白名单放开 `author`，并显式声明 `Employee{empId,name,role}`（**只给姓名与角色，不含手机号**）；员工侧 `project/report/page` 本来就已暴露 author；
+* 复用现有分页接口（已按 `createTime` 倒序、只返回 `visibleToCustomer=true`），**不新增端点**——相册需要的数据现有接口都有。
+
+**前端 · 工地相册（朋友圈式时间线）**
+
+* 按 **自然日分组**，日期倒序（今天 / 昨天 / N月N日 · 周X），组头显示当天条数；
+* 每条记录 = 一次现场汇报，卡片结构：**落款人（姓名 + 角色）/ 类型标签（阶段开工/工序完成/进度汇报/申请验收/问题整改…）/ 所属阶段 / 时间 / 标题 / 正文 / 照片**；
+* 照片按朋友圈规则排布：**1 张 → 大图；2、4 张 → 两列；其余 → 三列**；超过 9 张时第 9 格蒙层显示 `+N`，点击进入 `previewImage` 全屏查看；
+* 分页：首屏 20 条，触底加载更早记录，下拉刷新；顶部汇总"共 N 次记录 · M 张照片"；
+* 修正原页头"照片来自阶段汇报与验收单"的过度承诺文案，改为准确描述（现场汇报照片按天归档）。
+
+**前端 · 合同履约档案排版**
+
+* 只强调**当前合同额**（32rpx/750，品牌色，等宽数字），日期与工期收敛为 26rpx/500 的辅助信息；
+* 签约日期与工期统一走 `dateTimeText().slice(0,10)`，不再直出 ISO；工期区间用「至」分隔并缩小分隔字号，避免长串挤压。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过（编译产物含全部 `album__*` 类）；
+* 750rpx 版式走查（375px 视口，含 1/2/4/9 张与 "+12" 蒙层）：
+  - 日期分组正常（今天 / 昨天），4 条记录分组正确；
+  - 图片网格：单图 325×210、两列 160×150、三列 105×110，`+12` 蒙层正常；
+  - **页面无横向溢出**（`scrollWidth === clientWidth`）。
+
+### 待办 / 风险
+
+* 相册当前**只聚合现场汇报的照片**（含阶段开工自动汇报）。验收单证据图（`acceptance.evidenceUrls` / 整改问题图）尚未并入；若业务要求"验收也要进相册"，需要新增一个聚合端点或在前端再拉验收列表，属增量；
+* `siteApi.page` 单页上限 100（后端 `Math.min(size, 100)`），相册已按 20/页分页，不受影响。
+
+### 业务规则沉淀
+
+* 工地相册是**履约证据链**，必须保留"谁 / 何时 / 哪个阶段 / 做了什么"四要素，禁止退化成无信息的图片墙；
+* 相册按自然日倒序分组；照片排布遵循 1 大图 / 2·4 两列 / 其余三列，超过 9 张折叠为 `+N`；
+* 卡片内的值必须体现层级：核心金额强调、日期等辅助信息收敛，不得同字号同字重；日期禁止直出 ISO。
+
+***
+
+## FIX-017・全后端框架 DateTime 用法普查：又抓到 2 处"14 位裸数字"直出
+
+* 日期：2026-09-24
+
+* 报告角色：由 FIX-016 触发的主动排查（用户要求"扫一遍，检查修复"）
+
+* 影响模块：订阅/账单（业主与员工都看）/ 项目成员列表 / 全后端时间口径
+
+* 严重度：P2 展示缺陷（不崩、不报错，静默显示错值）
+
+### 普查范围
+
+1. 全后端 `getCreateTime()` / `getUpdateTime()` 调用点：**96 处**，逐条分类；
+2. 其它框架 `com.th4.edge.framework.data.date.model.DateTime` 字段（`Subscription.serviceEndTime`、`PlatformTenant.serviceEndTime` 等）；
+3. 全后端 `ofEpochMilli(...)`（毫秒换算误用）；
+4. 前端所有手写日期格式化（`replace('T')` / `slice(...)`）。
+
+### 关键机制（本次才彻底查清）
+
+* 框架 `DateTime` 是 `@Embedded` 且**未覆写 `toString()`**；`getDateTime()` 返回 **`yyyyMMddHHmmss` 的 14 位数字**（非毫秒）；
+* 框架 `MyJacksonAnnotationIntrospector` 只对带 `@com.th4.edge.framework.data.date.annotation.DateTime` **注解**的字段套用 `DateTimeJsonSerializer`（输出 `yyyy-MM-dd HH:mm:ss`）；
+* `AuditModel.createTime/updateTime` 用的是 `@CreateTime/@UpdateTime`，**没有 `@DateTime` 注解** → 序列化成对象 `{ dateTime: "20260924103500", date: 20260924, ... }`（`Long` 受全局 `JacksonLongConfigure` 影响按字符串输出）；
+* 因此前端 `raw.createTime?.dateTime` 拿到的是 **14 位裸数字字符串**，必须经 `dateTimeValue()` / `dateTimeText()` 才能显示成时间。
+
+### 发现并修复（本轮新增 2 处）
+
+| # | 位置 | 问题 | 修复 |
+| --- | --- | --- | --- |
+| 1 | `subscription/domains/billing/api.ts` | `serviceEndTime / lastRenewTime / paidTime / expireTime / createdAt` 直接取 `.dateTime`，得到 14 位裸数字；订阅页把它显示成 `20260924103500` | 统一套 `dateTimeValue(...)` 归一化 |
+| 2 | `subscription/pages/index.vue` | `formatTime()` 用 `value.replace('T',' ')`，对 14 位数字无效（原样显示） | 改用 `dateTimeText()` 兜底（14 位 / ISO / 已格式化都支持） |
+| 3 | `project/service/members/list/support/List.java`（2 处） | `String.valueOf(project.getCreateTime().getDateTime())` 输出 14 位裸数字（前端 `joinedText` 靠"剥非数字"侥幸显示对） | 改用 `DateTimeText.format(...)` → `yyyy-MM-dd HH:mm:ss` |
+
+### 复核确认无问题（不改动，留档）
+
+* **统计 / 老板看板 / 平台适配层**：全部走 `toLocalDateTime()` / `toLocalDate()` ✓（`PerformanceReportContext`、`BossDashboardContext`、`BusinessAnalysisContext`、`SiteWorkbenchContext`、`TenantDataAdapter` 等）；
+* `MaterialSelectionContext` / `SelectionBoard.Board` 的 `updatedAt`（Long，14 位）：前端 `dateTimeValue()` 与 `selection-board.timestampOf()` **都已显式识别 14 位**，显示与"停留天数"均正确 ✓
+* `ofEpochMilli`：全后端**已无残留**（唯一一处 `CustomerTagContext` 在 FIX-016 已修）✓
+* `team/pages/designers.vue` 的 `measureAt`、`HouseCard` 的 `scheduledAt`：后端字段是 `LocalDateTime`（ISO 串），格式化正确 ✓
+* `customer/pages/detail.vue` 跟进时间、`site` 汇报时间：`crm/api.ts` / `site/api.ts` 已在 API 层用 `dateTimeValue()` 归一化 ✓
+* `Subscription.serviceEndTime` 的**计算**（`SubscriptionContext` 剩余天数 / 过期判断）全部走 `toLocalDateTime()` ✓
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；
+* `DateTimeText` 真实 classpath 用例：`format(new DateTime(2026-09-24T10:35))` → `2026-09-24 10:35:00`；`formatPacked(20260924103500L)` → 同上；空值 `—`；非 14 位降级；
+* 前端 `core/format` esbuild 打包后在 node 实测：
+  - `"20260924103500"` → `dateTimeValue` = `2026-09-24 10:35:00`、`dateTimeText` = `2026-09-24 10:35`；
+  - ISO 串 / 已格式化串 / 纯日期 / 空值 均正确（空值 → `''`，由 UI 兜 `-`）；
+* `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过。
+
+### 业务规则沉淀
+
+* 框架 `DateTime` 的三种形态（**对象**、**14 位数字**、**带 @DateTime 注解的格式化串**）必须分别识别，不能假设是其中一种；
+* 后端投影输出时间一律走 `DateTimeText`；前端展示一律走 `dateTimeValue()/dateTimeText()`；判断"距今多久"用 `timestampOf()` 这类已识别 14 位的工具；
+* 详见 `business-rules.md` §15。
+
+***
+
+## FIX-016・项目旅程"施工"里现场汇报的日期显示成 com.th4.edge...（框架 DateTime 未覆写 toString）
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端项目旅程（施工部分）/ 业主旅程投影 / 客户标签
+
+* 严重度：P1 数据展示事故（用户直接看到 Java 类名）
+
+### 现象
+
+业主端「项目旅程 · 施工」中，"**阶段开工 · 开工交底**"这条现场汇报的日期显示为
+`com.th4.edge.framework.data.date.model.DateTime@1a2b3c...`（Java 类名 + 哈希），不是时间。
+
+### 根因
+
+1. 这条记录是阶段开工时自动生成的现场汇报（`stages/update` → `report.setTitle("阶段开工 · " + stage.getName())`，`visibleToCustomer=true`），必然会出现在业主旅程里；
+2. `CustomerJourneyContext.reportItem()` 用 `date(report.getCreateTime())`，而 `ProjectReport` 继承 `AuditModel`，审计时间是框架的 `@Embedded DateTime`；
+3. **框架 `DateTime` 没有覆写 `toString()`**（已用 `javap` + 运行验证：`dt.toString().startsWith("com.th4.edge")` 为 true），所以字符串拼接直接输出类名；
+4. 同类调用还有 `acceptanceItem()` 的 `acceptance.getCreateTime()`，以及 `designItem()` 里的 `design.getUpdateTime().getDateTime()`（这个传的是 **Long**，会输出 `20260924103500` 这种 14 位数字）。
+
+补充：框架 `DateTime.getDateTime()` 返回的是 **`yyyyMMddHHmmss` 的 14 位数字**，不是 epoch 毫秒。
+
+### 修复方案
+
+1. 新增 `common/support/DateTimeText`：`format(DateTime)` / `formatPacked(Long)`，统一输出 `yyyy-MM-dd HH:mm:ss`，空值 `—`，非 14 位原样降级；JavaDoc 写明"getDateTime() 是 14 位数字、DateTime 未覆写 toString"两个坑；
+2. `CustomerJourneyContext.date(Object)` 改为：框架 `DateTime` → `DateTimeText.format`；14 位数字字符串 → `DateTimeText.formatPacked`；其余原样。**一处收敛，三个调用点（汇报/验收/设计）同时修好**；
+3. `designItem()` 不再传 `.getDateTime()`（Long），直接传框架 `DateTime` 对象。
+
+### 顺带修掉的同源缺陷
+
+* `CustomerTagContext.isGoldenNoContact()` 把 `getCreateTime().getDateTime()` 当 **epoch 毫秒**用（`Instant.ofEpochMilli`）——实际是 14 位数字，换算出来是 2612 年，导致"建档 ≤3 天且未首联"的黄金标签**永远不成立**。已改为框架提供的 `toLocalDateTime()`。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；
+* `DateTimeText` 用真实 classpath 跑用例：
+  - `format(new DateTime(2026-09-24T10:35))` → `2026-09-24 10:35:00`；
+  - `formatPacked(20260924103500L)` → `2026-09-24 10:35:00`；
+  - `format(null)` / `formatPacked(null)` → `—`；`formatPacked(123L)` → `123`（降级）；
+  - 对照：`new DateTime(...).toString().startsWith("com.th4.edge")` → **true**，确认原缺陷成立；
+* 前端（本次回退细分）`npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过。
+
+### 业务规则沉淀
+
+* 框架 `DateTime` 只能经 `DateTimeText` 输出，禁止直接 `toString()` / 字符串拼接；
+* 需要"时间进度"这类计算时，用框架的 `toLocalDateTime()/toLocalDate()`，禁止把 `getDateTime()` 当 epoch 毫秒；
+* 详见 `business-rules.md` §15。
+
+***
+
+## FIX-015・项目"当前阶段"被硬编码成"待开工"，与项目状态"待验收"自相矛盾
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈（业务逻辑质疑）
+
+* 影响模块：项目域状态机 / 业主端我的家 / 项目列表 / 项目详情
+
+* 严重度：P1 状态语义矛盾（业主与员工都会误读项目到底在什么阶段）
+
+### 现象
+
+项目工地卡片 / 我的家 首屏显示"当前阶段：待开工"，但同一项目里又存在"待验收"（项目状态、阶段状态或验收入口），两处结论互相打架。用户直接问"业务逻辑有问题吗"。
+
+### 根因（三个叠加问题）
+
+1. **前端硬编码兜底**：多处以 `project.currentStageName || '待开工'` 兜底。`currentStageName` 是**需要回填的派生列**，只有 `project/project/overview`（老板经营台）和 `project/project/page`（分页）在投影时临时赋值；其他入口（尤其业主旅程）拿到的就是 `null`，于是全部落到"待开工"；
+2. **旅程直接读派生列**：`CustomerJourneyContext` 用 `project.getCurrentStageName()` 而非按阶段事实现场推导，业主端 journey 的 `currentStageName` 常年为空 → 业主端 8 个"我的家"页面统统显示"待开工"；
+3. **状态机有降级漏洞**：
+   - `project/service/stages/update` 开工时**无条件** `project.setStatus(Ongoing)`，会把"阶段待验收（Accepting）"或"停工（Suspended）"悄悄降级成"施工中"；
+   - `ProjectContext.refreshProject` 只用任务进度判断阶段是否开始，**刚开始、任务还没报进度**的阶段会被刷回 `Todo`，项目又掉回"待开工"。
+
+以上直接违反已裁决口径 `DEC-009` 决策二：「项目当前阶段名称与项目级状态不得同时表达相互矛盾的结论」。按 `AGENTS.md` 的智能体门禁，本项先回业务智能体核对（`zhuangdeqing-business` → `DEC-009` / `GAP-010`），再改代码。
+
+### 修复方案
+
+**前端（杜绝矛盾兜底）**
+
+1. `domains/project/meta.ts` 新增 `projectStageText(project)`：优先真实阶段名，缺失时回退到**项目状态文案**（如"待验收"），**永不硬编码"待开工"**；
+2. 替换全部硬编码兜底：`pages/index/index.vue`（业主我的家 + 员工项目卡）、`pages/project/list.vue`（两处）、`subpackages/project/pages/contract.vue`；
+3. 业主端 8 个"我的家"页面：`:stage-name` 兜底改为 `journey.currentStageName || journey.projectStatusName || '待确认'`。
+
+**后端（状态机不再互相打架）**
+
+4. `CustomerJourneyContext`：`currentStageName` 改为按阶段事实现场推导（正在施工 / 待验收的阶段 → 否则第一个阶段），与 `project/page`、`project/overview` 同口径；不再读派生列；
+5. `stages/update`：开工**只允许把"待开工"推进为"施工中"**，不得降级 `Accepting` / `Suspended`；
+6. `ProjectContext.refreshProject`：`actualStart != null` 或既有 `Doing` 都算"已开工"，不会被任务进度 0 刷回 `Todo`；`anyStarted` 同步改为"存在非 Todo 阶段"。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过；
+* 口径对照：`DEC-009` 决策二（Accepting 统一表达为"待验收/阶段待验收"、项目级状态与当前阶段不得矛盾）；`GAP-010` 建议（Accepting 不再等同于竣工验收）。
+* 回归关注点：待开工（无阶段开工）→"待开工"；阶段已开工但任务 0% → 仍"施工中"；阶段待验收 → 项目"待验收" + 当前阶段显示真实阶段名；停工 → 开工别的阶段不会被改成"施工中"。
+
+### 项目详情卡片品牌色 + 页签补齐（同一需求）
+
+7. 项目详情卡片改为**品牌色卡面**（白 → 品牌极浅渐变 + 品牌描边），区块标题（选材/待办/岗位/计划/合同/入口）统一品牌深色，避免整页纯白灰；
+8. 业主端项目详情页签补齐为 **进度 / 计划 / 增减项 / 动态 / 建议**（原来是 进度 / 动态）：
+   - 计划 → 复用原计划页签（业主只读）；
+   - 增减项 → 入口卡 + `我的家 · 增减项` 明细（业主只读，不暴露内部成本）；
+   - 动态 → 原有现场动态；
+   - 建议 → 业主自己的意见/建议列表（`customer/feedback/page`，业主可提交、可跟踪处理回复与时限）。
+
+### 待办 / 风险
+
+* `Project.currentStageName` 作为派生列仍然保留，但**不再作为读取来源**；后续可考虑补齐回填或彻底移除，避免再次被误用；
+* 项目状态 `Accepting` 的文案目前统一为"待验收"（`DEC-009` 允许"待验收"或"阶段待验收"）；若要做"最终阶段→竣工验收、中间阶段→阶段待验收"的区分，需要按阶段顺序判定，属后续增量。
+
+### 业务规则沉淀
+
+* 项目级状态与"当前阶段"不得互相矛盾，缺失时一律回退到项目状态文案；
+* 派生列（`currentStageName` 之类）不得当作事实源直接读取，必须按领域事实推导；
+* 状态推进只能沿既定方向，禁止"开工"把待验收/停工降级为施工中；
+* 详见 `business-rules.md` §14。
+
+### 追加（2026-09-24）：Accepting 文案最终统一为"待验收"（细分方案已回退）
+
+**过程**：先按"影响最小"做过一版前端单点细分（`projectStatusLabel()`：待验收阶段是最后一个 → "竣工验收"，否则 → "阶段待验收"，只在项目详情使用）。
+
+**用户最终决策：回退细分，统一成"待验收"。**
+
+* 回退内容：删除 `domains/project/meta.ts` 的 `projectStatusLabel()`；`subpackages/project/pages/detail.vue` 顶部队列恢复 `PROJECT_STATUS_META[project.status].label`；
+* 定稿口径：`ProjectStatus.Accepting` 在所有页面统一显示 **"待验收"**（DEC-009 允许"待验收"或"阶段待验收"，二选一即可）；
+* 代价说明：这样"阶段待验收 vs 竣工验收"不再在 UI 上区分，符合 DEC-009「只有最终阶段才使用竣工验收语义」——即**在最终阶段也不额外声称"竣工验收"**，不会产生误读；
+* 验证：`npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过；`meta.ts` / `detail.vue` 中已无"阶段待验收 / 竣工验收"字样。
+
+***
+
+## FIX-014・业主端付款仍是装企口径、签约/截止日期直出 ISO、进度 Tab 多点一次
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端 我的家（付款计划 / 验收整改 / 合同 / 增减项 / 报价清单 / 选材记录）/ 进度 Tab / 项目旅程
+
+* 严重度：P2 口径 + 交互（业主看到"已收/待收"、日期原文，且只有一个工地还要多点一层）
+
+### 需求与现象
+
+1. 验收整改页"最近整改截止"只给一个日期，业主要自己数还剩几天 → **前端计算"还差 N 天 / 已逾期 N 天"**；
+2. 付款计划的"下一节点"挤在事实条的小格子里 → **改成横向卡片**；
+3. 付款计划明细展示"已收 / 待收"，这是**装企视角**；业主端应该是"**已付 / 待付**"；
+4. 合同档案"签约日期"直接显示后端 ISO 原文（`2026-09-10T05:03:07`）→ **优化日期格式**；
+5. 进度 Tab：业主一般只有**一个工地**，应该**直接进工地详情**；项目旅程末尾"不展示企业内部成本和利润"这类提示对业主是多余的。
+
+### 根因
+
+1. `CustomerJourneyContext.paymentSection()/paymentItem()` 直接用 `ReceivableStatus.getName()`（待收 / 部分收款 / 已收清）和"应收 / 已收 / 未收"文案 —— 这是装企口径，而 `CustomerJourney` 是**业主只读投影**；
+2. 业主端各页的 `factValue(value, type)` 只把 `money` 补 ¥，`valueType === 'date'` 的事实原样输出后端 ISO 串；`OwnerFactList` 的 `item.date` 同样直出；
+3. "下一节点"只是 `section.facts` 里的一条 `text`（`节点名 · 日期`），没有独立卡片；
+4. `pages/project/list.vue` 对所有角色都先渲染列表页；
+5. `journey.vue` 的页脚对所有者角色都渲染。
+
+### 修复方案
+
+**后端（口径换算，不减信息）**
+
+* `paymentSection()`：标题"款项 / 应收节点与到账进度" → "付款 / 按合同节点的付款进度"；状态"待收款"→"待付款"、"已结清"→"已付清"；summary"已收 X，未收 Y"→"已付 X，待付 Y"；facts"应收总额 / 已收 / 未收"→"应付总额 / 已付 / 待付"；
+* `paymentItem()`：新增 `paymentStatusName()`，把 `ReceivableStatus` 换算为业主口径 —— `Pending→待付款`、`Partial→部分付款`、`Received→已付清`、`Overdue→已逾期`、`Closed→已关闭`；并下发"已付 + 待付"两条事实；
+* **员工端财务页面继续使用 enum 原口径（待收/已收清）**，只有业主旅程投影换算，避免把装企台账口径改掉。
+
+**前端**
+
+* `src/core/format.ts`：`diffDays()` 改为只取日期部分（ISO 带 T 时不再解析失败）；新增 `dueText()`（今天到期 / 还差 N 天 / 已逾期 N 天）与 `factDisplay()`（money → `3万` / `¥9,800`；date → `YYYY-MM-DD`）；
+* 业主端 5 个事实页（验收 / 付款 / 合同 / 增减项 / 选材）统一改用 `factDisplay`；验收整改的"整改截止"额外渲染 `dueText` 胶囊（未到期橙、逾期红）；事实条统一 `flex-wrap` + 最小宽度；
+* `owner-payment.vue`：把 `next` fact 移出事实条，改为**横向卡片** —— 左侧「下一节点 + 节点名 + 到期日 + 相对天数」，右侧「待付金额（大字）+ 应付金额」，逾期整卡换红；
+* `OwnerFactList.vue`：卡片日期走 `dateTimeText()`，金额改用 `JzMoney`；
+* `OwnerPriceGroups.vue` / `owner-quote.vue`：金额同样改用 `JzMoney`；
+* `pages/project/list.vue`：业主角色且可见工地只有 1 个时 `uni.redirectTo` 工地详情（一次性标记，避免从详情返回时反复跳转）；
+* `journey.vue`：页脚"不展示企业内部成本和利润"只对员工展示，业主端不再出现。
+
+### 顺带修掉的两个真实缺陷
+
+1. **金额丢单位（截图级）**：`money(x, false)` 只取数值部分，≥1 万时把"3 万"渲染成"¥3"。受影响面：付款节点金额、合同/增减项金额、报价清单分项金额、报价汇总。已统一改用 `JzMoney`（基于 `moneyParts`）：≥1 万显示"3.84万"、<1 万显示"¥9,800"；
+2. **业主卡片日期直出 ISO**：`OwnerFactList` 的 `item.date` 原样渲染 `2026-09-10T05:03:07`，现统一走 `dateTimeText()`。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile`：通过；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin`：通过（编译产物含 `opayment__next*`，`OwnerFactList.wxml` 含 `jz-money`）；
+* `core/format.ts` 用 esbuild 打包后在 node 实测：
+  - `money(30000)`→`3万`、`money(9800)`→`¥9,800`、`money(128000.5)`→`12.8万`；
+  - `factDisplay('30000.00','money')`→`3万`、`factDisplay('2026-09-10T05:03:07','date')`→`2026-09-10`、`factDisplay('—','money')`→`—`；
+  - `dueText(+3)`→`还差 3 天`、`dueText(0)`→`今天到期`、`dueText(-2)`→`已逾期 2 天`、`dueText('2026-09-25T00:00:00')` 可正常解析、`dueText('—')`→空；
+* 750rpx 版式走查（375px 视口）：下一节点横向卡片 351px（正文列 249 / 金额列 63–81），无横向溢出；待付金额 18px 大字可读；事实条 3 项 1 行不溢出。
+
+### 待办 / 风险
+
+* `pages/project/list.vue` 的业主单项目跳转依赖 `projectApi.page` 的返回；若后端返回分页不完整（`hasMore=true`）会放弃跳转并展示列表，属安全降级；
+* 付款节点的 `待付` 由后端按 `amount - receivedAmount` 计算并下发，前端只做展示，不在前端重算金额。
+
+### 业务规则沉淀
+
+* `CustomerJourney` 是业主只读投影：**所有金额/状态文案必须是业主口径**（应付/已付/待付），装企台账口径（应收/已收/待收）只能留在员工端；
+* 业主端日期禁止直出 ISO；截止类日期必须由前端补"还差 N 天 / 已逾期 N 天"；
+* 金额一律走 `JzMoney` / `money()`，禁止用 `money(x, false)` 再手工拼 `¥`（≥1 万会丢"万"）；
+* 业主只有一个工地时，"进度"入口直接落工地详情；
+* 详见 `business-rules.md` §13。
+
+***
+
+## FIX-013・选材状态只有文字标签、业主端选材事实条会横向溢出
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：选材工作台（selection-board）/ 员工端主材选材（selection）/ 业主端选材记录（owner-selection）/ 公共组件 JzTag
+
+* 严重度：P3 展示与可读性（不阻断流程，但状态扫读效率低、且存在横向溢出）
+
+### 现象
+
+1. "选材状态"只用文字标签表达（已确认 / 待客户确认 / 选材草稿 / 未发起），一眼看不出"确认了没有"；希望用图标区分：**已确认 → 对勾图标，未确认 → 等待时钟图标**，且必须是真图标，**不能用 emoji 字符（✅ ⏰）**；
+2. 业主端「我的家 · 选材记录」顶部事实条在同时存在"材料计划 / 已下单 / 已到场 / 选材版本 / 选材状态"5 项时，`flex: 1` 均分导致长文案（如"待客户确认"）横向挤压，溢出屏幕。
+
+### 根因
+
+1. `JzTag` 只有 `dot` 圆点能力，没有图标能力；而它的根节点是 `<text>`，小程序 `<text>` 内**不能嵌 `<image>`**（`JzIcon` 渲染的就是 `<image>`），所以不能直接往标签里塞图标；
+2. `owner-selection.vue` 的 `.factstrip` 是 `display: flex` + `.factstrip__item { flex: 1 }`：不换行、不设最小宽度，项数一多或文案一长必然溢出。
+
+### 修复方案
+
+**公共组件**
+
+1. `JzTag` 新增可选 `icon`（`IconName` 类型）：
+   - **不带 `icon` 时保持原来的 `<text>` 根节点**，既有 120+ 处调用的行内排版零影响；
+   - 带 `icon` 时改用 `<view>` 根节点 + `JzIcon` + `<text>` 标签，规避"`<text>` 内不能嵌 image"的限制；
+   - 图标尺寸按 `sm / md / lg` 取 22 / 26 / 30rpx，颜色跟随标签语义色（solid 时取白色）。
+
+**选材状态图标（走 JzIcon 线性图标，不用 emoji）**
+
+2. `selection-board.vue`：`SELECTION_META` 增加 `icon` —— `confirmed → check-circle`，`none / draft / pendingConfirm → clock`；
+3. `selection.vue`：`STATUS_META` 同样增加 `icon`，选材状态标签带图标（订单状态标签保持纯文字，两者语义不同）；
+4. `owner-selection.vue`：事实条里的 `selectionStatus` 改为「图标 + 文案」，图标由**最新一版选材的 status 枚举**推导（`items` 中 `selection-*` 的第一条即最新版，后端按版本倒序下发），不靠中文字符串匹配。
+
+**事实条溢出**
+
+5. `.factstrip` 改 `flex-wrap: wrap`；`.factstrip__item` 改 `flex: 1 1 200rpx; min-width: 0`；选材状态取值降到 26rpx/700，避免"待客户确认"撑破卡片。
+
+### 验证
+
+* `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过；
+* 编译产物 `JzTag.wxml` 确认双分支：有 icon → `<view>` 包 `<jz-icon>` + `<text>`；无 icon → 仍是原 `<text>` 根节点；三个页面编译 JS 均含 `icon:"check-circle"` / `icon:"clock"`；
+* 750rpx 版式走查（375px 视口）：图标胶囊最宽 88px（"待客户确认" + 图标）不溢出；不带图标的旧标签宽度不变（49px）；业主端 5 项事实条**自动换 2 行**，`scrollWidth === clientWidth`。
+
+### 业务规则沉淀
+
+* 状态表达用 `JzIcon` 线性图标，**禁止用 emoji 字符（✅ ⏰ 等）当正式 UI 图标**（与 AGENTS.md「正式 UI 禁止 emoji」一致）；
+* 带图标的状态标签统一走 `JzTag` 的 `icon`，不要在各页面自造胶囊样式；
+* 事实条 / 指标条这类条目数可增长的行，必须 `flex-wrap` + 最小宽度，不得用纯 `flex: 1` 硬均分；
+* 详见 `business-rules.md` §12。
+
+***
+
+## FIX-012・主材选材结果把 JSON 原样透给业主、材料记录卡片文字层级混乱
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端「我的家 · 选材记录」（OwnerFactList）/ 员工端「主材选材」（selection.vue）/ 后端业主旅程投影
+
+* 严重度：P2 展示质量（业主看到一长串 JSON 完全读不懂；卡片可读性差）
+
+### 现象
+
+1. 业主打开「我的家 · 选材记录」，选材结果卡片里显示的是一串 JSON：`{"color":"暖灰石纹","spec":"800×800","brand":"马可波罗"}`，普通业主读不懂，也不知道这就是"选材结果"；
+2. 员工端「主材选材」的"选材结果"是一段灰底平文本，"颜色 / 规格 / 品牌 / 工艺 / 备注"糊成一整句；
+3. 材料记录卡片文字层级混乱：标题、副标题、状态、时间、标签、值挤在相近的灰阶里，真正的重点（选材结果）淹没在灰字中。
+
+### 根因
+
+1. `CustomerJourneyContext.selectionItem()` 直接把 `selection.getSelectionJson()`（本来只用于前端回显表单的结构化快照）塞进 `item.getLines()`，而业主端 `OwnerFactList` 原样渲染 `lines`；
+2. 员工端 `selection.vue` 的 `resultText()` 只取 `selectionText`（可读 content）平铺成一整句，完全没用 `selectionJson` 的结构；
+3. `OwnerFactList` / `selection.vue` 的样式以 `$jzb-text-3`/`$jzb-text-4` 灰阶为主，缺少"标签—值"的对比与强调色，也没有分隔与左强调条。
+
+### 修复方案
+
+**后端**
+
+1. 新增 `com.th4.edge.decoboon.common.support.SelectionText`：把 `selectionJson` / 可读文本统一解析成有序字段（颜色/花色、规格/型号、品牌/系列、工艺、备注），JSON 优先、文本兜底、坏 JSON 回退文本；
+2. `CustomerJourneyContext.selectionItem()` 改为输出结构化 `facts`，**JSON 不再进入 `lines`**；无结构时用可读文本兜底。
+
+**前端**
+
+3. `src/core/format.ts` 新增 `selectionFields()` / `selectionLineText()`：解析 JSON 快照，并把历史残留的 JSON 行转回「标签：值」文本（防止缓存或历史数据再次暴露 JSON）；
+4. `OwnerFactList`（业主端 选材 / 合同 / 增减项 / 付款 / 验收 共用组件）：
+   - `lines` 统一走 `selectionLineText()`，杜绝 JSON 直出；
+   - 文字层级重排：标题 `text-1` 32rpx/700、副标题 `text-3` 22rpx、状态胶囊品牌色 `primary-dark on primary-lighter`、时间加时钟图标提升到 `text-3`、事实标签 `text-3` 20rpx + 值 `text-1` 26rpx/650、正文 `text-2`；
+   - 事实区改为整行可换行（`word-break`），行前加品牌色圆点作为视觉锚点；卡片内分隔与间距收敛。
+5. 员工端「主材选材」`selection.vue`：
+   - 选材结果卡片化：品牌色左条 + 结果图标 + 版本号 + 「标签 / 值」逐行（标签 `text-3`，值 `text-1` 600）；
+   - 未选材时改为灰底降级块并给出明确下一步文案；
+   - "合同要求"拆成 `text-4` 标签 + `text-2` 值；底部时间 `text-3`、下一步按钮品牌色 + 600 字重并加分隔线；卡片加 `:active` 反馈。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile` 通过；用真实依赖 classpath 跑 `SelectionText` 用例：
+  JSON → 5 个中文字段、仅文本 → 解析、JSON 优先于文本、全空 → 空、坏 JSON → 文本兜底、无冒号文本 → 无名 segment；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin` 通过；用 esbuild 打包 `core/format.ts` 后在 node 实测：
+  `selectionLineText('{"color":"暖灰石纹",...}')` → `颜色/花色：暖灰石纹；规格/型号：800×800；…`，非 JSON 文本（如 `需求：客厅通铺`）原样返回，坏 JSON 不抛异常；
+* 750rpx 版式走查（375px 视口）：无横向溢出；5 个事实字段两栏排布、长"备注"换 2 行不裁切；结果行标签列 70px / 值列 228px；页面文本中不再出现 `{"`。
+
+### 业务规则沉淀
+
+* 结构化快照（`selectionJson`）只用于回显表单，**禁止直接进入任何面向用户的文本字段**（旅程 lines、打印稿、PDF）；
+* 选材结果必须以「标签 + 值」成对展示，标签 `text-3`、值 `text-1` 加粗，不得糊成一句话；
+* `OwnerFactList` 是 5 个业主事实页共用组件，任何文案或颜色改动都要按"选材 / 合同 / 增减项 / 付款 / 验收"一起回归；
+* 详细规则见 `business-rules.md` §11。
+
+***
+
+## FIX-011・施工工艺没有快照会回溯历史报价、员工端看不到工艺、设计方案页信息层级偏高
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：设计分项（DesignItem）/ 报价快照（QuoteLine）/ 后端业主旅程投影 / 员工端方案编辑与报价详情 / 业主端设计方案
+
+* 严重度：P2 口径风险 + 展示层级（越权倒不至于，但"报价快照"被材料库回改）
+
+### 现象
+
+1. 报价行与设计分项都没有自己的施工工艺字段，工艺只能从材料库 `CatalogItem.craft` 现取 —— **材料库改了工艺，历史已生成的报价跟着变**，与"报价明细快照"的定位自相矛盾；
+2. 员工端「方案编辑」的分项卡片、「报价详情」的分项行都看不到施工工艺，设计师/店长向客户讲解报价时没有工艺依据；
+3. 业主端「我的家 · 设计方案」把"设计风格 / 套内面积 / 户型"做成三张大卡放在页面**最底部**，字号 32rpx + 700 字重（与区块标题同级），视觉非常突兀；
+4. 「区域设计内容」把所有区域的分项全部铺开，区域一多页面极长，业主抓不到重点（这是 FIX-010 把"区域被横向 Tab 藏起来"修成"全部展开"时留下的副作用）。
+
+### 根因
+
+1. `DesignItem.applyCatalog()` 只快照 `criterion`，**没有快照 `craft`**；`QuoteLine` 连 craft 列都没有；因此 `CustomerJourneyContext` 与员工端只能经 `catalogItem` 关联现取主数据，等于没有快照；
+2. 员工端方案/报价响应白名单（`@AllowProperties`）没有放开 craft，前端 `DesignItem` / `QuoteItem` 模型也没映射该字段；
+3. `owner-design.vue` 的 `.design__meta` 在模板中排在最后一个区块之后，样式取 `$jzb-font-md`(32rpx) + `font-weight: 700`；
+4. `OwnerPriceGroups` 在 FIX-010 改为"全部展开"，解决了"看不到区域"，但没有解决"区域多时看不到重点"。
+
+### 修复方案
+
+**后端（快照闭环）**
+
+1. `db_design_item`、`quote_line` 各增加 `craft LONGTEXT` 快照列 → 迁移 `docs/design/migrations/59-设计分项与报价行施工工艺快照.sql`（幂等加列 + 历史数据从材料库/设计分项回填，不覆盖已有值）；
+2. 新增 `com.th4.edge.decoboon.common.support.CraftText.firstNonBlank()`，统一"自身快照 → 上游主数据"的取值口径，避免各处各写一套；
+3. **写入**：`DesignItem Save.applyCatalog()` 与 `DesignCopyContext` 冻结材料库 craft；报价行 7 个创建点（`QuoteContext` 设计快照/套餐行、`HybridQuoteBuilder` 套餐行/数量差异/设计新增、`QuoteAdjustmentContext`、`QuoteCopyContext`）全部写入 craft；
+4. **读取**：`CustomerJourneyContext` 的 `designItemGroups()` / `quoteGroups()` 改为"自身快照优先"；`ContractChangeFulfillmentContext` 生成项目施工任务时的工艺也改为优先用报价行快照；
+5. **白名单**：设计分项（`design/schemes/info`、`design/items/save`）、报价行（`quote/info`、`quote/designerinfo`、`manager/quotes/info`、`quote/lines/page`）放开 `craft`。
+
+**前端**
+
+6. `domains/design` 的 `DesignItem`、`domains/trade` 的 `QuoteItem` 补 `craft` 字段与归一化；
+7. 员工端「方案编辑」分项卡片、员工端「报价详情」`QuoteItemRow` 增加品牌色施工工艺块（与业主端同一视觉语言）；
+8. 业主端设计方案页：把"设计风格 / 套内面积 / 户型"三张卡**移到「区域尺寸」上方**，字号从 32rpx/700 收到 **26rpx/600**、标签 20rpx，改紧凑三栏；
+9. `OwnerPriceGroups` 改为**区域可收缩、默认收缩**：区域卡永远全部可见，点区域标题展开/收起明细，索引点按会跳转并自动展开；提交标题显示"点击展开/收起"与 chevron。
+
+### 验证
+
+* 后端 `mvn -o -DskipTests compile`：通过；
+* 前端 `npx vue-tsc --noEmit`、`npx uni build -p mp-weixin`：通过（编译产物含 `opgroup__head--collapsed` / `qir__craft*` / `ds__item-craft*`）；
+* 750rpx 版式走查（375px 视口，9 个区域）：
+  - 三张事实卡 1 行排布，取值 13px/600（原 16px/700），标签 10px；
+  - 9 个区域索引换 3 行、9 张区域卡全部渲染、明细默认隐藏（`visibleRows = 0`），页面高度从"全展开"的数千像素收敛到 995px；
+  - 无横向溢出（`scrollWidth === clientWidth`）。
+* 回归关注点：`craft` 为空时不渲染工艺块，不影响其余字段；`show-price=false`（设计方案）时仍不出现金额。
+
+### 待办 / 风险
+
+* `docs/design/migrations/01-空库基线.sql` 仍是 2026-09-15 生成版本，**未随本次 DDL 重新生成**：空库初始化需按顺序执行基线 + 59 号迁移（59 号幂等，可重复执行）。基线重生成按发布流程统一处理，避免本次混入大量无关 DDL 差异。
+* 员工端方案编辑的分项卡把工艺截断到 3 行（`jz-clamp-3`）以保持列表可扫读，完整工艺在分项编辑页查看。
+* 项目任务（`ProjectTask.craft`）本轮只改了生成时优先取报价行快照，**没有**改成快照列；任务工艺仍可被人工编辑。
+
+### 业务规则沉淀
+
+* 施工工艺属于报价快照的一部分：设计分项与报价行各自冻结，改材料库不得回溯历史报价；
+* 员工端与业主端必须看到同一份 craft，不允许一边读快照、一边读主数据；
+* 设计方案页的"设计风格/套内面积/户型"是辅助事实，卡片规格必须低于区块标题；
+* 区域分组"全部可见"指的是**区域清单全部可见**，明细默认收缩、按需展开。
+
+***
+
+## FIX-010・设计方案/报价清单的分项看不到施工工艺、区域多了被横向 Tab 藏掉
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端 / 我的家 · 设计方案（owner-design）+ 我的家 · 报价清单（owner-quote）/ 共用组件 OwnerPriceGroups / 后端业主旅程投影
+
+* 严重度：P2 信息展示不全（报价分项口径缺失 + 区域隐藏，影响业主核对与签单讲解）
+
+### 现象
+
+业主打开"我的家 · 设计方案 → 区域设计内容"或"我的家 · 报价清单 → 按区域查看报价"时：
+
+1. 每个分项只显示"分类 · 品牌 · 规格"这类"是什么"的信息，**看不到"这活儿怎么做"的施工工艺**，业主无法判断报价高低的依据；
+2. 区域用横向滚动 Tab 切换，只显示当前一个区域；**区域一多，后面的区域被滚出屏幕，既看不到也没有任何"还有更多"的提示**；
+3. 需要逐一点 Tab 才能核对区域，区域一多就没法做整体核对（合计只在最底部出现）。
+
+### 根因
+
+1. 后端业主旅程投影 `CustomerJourney.PriceRow` 只有 `category/brand/spec/quantity/price/amount/role/type`，**根本没有工艺字段**；
+   `CustomerJourneyContext.quoteGroups()/designItemGroups()` 也就没下发；`journey/info` 的 `@AllowProperties(PriceRow)` 白名单同样没有放开；
+2. 工艺数据本身只在材料库主数据 `CatalogItem` 上：`craft`（施工工艺，@Lob）、`criterion`（工艺/验收标准，@Lob）；
+   `DesignItem.applyCatalog()` 只快照了 `source.getCriterion()`，**没有快照 `craft`**；`QuoteLine` 更是没有自己的工艺列，只能经 `catalogItem` / `designItem` 关联取；
+3. 两条关联（`DesignItem.catalogItem`、`QuoteLine.catalogItem`/`designItem`）都是 LAZY，而 `CustomerJourneyContext` 是无事务边界的 `@Component`，逐行访问会 N+1（关掉 OSIV 还会直接 `LazyInitializationException`）；
+4. 前端 `OwnerPriceGroups.vue` 用 `scroll-view scroll-x` + `activeIndex` 一次只渲染一个区域，天然"展示不全"。
+
+### 修复方案
+
+**后端（只加不减，向后兼容）**
+1. `CustomerJourney.PriceRow` 新增 `craft`（施工工艺）与 `criterion`（工艺/验收标准）字段；
+2. `journey/info` 的 `PriceRow` 白名单放开 `craft`、`criterion`；
+3. `CustomerJourneyContext` 新增 `craftOf()/criterionOf()`：`CatalogItem.craft/criterion` 优先，`DesignItem.criterion`（工艺说明快照）兜底；`designItemGroups()` 与 `quoteGroups()` 均写入；
+4. `DesignItemRepository.findByDesign_DesignIdOrderBySortAsc` 加 `@EntityGraph(attributePaths = {"catalogItem"})`，
+   `QuoteLineRepository.findByQuote` 加 `@EntityGraph(attributePaths = {"catalogItem", "designItem"})`，一次 JOIN 预取，避免 N+1 与 OSIV 依赖（ManyToOne 预取不会放大结果行）。
+
+**前端**
+5. `domains/journey` 的 `JourneyPriceRow` 与 `normalizePriceRow` 增加 `craft` / `criterion`；
+6. `OwnerPriceGroups.vue` 重做：
+   - **去掉横向 Tab**，改为"区域索引 + 全部区域卡片平铺、默认全展开"；
+   - 区域索引平铺换行：`共 N 个区域 · M 项` + 序号胶囊（点按 `uni.pageScrollTo` 跳到对应区域卡）；
+   - 每个分项把**施工工艺独立成块**：品牌色底 + 左侧 6rpx 色条 + 扳手图标 + "施工工艺"标签 + 整行换行正文；无工艺则整块隐藏；
+   - `criterion` 以"验收标准：xxx"次要行展示；品牌/规格与数量移到底部一行，价格固定右上。
+
+### 验证
+
+* 后端：`mvn -o -DskipTests compile` 通过（`CustomerJourneyContext` / `CustomerJourney$PriceRow` 产物已重新编译）；
+* 前端：`npx vue-tsc --noEmit` 通过；`npx uni build -p mp-weixin` 构建通过；
+* 750rpx 版式走查（375px 视口，9 个区域 + 长工艺文案）：
+  - 9 个区域胶囊自动换成 3 行、全部在容器内（`maxRight 786 < containerRight 816`），**页面无横向溢出**（`scrollWidth === clientWidth`）；
+  - 施工工艺块宽 304（整行），长文案按 2 行换行展开，未被裁切；
+  - 编译产物 `OwnerPriceGroups.wxml` 中区域卡 `id` 与 `bindtap` 正常下发。
+* 回归关注点：无 `craft` 的老分项只少一个工艺块，不影响其余字段；`show-price=false`（设计方案页）时不出现金额，仅保留序号、区域名与项数。
+
+### 待办 / 风险（不在本次范围）
+
+* `DesignItem` 未快照 `CatalogItem.craft`：材料库改了工艺，历史设计分项会跟着变。若要严格"报价快照"，需给 `db_design_item` 加 `craft` 长文本列（@Lob + 迁移 `alter table ... modify column ... longtext`，参见 ECD-009），本次未做，已登记为后续事项；
+* 员工端"方案编辑（scheme.vue）/ 报价详情（quote detail）"的 `QuoteItemRow` 仍未展示施工工艺（前端 `QuoteItem` 模型没有映射 `catalogItem.craft`），如需同步请另开一条。
+
+### 业务规则沉淀
+
+* 施工工艺与验收标准属于"业主应当看得懂的质量依据"，必须随分项下发并在业主端独立成块强调，不得塞进品牌/规格灰色小字；
+* 设计分项与报价的区域分组一律全量平铺，禁止用横向滚动 Tab 把区域藏起来；
+* 详细规则见 `business-rules.md` §10。
+
+***
+
+## FIX-009・量房档案日期直出 ISO 原文、量房记录卡片长文本被压成半栏
+
+* 日期：2026-09-24
+
+* 报告角色：App 端实际使用反馈
+
+* 影响模块：业主端 / 我的家 · 量房档案（owner-measure）/ 项目旅程（journey）/ 现场照片留痕
+
+* 严重度：P2 展示质量（信息可读性问题，不阻断主流程）
+
+### 现象
+
+业主打开「我的家 · 量房档案」时：
+
+1. "最近量房"统计位、量房记录卡片时间、现场照片分组标题直接展示后端 ISO 原文 `2026-09-10T05:03:07`（带 `T`、带秒），既占宽又不像给人看的时间；
+2. 量房记录卡片里"量房设计师""原始结构""尺寸记录"按 50% 两栏平铺，"原始结构"这类长文本被压成半栏，大面积换行、卡片高度失控、主次不分；
+3. "需求：xxx / 结论：xxx"整行同色同字号，标签与内容分不清；
+4. 卡片标题和右上角状态标签是同一句话（后端 `measureItem` 把 `title` 与 `statusName` 都设为状态名"已完成"），出现"已完成 … 已完成"的重复信息。
+
+### 根因
+
+1. `CustomerJourneyContext.date()` 直接 `value.toString()`，`LocalDateTime` 序列化后即 `2026-09-10T05:03:07`，前端 `normalizeItem` 原样透传，页面 `{{ item.date }}` 直接渲染；
+2. `src/subpackages/project/pages/owner-measure.vue` 的 `.measure__fact { width: 50% }` 对所有事实一视同仁，没有区分"人"（短文本）与"房屋事实"（长文本）；
+3. `src/components/owner/OwnerPhotoGrid.vue` 用 `item.time`（同样是 ISO 原文）直接做分组标题；
+4. `src/subpackages/project/pages/journey.vue` 的项目旅程同样直出 `item.date` 与 `valueType === 'date'` 的事实值。
+
+### 修复方案
+
+1. `src/core/format.ts` 新增统一展示格式化：`dateTimeText()` → `2026-09-10 05:03`、`dateTimeShortText()` → `09-10 05:03`；兼容 `yyyyMMddHHmmss` / `yyyy-MM-dd`，非时间字符串原样返回（`—` 不丢）；
+2. `owner-measure.vue` 记录卡片改版：
+   - 时间走 `dateTimeText()`，统计位走 `dateTimeShortText()`；
+   - "量房设计师"升级为头像卡（`JzAvatar` + 姓名）；其余事实改为"标签 + 整行可换行长文本"，`原始结构`/`尺寸记录` 不再被半栏挤压；
+   - "需求 / 结论"按全角冒号拆成标签胶囊 + 正文；
+   - 标题栏加序号徽标与状态标签（`JzTag`），区块标题加品牌渐变竖条，空态加图标底座；
+   - `title` 与 `statusName` 同名时收敛为业务名词"量房记录"，状态只由标签表达，消除重复；
+3. `OwnerPhotoGrid.vue` 分组标题走 `dateTimeText()`（分组键仍保留原始值，避免合并不同批次）；
+4. `journey.vue` 的 `valueType === 'date'` 事实与条目日期同样走 `dateTimeText()`。
+
+### 验证
+
+* `npx vue-tsc --noEmit`：通过；
+* `npx uni build -p mp-weixin`：构建通过（仅 sass legacy API 既有告警）；
+* 750rpx 版式走查（375px 视口）：`.measure__fact-value` 长文本整行换行（宽 240 / 高 68），页面无横向溢出（`scrollWidth === clientWidth`），日期统计位单行不裁切；
+* 回归关注点：日期为空或为 `—` 时仍显示占位文案，不出现 `Invalid Date` / `undefined`。
+
+### 业务规则沉淀
+
+* 业主可见的时间一律以 `YYYY-MM-DD HH:mm` 呈现，禁止把后端 ISO 原文、时间戳或 `yyyyMMddHHmmss` 直接暴露给业主；窄栏位可用 `MM-DD HH:mm`。
+* 量房记录卡片中，"人"的事实（量房设计师）用头像卡突出，"房屋事实"（原始结构、尺寸记录）整行铺开换行，禁止把长文本压进两栏网格。
+
+***
+
 ## FIX-008・多套房客户指定设计师后，未量房房屋主按钮错误显示"进入设计转化"导致卡死
 
 * 日期：2026-09-19

@@ -196,7 +196,7 @@ async function createTag() {
     </view>
 
     <view v-if="canMaintainDictionary" class="jz-card tm__block">
-      <text class="tm__title">新建标签（仅老板 / 店长）</text>
+      <text class="tm__title">新建标签（仅企业负责人 / 店长）</text>
       <view class="tm__create">
         <input v-model="newTagName" class="tm__input" maxlength="20" placeholder="标签名称" />
         <picker mode="selector" :range="categoryOptions" range-key="label" :value="categoryIndex()" @change="onPickCategory($event)">
@@ -207,7 +207,7 @@ async function createTag() {
     </view>
 
     <view v-if="canMaintainDictionary" class="jz-card tm__block">
-      <text class="tm__title">字典维护（仅老板 / 店长）</text>
+      <text class="tm__title">字典维护（仅企业负责人 / 店长）</text>
       <view v-if="dictionary.length" class="tm__dict">
         <view v-for="tag in dictionary" :key="tag.id" class="tm__dict-row">
           <text class="tm__dict-name">{{ tag.name }}</text>

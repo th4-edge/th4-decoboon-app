@@ -23,6 +23,8 @@ export interface Measure {
   propertyId: string
   designer?: import('@/domains/identity/model').Employee
   measureTime?: string
+  scheduledAt?: string
+  completedAt?: string
   status: 'scheduled' | 'completed' | 'cancelled'
   sitePhotos?: string[]
   originalStructure?: string

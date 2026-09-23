@@ -144,6 +144,7 @@ function normalizeDesignItem(raw: RawRecord): DesignItem {
     cost: number(raw.cost),
     formula: raw.formula,
     criterion: raw.criterion,
+    craft: raw.craft,
     remark: raw.remark,
     sort: number(raw.sort),
     images: raw.images
@@ -398,6 +399,7 @@ export const designApi = {
       requirementId: input.requirementId,
       customerId: input.customerId,
       propertyId: input.propertyId,
+      targetPropertyId: input.propertyId,
       type: input.type ? SPACE_TYPE_API[input.type] : undefined,
       spaceName: input.spaceName,
       kind: REQUIREMENT_KIND_API[input.kind],
@@ -422,6 +424,7 @@ export const designApi = {
       designId: input.designId,
       customerId: input.customerId,
       propertyId: input.propertyId,
+      targetPropertyId: input.propertyId,
       name: input.name,
       style: input.style,
       layout: input.layout,

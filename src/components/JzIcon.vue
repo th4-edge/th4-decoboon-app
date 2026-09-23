@@ -10,7 +10,7 @@ export type IconName =
   | 'inbox' | 'refresh' | 'more' | 'flag' | 'close' | 'minus' | 'play'
   | 'trash' | 'eye' | 'eye-off' | 'clock' | 'history' | 'upload' | 'download'
   | 'share' | 'send' | 'lock' | 'more-vertical' | 'doc' | 'calculator' | 'scan'
-  | 'truck' | 'star' | 'pause' | 'arrow-left' | 'arrow-right' | 'arrow-up' | 'arrow-down' | 'external'
+  | 'truck' | 'star' | 'pause' | 'arrow-left' | 'arrow-right' | 'arrow-up' | 'arrow-down' | 'external' | 'ruler'
 
 const props = withDefaults(defineProps<{
   name: IconName
@@ -87,6 +87,7 @@ const paths: Record<IconName, string> = {
   star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
   pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
   'arrow-left': '<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>',
+  ruler: '<path d="M3 16.5 16.5 3 21 7.5 7.5 21z"/><path d="m6 13 1.5 1.5M8.5 10.5 10 12M11 8l1.5 1.5M13.5 5.5 15 7"/>',
   external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/>'
 }
 

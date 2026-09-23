@@ -1,5 +1,6 @@
 import { post } from '@/core/http'
-import type { BossDashboard, BusinessAlert, BusinessAlertReport, BusinessTarget, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, StoreManagerReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchReport } from './model'
+import { dateTimeValue } from '@/core/format'
+import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, StoreManagerReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeQuote } from '../trade/api'
@@ -152,6 +153,30 @@ const ALERT_TYPE_MAP: Record<string, BusinessAlert['type']> = {
   AbnormalChangeRate: 'abnormalChangeRate'
 }
 const ALERT_LEVEL_MAP: Record<string, BusinessAlert['level']> = { Low: 'low', Medium: 'medium', High: 'high' }
+const PROJECT_STATUS_MAP: Record<string, import('../project/model').Project['status']> = {
+  Preparing: 'preparing', Ongoing: 'ongoing', Suspended: 'suspended',
+  Accepting: 'accepting', Finished: 'finished', Settled: 'settled'
+}
+const SIGNAL_STATUS_MAP: Record<string, WorkbenchSignalStatus> = {
+  Normal: 'normal', Attention: 'attention', Danger: 'danger', Unknown: 'unknown'
+}
+const EVENT_CATEGORY_MAP: Record<string, BusinessEventCategory> = {
+  Customer: 'customer', Contract: 'contract', Project: 'project', Finance: 'finance'
+}
+const EVENT_LEVEL_MAP: Record<string, BusinessEventLevel> = {
+  Normal: 'normal', Attention: 'attention', Milestone: 'milestone', Warning: 'warning', Danger: 'danger'
+}
+const EVENT_TYPE_MAP: Record<string, BusinessEventType> = {
+  CustomerCreated: 'customerCreated', CustomerFollowed: 'customerFollowed',
+  QuoteSubmitted: 'quoteSubmitted', QuoteAccepted: 'quoteAccepted', QuoteRejected: 'quoteRejected',
+  QuoteConverted: 'quoteConverted', ContractSigned: 'contractSigned', ContractEffective: 'contractEffective',
+  ContractChangeSubmitted: 'contractChangeSubmitted', ContractChangeApproved: 'contractChangeApproved',
+  ContractChangeRejected: 'contractChangeRejected', StageStarted: 'stageStarted', TaskCompleted: 'taskCompleted',
+  ProjectProgress: 'projectProgress', AcceptanceRequested: 'acceptanceRequested',
+  AcceptanceCompleted: 'acceptanceCompleted', AcceptanceRejected: 'acceptanceRejected',
+  IssueReported: 'issueReported', MaterialArrived: 'materialArrived', ProjectNotice: 'projectNotice',
+  ReceiptReceived: 'receiptReceived', PaymentPaid: 'paymentPaid'
+}
 const PERFORMANCE_ROLE_MAP: Record<string, EmployeePerformance['role']> = {
   Designer: 'Designer', Marketer: 'Marketer', Pm: 'Pm'
 }
@@ -187,6 +212,59 @@ function normalizeBusinessAlert(raw: RawRecord): BusinessAlert {
   }
 }
 
+function normalizeIndicator(raw: RawRecord): WorkbenchIndicator {
+  const value = raw.value === null || raw.value === undefined || raw.value === ''
+    ? null : Number(raw.value)
+  return {
+    key: String(raw.key ?? ''),
+    label: String(raw.label ?? ''),
+    value: value !== null && Number.isFinite(value) ? value : null,
+    valueType: String(raw.valueType ?? 'amount'),
+    status: SIGNAL_STATUS_MAP[valueOf(raw.status)] || 'unknown',
+    statusText: String(raw.statusText ?? '暂不可判断'),
+    detail: String(raw.detail ?? '')
+  }
+}
+
+function normalizeWorkbenchProject(raw: RawRecord): WorkbenchProject {
+  return {
+    projectId: String(raw.projectId ?? ''),
+    no: raw.no ? String(raw.no) : undefined,
+    name: String(raw.name ?? '未命名项目'),
+    status: PROJECT_STATUS_MAP[valueOf(raw.status)] || 'preparing',
+    progress: Number(raw.progress ?? 0),
+    managerName: raw.managerName ? String(raw.managerName) : undefined,
+    riskLevel: ALERT_LEVEL_MAP[valueOf(raw.riskLevel)] || 'low',
+    riskCount: Number(raw.riskCount ?? 0),
+    mainRiskType: ALERT_TYPE_MAP[valueOf(raw.mainRiskType)] || 'projectSuspensionRisk',
+    riskReason: String(raw.riskReason ?? ''),
+    nextAction: String(raw.nextAction ?? ''),
+    amount: raw.amount === null || raw.amount === undefined ? null : Number(raw.amount),
+    dueDate: raw.dueDate ? String(raw.dueDate) : undefined
+  }
+}
+
+function normalizeBusinessEvent(raw: RawRecord): BusinessEvent {
+  return {
+    eventId: String(raw.eventId ?? ''),
+    category: EVENT_CATEGORY_MAP[valueOf(raw.category)] || 'project',
+    type: EVENT_TYPE_MAP[valueOf(raw.type)] || 'projectNotice',
+    level: EVENT_LEVEL_MAP[valueOf(raw.level)] || 'normal',
+    title: String(raw.title ?? '经营动态'),
+    content: String(raw.content ?? ''),
+    occurredAt: raw.occurredAt ? dateTimeValue(String(raw.occurredAt)) : undefined,
+    amount: raw.amount === null || raw.amount === undefined ? null : Number(raw.amount),
+    businessType: String(raw.businessType ?? ''),
+    businessId: String(raw.businessId ?? ''),
+    businessNo: raw.businessNo ? String(raw.businessNo) : undefined,
+    projectId: raw.projectId ? String(raw.projectId) : undefined,
+    projectName: raw.projectName ? String(raw.projectName) : undefined,
+    customerId: raw.customerId ? String(raw.customerId) : undefined,
+    customerName: raw.customerName ? String(raw.customerName) : undefined,
+    ownerName: raw.ownerName ? String(raw.ownerName) : undefined
+  }
+}
+
 function normalizeEmployeePerformance(raw: RawRecord): EmployeePerformance {
   return {
     ...raw,
@@ -208,6 +286,16 @@ function normalizeEmployeePerformance(raw: RawRecord): EmployeePerformance {
 }
 
 export const statisticApi = {
+  bossWorkbench: async (month?: string, eventLimit = 6): Promise<BossWorkbench> => {
+    const raw = await post<RawRecord>('statistic/boss/workbench', { month, eventLimit })
+    return {
+      asOf: raw.asOf ?? '',
+      month: raw.month ?? month ?? '',
+      indicators: (raw.indicators || []).map(normalizeIndicator),
+      attentionProjects: (raw.attentionProjects || []).map(normalizeWorkbenchProject),
+      businessEvents: (raw.businessEvents || []).map(normalizeBusinessEvent)
+    }
+  },
   bossDashboard: async (month?: string, storeId?: string): Promise<BossDashboard> => {
     const raw = await post<RawRecord>('statistic/boss/dashboard', { month, storeId: storeId || undefined })
     return {

@@ -83,6 +83,69 @@ export interface Customer {
   portrait?: CustomerPortrait
   /** 只读投影：客户分级 */
   grade?: CustomerGrade
+  /** 只读投影：停留天数 */
+  idleDays?: number
+  /** 只读投影：风险等级 */
+  riskLevel?: 'normal' | 'attention' | 'high'
+  /** 只读投影：风险原因 */
+  riskReason?: string
+  /** 只读投影：下一步动作 */
+  nextAction?: string
+  /** 只读投影：最近报价金额 */
+  quoteAmount?: number
+  /** 只读投影：合同签约金额 */
+  signedAmount?: number
+  /** 只读投影：项目名称 */
+  projectName?: string
+}
+
+export interface CustomerMetricCard {
+  key: 'newCustomer' | 'activeFollow' | 'signedCustomer' | 'riskCustomer' | string
+  label: string
+  value: number
+  valueType: 'count' | 'amount' | 'percent' | string
+  status: 'normal' | 'attention' | 'danger' | string
+  subText: string
+  trendRate?: number | null
+  periods?: CustomerMetricPeriod[]
+}
+
+export interface CustomerMetricPeriod {
+  key: 'today' | 'yesterday' | 'last7Days' | 'month' | string
+  label: string
+  value: number
+  valueType: 'count' | 'amount' | 'percent' | string
+}
+
+export interface CustomerStageCount {
+  key: string
+  label: string
+  count: number
+}
+
+export interface CustomerOwnerGroup {
+  ownerId?: string | null
+  ownerName: string
+  storeName?: string | null
+  customerCount: number
+  riskCustomerCount: number
+  pendingMeasureCount: number
+  signedCustomerCount: number
+  quoteAmount: number
+  signedAmount: number
+}
+
+export interface CustomerOverviewReport {
+  asOf?: string
+  month?: string
+  metrics: CustomerMetricCard[]
+  stageCounts: CustomerStageCount[]
+  ownerGroups: CustomerOwnerGroup[]
+  customers: Customer[]
+  current: number
+  size: number
+  total: number
+  hasMore: boolean
 }
 
 export interface CustomerFollow {

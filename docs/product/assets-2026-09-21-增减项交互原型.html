@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>装得清 · 合同增减项交互原型</title>
+<style>
+  :root{
+    --primary:#0E8A7D; --primary-base:#16A394; --primary-light:#2BC4B4;
+    --success:#07A35A; --warning:#E67E22; --danger:#E5484D; --purple:#6958C8;
+    --primary-lighter:#E8F7F5; --primary-lightest:#F2FBFA;
+    --success-soft:#EAF8F0; --warning-soft:#FFF4E8; --danger-soft:#FDECEC; --purple-soft:#F0EEFC;
+    --text1:#17212B; --text2:#465260; --text3:#778390; --text4:#AEB8C2;
+    --white:#fff; --bg-page:#F4F7F8; --bg-hover:#F8FAFB; --line:#EDF1F3;
+    --shadow:0 10px 30px rgba(16,42,52,.08); --shadow-sm:0 4px 14px rgba(16,42,52,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:
+      radial-gradient(900px 420px at 12% -8%, #dff3f0 0%, transparent 60%),
+      radial-gradient(760px 420px at 92% 4%, #e8e6fb 0%, transparent 58%),
+      var(--bg-page);
+    color:var(--text1); padding:40px 28px 64px; min-height:100vh;
+  }
+  header.top{max-width:1560px;margin:0 auto 30px}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--primary);
+    background:rgba(255,255,255,.8);border:1px solid #d8ece9;padding:6px 12px;border-radius:999px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--primary-base);box-shadow:0 0 0 4px var(--primary-lighter)}
+  h1{font-size:30px;letter-spacing:-.5px;margin:16px 0 8px;font-weight:800}
+  .sub{color:var(--text2);font-size:14.5px;max-width:820px;line-height:1.65}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .legend span{font-size:12.5px;color:var(--text2);background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:6px 13px;box-shadow:var(--shadow-sm)}
+  .stage{max-width:1560px;margin:0 auto;display:grid;gap:34px;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start}
+  .col{display:flex;flex-direction:column;gap:12px}
+  .col-label{display:flex;align-items:baseline;gap:10px;padding-left:6px}
+  .col-label b{font-size:15.5px;font-weight:800}
+  .col-label em{font-style:normal;font-size:12.5px;color:var(--text3)}
+  /* phone */
+  .phone{width:100%;max-width:372px;margin:0 auto;background:var(--white);border-radius:42px;
+    box-shadow:var(--shadow),0 0 0 9px #1b2530,0 0 0 11px #33414f;overflow:hidden;position:relative}
+  .phone::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);
+    width:118px;height:26px;background:#101820;border-radius:0 0 16px 16px;z-index:9}
+  .screen{height:812px;overflow-y:auto;background:var(--bg-page);display:flex;flex-direction:column}
+  .screen::-webkit-scrollbar{width:0}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:14px 22px 4px;
+    font-size:12.5px;font-weight:600;color:var(--text1);background:transparent}
+  .navbar{display:flex;align-items:center;gap:12px;padding:10px 18px 14px;background:transparent}
+  .navbar .back{width:32px;height:32px;border-radius:50%;background:#fff;display:grid;place-items:center;
+    box-shadow:var(--shadow-sm);font-size:16px;color:var(--text1)}
+  .navbar h2{font-size:17.5px;font-weight:800;letter-spacing:-.2px}
+  .navbar .spacer{flex:1}
+  .navbar .act{font-size:13px;color:var(--primary);font-weight:600}
+  .content{padding:0 16px 130px;display:flex;flex-direction:column;gap:14px;flex:1}
+  /* hero */
+  .hero{background:linear-gradient(140deg,#12897c 0%,#0E8A7D 42%,#0b6f66 100%);
+    border-radius:22px;padding:18px 18px 16px;color:#fff;box-shadow:0 14px 30px rgba(14,138,125,.28);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%)}
+  .hero .h-top{display:flex;justify-content:space-between;align-items:center;position:relative}
+  .hero .h-cap{font-size:12.5px;opacity:.82;font-weight:600}
+  .hero .h-badge{font-size:11.5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);
+    padding:4px 10px;border-radius:999px;font-weight:600}
+  .hero .h-amount{font-size:33px;font-weight:800;letter-spacing:-1px;margin:10px 0 3px;position:relative}
+  .hero .h-amount small{font-size:16px;font-weight:700;opacity:.85;margin-right:3px}
+  .hero .h-sub{font-size:12.5px;opacity:.85;position:relative}
+  .hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:15px;position:relative}
+  .hero-grid .g{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.16);border-radius:14px;
+    padding:10px 9px}
+  .hero-grid .g b{display:block;font-size:18px;font-weight:800;letter-spacing:-.4px}
+  .hero-grid .g span{font-size:11px;opacity:.82}
+  /* segments */
+  .seg{display:flex;gap:6px;background:#fff;padding:5px;border-radius:14px;box-shadow:var(--shadow-sm)}
+  .seg button{flex:1;border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:600;color:var(--text3);
+    padding:9px 4px;border-radius:10px;cursor:pointer;transition:.18s}
+  .seg button.on{background:var(--primary);color:#fff;box-shadow:0 6px 14px rgba(14,138,125,.28)}
+  /* type switcher */
+  .types{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+  .types button{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:11px 2px 9px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;font:inherit;transition:.18s}
+  .types button i{font-style:normal;font-size:16px;font-weight:800;color:var(--text3);line-height:1}
+  .types button span{font-size:11px;color:var(--text3);font-weight:600}
+  .types button.on{border-color:var(--primary);background:var(--primary-lightest);box-shadow:0 6px 16px rgba(14,138,125,.16)}
+  .types button.on i,.types button.on span{color:var(--primary)}
+  /* card block */
+  .block{background:#fff;border-radius:18px;padding:16px;box-shadow:var(--shadow-sm)}
+  .block .b-title{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;
+    color:var(--text1);margin-bottom:13px}
+  .block .b-title .more{font-size:12px;color:var(--primary);font-weight:600}
+  /* line selector */
+  .line-pick{display:flex;align-items:center;gap:12px;border:1.5px solid var(--primary-lighter);background:var(--primary-lightest);
+    border-radius:14px;padding:13px}
+  .line-pick .ico{width:38px;height:38px;border-radius:11px;background:#fff;display:grid;place-items:center;
+    color:var(--primary);font-size:16px;font-weight:800;box-shadow:var(--shadow-sm)}
+  .line-pick .meta{flex:1}
+  .line-pick .meta b{display:block;font-size:14px;font-weight:700}
+  .line-pick .meta span{font-size:12px;color:var(--text3)}
+  .chip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .chip.done{background:var(--warning-soft);color:#b4661b}
+  .chip.wait{background:var(--warning-soft);color:#b4661b}
+  .chip.ok{background:var(--success-soft);color:#077a43}
+  .chip.bad{background:var(--danger-soft);color:#b33438}
+  .chip.pending{background:var(--warning-soft);color:#b4661b}
+  .chip.gray{background:#EEF2F4;color:var(--text3)}
+  /* fields */
+  .field{margin-bottom:12px}
+  .field:last-child{margin-bottom:0}
+  .field label{display:block;font-size:12px;color:var(--text3);font-weight:600;margin-bottom:6px}
+  .ipt{display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:1px solid var(--line);
+    border-radius:12px;padding:12px 13px;font-size:15px;font-weight:600}
+  .ipt .unit{color:var(--text3);font-size:12.5px;font-weight:600}
+  .ipt .locked{color:var(--text3);font-size:12px;margin-left:auto;font-weight:600}
+  .ipt.readonly{background:#F1F5F6;color:var(--text2)}
+  .field-row{display:flex;gap:10px}
+  .field-row .field{flex:1}
+  textarea.area{width:100%;border:1px solid var(--line);background:var(--bg-hover);border-radius:12px;
+    padding:12px 13px;font:inherit;font-size:14px;resize:none;min-height:74px;color:var(--text1)}
+  textarea.area::placeholder{color:var(--text4)}
+  /* money conclusion */
+  .money-card{background:linear-gradient(150deg,#103a3a 0%,#0f2f31 100%);border-radius:18px;padding:16px;color:#fff;
+    box-shadow:0 14px 28px rgba(9,34,36,.3)}
+  .money-card .m-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13px}
+  .money-card .m-row + .m-row{border-top:1px solid rgba(255,255,255,.08)}
+  .money-card .m-row span{opacity:.72}
+  .money-card .m-row b{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .money-card .m-row.hero-row b{font-size:22px;color:#5fe3cf;letter-spacing:-.5px}
+  .money-card .m-row .up{color:#ffb27a}
+  .money-card .m-row .down{color:#7ad9c9}
+  .warn-strip{display:flex;gap:8px;align-items:center;background:var(--danger-soft);color:#b33438;
+    border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-top:12px}
+  /* photo grid */
+  .photos{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+  .photo{aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#dbe7ea,#c3d6da);
+    display:grid;place-items:center;font-size:11px;color:var(--text2);font-weight:600;overflow:hidden}
+  .photo.add{border:1.5px dashed #cbd7da;background:#fff;color:var(--text3);font-size:20px}
+  /* list item */
+  .change-card{background:#fff;border-radius:18px;padding:15px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:9px}
+  .change-card .c-top{display:flex;align-items:center;gap:8px}
+  .change-card .c-top .no{font-size:12px;color:var(--text3);font-weight:600}
+  .change-card .c-top .spacer{flex:1}
+  .change-card .c-title{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .change-card .c-meta{font-size:12px;color:var(--text3)}
+  .change-card .c-foot{display:flex;align-items:baseline;justify-content:space-between;border-top:1px solid var(--line);
+    padding-top:10px;margin-top:2px}
+  .change-card .c-foot .amt{font-size:19px;font-weight:800;letter-spacing:-.4px}
+  .change-card .c-foot .amt.up{color:var(--success)}
+  .change-card .c-foot .amt.down{color:var(--warning)}
+  .change-card .c-foot .cost{font-size:11.5px;color:var(--text3)}
+  .tag{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px}
+  .tag.add{background:var(--success-soft);color:#077a43}
+  .tag.remove{background:var(--warning-soft);color:#b4661b}
+  .tag.replace{background:#EAF0FE;color:#3a5bd0}
+  .tag.qty,.tag.price{background:#EEF2F4;color:var(--text2)}
+  /* detail sections */
+  .kv{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid var(--line)}
+  .kv:last-child{border-bottom:0}
+  .kv span{color:var(--text3)}
+  .kv b{font-weight:700;color:var(--text1)}
+  .item-line{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .item-line:last-child{border-bottom:0}
+  .item-line .l b{display:block;font-size:13.5px;font-weight:700}
+  .item-line .l span{font-size:11.5px;color:var(--text3)}
+  .item-line .r{text-align:right}
+  .item-line .r b{display:block;font-size:14px;font-weight:800;color:var(--success)}
+  .item-line .r.down b{color:var(--warning)}
+  .item-line .r span{font-size:11px;color:var(--text3)}
+  .three-money{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:4px;
+    background:#fff;border-radius:18px;padding:15px 12px;box-shadow:var(--shadow-sm)}
+  .three-money .tm{text-align:center}
+  .three-money .tm span{display:block;font-size:10.5px;color:var(--text3);margin-bottom:5px}
+  .three-money .tm b{font-size:15px;font-weight:800;letter-spacing:-.3px}
+  .three-money .tm.mid b{color:var(--primary)}
+  .three-money .arw{color:var(--text4);font-size:13px}
+  /* timeline */
+  .tl{position:relative;padding-left:22px}
+  .tl .node{position:relative;padding:0 0 16px}
+  .tl .node:last-child{padding-bottom:0}
+  .tl .node::before{content:"";position:absolute;left:-22px;top:3px;width:11px;height:11px;border-radius:50%;
+    background:var(--primary);box-shadow:0 0 0 3px var(--primary-lighter)}
+  .tl .node.todo::before{background:#fff;border:2px solid var(--text4);box-shadow:none;width:9px;height:9px}
+  .tl .node:not(:last-child)::after{content:"";position:absolute;left:-17px;top:14px;bottom:-2px;width:2px;background:var(--line)}
+  .tl .node b{display:block;font-size:13px;font-weight:700}
+  .tl .node span{font-size:11.5px;color:var(--text3)}
+  /* bottom bar */
+  .bottom{position:absolute;left:0;right:0;bottom:0;padding:12px 18px 20px;background:rgba(255,255,255,.94);
+    backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+  .btn{flex:1;border:0;font:inherit;font-size:15px;font-weight:700;padding:14px;border-radius:14px;cursor:pointer;transition:.18s}
+  .btn-primary{background:linear-gradient(180deg,var(--primary-base),var(--primary));color:#fff;
+    box-shadow:0 10px 22px rgba(14,138,125,.34)}
+  .btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--text2)}
+  .btn-danger-ghost{background:#fff;border:1.5px solid var(--danger-soft);color:var(--danger)}
+  .btn.sm{flex:0 0 auto;padding:13px 22px}
+  .hint{text-align:center;font-size:11.5px;color:var(--text3);margin-top:4px}
+  .note{font-size:11.5px;color:var(--text3);line-height:1.6;background:#fff;border-radius:12px;padding:11px 13px;
+    border-left:3px solid var(--primary-light)}
+  .meta-tip{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;color:var(--warning);background:var(--warning-soft);
+    border-radius:11px;padding:9px 11px;line-height:1.5;font-weight:600}
+  footer{max-width:1560px;margin:44px auto 0;color:var(--text3);font-size:12.5px;text-align:center;line-height:1.8}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="kicker"><span class="dot"></span>装得清 · 小程序交互原型 v1.0 · 待确认</span>
+  <h1>合同增减项业务流程与交互原型</h1>
+  <p class="sub">把"现场口头加做"变成有审批、有签认、有履约联动的正式事实。四屏对应产品设计文档 §6：增减项工作台、发起增减项、变更单详情（审批）、客户确认台。配色与小程序 <code>tokens.ts</code> 完全一致（主色 #0E8A7D）。</p>
+  <div class="legend">
+    <span>① Hero 先给结论</span><span>② 金额永远成组</span><span>③ 状态用文字</span>
+    <span>④ 底部动作条随状态变化</span><span>⑤ 成本按角色隐藏</span><span>⑥ 无假利润</span>
+  </div>
+</header>
+
+<div class="stage">
+
+  <!-- ================= Screen 1: 工作台 ================= -->
+  <div class="col">
+    <div class="col-label"><b>① 增减项工作台</b><em>change/workbench.vue</em></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⚡ ▮</span></div>
+      <div class="navbar">
+        <div class="back">‹</div><h2>增减项</h2><div class="spacer"></div><div class="act">筛选</div>
+      </div>
+      <div class="content">
+        <div class="hero">
+          <div class="h-top"><span class="h-cap">本月净变更</span><span class="h-badge">阳光里 3-1802</span></div>
+          <div class="h-amount"><small>+¥</small>12,600</div>
+          <div class="h-sub">共 4 张变更单 · 1 张待客户确认</div>
+          <div class="hero-grid">
+            <div class="g"><b>2</b><span>待我审批</span></div>
+            <div class="g"><b>1</b><span>待客户确认</span></div>
+            <div class="g"><b>1</b><span>本月已确认</span></div>
+          </div>
+        </div>
+
+        <div class="seg">
+          <button class="on">待我审批</button>
+          <button>待客户确认</button>
+          <button>已完成</button>
+          <button>全部</button>
+        </div>
+
+        <div class="change-card">
+          <div class="c-top"><span class="tag add">增项</span><span class="no">BC-20260921-003</span>
+            <span class="spacer"></span><span class="chip pending">待审批</span></div>
+          <div class="c-title">客厅背景墙造型升级</div>
+          <div class="c-meta">王总 · 阳光里 3-1802 · 发起人 张三（项目经理）</div>
+          <div class="c-foot">
+            <span class="amt up">+¥ 3,200</span>
+            <span class="cost">成本 +¥ 1,900 · 等待 4 小时</span>
+          </div>
+        </div>
+
+        <div class="change-card">
+          <div class="c-top"><span class="tag remove">减项</span><span class="no">BC-20260921-002</span>
+            <span class="spacer"></span><span class="chip pending">待审批</span></div>
+          <div class="c-title">取消阳台第二排吊柜</div>
+          <div class="c-meta">李女士 · 云栖苑 8-2-501 · 发起人 王五（设计师）</div>
+          <div class="c-foot">
+            <span class="amt down">-¥ 800</span>
+            <span class="cost">成本 -¥ 500 · 等待 1 天</span>
+          </div>
+        </div>
+
+        <div class="change-card">
+          <div class="c-top"><span class="tag replace">替换</span><span class="no">BC-20260920-001</span>
+            <span class="spacer"></span><span class="chip wait">待客户确认</span></div>
+          <div class="c-title">主卧床品软包替换为木饰面</div>
+          <div class="c-meta">赵先生 · 金地悦城 6-1-302 · 发起人 陈六</div>
+          <div class="c-foot">
+            <span class="amt up">+¥ 1,500</span>
+            <span class="cost">已审批 · 待客户签认</span>
+          </div>
+        </div>
+
+        <div class="change-card" style="opacity:.86">
+          <div class="c-top"><span class="tag add">增项</span><span class="no">BC-20260918-004</span>
+            <span class="spacer"></span><span class="chip ok">客户已确认</span></div>
+          <div class="c-title">全房开关插座点位增加</div>
+          <div class="c-meta">王总 · 阳光里 3-1802 · 签认 09-18 16:20</div>
+          <div class="c-foot">
+            <span class="amt up">+¥ 8,700</span>
+            <span class="cost">应收 · 任务 · 材料已联动</span>
+          </div>
+        </div>
+      </div>
+      <div class="bottom"><button class="btn btn-ghost sm">批量</button><button class="btn btn-primary">＋ 发起增减项</button></div>
+    </div></div>
+  </div>
+
+  <!-- ================= Screen 2: 发起增减项 ================= -->
+  <div class="col">
+    <div class="col-label"><b>② 发起增减项</b><em>change/create.vue</em></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⚡ ▮</span></div>
+      <div class="navbar"><div class="back">‹</div><h2>发起增减项</h2><div class="spacer"></div></div>
+      <div class="content">
+        <div class="seg">
+          <button class="on">逐条录入</button>
+          <button>批量录入</button>
+        </div>
+
+        <div class="types">
+          <button class="on"><i>＋</i><span>增项</span></button>
+          <button><i>－</i><span>减项</span></button>
+          <button><i>⇄</i><span>替换</span></button>
+          <button><i>＃</i><span>数量</span></button>
+          <button><i>¥</i><span>价格</span></button>
+        </div>
+
+        <div class="block">
+          <div class="b-title">原合同行<span class="more">从合同范围选择</span></div>
+          <div class="line-pick">
+            <div class="ico">客</div>
+            <div class="meta"><b>客厅背景墙造型</b><span>合同价 ¥320/㎡ · 单位 ㎡ · 客厅</span></div>
+            <span class="chip ok">未施工</span>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">数量与单价</div>
+          <div class="field-row">
+            <div class="field"><label>变更数量</label><div class="ipt">1 <span class="unit">项</span></div></div>
+            <div class="field"><label>原单价</label><div class="ipt readonly">¥ 3,200<span class="locked">带出</span></div></div>
+          </div>
+        </div>
+
+        <div class="money-card">
+          <div class="m-row"><span>变更前合同额</span><b>¥ 186,000</b></div>
+          <div class="m-row hero-row"><span>本次变更</span><b>+ ¥ 3,200</b></div>
+          <div class="m-row"><span>变更后合同额</span><b>¥ 189,200</b></div>
+          <div class="m-row"><span>成本变化</span><b class="up">+ ¥ 1,900</b></div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">变更原因</div>
+          <textarea class="area" placeholder="如：客户现场要求客厅背景墙增加灯带造型与木饰面收口">客户现场要求客厅背景墙增加灯带造型与木饰面收口</textarea>
+        </div>
+
+        <div class="block">
+          <div class="b-title">现场签证照片<span class="more">最多 9 张</span></div>
+          <div class="photos">
+            <div class="photo">现场1</div>
+            <div class="photo">现场2</div>
+            <div class="photo add">＋</div>
+            <div class="photo add">＋</div>
+          </div>
+        </div>
+
+        <div class="meta-tip"><span>⚠</span><span>该合同行尚未施工，客户确认后将新增施工任务与材料计划；原报价与原合同行保持不变。</span></div>
+      </div>
+      <div class="bottom"><button class="btn btn-ghost sm">存草稿</button><button class="btn btn-primary">提交审批</button></div>
+    </div></div>
+  </div>
+
+  <!-- ================= Screen 3: 变更单详情 / 审批 ================= -->
+  <div class="col">
+    <div class="col-label"><b>③ 变更单详情 · 审批</b><em>change/detail.vue</em></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⚡ ▮</span></div>
+      <div class="navbar"><div class="back">‹</div><h2>变更单详情</h2><div class="spacer"></div><div class="act">…</div></div>
+      <div class="content">
+        <div class="hero">
+          <div class="h-top"><span class="h-cap">BC-20260921-003</span><span class="h-badge">待审批</span></div>
+          <div class="h-amount">+¥ 3,200</div>
+          <div class="h-sub">增项 · 客厅背景墙造型升级 · 王总 阳光里 3-1802</div>
+        </div>
+
+        <div class="three-money">
+          <div class="tm"><span>变更前</span><b>186,000</b></div>
+          <div class="arw">→</div>
+          <div class="tm mid"><span>本次</span><b>+3,200</b></div>
+          <div class="arw">→</div>
+          <div class="tm"><span>变更后</span><b>189,200</b></div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">变更明细<span class="more">按类型</span></div>
+          <div class="item-line">
+            <div class="l"><b>客厅背景墙造型</b><span>1 项 · 增项 · 施工</span></div>
+            <div class="r"><b>+¥ 3,200</b><span>成本 +¥ 1,900</span></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">现场签证<span class="more">2 张</span></div>
+          <div class="photos"><div class="photo">现场1</div><div class="photo">现场2</div></div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">流转记录</div>
+          <div class="tl">
+            <div class="node"><b>张三（项目经理）发起</b><span>09-21 10:12 · 已拍摄现场签证 2 张</span></div>
+            <div class="node todo"><b>等待企业负责人审批</b><span>变更未审批前不能进行客户确认</span></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">审批意见</div>
+          <textarea class="area" placeholder="填写审批意见（驳回时必填）"></textarea>
+        </div>
+
+        <div class="note">审批通过后，合同将转为「变更中」并等待客户签认；客户确认后系统才同步合同金额、应收、施工任务、材料计划和项目成本。</div>
+      </div>
+      <div class="bottom">
+        <button class="btn btn-danger-ghost sm">驳回</button>
+        <button class="btn btn-primary">审批通过</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ================= Screen 4: 客户确认台 ================= -->
+  <div class="col">
+    <div class="col-label"><b>④ 客户确认台</b><em>change/confirm.vue</em></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⚡ ▮</span></div>
+      <div class="navbar"><div class="back">‹</div><h2>客户确认变更</h2><div class="spacer"></div></div>
+      <div class="content">
+        <div class="hero">
+          <div class="h-top"><span class="h-cap">待客户确认</span><span class="h-badge">已审批</span></div>
+          <div class="h-amount">+¥ 1,500</div>
+          <div class="h-sub">替换 · 主卧床品软包替换为木饰面 · 赵先生 金地悦城</div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">变更内容</div>
+          <div class="item-line">
+            <div class="l"><b>主卧床头背景</b><span>软包 2.4㎡ → 木饰面 2.4㎡ · 替换</span></div>
+            <div class="r"><b>+¥ 1,500</b></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">上传客户签认单<span class="more">必填</span></div>
+          <div class="photos">
+            <div class="photo add">＋ 拍照 / 上传</div>
+            <div class="photo add">＋</div>
+            <div class="photo add">＋</div>
+            <div class="photo add">＋</div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">补充现场签证</div>
+          <div class="photos">
+            <div class="photo">现场1</div>
+            <div class="photo add">＋</div>
+            <div class="photo add">＋</div>
+            <div class="photo add">＋</div>
+          </div>
+        </div>
+
+        <div class="note">确认后，系统将同步更新合同金额、应收、施工任务、材料计划和项目成本；原报价与原合同行不变。重复确认不会重复生成应收。</div>
+        <div class="hint">客户签认时间将记录为：现在</div>
+      </div>
+      <div class="bottom"><button class="btn btn-primary">确认客户已认可</button></div>
+    </div></div>
+  </div>
+
+  <!-- ================= Screen 5: 批量录入 ================= -->
+  <div class="col">
+    <div class="col-label"><b>⑤ 批量录入（App 新增）</b><em>change/create.vue · batch</em></div>
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span>▮▮▮ ⚡ ▮</span></div>
+      <div class="navbar"><div class="back">‹</div><h2>发起增减项</h2><div class="spacer"></div></div>
+      <div class="content">
+        <div class="seg">
+          <button>逐条录入</button>
+          <button class="on">批量录入</button>
+        </div>
+
+        <div class="money-card">
+          <div class="m-row"><span>本次净变更</span><b>+ ¥ 5,980</b></div>
+          <div class="m-row"><span>成本变化</span><b class="up">+ ¥ 3,410</b></div>
+          <div class="m-row hero-row"><span>变更后预估</span><b>¥ 191,980</b></div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">粘贴明细<span class="more">从 Excel 粘贴</span></div>
+          <div class="note">推荐粘贴列：项目名称、规格、金额、成本、说明。增项按正数、减项按负数入账；同类项目可一次提交为一张变更单。</div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">本次明细<span class="more">3 行</span></div>
+          <div class="item-line">
+            <div class="l"><b>客厅背景墙造型</b><span>增项 · 施工 · 1 项</span></div>
+            <div class="r"><b>+¥ 3,200</b><span>成本 +¥ 1,900</span></div>
+          </div>
+          <div class="item-line">
+            <div class="l"><b>全房开关插座点位</b><span>增项 · 综合 · 26 个</span></div>
+            <div class="r"><b>+¥ 3,580</b><span>成本 +¥ 1,960</span></div>
+          </div>
+          <div class="item-line">
+            <div class="l"><b>阳台第二排吊柜</b><span>减项 · 主材 · -1 项</span></div>
+            <div class="r down"><b>-¥ 800</b><span>成本 -¥ 450</span></div>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="b-title">变更原因</div>
+          <textarea class="area" placeholder="本次整单变更原因的说明">客户现场确认整体加做背景墙与插座点位，同时取消阳台吊柜</textarea>
+        </div>
+
+        <div class="meta-tip"><span>⚠</span><span>3 行明细将保存为同一张变更单；替换 / 调量 / 调价必须关联原合同行。任一行金额非法时整单不会提交。</span></div>
+      </div>
+      <div class="bottom"><button class="btn btn-primary">提交审批（3 行）</button></div>
+    </div></div>
+  </div>
+
+</div>
+
+<footer>
+  装得清 · 合同增减项交互原型 · 2026-09-21 · 依据 DEC-001 / SCN-004 / MET-002 / BR-003<br/>
+  本原型为待确认草案，合同行级追溯（GAP-2）与撤回/取消（GAP-1）为待实现能力，不作为可用能力对外表达。
+</footer>
+</body>
+</html>
