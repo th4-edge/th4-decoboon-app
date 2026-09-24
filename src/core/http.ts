@@ -112,12 +112,12 @@ export function post<T>(uri: string, data: any = {}, options: { token?: string }
   })
 }
 
-export function upload<T>(uri: string, filePath: string, formData: Record<string, unknown> = {}): Promise<T> {
+export function upload<T>(uri: string, filePath: string, formData: Record<string, unknown> = {}, fileField = 'file'): Promise<T> {
   return new Promise((resolve, reject) => {
     uni.uploadFile({
       url: `${runtime.apiBase}${uri}`,
       filePath,
-      name: 'file',
+      name: fileField,
       formData,
       header: { token: uni.getStorageSync(runtime.tokenKey) || '' },
       success: (res) => {

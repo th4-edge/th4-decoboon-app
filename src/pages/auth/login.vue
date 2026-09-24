@@ -53,10 +53,6 @@ function toggleAgreed() {
   agreed.value = !agreed.value
 }
 
-function openAgreement(path: string) {
-  uni.navigateTo({ url: path })
-}
-
 async function finishWxLogin(code: string, phoneCode?: string) {
   submitting.value = true
   loading('正在登录…')
@@ -150,14 +146,18 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
           <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" />
           <text>首次使用，授权手机号继续</text>
         </button>
-        <view class="login__agree" @tap="toggleAgreed">
-          <view class="login__checkbox" :class="{ 'login__checkbox--on': agreed }">
-            <JzIcon v-if="agreed" name="check" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
+        <view class="login__agree">
+          <view class="login__agree-toggle" @tap="toggleAgreed">
+            <view class="login__checkbox" :class="{ 'login__checkbox--on': agreed }">
+              <JzIcon v-if="agreed" name="check" :size="22" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
+            </view>
+            <text class="login__agree-text">我已阅读并同意</text>
           </view>
-          <text class="login__agree-text">我已阅读并同意</text>
-          <text class="login__link" @tap.stop="openAgreement(P.userAgreement)">《用户协议》</text>
-          <text class="login__agree-text">与</text>
-          <text class="login__link" @tap.stop="openAgreement(P.privacyPolicy)">《隐私政策》</text>
+          <view class="login__agree-links">
+            <navigator class="login__link" :url="P.userAgreement" hover-class="none">《用户协议》</navigator>
+            <text class="login__agree-text">与</text>
+            <navigator class="login__link" :url="P.privacyPolicy" hover-class="none">《隐私政策》</navigator>
+          </view>
         </view>
       </view>
 
@@ -182,9 +182,10 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
 .login__panel-title { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .login__panel-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .login__submit { display: flex; align-items: center; justify-content: center; gap: 10rpx; margin-top: 36rpx; }
-.login__agree { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; margin-top: 28rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.login__agree { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4rpx 0; margin-top: 28rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.login__agree-toggle, .login__agree-links { display: flex; align-items: center; justify-content: center; min-height: 44rpx; }
 .login__checkbox { display: flex; align-items: center; justify-content: center; width: 30rpx; height: 30rpx; margin-right: 10rpx; border: 2rpx solid $jzb-text-4; border-radius: 8rpx; }
 .login__checkbox--on { background: $jzb-primary-dark; border-color: $jzb-primary-dark; }
-.login__link { color: $jzb-primary-dark; }
+.login__link { display: inline-flex; align-items: center; min-height: 44rpx; padding: 4rpx 2rpx; color: $jzb-primary-dark; }
 .login__version { margin-top: 40rpx; color: $jzb-text-4; text-align: center; font-size: $jzb-font-xs; }
 </style>

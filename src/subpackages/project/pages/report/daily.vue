@@ -6,11 +6,12 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
 import type { DailyReport, TaskMedia } from '@/domains/schedule/model'
+import type { SiteReport } from '@/domains/site/model'
 import { NODE_META } from '@/domains/schedule/meta'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import JzTag from '@/components/JzTag.vue'
-import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -41,6 +42,14 @@ async function load() {
   }
 }
 
+function reportAuthorName(report: SiteReport) { return report.author?.name || '系统' }
+function reportAuthorAvatar(report: SiteReport) {
+  return report.author && 'avatarUrl' in report.author ? report.author.avatarUrl || '' : ''
+}
+function reportAuthorRole(report: SiteReport) {
+  if (report.authorRole) return report.authorRole
+  return report.author && 'role' in report.author ? report.author.role : 'pm'
+}
 function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || '#86909C' }
 function nodeLabel(key: string) { return NODE_META[key as keyof typeof NODE_META]?.label || key }
 
@@ -107,7 +116,7 @@ function write() {
         <!-- 文字/影像汇报 -->
         <view v-for="(r, ri) in d.reports || []" :key="'r' + ri" class="dr__report">
           <view class="jz-row dr__report-head">
-            <JzAvatar :name="(r.author as any)?.name || '系统'" :size="48" />
+            <JzEmployeeAvatar :src="reportAuthorAvatar(r)" :name="reportAuthorName(r)" :role="reportAuthorRole(r)" :size="52" />
             <text class="dr__report-title">{{ r.title }}</text>
           </view>
           <text class="dr__report-content">{{ r.content }}</text>

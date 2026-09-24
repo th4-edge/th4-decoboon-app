@@ -17,7 +17,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 
       <view class="jz-card legal__card">
         <text class="legal__title">一、协议范围与接受</text>
-        <text class="legal__paragraph">本协议由安徽昭青网络科技有限公司（以下简称“我们”）与使用“装得清”微信小程序、Web 工作台及相关服务的企业、员工或其他授权用户（以下简称“您”）共同订立。您在注册、登录、加入企业或实际使用服务前，应完整阅读并同意本协议。您点击同意、登录或继续使用服务，即表示您具有相应的民事行为能力，并同意受本协议约束。</text>
+        <text class="legal__paragraph">本协议由{{ runtime.legalSubject }}（以下简称“我们”）与使用“装得清”微信小程序、Web 工作台及相关服务的企业、员工或其他授权用户（以下简称“您”）共同订立。您在注册、登录、加入企业或实际使用服务前，应完整阅读并同意本协议。您点击同意、登录或继续使用服务，即表示您具有相应的民事行为能力，并同意受本协议约束。</text>
       </view>
 
       <view class="jz-card legal__card">

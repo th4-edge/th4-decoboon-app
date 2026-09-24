@@ -139,6 +139,19 @@ export function loginAsEmployee(employee: Employee, token: string, profile?: Use
   persist()
 }
 
+/** 个人资料修改后同步本地会话（姓名 / 头像），无需重新登录。 */
+export function updateEmployeeProfile(patch: { name?: string; avatarUrl?: string | null }) {
+  if (session.emp) {
+    if (patch.name) session.emp.name = patch.name
+    if (patch.avatarUrl !== undefined) session.emp.avatarUrl = patch.avatarUrl || undefined
+  }
+  if (session.user) {
+    if (patch.name) session.user.nickname = patch.name
+    if (patch.avatarUrl !== undefined) session.user.avatarUrl = patch.avatarUrl || undefined
+  }
+  persist()
+}
+
 export function loginAsCustomer(profile: UserProfile, token: string) {
   const accesses = profile.customerAccesses || []
   const primary = accesses[0]

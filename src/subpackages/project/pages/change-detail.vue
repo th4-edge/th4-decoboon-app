@@ -11,6 +11,7 @@ import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
@@ -199,12 +200,18 @@ async function cancel() {
         <text class="cd__block-title">流转记录</text>
         <view class="cd__tl">
           <view class="cd__node">
-            <text class="cd__node-title">{{ change.requestedBy?.name || '发起人' }} 发起</text>
-            <text class="cd__node-sub">{{ change.createdAt || '' }}</text>
+            <JzEmployeeAvatar v-if="change.requestedBy" :src="change.requestedBy.avatarUrl || ''" :name="change.requestedBy.name" :role="change.requestedBy.role" :status="change.requestedBy.status" :size="48" />
+            <view class="cd__node-main">
+              <text class="cd__node-title">{{ change.requestedBy?.name || '发起人' }} 发起</text>
+              <text class="cd__node-sub">{{ change.createdAt || '' }}</text>
+            </view>
           </view>
           <view v-if="change.approvedAt" class="cd__node">
-            <text class="cd__node-title">{{ change.approvedBy?.name || '审批人' }} · {{ change.status === 'rejected' ? '驳回' : '审批通过' }}</text>
-            <text class="cd__node-sub">{{ change.approvedAt }}<template v-if="change.conclusion"> · {{ change.conclusion }}</template></text>
+            <JzEmployeeAvatar v-if="change.approvedBy" :src="change.approvedBy.avatarUrl || ''" :name="change.approvedBy.name" :role="change.approvedBy.role" :status="change.approvedBy.status" :size="48" />
+            <view class="cd__node-main">
+              <text class="cd__node-title">{{ change.approvedBy?.name || '审批人' }} · {{ change.status === 'rejected' ? '驳回' : '审批通过' }}</text>
+              <text class="cd__node-sub">{{ change.approvedAt }}<template v-if="change.conclusion"> · {{ change.conclusion }}</template></text>
+            </view>
           </view>
           <view v-if="change.customerConfirmedAt" class="cd__node">
             <text class="cd__node-title">客户已确认</text>
@@ -301,7 +308,8 @@ async function cancel() {
 .cd__photo--add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; border: 2rpx dashed $jzb-border-light; }
 .cd__photo-tip { font-size: 20rpx; color: $jzb-text-3; }
 .cd__tl { position: relative; }
-.cd__node { position: relative; padding: 0 0 20rpx 26rpx; }
+.cd__node { position: relative; display: flex; align-items: flex-start; gap: 12rpx; padding: 0 0 20rpx 26rpx; }
+.cd__node-main { flex: 1; min-width: 0; }
 .cd__node:last-child { padding-bottom: 0; }
 .cd__node::before { content: ''; position: absolute; left: 0; top: 6rpx; width: 14rpx; height: 14rpx; border-radius: 50%; background: $jzb-primary-base; }
 .cd__node--todo::before { background: $jzb-text-inverse; border: 3rpx solid $jzb-text-4; }

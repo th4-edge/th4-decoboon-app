@@ -13,6 +13,7 @@ import { projectApi } from '@/domains/project/api'
 import { acceptanceApi, acceptanceRoundApi } from '@/domains/acceptance/api'
 import { fileApi } from '@/domains/file/api'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
 
@@ -246,7 +247,14 @@ async function submit() {
       <view v-if="acceptance.images && acceptance.images.length" class="ac__imgs">
         <image v-for="(im, i) in acceptance.images" :key="i" :src="im" mode="aspectFill" class="ac__img" @tap="previewFull(im)" />
       </view>
-      <view class="ac__done-row"><text class="ac__done-label">提交人</text><text class="ac__done-val">{{ acceptance.submitBy?.name }}（{{ acceptance.submitBy?.title || '-' }}）</text></view>
+      <view class="ac__done-row">
+        <text class="ac__done-label">提交人</text>
+        <view v-if="acceptance.submitBy" class="ac__person">
+          <JzEmployeeAvatar :src="acceptance.submitBy.avatarUrl || ''" :name="acceptance.submitBy.name" :role="acceptance.submitBy.role" :status="acceptance.submitBy.status" :size="44" />
+          <text class="ac__done-val">{{ acceptance.submitBy.name }}（{{ acceptance.submitBy.title || '-' }}）</text>
+        </view>
+        <text v-else class="ac__done-val">-</text>
+      </view>
       <view class="ac__done-row"><text class="ac__done-label">提交时间</text><text class="ac__done-val">{{ acceptance.createdAt }}</text></view>
       <view v-if="acceptance.confirmAt" class="ac__done-row"><text class="ac__done-label">业主确认</text><text class="ac__done-val">{{ acceptance.confirmAt }}</text></view>
 
@@ -301,7 +309,10 @@ async function submit() {
           <text class="ac__round-no">第 {{ r.roundNo }} 轮</text>
           <JzTag :text="roundLabel(r.result)" :color="roundColor(r.result)" />
         </view>
-        <text class="ac__round-meta">{{ r.submitBy?.name || '—' }} · {{ r.submittedAt || '—' }}</text>
+        <view class="ac__round-submitter">
+          <JzEmployeeAvatar v-if="r.submitBy" :src="r.submitBy.avatarUrl || ''" :name="r.submitBy.name" :role="r.submitBy.role" :status="r.submitBy.status" :size="40" />
+          <text class="ac__round-meta">{{ r.submitBy?.name || '—' }} · {{ r.submittedAt || '—' }}</text>
+        </view>
         <view v-if="r.rectificationNote" class="ac__round-block">
           <text class="ac__round-label">整改说明</text>
           <text class="ac__round-text">{{ r.rectificationNote }}</text>
@@ -324,7 +335,13 @@ async function submit() {
         </view>
         <text v-if="r.conclusion" class="ac__round-text">{{ r.conclusion }}</text>
         <view v-if="r.confirmedAt" class="ac__done-row"><text class="ac__done-label">结论时间</text><text class="ac__done-val">{{ r.confirmedAt }}</text></view>
-        <view v-if="r.rectificationOwner" class="ac__done-row"><text class="ac__done-label">整改责任人</text><text class="ac__done-val">{{ r.rectificationOwner.name }}<text v-if="r.rectificationTypeName"> · {{ r.rectificationTypeName }}</text><text v-if="r.rectificationDueDate"> · 截止 {{ r.rectificationDueDate }}</text></text></view>
+        <view v-if="r.rectificationOwner" class="ac__done-row">
+          <text class="ac__done-label">整改责任人</text>
+          <view class="ac__person">
+            <JzEmployeeAvatar :src="r.rectificationOwner.avatarUrl || ''" :name="r.rectificationOwner.name" :role="r.rectificationOwner.role" :status="r.rectificationOwner.status" :size="44" />
+            <text class="ac__done-val">{{ r.rectificationOwner.name }}<text v-if="r.rectificationTypeName"> · {{ r.rectificationTypeName }}</text><text v-if="r.rectificationDueDate"> · 截止 {{ r.rectificationDueDate }}</text></text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -412,6 +429,9 @@ async function submit() {
 .ac__resubmit-btn text { margin-right: 6rpx; }
 .ac__round { margin-top: 22rpx; padding-top: 20rpx; border-top: 1rpx solid $jzb-border-light; }
 .ac__round-no { font-size: $jzb-font-sm; font-weight: 700; }
+.ac__person { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10rpx; text-align: right; }
+.ac__round-submitter { display: flex; align-items: center; gap: 10rpx; margin-top: 6rpx; }
+.ac__round-submitter .ac__round-meta { margin-top: 0; }
 .ac__round-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .ac__round-block { margin-top: 12rpx; }
 .ac__round-label { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; margin-bottom: 6rpx; }

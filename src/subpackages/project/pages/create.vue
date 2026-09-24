@@ -12,6 +12,7 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 
 type ContractStatus = Contract['status']
 
@@ -226,7 +227,7 @@ async function submit() {
         <view><text>房屋</text><text class="jz-clamp-1">{{ selectedQuote.property?.address || selectedQuote.customer?.community || '待补充' }}</text></view>
         <view><text>面积</text><text>{{ selectedQuote.area }}㎡</text></view>
         <view><text>报价额</text><text>{{ money(selectedQuote.amount) }}</text></view>
-        <view><text>设计师</text><text>{{ selectedQuote.owner?.name || '待指派' }}</text></view>
+        <view><text>设计师</text><view class="pc__person"><JzEmployeeAvatar v-if="selectedQuote.owner" :src="selectedQuote.owner.avatarUrl || ''" :name="selectedQuote.owner.name" :role="selectedQuote.owner.role" :status="selectedQuote.owner.status" :size="40" /><text>{{ selectedQuote.owner?.name || '待指派' }}</text></view></view>
       </view>
 
       <view v-if="contract" class="pc__contract-state">
@@ -308,6 +309,7 @@ async function submit() {
 .pc__plan-preview { margin: 0 0 16rpx 170rpx; padding: 16rpx 18rpx; color: $jzb-text-3; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .pc__arrow { margin-left: 8rpx; flex-shrink: 0; }
 .pc__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx 12rpx; margin-top: 18rpx; padding: 20rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius; font-size: $jzb-font-xs; }
+.pc__person { display: inline-flex; align-items: center; gap: 8rpx; }
 .pc__quote view { min-width: 0; }
 .pc__quote view > text:first-child { display: block; color: $jzb-text-3; }
 .pc__quote view > text:last-child { display: block; margin-top: 4rpx; font-weight: 650; }

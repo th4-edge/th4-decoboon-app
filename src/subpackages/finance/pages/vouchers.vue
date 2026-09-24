@@ -17,6 +17,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzSheet from '@/components/JzSheet.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 type PeriodKey = 'all' | 'd3' | 'd7' | 'd15' | 'd30' | 'month' | 'lastMonth' | 'year' | 'custom'
@@ -604,10 +605,13 @@ void bootSheetSources()
               <view
                 v-for="item in designers"
                 :key="item.id"
-                class="ps__chip"
+                class="ps__chip ps__chip--person"
                 :class="{ 'ps__chip--on': projectDesignerId === item.id }"
                 @tap="selectSheetDesigner(item.id)"
-              >{{ item.name }}</view>
+              >
+                <JzEmployeeAvatar :src="item.avatarUrl || ''" :name="item.name" :role="item.role" :status="item.status" :size="36" />
+                <text>{{ item.name }}</text>
+              </view>
             </view>
           </view>
         </view>
@@ -627,7 +631,8 @@ void bootSheetSources()
             :class="{ 'ps__item--on': projectId === item.id }"
             @tap="selectProject(item.id, item.name)"
           >
-            <view class="jz-grow">
+            <JzEmployeeAvatar v-if="item.designer" :src="item.designer.avatarUrl || ''" :name="item.designer.name" :role="item.designer.role" :status="item.designer.status" :size="56" />
+            <view class="jz-grow ps__item-main">
               <view class="ps__name-row">
                 <text class="ps__name">{{ item.name }}</text>
                 <text class="ps__tag" :class="ACTIVE_STATUSES.includes(item.status) ? 'ps__tag--on' : ''">{{ STATUS_LABEL[item.status] || item.status }}</text>
@@ -724,6 +729,8 @@ void bootSheetSources()
 .ps__flabel { flex: none; width: 72rpx; padding-top: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ps__chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 10rpx; }
 .ps__chip {
+.ps__chip--person { display: inline-flex; align-items: center; gap: 6rpx; padding-left: 6rpx; }
+.ps__item-main { margin-left: 14rpx; }
   display: inline-flex; align-items: center; min-height: 56rpx; padding: 0 20rpx;
   color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent;
   border-radius: $jzb-radius-pill; font-size: $jzb-font-xs;

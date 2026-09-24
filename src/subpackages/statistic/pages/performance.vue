@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import { P } from '@/config'
+import { P, goTab, isTabPath } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { statisticApi } from '@/domains/statistic/api'
 import type { DesignerReport, MarketerPeriodMetric, MarketerRateMetric, MarketerReport, PmReport, StoreManagerReport, TeamLeaderReport } from '@/domains/statistic/model'
-import { money } from '@/core/format'
+import { money, moneyParts } from '@/core/format'
+import type { SiteReport } from '@/domains/site/model'
 import { CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -15,7 +16,18 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import { PROJECT_STATUS_META } from '@/domains/project/meta'
 
+function reportAuthorName(report: SiteReport) { return report.author?.name || '现场成员' }
+function reportAuthorAvatar(report: SiteReport) {
+  return report.author && 'avatarUrl' in report.author ? report.author.avatarUrl || '' : ''
+}
+function reportAuthorRole(report: SiteReport) {
+  if (report.authorRole) return report.authorRole
+  return report.author && 'role' in report.author ? report.author.role : 'pm'
+}
 const designerReport = ref<DesignerReport | null>(null)
 const marketerReport = ref<MarketerReport | null>(null)
 const storeReport = ref<StoreManagerReport | null>(null)
@@ -48,7 +60,7 @@ async function load() {
   } finally { loading.value = false }
 }
 
-const cards = computed((): { label: string; value: string; icon: IconName; tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' | 'info' }[] => {
+const cards = computed((): { label: string; value: string; icon: IconName; tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' | 'info'; path?: string }[] => {
   const r = designerReport.value
   if (isPm.value) {
     const p = pmReport.value
@@ -62,19 +74,19 @@ const cards = computed((): { label: string; value: string; icon: IconName; tone:
   if (isTeamLeader.value) {
     const t = teamReport.value
     return [
-      { label: '团队客户', value: `${t?.customerCount || 0}`, icon: 'users', tone: 'brand' },
-      { label: '待派单', value: `${t?.unassignedDesignerCount || 0}`, icon: 'user-plus', tone: 'warning' },
-      { label: '待推进报价', value: `${t?.pendingQuoteCount || 0}`, icon: 'file-text', tone: 'purple' },
-      { label: '施工风险', value: `${(t?.suspendedProjectCount || 0) + (t?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: 'danger' }
+      { label: '团队客户', value: `${t?.customerCount || 0}`, icon: 'users', tone: 'brand', path: P.customerList },
+      { label: '待派单', value: `${t?.unassignedDesignerCount || 0}`, icon: 'user-plus', tone: 'warning', path: `${P.customerList}?filter=assign` },
+      { label: '待决策报价', value: `${t?.pendingDecisionQuoteCount || 0}`, icon: 'file-text', tone: 'purple', path: `${P.quoteList}?status=submitted` },
+      { label: '施工风险', value: `${(t?.suspendedProjectCount || 0) + (t?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: 'danger', path: P.projectList }
     ]
   }
   if (isStoreManager.value) {
     const s = storeReport.value
     return [
-      { label: '门店客户', value: `${s?.customerCount || 0}`, icon: 'user', tone: 'brand' },
-      { label: '待指派', value: `${s?.unassignedDesignerCount || 0}`, icon: 'users', tone: 'brand' },
-      { label: '待推进报价', value: `${s?.pendingQuoteCount || 0}`, icon: 'file-text', tone: 'purple' },
-      { label: '施工风险', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: 'danger' }
+      { label: '门店客户', value: `${s?.customerCount || 0}`, icon: 'user', tone: 'brand', path: P.customerList },
+      { label: '待指派', value: `${s?.unassignedDesignerCount || 0}`, icon: 'users', tone: 'brand', path: `${P.customerList}?filter=assign` },
+      { label: '待决策报价', value: `${s?.pendingDecisionQuoteCount || 0}`, icon: 'file-text', tone: 'purple', path: `${P.quoteList}?status=submitted` },
+      { label: '施工风险', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, icon: 'alert-circle', tone: 'danger', path: P.projectList }
     ]
   }
   if (isDesigner.value) {
@@ -93,17 +105,22 @@ const cards = computed((): { label: string; value: string; icon: IconName; tone:
   ]
 })
 
-const storeStructureCards = computed((): { label: string; value: string; sub: string; icon: IconName; tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' | 'info' }[] => {
+const storeStructureCards = computed((): { label: string; value: string; sub: string; action: string; path: string; icon: IconName; tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' | 'info' }[] => {
   const s = storeReport.value
+  const pendingDecision = s?.pendingDecisionQuoteCount || 0
+  const risk = (s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)
   return [
-    { label: '门店成员', value: `${s?.memberCount || 0}`, sub: `设计 ${s?.designerCount || 0} · 顾问 ${s?.marketerCount || 0} · PM ${s?.projectManagerCount || 0}`, icon: 'users', tone: 'brand' },
-    { label: '客户经营', value: `${s?.customerCount || 0}`, sub: `新增 ${s?.newCustomerCount || 0} · 跟进 ${s?.followingCustomerCount || 0} · 待量房 ${s?.pendingMeasureCount || 0}`, icon: 'user', tone: 'brand' },
-    { label: '报价转化', value: `${s?.quoteCount || 0}`, sub: `待确认 ${s?.pendingQuoteCount || 0} · 已接受 ${s?.acceptedQuoteCount || 0} · ${s?.conversionRate || 0}%`, icon: 'calculator', tone: 'purple' },
-    { label: '项目履约', value: `${s?.projectCount || 0}`, sub: `在施 ${s?.ongoingProjectCount || 0} · 待开工 ${s?.preparingProjectCount || 0} · 待验收 ${s?.acceptingProjectCount || 0}`, icon: 'briefcase', tone: 'info' },
-    { label: '风险待办', value: `${(s?.suspendedProjectCount || 0) + (s?.taskOverdueCount || 0)}`, sub: `停工 ${s?.suspendedProjectCount || 0} · 逾期任务 ${s?.taskOverdueCount || 0} · 未读 ${s?.noticeUnreadCount || 0}`, icon: 'alert-circle', tone: 'danger' },
-    { label: '经营沉淀', value: `${s?.reportCount || 0}`, sub: `签约 ${money(s?.signedAmount || 0)} · 报价额 ${money(s?.quoteAmount || 0)} · 已完工 ${s?.finishedProjectCount || 0}`, icon: 'chart', tone: 'warning' }
+    { label: '门店成员', value: `${s?.memberCount || 0}`, sub: `设计 ${s?.designerCount || 0} · 顾问 ${s?.marketerCount || 0} · PM ${s?.projectManagerCount || 0}`, action: '管理成员与邀请', path: P.companyMembers, icon: 'users', tone: 'brand' },
+    { label: '客户经营', value: `${s?.customerCount || 0}`, sub: `新增 ${s?.newCustomerCount || 0} · 跟进 ${s?.followingCustomerCount || 0} · 待量房 ${s?.pendingMeasureCount || 0}`, action: s?.unassignedDesignerCount ? `${s?.unassignedDesignerCount} 位客户待指派设计师` : '进入门店客户池', path: s?.unassignedDesignerCount ? `${P.customerList}?filter=assign` : P.customerList, icon: 'user', tone: 'brand' },
+    { label: '报价转化', value: `${s?.quoteCount || 0}`, sub: `待决策 ${pendingDecision} · 最终接受 ${s?.acceptedOpportunityCount || 0}/${s?.decidedOpportunityCount || 0} 个机会`, action: pendingDecision ? `推动 ${pendingDecision} 份待决策报价` : '进入报价池', path: pendingDecision ? `${P.quoteList}?status=submitted` : P.quoteList, icon: 'calculator', tone: 'purple' },
+    { label: '项目履约', value: `${s?.projectCount || 0}`, sub: `在施 ${s?.ongoingProjectCount || 0} · 待开工 ${s?.preparingProjectCount || 0} · 待验收 ${s?.acceptingProjectCount || 0}`, action: '查看门店项目', path: P.projectList, icon: 'briefcase', tone: 'info' },
+    { label: '风险待办', value: `${risk}`, sub: `停工 ${s?.suspendedProjectCount || 0} · 逾期任务 ${s?.taskOverdueCount || 0} · 未读 ${s?.noticeUnreadCount || 0}`, action: risk ? '优先处理停工与逾期' : '当前无停工与逾期', path: P.projectList, icon: 'alert-circle', tone: 'danger' },
+    { label: '经营沉淀', value: `${s?.reportCount || 0}`, sub: `签约 ${money(s?.signedAmount || 0)} · 报价额 ${money(s?.quoteAmount || 0)} · 已完工 ${s?.finishedProjectCount || 0}`, action: '查看现场动态', path: P.dynamic, icon: 'chart', tone: 'warning' }
   ]
 })
+
+/** 门店业绩行内明细展开（低频字段默认收起，避免首屏铺满指标）。 */
+const storeDetailExpanded = ref(false)
 
 function quoteStatusText(status: string) {
   return ({
@@ -112,26 +129,55 @@ function quoteStatusText(status: string) {
   } as Record<string, string>)[status] || status
 }
 
-const hero = computed(() => isPm.value ? {
-  title: '项目履约合同额', amount: pmReport.value?.contractAmount || 0,
-  left: `已交付 ${money(pmReport.value?.completedAmount || 0)}`,
-  right: `准时交付率 ${pmReport.value?.onTimeDeliveryRate || 0}%`
-} : isTeamLeader.value ? {
-  title: '团队累计签约额', amount: teamReport.value?.signedAmount || 0,
-  left: `团队报价 ${money(teamReport.value?.quoteAmount || 0)}`,
-  right: `报价接受率 ${teamReport.value?.conversionRate || 0}%`
-} : isStoreManager.value ? {
-  title: '门店累计签约额', amount: storeReport.value?.signedAmount || 0,
-  left: `报价规模 ${money(storeReport.value?.quoteAmount || 0)}`,
-  right: `报价接受率 ${storeReport.value?.conversionRate || 0}%`
-} : isDesigner.value ? {
-  title: '累计设计签约额', amount: designerReport.value?.signedAmount || 0,
-  left: `报价规模 ${money(designerReport.value?.quoteAmount || 0)}`,
-  right: `报价接受率 ${designerReport.value?.conversionRate || 0}%`
-} : {
-  title: '本月录入客户', amount: marketerReport.value?.customerInputMonth.current || 0,
-  left: `量房率 ${marketerReport.value?.measureRateMonth.currentRate || 0}%`,
-  right: `本月跟进 ${marketerReport.value?.followMonth.current || 0}`
+/** 主指标卡：标题 + 口径 + 数值单位 + 两项支撑指标，金额与计数分开格式化。 */
+const hero = computed(() => {
+  if (isPm.value) {
+    const parts = moneyParts(pmReport.value?.contractAmount || 0)
+    return {
+      title: '项目履约合同额', scope: '合同口径', value: parts.value, unit: parts.unit,
+      foot: [
+        { label: '已交付', value: money(pmReport.value?.completedAmount || 0) },
+        { label: '准时交付率', value: `${pmReport.value?.onTimeDeliveryRate || 0}%` }
+      ]
+    }
+  }
+  if (isTeamLeader.value) {
+    const parts = moneyParts(teamReport.value?.signedAmount || 0)
+    return {
+      title: '团队签约额', scope: '累计', value: parts.value, unit: parts.unit,
+      foot: [
+        { label: '报价规模', value: money(teamReport.value?.quoteAmount || 0) },
+        { label: '最终报价接受率', value: `${teamReport.value?.finalQuoteAcceptanceRate || 0}%` }
+      ]
+    }
+  }
+  if (isStoreManager.value) {
+    const parts = moneyParts(storeReport.value?.signedAmount || 0)
+    return {
+      title: '门店签约额', scope: '累计', value: parts.value, unit: parts.unit,
+      foot: [
+        { label: '报价规模', value: money(storeReport.value?.quoteAmount || 0) },
+        { label: '最终报价接受率', value: `${storeReport.value?.finalQuoteAcceptanceRate || 0}%` }
+      ]
+    }
+  }
+  if (isDesigner.value) {
+    const parts = moneyParts(designerReport.value?.signedAmount || 0)
+    return {
+      title: '设计签约额', scope: '累计', value: parts.value, unit: parts.unit,
+      foot: [
+        { label: '报价规模', value: money(designerReport.value?.quoteAmount || 0) },
+        { label: '最终报价接受率', value: `${designerReport.value?.finalQuoteAcceptanceRate || 0}%` }
+      ]
+    }
+  }
+  return {
+    title: '录入客户', scope: '本月', value: `${marketerReport.value?.customerInputMonth.current || 0}`, unit: '位',
+    foot: [
+      { label: '本月量房率', value: `${marketerReport.value?.measureRateMonth.currentRate || 0}%` },
+      { label: '本月跟进', value: `${marketerReport.value?.followMonth.current || 0}` }
+    ]
+  }
 })
 
 const goldenMax = computed(() => Math.max(
@@ -184,7 +230,47 @@ function toneColor(tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' |
 }
 
 function openCustomer(id: string) { uni.navigateTo({ url: `${P.customerDetail}?id=${id}` }) }
+function openPath(path: string) {
+  const base = path.split('?')[0]
+  if (isTabPath(base)) goTab(path)
+  else uni.navigateTo({ url: path })
+}
 function openCustomerList() { uni.navigateTo({ url: P.customerList }) }
+function openProjects() { openPath(P.projectList) }
+
+/** 客户阶段标签色：签约/施工/完工走成功色，流失走风险色，报价走品牌色。 */
+function customerStageTone(stage?: string) {
+  const key = String(stage || '')
+  if (['sign', 'construction', 'done'].includes(key)) return 'perf__record-tag--success'
+  if (key === 'quote') return 'perf__record-tag--brand'
+  if (key === 'lost') return 'perf__record-tag--danger'
+  return ''
+}
+
+/** 报价状态标签色：接受/转项目成功，待决策警示，驳回风险。 */
+function quoteStatusTone(status?: string) {
+  if (status === 'accepted' || status === 'converted') return 'perf__record-tag--success'
+  if (status === 'submitted') return 'perf__record-tag--warning'
+  if (status === 'rejected') return 'perf__record-tag--danger'
+  return ''
+}
+
+/** 项目状态标签色：完/结算成功，停工风险，待验收警示。 */
+function projectStatusTone(status?: string) {
+  if (status === 'finished' || status === 'settled') return 'perf__record-tag--success'
+  if (status === 'suspended') return 'perf__record-tag--danger'
+  if (status === 'accepting') return 'perf__record-tag--warning'
+  return ''
+}
+
+function projectStatusLabel(status?: string) {
+  if (!status) return '待业务确认'
+  return PROJECT_STATUS_META[status as keyof typeof PROJECT_STATUS_META]?.label || status
+}
+
+function progressWidth(value?: number) {
+  return `${Math.max(0, Math.min(100, Number(value) || 0))}%`
+}
 function openQuote(id: string) { uni.navigateTo({ url: `${P.quoteDetail}?id=${id}` }) }
 function openWorkbench() { uni.navigateTo({ url: P.managerWorkbench }) }
 function openProject(id: string) { uni.navigateTo({ url: `${P.projectDetail}?id=${id}` }) }
@@ -196,9 +282,20 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
     <JzPageHeader :title="isPm ? '项目经理履约业绩' : isTeamLeader ? '团队业绩' : isStoreManager ? '门店业绩' : isDesigner ? '设计业绩' : '我的业绩'" :subtitle="isPm ? '负责项目、施工任务、验收质量、材料风险与交付业绩' : isTeamLeader ? '团队客户、成员负荷、报价、项目与施工风险全景' : isStoreManager ? '门店客户、设计师、报价、项目与履约风险全景' : isDesigner ? '客户转化、报价、项目与履约闭环' : '客户跟进、量房、报价与成交概览'" />
 
     <view class="perf__hero" :class="{ 'perf__hero--marketer': isMarketer }">
-      <text class="perf__hero-label">{{ hero.title }}</text>
-      <text class="perf__hero-value">{{ money(hero.amount) }}</text>
-      <view class="perf__hero-foot"><text>{{ hero.left }}</text><text>{{ hero.right }}</text></view>
+      <view class="perf__hero-head">
+        <text class="perf__hero-label">{{ hero.title }}</text>
+        <text class="perf__hero-scope">{{ hero.scope }}</text>
+      </view>
+      <view class="perf__hero-figure">
+        <text class="perf__hero-value">{{ hero.value }}</text>
+        <text v-if="hero.unit" class="perf__hero-unit">{{ hero.unit }}</text>
+      </view>
+      <view class="perf__hero-foot">
+        <view v-for="item in hero.foot" :key="item.label" class="perf__hero-foot-col">
+          <text class="perf__hero-foot-label">{{ item.label }}</text>
+          <text class="perf__hero-foot-value">{{ item.value }}</text>
+        </view>
+      </view>
     </view>
 
     <PageState v-if="loadError && !hasData" state="error" title="业绩数据加载失败" :subtitle="loadError" @retry="load" />
@@ -208,12 +305,17 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <text>门店经营概览</text><text>核心经营指标与履约状态</text>
     </view>
     <view class="perf__grid" :class="{ 'perf__grid--marketer': isMarketer }">
-      <view v-for="item in cards" :key="item.label" class="jz-card perf__card">
-        <view class="perf__icon" :class="`perf__icon--${item.tone}`">
-          <JzIcon :name="item.icon" :size="34" :color="toneColor(item.tone)" />
+      <view v-for="item in cards" :key="item.label" class="jz-card perf__card" :class="{ 'perf__card--action': !!item.path }" @tap="item.path && openPath(item.path)">
+        <view class="perf__card-top">
+          <view class="perf__icon" :class="`perf__icon--${item.tone}`">
+            <JzIcon :name="item.icon" :size="34" :color="toneColor(item.tone)" />
+          </view>
+          <view class="perf__card-main">
+            <text class="perf__value">{{ item.value }}</text>
+            <text class="perf__label">{{ item.label }}</text>
+          </view>
         </view>
-        <text class="perf__value">{{ item.value }}</text>
-        <text class="perf__label">{{ item.label }}</text>
+        <view v-if="item.path" class="perf__card-go"><text>去处理</text><JzIcon name="chevron-right" :size="20" :color="TOKEN_COLOR.primary" /></view>
       </view>
     </view>
 
@@ -228,11 +330,21 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       </view>
 
       <view class="jz-section"><text class="jz-section__title">负责项目</text><text class="jz-section__more" @tap="openWorkbench">风险优先</text></view>
-      <view v-if="pmReport?.focusProjects?.length" class="jz-card perf__list">
-        <view v-for="project in pmReport.focusProjects" :key="project.id" class="perf__item" @tap="openProject(project.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ project.name }}</text><text class="perf__item-sub">{{ project.customer?.name || '-' }} · 进度 {{ project.progress }}% · 计划 {{ project.planEndDate?.slice(5) || '-' }}</text></view>
-          <text class="perf__amount">{{ money(project.contractAmount) }}</text>
-          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+      <view v-if="pmReport?.focusProjects?.length" class="perf__records">
+        <view v-for="project in pmReport.focusProjects" :key="project.id" class="perf__record" @tap="openProject(project.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ project.name }}</text>
+              <text class="perf__record-tag" :class="projectStatusTone(project.status)">{{ projectStatusLabel(project.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ project.customer?.name || '-' }} · 计划完工 {{ project.planEndDate?.slice(5) || '-' }}</text>
+            <view class="perf__record-progress">
+              <view class="perf__progress-track"><view class="perf__progress-bar" :style="{ width: progressWidth(project.progress) }" /></view>
+              <text class="perf__progress-value">进度 {{ project.progress || 0 }}%</text>
+            </view>
+          </view>
+          <text class="perf__record-amount">{{ money(project.contractAmount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无负责项目" sub="企业负责人指派项目经理后形成履约业绩" />
@@ -240,7 +352,8 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <view class="jz-section"><text class="jz-section__title">现场动态</text><text class="jz-section__more" @tap="openWorkbench">查看全部</text></view>
       <view v-if="pmReport?.recentReports?.length" class="jz-card perf__list">
         <view v-for="item in pmReport.recentReports.slice(0, 5)" :key="item.id" class="perf__item">
-          <view class="jz-grow"><text class="perf__item-title">{{ item.title }}</text><text class="perf__item-sub">{{ item.author?.name || '现场成员' }} · {{ item.content.slice(0, 28) }}</text></view>
+          <JzEmployeeAvatar :src="reportAuthorAvatar(item)" :name="reportAuthorName(item)" :role="reportAuthorRole(item)" :status="item.author && 'status' in item.author ? item.author.status : undefined" :size="52" />
+          <view class="jz-grow perf__item-main"><text class="perf__item-title">{{ item.title }}</text><text class="perf__item-sub">{{ item.author?.name || '现场成员' }} · {{ item.content.slice(0, 28) }}</text></view>
           <text class="perf__item-tag">动态</text>
         </view>
       </view>
@@ -248,28 +361,39 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
     </template>
 
     <template v-else-if="isStoreManager">
-      <view class="jz-section"><text class="jz-section__title">门店经营结构</text></view>
+      <view class="jz-section"><text class="jz-section__title">门店经营结构</text><text class="jz-section__more">点击卡片进入对应业务</text></view>
       <view class="perf__structure">
-        <view v-for="item in storeStructureCards" :key="item.label" class="jz-card perf__structure-card">
+        <view v-for="item in storeStructureCards" :key="item.label" class="jz-card perf__structure-card" @tap="openPath(item.path)">
           <view class="perf__structure-head"><view class="perf__structure-icon" :class="`perf__structure-icon--${item.tone}`"><JzIcon :name="item.icon" :size="32" :color="toneColor(item.tone)" /></view><text>{{ item.label }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
           <text class="perf__structure-value">{{ item.value }}</text>
           <text class="perf__structure-sub">{{ item.sub }}</text>
+          <view class="perf__structure-action"><text>{{ item.action }}</text><JzIcon name="arrow-right" :size="20" :color="TOKEN_COLOR.primary" /></view>
         </view>
       </view>
 
-      <view class="jz-section"><text class="jz-section__title">设计师经营排名</text><text class="jz-section__more" @tap="openQuotes">报价池</text></view>
+      <view class="jz-section">
+        <text class="jz-section__title">设计师经营排名</text>
+        <text class="jz-section__more" @tap="storeDetailExpanded = !storeDetailExpanded">{{ storeDetailExpanded ? '收起明细' : '展开明细' }}</text>
+      </view>
       <view v-if="storeReport?.designerPerformances?.length" class="perf__designers">
         <view v-for="perf in storeReport.designerPerformances" :key="perf.designer?.id || 'designer'" class="jz-card perf__designer">
           <view class="jz-between">
             <view class="jz-row">
+              <JzEmployeeAvatar :src="perf.designer?.avatarUrl || ''" :name="perf.designer?.name || '未命名设计师'" :role="perf.designer?.role || 'designer'" :status="perf.designer?.status" :size="58" />
               <text class="perf__designer-name">{{ perf.designer?.name || '未命名设计师' }}</text>
-              <text class="perf__item-tag">{{ perf.conversionRate }}%</text>
+              <text class="perf__item-tag">最终 {{ perf.finalQuoteAcceptanceRate }}%</text>
             </view>
             <text class="perf__amount">{{ money(perf.signedAmount) }}</text>
           </view>
           <view class="perf__designer-metrics">
             <text>客户 {{ perf.customerCount }}</text>
             <text>待量房 {{ perf.pendingMeasureCount }}</text>
+            <text>待决策报价 {{ perf.pendingDecisionQuoteCount }}</text>
+            <text>最终接受 {{ perf.acceptedOpportunityCount }}/{{ perf.decidedOpportunityCount }}</text>
+            <text>首版接受 {{ perf.firstQuoteAcceptanceRate }}%</text>
+            <text :class="{ 'perf__risk': perf.taskOverdueCount > 0 }">逾期 {{ perf.taskOverdueCount }}</text>
+          </view>
+          <view v-if="storeDetailExpanded" class="perf__designer-metrics perf__designer-metrics--detail">
             <text>报价 {{ perf.quoteCount }}</text>
             <text>待报价 {{ perf.pendingQuoteCount }}</text>
             <text>已接受 {{ perf.acceptedQuoteCount }}</text>
@@ -277,36 +401,60 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
             <text>项目 {{ perf.projectCount }}</text>
             <text>在施 {{ perf.ongoingProjectCount }}</text>
             <text>待办 {{ perf.taskTodoCount }}</text>
-            <text :class="{ 'perf__risk': perf.taskOverdueCount > 0 }">逾期 {{ perf.taskOverdueCount }}</text>
             <text>动态 {{ perf.reportCount }}</text>
           </view>
         </view>
       </view>
       <JzEmpty v-else text="暂无设计师业绩" sub="邀请设计师并完成客户指派后形成经营排名" />
 
-      <view class="jz-section"><text class="jz-section__title">最近客户</text></view>
-      <view v-if="storeReport?.recentCustomers?.length" class="jz-card perf__list">
-        <view v-for="customer in storeReport.recentCustomers" :key="customer.id" class="perf__item">
-          <view class="jz-grow"><text class="perf__item-title">{{ customer.name }}</text><text class="perf__item-sub">{{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone }}</text></view>
-          <text class="perf__item-tag">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+      <view class="jz-section"><text class="jz-section__title">最近客户</text><text class="jz-section__more" @tap="openCustomerList">全部客户</text></view>
+      <view v-if="storeReport?.recentCustomers?.length" class="perf__records">
+        <view v-for="customer in storeReport.recentCustomers" :key="customer.id" class="perf__record" @tap="openCustomer(customer.id)">
+          <JzAvatar class="perf__record-avatar" :name="customer.name" :size="76" />
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ customer.name }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+            </view>
+            <text class="perf__record-sub">负责人 {{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
+          </view>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无门店客户" sub="登记并指派客户后形成门店经营视图" />
 
       <view class="jz-section"><text class="jz-section__title">最近报价</text><text class="jz-section__more" @tap="openQuotes">报价池</text></view>
-      <view v-if="storeReport?.recentQuotes?.length" class="jz-card perf__list">
-        <view v-for="quote in storeReport.recentQuotes" :key="quote.id" class="perf__item" @tap="openQuote(quote.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ quote.customer?.name || '客户报价' }}</text><text class="perf__item-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡ · {{ quoteStatusText(quote.status) }}</text></view>
-          <text class="perf__amount">{{ money(quote.amount) }}</text>
+      <view v-if="storeReport?.recentQuotes?.length" class="perf__records">
+        <view v-for="quote in storeReport.recentQuotes" :key="quote.id" class="perf__record" @tap="openQuote(quote.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ quote.customer?.name || '客户报价' }}</text>
+              <text class="perf__record-tag" :class="quoteStatusTone(quote.status)">{{ quoteStatusText(quote.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡</text>
+          </view>
+          <text class="perf__record-amount">{{ money(quote.amount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无门店报价" sub="设计师生成方案报价后进入门店报价池" />
 
-      <view class="jz-section"><text class="jz-section__title">最近项目</text></view>
-      <view v-if="storeReport?.recentProjects?.length" class="jz-card perf__list">
-        <view v-for="project in storeReport.recentProjects" :key="project.id" class="perf__item" @tap="openProject(project.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ project.name }}</text><text class="perf__item-sub">{{ project.customer?.name || '-' }} · {{ project.designer?.name || '未指派设计' }} · 进度 {{ project.progress }}%</text></view>
-          <text class="perf__amount">{{ money(project.contractAmount) }}</text>
+      <view class="jz-section"><text class="jz-section__title">最近项目</text><text class="jz-section__more" @tap="openProjects">全部项目</text></view>
+      <view v-if="storeReport?.recentProjects?.length" class="perf__records">
+        <view v-for="project in storeReport.recentProjects" :key="project.id" class="perf__record" @tap="openProject(project.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ project.name }}</text>
+              <text class="perf__record-tag" :class="projectStatusTone(project.status)">{{ projectStatusLabel(project.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ project.customer?.name || '-' }} · 设计 {{ project.designer?.name || '未指派' }}</text>
+            <view class="perf__record-progress">
+              <view class="perf__progress-track"><view class="perf__progress-bar" :style="{ width: progressWidth(project.progress) }" /></view>
+              <text class="perf__progress-value">进度 {{ project.progress || 0 }}%</text>
+            </view>
+          </view>
+          <text class="perf__record-amount">{{ money(project.contractAmount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无门店项目" sub="报价转项目后进入门店履约视图" />
@@ -322,20 +470,37 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       </view>
 
       <view class="jz-section"><text class="jz-section__title">最近报价</text><text class="jz-section__more" @tap="openQuotes">全部报价</text></view>
-      <view v-if="designerReport?.recentQuotes?.length" class="jz-card perf__list">
-        <view v-for="quote in designerReport.recentQuotes" :key="quote.id" class="perf__item" @tap="openQuote(quote.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ quote.customer?.name || '客户报价' }}</text><text class="perf__item-sub">{{ quote.no }} · {{ quote.area }}㎡</text></view>
-          <text class="perf__amount">{{ money(quote.amount) }}</text>
-          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+      <view v-if="designerReport?.recentQuotes?.length" class="perf__records">
+        <view v-for="quote in designerReport.recentQuotes" :key="quote.id" class="perf__record" @tap="openQuote(quote.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ quote.customer?.name || '客户报价' }}</text>
+              <text class="perf__record-tag" :class="quoteStatusTone(quote.status)">{{ quoteStatusText(quote.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡</text>
+          </view>
+          <text class="perf__record-amount">{{ money(quote.amount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无报价数据" sub="创建方案报价后，这里会沉淀转化表现" />
 
-      <view class="jz-section"><text class="jz-section__title">最近项目</text></view>
-      <view v-if="designerReport?.recentProjects?.length" class="jz-card perf__list">
-        <view v-for="project in designerReport.recentProjects" :key="project.id" class="perf__item" @tap="openProject(project.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ project.name }}</text><text class="perf__item-sub">{{ project.customer?.name || '-' }} · 进度 {{ project.progress }}%</text></view>
-          <text class="perf__item-tag">{{ project.status }}</text>
+      <view class="jz-section"><text class="jz-section__title">最近项目</text><text class="jz-section__more" @tap="openProjects">全部项目</text></view>
+      <view v-if="designerReport?.recentProjects?.length" class="perf__records">
+        <view v-for="project in designerReport.recentProjects" :key="project.id" class="perf__record" @tap="openProject(project.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ project.name }}</text>
+              <text class="perf__record-tag" :class="projectStatusTone(project.status)">{{ projectStatusLabel(project.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ project.customer?.name || '-' }}</text>
+            <view class="perf__record-progress">
+              <view class="perf__progress-track"><view class="perf__progress-bar" :style="{ width: progressWidth(project.progress) }" /></view>
+              <text class="perf__progress-value">进度 {{ project.progress || 0 }}%</text>
+            </view>
+          </view>
+          <text class="perf__record-amount">{{ money(project.contractAmount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无项目数据" sub="报价转项目后进入设计履约视图" />
@@ -356,35 +521,55 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
         <view v-for="perf in teamReport.memberPerformances" :key="perf.employee?.id || 'member'" class="jz-card perf__designer">
           <view class="jz-between">
             <view class="jz-row">
+              <JzEmployeeAvatar :src="perf.employee?.avatarUrl || ''" :name="perf.employee?.name || '未命名成员'" :role="perf.employee?.role || 'marketer'" :status="perf.employee?.status" :size="58" />
               <text class="perf__designer-name">{{ perf.employee?.name || '未命名成员' }}</text>
-              <text class="perf__item-tag">{{ perf.conversionRate }}%</text>
+              <text class="perf__item-tag">最终 {{ perf.finalQuoteAcceptanceRate }}%</text>
             </view>
             <text class="perf__amount">{{ money(perf.signedAmount) }}</text>
           </view>
           <view class="perf__designer-metrics">
             <text>客户 {{ perf.customerCount }}</text>
             <text>待跟进 {{ perf.followDueCount + perf.followOverdueCount }}</text>
-            <text>待报价 {{ perf.pendingQuoteCount }}</text>
+            <text>待决策报价 {{ perf.pendingDecisionQuoteCount }}</text>
+            <text>最终接受 {{ perf.acceptedOpportunityCount }}/{{ perf.decidedOpportunityCount }}</text>
             <text :class="{ 'perf__risk': perf.taskOverdueCount > 0 }">逾期 {{ perf.taskOverdueCount }}</text>
           </view>
         </view>
       </view>
       <JzEmpty v-else text="暂无成员业绩" sub="团队成员归属完成后形成团队经营视图" />
 
-      <view class="jz-section"><text class="jz-section__title">最近客户</text></view>
-      <view v-if="teamReport?.recentCustomers?.length" class="jz-card perf__list">
-        <view v-for="customer in teamReport.recentCustomers" :key="customer.id" class="perf__item">
-          <view class="jz-grow"><text class="perf__item-title">{{ customer.name }}</text><text class="perf__item-sub">{{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone }}</text></view>
-          <text class="perf__item-tag">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+      <view class="jz-section"><text class="jz-section__title">最近客户</text><text class="jz-section__more" @tap="openCustomerList">全部客户</text></view>
+      <view v-if="teamReport?.recentCustomers?.length" class="perf__records">
+        <view v-for="customer in teamReport.recentCustomers" :key="customer.id" class="perf__record" @tap="openCustomer(customer.id)">
+          <JzAvatar class="perf__record-avatar" :name="customer.name" :size="76" />
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ customer.name }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+            </view>
+            <text class="perf__record-sub">负责人 {{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
+          </view>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无团队客户" sub="团队负责人只查看当前团队范围内客户" />
 
-      <view class="jz-section"><text class="jz-section__title">最近项目</text></view>
-      <view v-if="teamReport?.recentProjects?.length" class="jz-card perf__list">
-        <view v-for="project in teamReport.recentProjects" :key="project.id" class="perf__item" @tap="openProject(project.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ project.name }}</text><text class="perf__item-sub">{{ project.customer?.name || '-' }} · 进度 {{ project.progress }}%</text></view>
-          <text class="perf__amount">{{ money(project.contractAmount) }}</text>
+      <view class="jz-section"><text class="jz-section__title">最近项目</text><text class="jz-section__more" @tap="openProjects">全部项目</text></view>
+      <view v-if="teamReport?.recentProjects?.length" class="perf__records">
+        <view v-for="project in teamReport.recentProjects" :key="project.id" class="perf__record" @tap="openProject(project.id)">
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ project.name }}</text>
+              <text class="perf__record-tag" :class="projectStatusTone(project.status)">{{ projectStatusLabel(project.status) }}</text>
+            </view>
+            <text class="perf__record-sub">{{ project.customer?.name || '-' }}</text>
+            <view class="perf__record-progress">
+              <view class="perf__progress-track"><view class="perf__progress-bar" :style="{ width: progressWidth(project.progress) }" /></view>
+              <text class="perf__progress-value">进度 {{ project.progress || 0 }}%</text>
+            </view>
+          </view>
+          <text class="perf__record-amount">{{ money(project.contractAmount) }}</text>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无团队项目" sub="报价转项目后进入团队履约视图" />
@@ -455,7 +640,8 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       <view v-if="enterpriseRankings.length" class="jz-card perf__ranking-list">
         <view v-for="item in enterpriseRankings" :key="item.id" class="perf__ranking-item">
           <text class="perf__ranking-no">{{ item.rank }}</text>
-          <view class="jz-grow"><text class="perf__item-title">{{ item.name }}</text><text class="perf__item-sub">录入 {{ item.customerCount }} · 量房 {{ item.measureCount }} · 跟进 {{ item.followCount }}</text></view>
+          <JzEmployeeAvatar :name="item.name" :role="'marketer'" :size="52" />
+          <view class="jz-grow perf__ranking-main"><text class="perf__item-title">{{ item.name }}</text><text class="perf__item-sub">录入 {{ item.customerCount }} · 量房 {{ item.measureCount }} · 跟进 {{ item.followCount }}</text></view>
           <text class="perf__ranking-rate">{{ item.measureRate }}%</text>
         </view>
       </view>
@@ -534,48 +720,68 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
         <text class="jz-section__title">最近客户</text>
         <text class="jz-section__more" @tap="openCustomerList">全部客户</text>
       </view>
-      <view v-if="marketerReport?.recentCustomers?.length" class="jz-card perf__list">
-        <view v-for="customer in marketerReport.recentCustomers" :key="customer.id" class="perf__item" @tap="openCustomer(customer.id)">
-          <view class="jz-grow"><text class="perf__item-title">{{ customer.name }}</text><text class="perf__item-sub">{{ customer.community || '未填小区' }} · {{ customer.phone }}</text></view>
-          <text class="perf__item-tag">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
-          <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
+      <view v-if="marketerReport?.recentCustomers?.length" class="perf__records">
+        <view v-for="customer in marketerReport.recentCustomers" :key="customer.id" class="perf__record" @tap="openCustomer(customer.id)">
+          <JzAvatar class="perf__record-avatar" :name="customer.name" :size="76" />
+          <view class="perf__record-main">
+            <view class="perf__record-head">
+              <text class="perf__record-title">{{ customer.name }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+            </view>
+            <text class="perf__record-sub">{{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
+          </view>
+          <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
       <JzEmpty v-else text="暂无客户数据" sub="登记并跟进客户后，这里会形成经营视图" />
     </template>
     </template>
 
-    <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.mine" />
   </view>
 </template>
 
 <style lang="scss" scoped>
-.perf { padding: 24rpx; }
-.perf__hero { margin-bottom: 34rpx; padding: 34rpx 30rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, $jzb-primary-dark 0%, #08796F 54%, #075E58 100%); border-radius: $jzb-radius-lg; box-shadow: 0 18rpx 44rpx rgba(14,138,125,.24); }
-.perf__hero-label { display: block; font-size: $jzb-font-sm; opacity: .82; }
-.perf__hero-value { display: block; margin-top: 12rpx; font-size: 64rpx; font-weight: 750; letter-spacing: -2rpx; }
-.perf__hero-foot { display: flex; justify-content: space-between; margin-top: 22rpx; font-size: $jzb-font-xs; opacity: .88; }
+.perf { padding: 32rpx 24rpx calc(#{$jzb-tabbar-height} + 96rpx + #{$jzb-safe-bottom}); }
+/* 主指标卡：品牌 Header 负责“我是谁”，浅底数据卡负责“结果如何”，避免两块深色相邻 */
+.perf__hero { position: relative; overflow: hidden; margin-bottom: 40rpx; padding: 26rpx 28rpx 22rpx; background: linear-gradient(160deg, $jzb-primary-lightest 0%, $jzb-text-inverse 58%); border: 1rpx solid rgba(14,138,125,.14); border-radius: $jzb-radius-lg; box-shadow: 0 10rpx 30rpx rgba(14,138,125,.10); }
+.perf__hero::after { content: ''; position: absolute; right: -90rpx; top: -110rpx; width: 260rpx; height: 260rpx; border-radius: 50%; background: rgba(22,163,148,.10); pointer-events: none; }
+.perf__hero-head { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
+.perf__hero-label { color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 600; }
+.perf__hero-scope { flex-shrink: 0; margin-left: 16rpx; padding: 4rpx 16rpx; color: $jzb-primary-dark; background: $jzb-text-inverse; border: 1rpx solid rgba(14,138,125,.20); border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.perf__hero-figure { position: relative; z-index: 1; display: flex; align-items: baseline; margin-top: 10rpx; }
+.perf__hero-value { color: $jzb-primary-dark; font-size: 64rpx; line-height: 1.1; font-weight: 760; letter-spacing: -2rpx; font-variant-numeric: tabular-nums; }
+.perf__hero-unit { margin-left: 8rpx; color: $jzb-primary; font-size: 30rpx; font-weight: 650; }
+.perf__hero-foot { position: relative; z-index: 1; display: flex; align-items: stretch; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid rgba(14,138,125,.12); }
+.perf__hero-foot-col { flex: 1; min-width: 0; }
+.perf__hero-foot-col + .perf__hero-foot-col { margin-left: 22rpx; padding-left: 22rpx; border-left: 1rpx solid rgba(14,138,125,.12); }
+.perf__hero-foot-label { display: block; color: $jzb-text-3; font-size: 20rpx; }
+.perf__hero-foot-value { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; font-variant-numeric: tabular-nums; }
 .perf__overview-title { display: flex; align-items: baseline; gap: 12rpx; margin-bottom: 18rpx; padding: 0 4rpx; }
 .perf__overview-title text:first-child { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 760; }
-.perf__overview-title text:last-child { color: $jzb-text-3; font-size: $jzb-font-xs; }
-.perf__grid { display: flex; flex-wrap: wrap; gap: 18rpx; }
-.perf__card { width: calc(50% - 9rpx); padding: 22rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid rgba(14,138,125,.08); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.055); }
-.perf__icon { width: 62rpx; height: 62rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; margin-bottom: 16rpx; }
+.perf__overview-title text:last-child { margin-left: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+/* 卡片栅格统一用 flex + 百分比宽度：不依赖 grid / gap / calc(rpx) 组合，避免个别基础库下单行单卡 */
+.perf__grid { display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: space-between; }
+.perf__card { width: 49%; min-width: 0; margin-bottom: 18rpx; padding: 20rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid rgba(14,138,125,.08); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.055); }
+.perf__card--action { transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
+.perf__card--action:active { transform: scale(.985); background: $jzb-primary-lightest; }
+.perf__card-top { display: flex; align-items: center; }
+.perf__card-main { flex: 1; min-width: 0; }
+.perf__card-go { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; padding-top: 12rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 650; }
+.perf__icon { flex-shrink: 0; width: 62rpx; height: 62rpx; margin-right: 18rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; }
 .perf__icon--brand { background: $jzb-primary-lightest; }
 .perf__icon--warning { background: $jzb-warning-soft; }
 .perf__icon--danger { background: $jzb-danger-soft; }
 .perf__icon--success { background: $jzb-success-soft; }
 .perf__icon--purple { background: $jzb-purple-soft; }
 .perf__icon--info { background: $jzb-info-soft; }
-.perf__value { display: block; font-size: 42rpx; font-weight: 750; }
-.perf__label { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.perf__hero--marketer { margin-bottom: 24rpx; padding: 26rpx 28rpx; }
-.perf__hero--marketer .perf__hero-value { margin-top: 8rpx; font-size: 48rpx; }
-.perf__hero--marketer .perf__hero-foot { margin-top: 14rpx; }
-.perf__grid--marketer { gap: 12rpx; }
-.perf__grid--marketer .perf__card { width: calc(33.333% - 8rpx); min-height: 126rpx; padding: 18rpx; display: flex; align-items: center; gap: 12rpx; }
-.perf__grid--marketer .perf__icon { width: 48rpx; height: 48rpx; margin-bottom: 0; border-radius: 15rpx; }
+.perf__value { display: block; overflow: hidden; color: $jzb-text-1; font-size: 40rpx; line-height: 1.1; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.perf__label { display: block; margin-top: 6rpx; overflow: hidden; color: $jzb-text-3; font-size: $jzb-font-xs; text-overflow: ellipsis; white-space: nowrap; }
+.perf__hero--marketer { margin-bottom: 36rpx; padding: 24rpx 26rpx 20rpx; }
+.perf__hero--marketer .perf__hero-value { font-size: 56rpx; }
+.perf__hero--marketer .perf__hero-foot { margin-top: 18rpx; }
+.perf__grid--marketer .perf__card { width: 32%; min-height: 118rpx; margin-bottom: 12rpx; padding: 16rpx; }
+.perf__grid--marketer .perf__icon { width: 48rpx; height: 48rpx; margin-right: 12rpx; border-radius: 15rpx; }
 .perf__grid--marketer .perf__value { font-size: 32rpx; }
 .perf__grid--marketer .perf__label { margin-top: 3rpx; }
 .perf__reminders { padding: 8rpx 24rpx; }
@@ -583,8 +789,8 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__reminder:last-child { border-bottom: none; }
 .perf__reminder-num { color: $jzb-primary-dark; font-weight: 700; }
 .perf__reminder-num--danger { color: $jzb-danger; }
-.perf__structure { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
-.perf__structure-card { padding: 22rpx; transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
+.perf__structure { display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: space-between; }
+.perf__structure-card { width: 49%; min-width: 0; margin-bottom: 16rpx; padding: 22rpx; transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
 .perf__structure-card:active { transform: scale(.985); background: $jzb-primary-lightest; }
 .perf__structure-head { display: flex; align-items: center; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .perf__structure-head > text { flex: 1; min-width: 0; margin-left: 10rpx; }
@@ -597,11 +803,13 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__structure-icon--info { background: $jzb-info-soft; }
 .perf__structure-value { display: block; margin-top: 16rpx; color: $jzb-primary-dark; font-size: 42rpx; font-weight: 780; }
 .perf__structure-sub { display: block; margin-top: 7rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.55; }
+.perf__structure-action { display: flex; align-items: center; justify-content: space-between; gap: 6rpx; margin-top: 16rpx; padding-top: 14rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 650; }
+.perf__designer-metrics--detail { margin-top: 12rpx; padding-top: 14rpx; }
 .perf__golden { display: flex; padding: 24rpx 12rpx; }
 .perf__golden-item { flex: 1; text-align: center; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__golden-num { display: block; margin-bottom: 8rpx; color: $jzb-primary-dark; font-size: 36rpx; font-weight: 750; }
-.perf__trend-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 20rpx 12rpx; }
-.perf__trend-card { min-width: 0; padding: 12rpx 10rpx; text-align: center; border-right: 1rpx solid $jzb-border-light; }
+.perf__trend-grid { display: flex; padding: 20rpx 12rpx; }
+.perf__trend-card { flex: 1; min-width: 0; padding: 12rpx 10rpx; text-align: center; border-right: 1rpx solid $jzb-border-light; }
 .perf__trend-card:last-child { border-right: 0; }
 .perf__trend-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__trend-value { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: 40rpx; font-weight: 760; font-variant-numeric: tabular-nums; }
@@ -609,8 +817,8 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__rank-tip { display: flex; align-items: center; gap: 4rpx; }
 .perf__trend--up { color: $jzb-success; }
 .perf__trend--down { color: $jzb-danger; }
-.perf__my-rank { display: grid; grid-template-columns: 1fr 1fr; padding: 22rpx; }
-.perf__my-rank > view { display: flex; flex-direction: column; align-items: center; gap: 6rpx; border-right: 1rpx solid $jzb-border-light; }
+.perf__my-rank { display: flex; padding: 22rpx; }
+.perf__my-rank > view { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6rpx; border-right: 1rpx solid $jzb-border-light; }
 .perf__my-rank > view:last-child { border-right: 0; }
 .perf__my-rank text { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__my-rank strong { color: $jzb-primary-dark; font-size: 42rpx; font-weight: 780; }
@@ -619,10 +827,11 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__ranking-item { display: flex; align-items: center; min-height: 94rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .perf__ranking-item:last-child { border-bottom: 0; }
 .perf__ranking-no { width: 40rpx; flex: 0 0 auto; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 760; text-align: center; }
+.perf__ranking-main { margin-left: 16rpx; }
 .perf__ranking-rate { margin-left: 12rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 720; }
 .perf__action-board { padding: 22rpx; }
-.perf__action-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; }
-.perf__action-card { min-height: 132rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
+.perf__action-grid { display: flex; flex-wrap: wrap; justify-content: space-between; }
+.perf__action-card { width: 32%; margin-bottom: 12rpx; min-height: 132rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
 .perf__action-card--danger { background: $jzb-danger-soft; }
 .perf__action-card--warning { background: $jzb-warning-soft; }
 .perf__action-num { color: $jzb-text-1; font-size: 44rpx; font-weight: 780; }
@@ -640,14 +849,36 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__golden-bar { height: 100%; background: $jzb-primary; border-radius: inherit; transition: width .25s ease; }
 .perf__golden-bar--cooling { background: $jzb-warning; }
 .perf__golden-bar--risk { background: $jzb-danger; }
-.perf__mini-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18rpx; padding: 20rpx 10rpx; }
-.perf__mini-overview > view { text-align: center; border-right: 1rpx solid $jzb-border-light; }
+.perf__mini-overview { display: flex; margin-top: 18rpx; padding: 20rpx 10rpx; }
+.perf__mini-overview > view { flex: 1; min-width: 0; text-align: center; border-right: 1rpx solid $jzb-border-light; }
 .perf__mini-overview > view:last-child { border-right: 0; }
 .perf__mini-overview text { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__mini-overview strong { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: 36rpx; font-weight: 760; }
+/* ---------- 最近客户 / 报价 / 项目记录卡片 ---------- */
+.perf__records { display: flex; flex-direction: column; }
+.perf__record { display: flex; align-items: center; padding: 22rpx 24rpx; margin-bottom: 16rpx; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.045); border-radius: $jzb-radius; box-shadow: 0 2rpx 8rpx rgba(15,23,42,.035); transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out; }
+.perf__record:last-child { margin-bottom: 0; }
+.perf__record:active { transform: scale(.985); background: $jzb-primary-lightest; }
+.perf__record-avatar { margin-right: 20rpx; }
+.perf__record-main { flex: 1; min-width: 0; }
+.perf__record-head { display: flex; align-items: center; }
+.perf__record-title { flex: 1 1 auto; min-width: 0; overflow: hidden; color: $jzb-text-1; font-size: $jzb-font; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.perf__record-tag { flex-shrink: 0; margin-left: 12rpx; padding: 4rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.perf__record-tag--brand { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.perf__record-tag--success { color: $jzb-success; background: $jzb-success-soft; }
+.perf__record-tag--warning { color: $jzb-warning; background: $jzb-warning-soft; }
+.perf__record-tag--danger { color: $jzb-danger; background: $jzb-danger-soft; }
+.perf__record-sub { display: block; margin-top: 8rpx; overflow: hidden; color: $jzb-text-3; font-size: $jzb-font-xs; text-overflow: ellipsis; white-space: nowrap; }
+.perf__record-amount { flex-shrink: 0; margin-left: 16rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.perf__record-arrow { flex-shrink: 0; margin-left: 8rpx; }
+.perf__record-progress { display: flex; align-items: center; margin-top: 12rpx; }
+.perf__progress-track { flex: 1; height: 10rpx; overflow: hidden; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; }
+.perf__progress-bar { height: 100%; background: $jzb-primary; border-radius: inherit; }
+.perf__progress-value { flex-shrink: 0; margin-left: 12rpx; color: $jzb-text-3; font-size: 20rpx; font-variant-numeric: tabular-nums; }
 .perf__list { padding: 6rpx 24rpx; }
 .perf__item { display: flex; align-items: center; min-height: 96rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .perf__item:last-child { border-bottom: none; }
+.perf__item-main { margin-left: 16rpx; }
 .perf__item-title { display: block; font-size: $jzb-font; font-weight: 600; }
 .perf__item-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .perf__item-tag { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; padding: 6rpx 14rpx; font-size: $jzb-font-xs; }
@@ -655,7 +886,8 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 .perf__designers { display: flex; flex-direction: column; }
 .perf__designer { padding: 24rpx; margin-bottom: 16rpx; }
 .perf__designer-name { margin-right: 12rpx; font-size: $jzb-font-md; font-weight: 700; }
-.perf__designer-metrics { display: flex; flex-wrap: wrap; gap: 10rpx 22rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.perf__designer-metrics { display: flex; flex-wrap: wrap; margin-top: 14rpx; padding-top: 14rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.perf__designer-metrics > text { margin: 0 22rpx 10rpx 0; }
 .perf__risk { color: $jzb-danger; font-weight: 650; }
 
 </style>

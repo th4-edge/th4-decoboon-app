@@ -7,13 +7,19 @@ import { timeText } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from './JzTag.vue'
 import JzAvatar from './JzAvatar.vue'
+import JzEmployeeAvatar from './JzEmployeeAvatar.vue'
 import JzIcon from './JzIcon.vue'
 
 const props = defineProps<{ report: SiteReport; showProject?: boolean }>()
 
 const typeMeta = computed(() => REPORT_TYPE_META[props.report.type] || { label: '动态', color: '#86909C' })
-const authorName = computed(() => (props.report.author as any)?.name || '系统')
-const authorAvatar = computed(() => (props.report.author as any)?.avatarUrl || '')
+const isEmployeeAuthor = computed(() => !!props.report.author && 'role' in props.report.author)
+const authorName = computed(() => props.report.author?.name || '系统')
+const authorAvatar = computed(() => props.report.author && 'avatarUrl' in props.report.author ? props.report.author.avatarUrl || '' : '')
+const authorEmployeeRole = computed(() => {
+  if (!props.report.author || !('role' in props.report.author)) return props.report.authorRole || 'pm'
+  return props.report.author.role
+})
 const roleText = computed(() => {
   const r = props.report.authorRole
   return r ? ROLE_META[r]?.label : '系统'
@@ -29,7 +35,8 @@ function preview(url: string) {
     <view class="jz-report__accent" />
     <view class="jz-report__inner">
       <view class="jz-report__head">
-        <JzAvatar :src="authorAvatar" :name="authorName" :size="68" />
+        <JzEmployeeAvatar v-if="isEmployeeAuthor" :src="authorAvatar" :name="authorName" :role="authorEmployeeRole" :size="72" />
+        <JzAvatar v-else :src="authorAvatar" :name="authorName" :size="68" />
         <view class="jz-grow jz-report__who">
           <view class="jz-row">
             <text class="jz-report__name">{{ authorName }}</text>
@@ -88,8 +95,8 @@ function preview(url: string) {
 .jz-report__body { margin-top: 16rpx; }
 .jz-report__title { display: block; color: $jzb-text-1; font-size: 30rpx; font-weight: 650; line-height: 1.5; }
 .jz-report__content { display: block; margin-top: 7rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.7; }
-.jz-report__imgs { position: relative; display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 18rpx; }
-.jz-report__img { width: calc(50% - 6rpx); height: 216rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.jz-report__imgs { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; margin-top: 18rpx; }
+.jz-report__img { width: 49%; margin-bottom: 12rpx; height: 216rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
 .jz-report__imgs--single .jz-report__img { width: 100%; height: 320rpx; }
 .jz-report__media-count {
   position: absolute;

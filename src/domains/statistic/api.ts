@@ -369,7 +369,13 @@ export const statisticApi = {
       taskTodoCount: Number(item.taskTodoCount ?? 0),
       taskOverdueCount: Number(item.taskOverdueCount ?? 0),
       reportCount: Number(item.reportCount ?? 0),
-      conversionRate: Number(item.conversionRate ?? 0)
+      conversionRate: Number(item.conversionRate ?? 0),
+      submittedQuoteCount: Number(item.submittedQuoteCount ?? 0),
+      pendingDecisionQuoteCount: Number(item.pendingDecisionQuoteCount ?? 0),
+      decidedOpportunityCount: Number(item.decidedOpportunityCount ?? 0),
+      acceptedOpportunityCount: Number(item.acceptedOpportunityCount ?? 0),
+      finalQuoteAcceptanceRate: Number(item.finalQuoteAcceptanceRate ?? 0),
+      firstQuoteAcceptanceRate: Number(item.firstQuoteAcceptanceRate ?? 0)
     }))
     return {
       ...raw,
@@ -391,6 +397,12 @@ export const statisticApi = {
       acceptedQuoteAmount: Number(raw.acceptedQuoteAmount ?? 0),
       signedAmount: Number(raw.signedAmount ?? 0),
       conversionRate: Number(raw.conversionRate ?? 0),
+      submittedQuoteCount: Number(raw.submittedQuoteCount ?? 0),
+      pendingDecisionQuoteCount: Number(raw.pendingDecisionQuoteCount ?? 0),
+      decidedOpportunityCount: Number(raw.decidedOpportunityCount ?? 0),
+      acceptedOpportunityCount: Number(raw.acceptedOpportunityCount ?? 0),
+      finalQuoteAcceptanceRate: Number(raw.finalQuoteAcceptanceRate ?? 0),
+      firstQuoteAcceptanceRate: Number(raw.firstQuoteAcceptanceRate ?? 0),
       projectCount: Number(raw.projectCount ?? 0),
       preparingProjectCount: Number(raw.preparingProjectCount ?? 0),
       ongoingProjectCount: Number(raw.ongoingProjectCount ?? 0),
@@ -452,6 +464,12 @@ export const statisticApi = {
       quoteAmount: Number(raw.quoteAmount ?? 0),
       signedAmount: Number(raw.signedAmount ?? 0),
       conversionRate: Number(raw.conversionRate ?? 0),
+      submittedQuoteCount: Number(raw.submittedQuoteCount ?? 0),
+      pendingDecisionQuoteCount: Number(raw.pendingDecisionQuoteCount ?? 0),
+      decidedOpportunityCount: Number(raw.decidedOpportunityCount ?? 0),
+      acceptedOpportunityCount: Number(raw.acceptedOpportunityCount ?? 0),
+      finalQuoteAcceptanceRate: Number(raw.finalQuoteAcceptanceRate ?? 0),
+      firstQuoteAcceptanceRate: Number(raw.firstQuoteAcceptanceRate ?? 0),
       recentCustomers: (raw.recentCustomers || []).map(normalizeCustomer),
       recentQuotes: (raw.recentQuotes || []).map(normalizeQuote),
       recentProjects: (raw.recentProjects || []).map(normalizeProject)
@@ -513,7 +531,13 @@ export const statisticApi = {
       taskTodoCount: Number(item.taskTodoCount ?? 0),
       taskOverdueCount: Number(item.taskOverdueCount ?? 0),
       reportCount: Number(item.reportCount ?? 0),
-      conversionRate: Number(item.conversionRate ?? 0)
+      conversionRate: Number(item.conversionRate ?? 0),
+      submittedQuoteCount: Number(item.submittedQuoteCount ?? 0),
+      pendingDecisionQuoteCount: Number(item.pendingDecisionQuoteCount ?? 0),
+      decidedOpportunityCount: Number(item.decidedOpportunityCount ?? 0),
+      acceptedOpportunityCount: Number(item.acceptedOpportunityCount ?? 0),
+      finalQuoteAcceptanceRate: Number(item.finalQuoteAcceptanceRate ?? 0),
+      firstQuoteAcceptanceRate: Number(item.firstQuoteAcceptanceRate ?? 0)
     }))
     return {
       ...raw,
@@ -533,6 +557,12 @@ export const statisticApi = {
       quoteAmount: Number(raw.quoteAmount ?? 0),
       signedAmount: Number(raw.signedAmount ?? 0),
       conversionRate: Number(raw.conversionRate ?? 0),
+      submittedQuoteCount: Number(raw.submittedQuoteCount ?? 0),
+      pendingDecisionQuoteCount: Number(raw.pendingDecisionQuoteCount ?? 0),
+      decidedOpportunityCount: Number(raw.decidedOpportunityCount ?? 0),
+      acceptedOpportunityCount: Number(raw.acceptedOpportunityCount ?? 0),
+      finalQuoteAcceptanceRate: Number(raw.finalQuoteAcceptanceRate ?? 0),
+      firstQuoteAcceptanceRate: Number(raw.firstQuoteAcceptanceRate ?? 0),
       projectCount: Number(raw.projectCount ?? 0),
       preparingProjectCount: Number(raw.preparingProjectCount ?? 0),
       ongoingProjectCount: Number(raw.ongoingProjectCount ?? 0),

@@ -10,6 +10,7 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -90,7 +91,16 @@ const groups = computed<MeasureGroup[]>(() => {
   }))]
 })
 
+/**
+ * 左侧业务员分组面板只服务“跨业务员看板”的角色：
+ * 企业负责人看全公司、店长看本门店；业务员、团队负责人只看自己范围内的客户，不需要分组切换。
+ */
+const showGroupPanel = computed(() => session.role === 'boss' || session.role === 'storeManager')
+
 const currentGroup = computed(() => groups.value.find((group) => group.key === currentGroupKey.value) || groups.value[0] || null)
+
+/** 客户区标题：有分组时显示分组名，无分组角色显示本人范围。 */
+const panelTitle = computed(() => showGroupPanel.value ? (currentGroup.value?.name || '全部客户') : '我的量房客户')
 const workspaceItems = computed(() => (currentGroup.value?.items || []).filter((item) => matchesFilter(item, filter.value)))
 const currentGroupStats = computed(() => {
   const list = currentGroup.value?.items || []
@@ -309,10 +319,10 @@ function primaryAction(item: BossMeasureItem) {
       <view class="mw__workspace">
         <view v-if="workspaceFocused" class="mw__focus-bar">
           <view class="mw__focus-back" @tap="exitWorkspaceFocus"><JzIcon name="arrow-left" :size="26" :color="TOKEN_COLOR.primary" /><text>返回经营概览</text></view>
-          <text class="mw__focus-title">{{ currentGroup?.name || '客户分组' }} · {{ currentGroup?.items.length || 0 }} 户</text>
+          <text class="mw__focus-title">{{ panelTitle }} · {{ currentGroup?.items.length || 0 }} 户</text>
         </view>
         <view class="mw__workspace-body">
-          <scroll-view scroll-y class="mw__group-panel">
+          <scroll-view v-if="showGroupPanel" scroll-y class="mw__group-panel">
             <view v-for="group in groups" :key="group.key" class="mw__group-item" :class="{ 'mw__group-item--on': currentGroupKey === group.key }" @tap="selectGroup(group)">
               <text class="mw__group-name">{{ group.name }}</text>
               <text class="mw__group-meta">{{ group.meta }}</text>
@@ -323,7 +333,7 @@ function primaryAction(item: BossMeasureItem) {
           <view class="mw__customer-panel">
             <view class="mw__panel-head">
               <view class="jz-grow">
-                <text class="mw__panel-title">{{ currentGroup?.name || '全部客户' }}</text>
+                <text class="mw__panel-title">{{ panelTitle }}</text>
                 <text class="mw__panel-sub">{{ filterCountTotal }} 户 · 当前筛出 {{ workspaceItems.length }} 户</text>
               </view>
               <text v-if="!workspaceFocused" class="mw__panel-focus" @tap="workspaceFocused = true">放大客户区</text>
@@ -350,7 +360,7 @@ function primaryAction(item: BossMeasureItem) {
                       <text class="mw__customer">{{ item.customerName }}</text>
                       <JzTag :text="item.derivedStateName" :color="statusColor(item)" />
                     </view>
-                    <text class="mw__source-name">{{ item.telNo || '电话待完善' }} · {{ item.sourceName }} · {{ item.marketerName || '未分配业务员' }}</text>
+                    <text class="mw__source-name">{{ item.telNo || '电话待完善' }} · {{ item.sourceName }}</text>
                   </view>
                 </view>
                 <view class="mw__property-card">
@@ -364,9 +374,10 @@ function primaryAction(item: BossMeasureItem) {
                   <view class="mw__schedule-chip"><JzIcon name="calendar" :size="22" :color="TOKEN_COLOR.primary" /><text>{{ timeText(item) }}</text></view>
                   <text v-if="item.completedAt" class="mw__photo-count">现场 {{ item.sitePhotoCount }} 张</text>
                 </view>
-                <view class="mw__tags">
-                  <JzTag :text="`设计 ${item.designerName || '未指派'}`" :color="item.designerName ? TOKEN_COLOR.primary : TOKEN_COLOR.warning" />
-                  <JzTag v-if="item.executorName" :text="`执行 ${item.executorName}`" :color="TOKEN_COLOR.text2" />
+                <view class="mw__people">
+                  <view class="mw__person"><JzEmployeeAvatar :name="item.marketerName || '业务员'" :role="'marketer'" :size="36" /><text>顾问 {{ item.marketerName || '未分配' }}</text></view>
+                  <view class="mw__person"><JzEmployeeAvatar :name="item.designerName || '设计师'" :role="'designer'" :size="36" /><text>设计 {{ item.designerName || '未指派' }}</text></view>
+                  <view v-if="item.executorName" class="mw__person"><JzEmployeeAvatar :name="item.executorName" :role="'pm'" :size="36" /><text>执行 {{ item.executorName }}</text></view>
                 </view>
                 <view class="mw__next">
                   <JzIcon name="flag" :size="24" :color="TOKEN_COLOR.primary" />
@@ -479,6 +490,8 @@ function primaryAction(item: BossMeasureItem) {
 .mw__name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; }
 .mw__customer { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 750; }
 .mw__source-name { display: block; margin-top: 7rpx; overflow: hidden; color: $jzb-text-3; font-size: 20rpx; text-overflow: ellipsis; white-space: nowrap; }
+.mw__people { display: flex; align-items: center; flex-wrap: wrap; gap: 6rpx 14rpx; margin-top: 12rpx; }
+.mw__person { display: inline-flex; align-items: center; gap: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .mw__property-card { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; padding: 16rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .mw__property-icon { width: 52rpx; height: 52rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: $jzb-text-inverse; border-radius: 50%; }
 .mw__property-copy { min-width: 0; }

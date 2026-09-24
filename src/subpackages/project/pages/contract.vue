@@ -13,6 +13,7 @@ import { useSystem } from '@/composables/system'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
@@ -464,7 +465,7 @@ function nodeColor(status?: string) {
           <text class="cw__selection-summary jz-clamp-3">{{ workbench.selection.summary }}</text>
           <view class="cw__selection-foot">
             <text>V{{ workbench.selection.version }}</text>
-            <text v-if="workbench.selection.designerName">设计师 {{ workbench.selection.designerName }}</text>
+            <view v-if="workbench.selection.designerName" class="cw__person"><JzEmployeeAvatar :name="workbench.selection.designerName" :role="'designer'" :size="40" /><text>设计师 {{ workbench.selection.designerName }}</text></view>
             <text v-if="workbench.selection.confirmerName">确认人 {{ workbench.selection.confirmerName }}</text>
             <text v-if="workbench.selection.confirmedAt">{{ workbench.selection.confirmedAt.slice(0, 10) }}</text>
           </view>
@@ -578,6 +579,7 @@ function nodeColor(status?: string) {
 .cw__selection-title { font-size: $jzb-font-sm; font-weight: 650; }
 .cw__selection-summary { display: block; margin-top: 12rpx; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.7; }
 .cw__selection-foot { display: flex; flex-wrap: wrap; gap: 18rpx; margin-top: 14rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.cw__person { display: inline-flex; align-items: center; gap: 8rpx; }
 .cw__tip { display: flex; align-items: flex-start; gap: 10rpx; margin-top: 16rpx; padding: 18rpx 20rpx; font-size: $jzb-font-xs; color: $jzb-text-3; line-height: 1.65; }
 .cw__empty-line { padding: 22rpx 0; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .cw__actionbar { padding-top: 12rpx; }

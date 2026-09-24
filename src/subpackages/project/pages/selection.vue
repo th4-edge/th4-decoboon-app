@@ -9,6 +9,7 @@ import { dateTimeValue, selectionFields, type SelectionField } from '@/core/form
 import { toastError } from '@/composables/toast'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -165,9 +166,10 @@ function updatedTime(item: MaterialSelectionItem) {
       <view class="msd__project-head">
         <view class="jz-grow">
           <text class="msd__project-name">{{ project?.projectName || '项目主材选材' }}</text>
-          <text class="msd__project-sub">
-            {{ project?.customerName || '客户待完善' }} · {{ project?.designerName || '设计师待指派' }}
-          </text>
+          <view class="msd__project-sub">
+            <text>{{ project?.customerName || '客户待完善' }}</text>
+            <view class="msd__person"><JzEmployeeAvatar :name="project?.designerName || '设计师'" :role="'designer'" :size="40" /><text>{{ project?.designerName || '设计师待指派' }}</text></view>
+          </view>
         </view>
         <text class="msd__contract">{{ project?.contractNo || '合同待完善' }}</text>
       </view>
@@ -310,6 +312,7 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__project-head { display: flex; align-items: flex-start; gap: 16rpx; }
 .msd__project-name { display: block; color: $jzb-text-1; font-size: 36rpx; font-weight: 750; }
 .msd__project-sub { display: block; margin-top: 8rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.msd__person { display: inline-flex; align-items: center; gap: 6rpx; margin-left: 10rpx; }
 .msd__contract { flex-shrink: 0; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .msd__project-meta { margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .msd__progress-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }

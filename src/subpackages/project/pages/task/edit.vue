@@ -14,6 +14,7 @@ import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import { ROLE_META } from '@/roles/catalog'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { toastError, toast, loading, hideLoading } from '@/composables/toast'
 
 const id = ref('')
@@ -45,7 +46,8 @@ const stageLabel = computed(() => {
   return s ? `${s.sort}. ${s.name}` : ''
 })
 const zoneLabel = computed(() => zones.value.find((z) => z.id === zoneId.value)?.name || '')
-const ownerLabel = computed(() => owners.value.find((o) => o.id === ownerId.value)?.name || '')
+const ownerSelected = computed(() => owners.value.find((o) => o.id === ownerId.value))
+const ownerLabel = computed(() => ownerSelected.value?.name || '')
 /** 负责人下拉文案：岗位名缺失时回退角色短名，绝不再渲染 undefined。 */
 function ownerDisplay(o: Employee) {
   return `${o.name}（${o.title || ROLE_META[o.role]?.short || o.role}）`
@@ -140,7 +142,11 @@ async function save() {
       </view>
       <view class="te__row"><text class="te__label">负责人</text>
         <picker :range="owners.map(ownerDisplay)" @change="ownerId = owners[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }"><text>{{ ownerLabel || '选择负责人' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
+          <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }">
+            <JzEmployeeAvatar v-if="ownerSelected" :src="ownerSelected.avatarUrl || ''" :name="ownerSelected.name" :role="ownerSelected.role" :status="ownerSelected.status" :size="52" />
+            <text>{{ ownerLabel || '选择负责人' }}</text>
+            <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
+          </view>
         </picker>
       </view>
       <view class="te__row"><text class="te__label">优先级</text>

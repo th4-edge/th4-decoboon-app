@@ -11,6 +11,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 const workbench = ref<BossWorkbench | null>(null)
@@ -125,7 +126,7 @@ function startBusiness(path: string) {
           </view>
           <view class="bd__event-meta">
             <text>{{ event.projectName || event.customerName || event.businessNo || '企业经营' }}</text>
-            <text v-if="event.ownerName">负责人 {{ event.ownerName }}</text>
+            <view v-if="event.ownerName" class="bd__person"><JzEmployeeAvatar :name="event.ownerName" :role="'marketer'" :size="40" /><text>负责人 {{ event.ownerName }}</text></view>
             <text v-if="event.amount != null" class="bd__event-amount">{{ money(event.amount) }}</text>
           </view>
         </view>
@@ -172,6 +173,7 @@ function startBusiness(path: string) {
 .bd__event-time { flex-shrink: 0; color: $jzb-text-4; font-size: 20rpx; }
 .bd__event-content { display: block; margin-top: 8rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.6; }
 .bd__event-meta { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.bd__person { display: inline-flex; align-items: center; gap: 8rpx; }
 .bd__event-meta text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bd__event-amount { color: $jzb-primary-dark; font-weight: 700; }
 .bd__error, .bd__empty { margin-top: 20rpx; }

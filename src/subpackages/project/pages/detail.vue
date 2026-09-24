@@ -30,6 +30,7 @@ import JzTag from '@/components/JzTag.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -242,9 +243,6 @@ function contractDate(value?: string) {
 function avatarOf(m: ProjectMember) {
   return m.kind === 'customer' ? m.customer?.name : m.emp?.name
 }
-function colorOf(m: ProjectMember) {
-  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? TOKEN_COLOR.primaryBase : '#13C2C2'
-}
 </script>
 
 <template>
@@ -285,7 +283,7 @@ function colorOf(m: ProjectMember) {
         <view v-if="!isOwner" class="pd__hero-team" @tap="goMembers">
           <view class="pd__hero-avatars">
             <view v-for="m in teamAvatars" :key="m.id" class="pd__hero-avatar">
-              <JzAvatar :src="m.emp?.avatarUrl || ''" :name="avatarOf(m)" :color="colorOf(m)" :size="52" />
+              <JzEmployeeAvatar :src="m.emp?.avatarUrl || ''" :name="avatarOf(m)" :role="m.emp?.role || m.role" :status="m.emp?.status" :size="52" />
             </view>
             <view class="pd__hero-avatar pd__hero-avatar--more" v-if="members.length > teamAvatars.length">+{{ members.length - teamAvatars.length }}</view>
           </view>
@@ -383,11 +381,13 @@ function colorOf(m: ProjectMember) {
           <text v-if="canSwitchMember" class="pd__roles-more" @tap="goMembers('assign')">切换设计师/项目经理</text>
         </view>
         <view class="pd__role-row">
+          <JzEmployeeAvatar v-if="project?.manager" :src="project.manager.avatarUrl || ''" :name="project.manager.name" :role="project.manager.role" :status="project.manager.status" :size="68" />
           <text class="pd__role-label">项目经理</text>
           <text class="pd__role-value" :class="{ 'pd__role-value--empty': !hasManager }">{{ project?.manager?.name || '未指定' }}</text>
           <text v-if="canSwitchMember" class="pd__role-action" @tap="goMembers('assign')">{{ hasManager ? '更换' : '指定' }}</text>
         </view>
         <view class="pd__role-row">
+          <JzEmployeeAvatar v-if="project?.designer" :src="project.designer.avatarUrl || ''" :name="project.designer.name" :role="project.designer.role" :status="project.designer.status" :size="68" />
           <text class="pd__role-label">设计师</text>
           <text class="pd__role-value" :class="{ 'pd__role-value--empty': !hasDesigner }">{{ project?.designer?.name || '未指定' }}</text>
           <text v-if="canSwitchMember" class="pd__role-action" @tap="goMembers('assign')">{{ hasDesigner ? '更换' : '指定' }}</text>
@@ -502,7 +502,13 @@ function colorOf(m: ProjectMember) {
               <text class="pd__task-name">{{ t.name }}</text>
               <JzTag :text="TASK_STATUS_META[t.status].label" :color="TASK_STATUS_META[t.status].color" />
             </view>
-            <view class="pd__task-meta"><text v-if="t.zone" class="pd__task-zone">{{ t.zone.name }}</text><text>{{ t.owner?.name || '未指派' }} · 总量 {{ t.quantity !== undefined ? t.quantity + (t.unit || '') : '-' }}</text><text v-if="t.priority === 'urgent'" class="pd__task-urgent">紧急</text></view>
+            <view class="pd__task-meta">
+              <text v-if="t.zone" class="pd__task-zone">{{ t.zone.name }}</text>
+              <view v-if="t.owner" class="pd__task-owner"><JzEmployeeAvatar :src="t.owner.avatarUrl || ''" :name="t.owner.name" :role="t.owner.role" :status="t.owner.status" :size="36" /><text>{{ t.owner.name }}</text></view>
+              <text v-else>未指派</text>
+              <text>· 总量 {{ t.quantity !== undefined ? t.quantity + (t.unit || '') : '-' }}</text>
+              <text v-if="t.priority === 'urgent'" class="pd__task-urgent">紧急</text>
+            </view>
           </view>
         </view>
         <view v-if="!g.tasks.length" class="pd__task-empty">本阶段暂无任务</view>
@@ -570,7 +576,8 @@ function colorOf(m: ProjectMember) {
       </view>
       <view class="jz-card pd__member-grid">
         <view v-for="m in members" :key="m.id" class="pd__member">
-          <JzAvatar :src="m.emp?.avatarUrl || ''" :name="avatarOf(m)" :color="colorOf(m)" :size="88" />
+          <JzEmployeeAvatar v-if="m.kind === 'employee'" :src="m.emp?.avatarUrl || ''" :name="avatarOf(m)" :role="m.emp?.role || m.role" :status="m.emp?.status" :size="88" />
+          <JzAvatar v-else :name="avatarOf(m)" :size="88" />
           <text class="pd__member-name">{{ avatarOf(m) }}</text>
           <text class="pd__member-role">{{ m.label }}</text>
         </view>
@@ -604,7 +611,7 @@ function colorOf(m: ProjectMember) {
 .pd__hero-meta-item text { margin-left: 7rpx; }
 .pd__hero-team { display: flex; flex-direction: row; align-items: center; margin-top: 8rpx; }
 .pd__hero-avatars { display: flex; flex-direction: row; }
-.pd__hero-avatar { margin-right: -10rpx; border: 2rpx solid $jzb-text-inverse; border-radius: 50%; overflow: hidden; }
+.pd__hero-avatar { margin-right: -10rpx; }
 .pd__hero-avatar--more { width: 52rpx; height: 52rpx; background: rgba(255,255,255,0.3); color: $jzb-text-inverse; font-size: $jzb-font-xs; display: flex; align-items: center; justify-content: center; }
 .pd__hero-team-link { display: flex; align-items: center; margin-left: 22rpx; }
 .pd__hero-team-text { color: rgba(255,255,255,0.92); font-size: $jzb-font-xs; }
@@ -630,7 +637,7 @@ function colorOf(m: ProjectMember) {
 .pd__roles-title { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
 .pd__roles-more { font-size: $jzb-font-xs; color: $jzb-primary; }
 .pd__role-row { display: flex; flex-direction: row; align-items: center; margin-top: 18rpx; }
-.pd__role-label { width: 140rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pd__role-label { width: 140rpx; margin-left: 16rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .pd__role-value { flex: 1; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .pd__role-value--empty { color: $jzb-danger; font-weight: 700; }
 .pd__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 4rpx 16rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
@@ -709,6 +716,7 @@ function colorOf(m: ProjectMember) {
 .pd__action-btn { display: flex; align-items: center; justify-content: center; }
 .pd__action-btn text { margin-left: 8rpx; }
 .pd__task-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.pd__task-owner { display: inline-flex; align-items: center; gap: 6rpx; }
 .pd__task-urgent { color: $jzb-danger; }
 .pd__task-empty { text-align: center; color: $jzb-text-4; font-size: $jzb-font-xs; padding: 8rpx 0 20rpx; }
 .pd__feed-btn { margin: 24rpx 0; }

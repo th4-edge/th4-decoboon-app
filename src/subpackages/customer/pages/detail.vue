@@ -18,6 +18,7 @@ import { propertyApi } from '@/domains/property/api'
 import { tradeApi } from '@/domains/trade/api'
 import JzActionSheet from '@/components/JzActionSheet.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -490,13 +491,17 @@ function viewMeasure(property: Property) {
       <view class="cd__roles">
         <view class="cd__role">
           <text class="cd__role-label">负责顾问</text>
-          <text class="cd__role-value">{{ customer.owner?.name || '—' }}</text>
+          <view class="cd__role-person">
+            <JzEmployeeAvatar v-if="customer.owner" :src="customer.owner.avatarUrl || ''" :name="customer.owner.name" :role="customer.owner.role" :status="customer.owner.status" :size="52" />
+            <text class="cd__role-value">{{ customer.owner?.name || '待分配' }}</text>
+          </view>
         </view>
         <view class="cd__role-divider" />
         <view class="cd__role" :class="{ 'cd__role--clickable': canChangeDesigner }" @tap="canChangeDesigner && assignDesigner()">
           <text class="cd__role-label">负责设计师</text>
           <view class="cd__role-value-row">
-            <text class="cd__role-value">{{ customer.designer?.name || '—' }}</text>
+            <JzEmployeeAvatar v-if="customer.designer" :src="customer.designer.avatarUrl || ''" :name="customer.designer.name" :role="customer.designer.role" :status="customer.designer.status" :size="52" />
+            <text class="cd__role-value">{{ customer.designer?.name || '待指派' }}</text>
             <JzIcon v-if="canChangeDesigner" name="arrow-right" :size="22" :color="TOKEN_COLOR.text3" />
           </view>
         </view>
@@ -732,7 +737,9 @@ function viewMeasure(property: Property) {
 .cd__role--clickable:active { opacity: 0.6; }
 .cd__role-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cd__role-value { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 600; }
-.cd__role-value-row { display: flex; align-items: center; gap: 4rpx; margin-top: 8rpx; }
+.cd__role-person { display: flex; align-items: center; gap: 10rpx; margin-top: 8rpx; }
+.cd__role-person .cd__role-value { margin-top: 0; }
+.cd__role-value-row { display: flex; align-items: center; gap: 8rpx; margin-top: 8rpx; }
 .cd__role-value-row .cd__role-value { margin-top: 0; }
 .cd__role-divider { width: 1rpx; height: 48rpx; margin: 0 24rpx; background: $jzb-border-light; }
 .cd__contact-actions { display: flex; gap: 16rpx; margin: 0 24rpx 18rpx; }

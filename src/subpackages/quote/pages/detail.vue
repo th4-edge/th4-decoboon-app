@@ -16,6 +16,7 @@ import { confirm, loading, hideLoading, toast, toastError } from '@/composables/
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import QuoteItemRow from '@/subpackages/quote/components/QuoteItemRow/QuoteItemRow.vue'
 
@@ -506,7 +507,7 @@ async function confirmCustomerChange(change: ContractChange) {
       </view>
       <view class="qd__hero-foot">
         <text>{{ quote.customer?.name || '未关联客户' }}</text>
-        <text>{{ quote.area }}㎡ · {{ quote.owner?.name || '未指派' }}</text>
+        <view class="qd__person"><JzEmployeeAvatar v-if="quote.owner" :src="quote.owner.avatarUrl || ''" :name="quote.owner.name" :role="quote.owner.role" :status="quote.owner.status" :size="40" /><text>{{ quote.area }}㎡ · {{ quote.owner?.name || '未指派' }}</text></view>
       </view>
     </view>
 
@@ -888,6 +889,7 @@ async function confirmCustomerChange(change: ContractChange) {
 
 .qd__hero-foot { display: flex; justify-content: space-between; gap: 14rpx; margin-top: 20rpx; font-size: $jzb-font-xs; opacity: .9; }
 .qd__hero-foot text { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qd__person { display: inline-flex; align-items: center; gap: 8rpx; min-width: 0; }
 .qd__design { margin-top: 20rpx; padding: 24rpx; display: flex; align-items: center; transition: transform $jzb-duration-fast $jzb-ease-out; }
 .qd__design:active { transform: scale(.988); background: $jzb-bg-hover; }
 .qd__design-name { display: block; font-size: $jzb-font; font-weight: 650; line-height: 1.4; }

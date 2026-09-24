@@ -19,7 +19,7 @@
     "check:plan": "node scripts/verify-plan-contract.mjs",
     "check:home": "node scripts/verify-homepage-contract.mjs",
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
-    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:dev-api && npm run type-check && npm run build:mp-weixin && npm run check:subpackages"
+    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",

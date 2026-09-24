@@ -77,7 +77,13 @@ export function moneyParts(n?: number | null): MoneyPart {
     return { value, unit: '万', text: `${value}万`, unitKey: 'wan' }
   }
   const value = Math.round(n).toLocaleString('zh-CN')
-  return { value, unit: '元', text: `¥${value}`, unitKey: 'yuan' }
+  const negative = value.startsWith('-')
+  return {
+    value,
+    unit: '元',
+    text: `${negative ? '-' : ''}¥${negative ? value.slice(1) : value}`,
+    unitKey: 'yuan'
+  }
 }
 
 /** 金额文案：≥1 万显示为「12.3万」，否则显示「¥9,800」。 */

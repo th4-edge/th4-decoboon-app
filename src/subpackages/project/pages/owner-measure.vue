@@ -10,7 +10,7 @@ import { toastError } from '@/composables/toast'
 import OwnerFactHero from '@/components/owner/OwnerFactHero.vue'
 import OwnerPhotoGrid from '@/components/owner/OwnerPhotoGrid.vue'
 import PageState from '@/components/PageState/PageState.vue'
-import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
@@ -161,7 +161,7 @@ async function refresh() {
 
               <view v-if="record.designer || record.facts.length" class="measure__facts">
                 <view v-if="record.designer" class="measure__designer">
-                  <JzAvatar :name="record.designer.value" :size="56" />
+                  <JzEmployeeAvatar :name="record.designer.value" :role="'designer'" :size="64" />
                   <view class="jz-grow">
                     <text class="measure__designer-label">{{ record.designer.label }}</text>
                     <text class="measure__designer-name">{{ record.designer.value }}</text>

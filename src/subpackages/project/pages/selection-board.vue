@@ -11,6 +11,7 @@ import { dateTimeValue } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import { STATUS_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -315,7 +316,7 @@ function openProject(card: WorkbenchCard) {
           </view>
           <view class="sw__meta-item">
             <text class="sw__meta-label">选材设计</text>
-            <text class="sw__meta-value">{{ card.item.designerName || card.project?.designer?.name || '待指派' }}</text>
+            <view class="sw__person"><JzEmployeeAvatar :src="card.project?.designer?.avatarUrl || ''" :name="card.item.designerName || card.project?.designer?.name || '待指派'" :role="card.project?.designer?.role || 'designer'" :status="card.project?.designer?.status" :size="40" /><text class="sw__meta-value">{{ card.item.designerName || card.project?.designer?.name || '待指派' }}</text></view>
           </view>
         </view>
 
@@ -410,6 +411,7 @@ function openProject(card: WorkbenchCard) {
 .sw__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: 18rpx; padding: 16rpx 18rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-page; }
 .sw__meta-label { display: block; color: $jzb-text-3; font-size: 20rpx; }
 .sw__meta-value { display: block; margin-top: 4rpx; overflow: hidden; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; white-space: nowrap; text-overflow: ellipsis; }
+.sw__person { display: inline-flex; align-items: center; gap: 8rpx; }
 .sw__item-progress { margin-top: 18rpx; padding: 16rpx 18rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-page; }
 .sw__item-progress-head, .sw__item-numbers { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: 20rpx; }
 .sw__item-progress-head { margin-bottom: 10rpx; color: $jzb-text-2; }

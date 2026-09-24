@@ -18,6 +18,7 @@ import { projectApi } from '@/domains/project/api'
 import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
@@ -294,7 +295,10 @@ function statusClass(status: DesignStatus) {
       <text class="dl__customer-bar-name">{{ customer?.name || '客户' }}</text>
       <text class="dl__customer-bar-phone">{{ customer?.phone || '—' }}</text>
       <text v-if="customer?.grade" class="dl__customer-bar-grade">{{ customer.grade.level }}级</text>
-      <text class="dl__customer-bar-owner">顾问 {{ customer?.owner?.name || '—' }}</text>
+      <view class="dl__customer-bar-owner">
+        <JzEmployeeAvatar v-if="customer?.owner" :src="customer.owner.avatarUrl || ''" :name="customer.owner.name" :role="customer.owner.role" :status="customer.owner.status" :size="40" />
+        <text>顾问 {{ customer?.owner?.name || '待分配' }}</text>
+      </view>
     </view>
     <view class="jz-card dl__property">
       <view class="dl__property-icon"><JzIcon name="home" :size="34" :color="TOKEN_COLOR.primary" /></view>
@@ -358,7 +362,10 @@ function statusClass(status: DesignStatus) {
           </view>
           <view class="dl__scheme-meta">
             <text class="dl__scheme-no">NO.{{ item.design.no }} · V{{ item.design.version }}</text>
-            <text class="dl__scheme-desc">{{ item.design.style || '风格待定' }} · {{ item.design.owner?.name || '设计师待定' }}</text>
+            <view class="dl__scheme-owner">
+              <JzEmployeeAvatar v-if="item.design.owner" :src="item.design.owner.avatarUrl || ''" :name="item.design.owner.name" :role="item.design.owner.role" :status="item.design.owner.status" :size="40" />
+              <text class="dl__scheme-desc">{{ item.design.style || '风格待定' }} · {{ item.design.owner?.name || '设计师待定' }}</text>
+            </view>
           </view>
           <view class="dl__scheme-price-row">
             <view class="dl__scheme-price">
@@ -448,6 +455,9 @@ function statusClass(status: DesignStatus) {
   font-weight: 600;
 }
 .dl__customer-bar-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
   margin-left: auto;
   color: $jzb-text-3;
   font-size: $jzb-font-xs;
@@ -543,6 +553,7 @@ function statusClass(status: DesignStatus) {
   font-size: $jzb-font-xs;
   font-variant-numeric: tabular-nums;
 }
+.dl__scheme-owner { display: flex; align-items: center; gap: 10rpx; }
 .dl__scheme-desc {
   color: $jzb-text-2;
   font-size: $jzb-font-sm;

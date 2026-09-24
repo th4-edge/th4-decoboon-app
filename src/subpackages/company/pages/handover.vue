@@ -10,6 +10,7 @@ import { ROLE_META } from '@/roles/catalog'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 
 const fromEmpId = ref('')
 const from = ref<Employee | null>(null)
@@ -20,6 +21,7 @@ const handover = ref<Record<string, any> | null>(null)
 const submitting = ref(false)
 const isBoss = computed(() => session.role === 'boss')
 const selectedIndex = computed(() => candidates.value.findIndex(item => item.id === toEmpId.value))
+const selectedCandidate = computed(() => candidates.value[selectedIndex.value])
 const items = [
   { key: 'customerCount', label: '客户' }, { key: 'propertyCount', label: '房屋' },
   { key: 'quoteCount', label: '报价' }, { key: 'projectCount', label: '项目' },
@@ -62,7 +64,7 @@ async function submit() {
     <JzPageHeader title="离职交接" subtitle="客户、房屋、项目与任务的归属转移" />
     <view class="hand-body">
       <view class="jz-card hand-person">
-        <JzIcon name="user" :size="44" :color="TOKEN_COLOR.warning" />
+        <JzEmployeeAvatar :src="from?.avatarUrl || ''" :name="from?.name || '待离职员工'" :role="from?.role || 'marketer'" :status="from?.status" :size="112" />
         <view><text class="hand-name">{{ from?.name || '待离职员工' }}</text><text class="hand-role">{{ from?.role ? ROLE_META[from.role]?.label : '' }}</text></view>
       </view>
       <view class="jz-section"><text class="jz-section__title">待交接业务</text></view>
@@ -75,6 +77,13 @@ async function submit() {
           <picker :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :value="selectedIndex" @change="pick">
             <view class="hand-picker">{{ toEmpId ? candidates[selectedIndex]?.name : '请选择在职员工' }}</view>
           </picker>
+        </view>
+        <view v-if="selectedCandidate" class="hand-receiver">
+          <JzEmployeeAvatar :src="selectedCandidate.avatarUrl || ''" :name="selectedCandidate.name" :role="selectedCandidate.role" :status="selectedCandidate.status" :size="88" />
+          <view class="jz-grow">
+            <text class="hand-receiver__name">{{ selectedCandidate.name }}</text>
+            <text class="hand-receiver__meta">{{ ROLE_META[selectedCandidate.role]?.label || selectedCandidate.role }} · {{ selectedCandidate.store?.name || '未分配门店' }}</text>
+          </view>
         </view>
         <label v-if="isBoss" class="hand-check"><checkbox :checked="transferProjects" @tap="transferProjects = !transferProjects" /><text>同步转移客户、房屋及项目负责人</text></label>
       </view>
@@ -97,6 +106,9 @@ async function submit() {
 .hand-field > text { width: 130rpx; color: $jzb-text-2; }
 .hand-field picker { flex: 1; }
 .hand-picker { color: $jzb-text-1; text-align: right; }
+.hand-receiver { display: flex; align-items: center; margin-top: 18rpx; padding: 18rpx 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.hand-receiver__name { display: block; margin-left: 16rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.hand-receiver__meta { display: block; margin: 6rpx 0 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .hand-check { display: flex; gap: 12rpx; margin-top: 22rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .hand-body > button { margin-top: 30rpx; }
 </style>

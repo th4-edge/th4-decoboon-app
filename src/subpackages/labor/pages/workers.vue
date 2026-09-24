@@ -74,7 +74,7 @@ function display(value?: string) {
 
 <template>
   <view class="fin-page">
-    <JzPageHeader title="工人档案" subtitle="企业共享；身份证与银行卡按角色显示" :right-text="editable ? '新增' : ''" :right-icon="editable ? 'plus' : undefined" @right="edit()" />
+    <JzPageHeader title="工人档案" subtitle="企业共享；身份证与银行账号按角色脱敏" back :right-text="editable ? '新增' : ''" :right-icon="editable ? 'plus' : undefined" @right="edit()" />
 
     <view class="wk__head">
       <view class="wk__search">

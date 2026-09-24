@@ -12,6 +12,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 
@@ -207,7 +208,7 @@ function riskColor(level: string): string {
 
         <view class="wb__item-meta">
           <view class="wb__meta-item">
-            <JzIcon name="user" :size="22" :color="TOKEN_COLOR.purple" />
+            <JzEmployeeAvatar :name="item.designerName || '设计师'" :role="'designer'" :size="40" />
             <text>{{ item.designerName ? `设计 ${item.designerName}` : '设计待确认' }}</text>
           </view>
           <view class="wb__meta-item">

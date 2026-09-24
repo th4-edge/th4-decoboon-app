@@ -12,6 +12,7 @@ import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -65,7 +66,11 @@ const MODE_META: Record<QuoteMode, { label: string; color: string }> = {
   hybrid: { label: '混合报价', color: TOKEN_COLOR.purple }
 }
 
-onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onLoad((options?: Record<string, string | undefined>) => {
+  if (!isLoggedIn()) uni.reLaunch({ url: P.login })
+  const status = options?.status
+  if (status && FILTERS.some((item) => item.key === status)) filter.value = status as 'all' | QuoteStatus
+})
 onShow(() => {
   if (!isLoggedIn()) return
   uni.setNavigationBarTitle({ title: role.value === 'boss' ? '报价谈单' : '方案报价' })
@@ -352,6 +357,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
         <view class="ql__workspace-body">
         <scroll-view scroll-y class="ql__designer-panel">
           <view v-for="group in bossShown" :key="anchorKey(group)" class="ql__designer-item" :class="{ 'ql__designer-item--on': currentGroupKey === anchorKey(group) }" @tap="selectDesigner(group)">
+            <JzEmployeeAvatar :name="group.designerName" :role="'designer'" :size="48" />
             <text class="ql__designer-item-name">{{ group.designerName }}</text>
             <text class="ql__designer-item-meta">{{ group.customerCount }}客户</text>
             <text v-if="group.riskCustomerCount > 0" class="ql__designer-risk">风险{{ group.riskCustomerCount }}</text>
@@ -361,7 +367,8 @@ function canEdit() { return can(role.value, 'edit:quote') }
 
         <view class="ql__customer-panel">
           <view v-if="currentGroup" class="ql__panel-head">
-            <view class="jz-grow">
+            <JzEmployeeAvatar :name="currentGroup.designerName" :role="'designer'" :size="64" />
+            <view class="jz-grow ql__panel-who">
               <text class="ql__panel-title">{{ currentGroup.designerName }}</text>
               <text class="ql__panel-sub">{{ currentGroup.customerCount }}客户 · 当前报价 {{ money(currentGroup.quoteAmount) }} · 已确认 {{ money(currentGroup.acceptedAmount) }}</text>
             </view>
@@ -495,7 +502,10 @@ function canEdit() { return can(role.value, 'edit:quote') }
             <view><text class="ql__metric">{{ quote.discount ? (quote.discount * 100).toFixed(0) + '%' : '-' }}</text><text class="ql__money-label">折扣</text></view>
           </view>
           <view class="ql__foot">
-            <text class="jz-clamp-1">设计 {{ quote.property?.designer?.name || quote.design?.owner?.name || quote.owner?.name || '未指派' }}</text>
+            <view class="ql__person">
+              <JzEmployeeAvatar :src="(quote.property?.designer || quote.design?.owner || quote.owner)?.avatarUrl || ''" :name="quote.property?.designer?.name || quote.design?.owner?.name || quote.owner?.name || '设计师'" :role="(quote.property?.designer || quote.design?.owner || quote.owner)?.role || 'designer'" :status="(quote.property?.designer || quote.design?.owner || quote.owner)?.status" :size="40" />
+              <text class="jz-clamp-1">设计 {{ quote.property?.designer?.name || quote.design?.owner?.name || quote.owner?.name || '未指派' }}</text>
+            </view>
             <view class="ql__open"><text>{{ quote.status === 'converted' ? '合同 / 变更 / 应收' : '查看明细' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
           </view>
         </view>
@@ -539,9 +549,12 @@ function canEdit() { return can(role.value, 'edit:quote') }
 .ql--focus .ql__intro, .ql--focus .ql__metrics, .ql--focus .ql__alert, .ql--focus .ql__head, .ql--focus .jz-toolbar, .ql--focus .ql__sort-row { display: none; }
 .ql--focus .ql__workspace { margin-top: 0; border-top: 0; }
 .ql__designer-panel { width: 156rpx; height: 100%; flex-shrink: 0; background: $jzb-text-inverse; border-right: 1rpx solid $jzb-border-light; }
-.ql__designer-item { position: relative; min-height: 96rpx; padding: 14rpx 12rpx; display: flex; flex-direction: column; justify-content: center; gap: 6rpx; color: $jzb-text-2; border-bottom: 1rpx solid $jzb-border-light; }
+.ql__designer-item { position: relative; min-height: 132rpx; padding: 14rpx 12rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; color: $jzb-text-2; border-bottom: 1rpx solid $jzb-border-light; text-align: center; }
 .ql__designer-item--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; box-shadow: inset 6rpx 0 0 $jzb-primary; }
 .ql__designer-item-name { font-size: $jzb-font-sm; font-weight: 700; line-height: 1.3; }
+.ql__designer-item-name { max-width: 100%; }
+.ql__panel-who { margin-left: 14rpx; }
+.ql__person { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
 .ql__designer-item-meta { color: $jzb-text-3; font-size: 20rpx; }
 .ql__designer-item--on .ql__designer-item-meta { color: $jzb-primary-dark; opacity: .8; }
 .ql__designer-risk { color: $jzb-danger; font-size: 20rpx; }

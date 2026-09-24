@@ -17,6 +17,7 @@ import { money } from '@/core/format'
 import { hideLoading, loading, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
@@ -178,7 +179,7 @@ const performances = computed(() => {
       ongoingProjectCount: item.ongoingProjectCount,
       taskOverdueCount: item.taskOverdueCount,
       signedAmount: item.signedAmount,
-      conversionRate: item.conversionRate,
+      conversionRate: item.finalQuoteAcceptanceRate,
       reportCount: item.reportCount
     }))
   }
@@ -189,7 +190,7 @@ const performances = computed(() => {
     ongoingProjectCount: item.ongoingProjectCount,
     taskOverdueCount: item.taskOverdueCount,
     signedAmount: item.signedAmount,
-    conversionRate: item.conversionRate,
+    conversionRate: item.finalQuoteAcceptanceRate,
     reportCount: item.reportCount
   }))
 })
@@ -433,7 +434,7 @@ function measureText(value?: string) {
             <JzTag text="待指派" :color="TOKEN_COLOR.warning" />
           </view>
           <text class="md__assignment-meta">{{ item.phone }} · {{ item.community || '未填小区' }} · {{ item.area || '-' }}㎡</text>
-          <text class="md__assignment-measure">量房：{{ measureText(item.measureAt) }} · 顾问：{{ item.owner?.name || '-' }}</text>
+          <view class="md__assignment-people"><JzEmployeeAvatar :src="item.owner?.avatarUrl || ''" :name="item.owner?.name || '业务员'" :role="'marketer'" :status="item.owner?.status" :size="36" /><text class="md__assignment-measure">量房：{{ measureText(item.measureAt) }} · 顾问：{{ item.owner?.name || '-' }}</text></view>
         </view>
         <button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="assign(item)"><JzIcon name="user-plus" :size="24" :color="TOKEN_COLOR.white" />指派</button>
       </view>
@@ -445,7 +446,7 @@ function measureText(value?: string) {
       <view class="md__list md__design-load">
         <view v-for="perf in bossPerformances" :key="perf.designerId" class="jz-card md__designer">
           <view class="md__designer-head">
-            <JzAvatar :name="perf.designerName || '设计师'" :size="78" :color="TOKEN_COLOR.purple" />
+            <JzEmployeeAvatar :name="perf.designerName || '设计师'" :role="'designer'" :size="78" />
             <view class="jz-grow md__designer-who">
               <text class="md__designer-name">{{ perf.designerName || '未命名成员' }}</text>
               <text class="md__designer-store">{{ perf.storeName || scopeName }}</text>
@@ -560,7 +561,7 @@ function measureText(value?: string) {
       <view class="md__list">
         <view v-for="perf in performances" :key="perf.employee?.id || 'designer'" class="jz-card md__designer">
           <view class="md__designer-head">
-            <JzAvatar :src="perf.employee?.avatarUrl || ''" :name="perf.employee?.name || '设计师'" :size="78" :color="TOKEN_COLOR.purple" />
+            <JzEmployeeAvatar :src="perf.employee?.avatarUrl || ''" :name="perf.employee?.name || '设计师'" :role="perf.employee?.role || 'designer'" :status="perf.employee?.status" :size="78" />
             <view class="jz-grow md__designer-who">
               <text class="md__designer-name">{{ perf.employee?.name || '未命名成员' }}</text>
               <text class="md__designer-store">{{ perf.employee?.store?.name || scopeName }}</text>
@@ -573,7 +574,7 @@ function measureText(value?: string) {
             <view><text class="md__designer-num">{{ perf.ongoingProjectCount }}</text><text>在施项目</text></view>
             <view><text class="md__designer-num" :class="{ 'md__designer-num--danger': perf.taskOverdueCount > 0 }">{{ perf.taskOverdueCount }}</text><text>逾期任务</text></view>
           </view>
-          <view class="md__designer-foot"><text>报价接受率 {{ perf.conversionRate }}%</text><text>动态 {{ perf.reportCount }} 条</text></view>
+          <view class="md__designer-foot"><text>最终报价接受率 {{ perf.conversionRate }}%</text><text>动态 {{ perf.reportCount }} 条</text></view>
         </view>
         <JzEmpty v-if="!performances.length" :text="isTeamLeader ? '团队暂无设计师' : '门店暂无设计师'" :sub="isTeamLeader ? '请先在团队成员中邀请设计师加入' : '请先在门店团队中邀请设计师加入'" />
       </view>
@@ -590,7 +591,7 @@ function measureText(value?: string) {
       </view>
       <scroll-view scroll-y class="md__sheet-list">
         <view v-for="designer in designers" :key="designer.id" class="md__sheet-item" @tap="chooseDesigner(designer)">
-          <JzAvatar :src="designer.avatarUrl || ''" :name="designer.name" :size="72" :color="TOKEN_COLOR.purple" />
+          <JzEmployeeAvatar :src="designer.avatarUrl || ''" :name="designer.name" :role="designer.role" :status="designer.status" :size="72" />
           <view class="jz-grow md__sheet-who">
             <text class="md__sheet-name">{{ designer.name }}</text>
             <text class="md__sheet-meta">当前负责 {{ workloadOf(designer.id) }} 位客户 · {{ designer.store?.name || scopeName }}</text>
@@ -622,6 +623,7 @@ function measureText(value?: string) {
 .md__list { padding-bottom: 8rpx; }
 .md__assignment { display: flex; align-items: center; padding: 24rpx; margin-bottom: 16rpx; }
 .md__assignment-main { margin-left: 18rpx; min-width: 0; }
+.md__assignment-people { display: flex; align-items: center; gap: 6rpx; margin-top: 8rpx; }
 .md__customer-name { margin-right: 12rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .md__assignment-meta, .md__assignment-measure { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .md__assignment-measure { color: $jzb-primary-dark; }

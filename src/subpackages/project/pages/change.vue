@@ -10,6 +10,7 @@ import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
@@ -192,7 +193,7 @@ function openContract() {
           <text class="chg__item-reason jz-clamp-2">{{ item.reason }}</text>
           <view class="chg__item-meta">
             <text v-if="item.type">{{ TYPE_LABEL[item.type] || item.type }}</text>
-            <text v-if="item.requestedBy?.name">发起 {{ item.requestedBy.name }}</text>
+            <view v-if="item.requestedBy?.name" class="chg__person"><JzEmployeeAvatar :src="item.requestedBy.avatarUrl || ''" :name="item.requestedBy.name" :role="item.requestedBy.role" :status="item.requestedBy.status" :size="36" /><text>发起 {{ item.requestedBy.name }}</text></view>
             <text v-if="item.costDelta !== undefined">成本变动 {{ money(item.costDelta) }}</text>
           </view>
           <view v-if="item.items?.length" class="chg__item-lines">
@@ -246,6 +247,7 @@ function openContract() {
 .chg__item-amount--down { color: $jzb-success; }
 .chg__item-reason { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-2; line-height: 1.6; }
 .chg__item-meta { display: flex; flex-wrap: wrap; gap: 18rpx; margin-top: 12rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.chg__person { display: inline-flex; align-items: center; gap: 6rpx; }
 .chg__item-lines { margin-top: 14rpx; padding-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
 .chg__line { display: flex; justify-content: space-between; align-items: center; padding: 8rpx 0; }
 .chg__line-name { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $jzb-text-2; }

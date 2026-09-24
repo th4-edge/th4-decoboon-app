@@ -17,6 +17,7 @@ import { siteApi } from '@/domains/site/api'
 import { acceptanceApi } from '@/domains/acceptance/api'
 import { acceptanceRoundApi } from '@/domains/acceptance/api'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
@@ -123,7 +124,11 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
       <view class="sd__meta-grid">
         <view class="sd__meta"><text class="sd__meta-label">计划</text><text class="sd__meta-val">{{ stage.plannedStart?.slice(5) }}~{{ stage.plannedEnd?.slice(5) }}</text></view>
         <view class="sd__meta"><text class="sd__meta-label">实际</text><text class="sd__meta-val">{{ stage.actualStart?.slice(5) || '未开始' }}{{ stage.actualEnd ? '~' + stage.actualEnd.slice(5) : '' }}</text></view>
-        <view class="sd__meta"><text class="sd__meta-label">负责人</text><text class="sd__meta-val">{{ stage.owner?.name || '-' }}</text></view>
+        <view class="sd__meta">
+          <text class="sd__meta-label">负责人</text>
+          <view v-if="stage.owner" class="sd__person"><JzEmployeeAvatar :src="stage.owner.avatarUrl || ''" :name="stage.owner.name" :role="stage.owner.role" :status="stage.owner.status" :size="40" /><text class="sd__meta-val">{{ stage.owner.name }}</text></view>
+          <text v-else class="sd__meta-val">-</text>
+        </view>
         <view class="sd__meta"><text class="sd__meta-label">权重</text><text class="sd__meta-val">{{ stage.weight }}%</text></view>
       </view>
     </view>
@@ -146,7 +151,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
       <view class="jz-between"><text class="sd__rectify-title">客户整改要求</text><JzTag text="整改中" :color="STATUS_COLOR.blocked" /></view>
       <text v-for="(issue, index) in acceptance.issues || []" :key="index" class="sd__rectify-issue">· {{ issue }}</text>
       <view class="sd__rectify-meta">
-        <text v-if="acceptance.projectManager">责任人：{{ acceptance.projectManager.name }}</text>
+        <view v-if="acceptance.projectManager" class="sd__person"><JzEmployeeAvatar :src="acceptance.projectManager.avatarUrl || ''" :name="acceptance.projectManager.name" :role="acceptance.projectManager.role" :status="acceptance.projectManager.status" :size="40" /><text>责任人：{{ acceptance.projectManager.name }}</text></view>
         <text v-if="acceptance.rectificationTypeName">类型：{{ acceptance.rectificationTypeName }}</text>
         <text v-if="acceptance.rectificationDueDate">截止：{{ acceptance.rectificationDueDate }}</text>
         <text v-if="rounds.length">第 {{ rounds.length }} 轮</text>
@@ -172,7 +177,13 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
         <view class="sd__task-dot" :style="{ backgroundColor: TASK_STATUS_META[t.status].color }" />
         <view class="jz-grow">
           <text class="sd__task-name">{{ t.name }}</text>
-          <view class="sd__task-meta"><text v-if="t.zone" class="sd__task-zone">{{ t.zone.name }}</text><text>{{ t.owner?.name || '未指派' }} · 总量 {{ t.quantity !== undefined ? t.quantity + (t.unit || '') : '-' }}</text><text v-if="t.conceal" class="sd__task-hidden">含隐蔽节点</text></view>
+          <view class="sd__task-meta">
+            <text v-if="t.zone" class="sd__task-zone">{{ t.zone.name }}</text>
+            <view v-if="t.owner" class="sd__person"><JzEmployeeAvatar :src="t.owner.avatarUrl || ''" :name="t.owner.name" :role="t.owner.role" :status="t.owner.status" :size="36" /><text>{{ t.owner.name }}</text></view>
+            <text v-else>未指派</text>
+            <text>· 总量 {{ t.quantity !== undefined ? t.quantity + (t.unit || '') : '-' }}</text>
+            <text v-if="t.conceal" class="sd__task-hidden">含隐蔽节点</text>
+          </view>
         </view>
         <JzTag :text="TASK_STATUS_META[t.status].label" :color="TASK_STATUS_META[t.status].color" />
       </view>
@@ -197,6 +208,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 .sd__meta { width: 50%; margin-bottom: 14rpx; }
 .sd__meta-label { font-size: $jzb-font-xs; color: $jzb-text-3; margin-right: 10rpx; }
 .sd__meta-val { font-size: $jzb-font-sm; color: $jzb-text-1; }
+.sd__person { display: inline-flex; align-items: center; gap: 8rpx; color: $jzb-text-1; font-size: $jzb-font-xs; }
 .sd__banner { margin: 0 24rpx 20rpx; padding: 22rpx 24rpx; display: flex; align-items: center; background: $jzb-warning-soft; border: 1rpx solid rgba(230,126,34,.10); border-radius: $jzb-radius; }
 .sd__banner--ok { background: $jzb-success-soft; border-color: rgba(7,163,90,.10); }
 .sd__banner-icon { width: 56rpx; height: 56rpx; margin-right: 16rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.7); }

@@ -12,6 +12,7 @@ import { confirm } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
@@ -44,6 +45,9 @@ async function refresh() {
   }
 }
 
+function openProfile() {
+  uni.navigateTo({ url: P.accountProfile })
+}
 function displayName() {
   return isCustomer(role.value) ? session.customer?.name || '业主' : session.emp?.name || '我'
 }
@@ -63,6 +67,7 @@ const groups = computed(() => {
   const mine: ReturnType<typeof cell>[] = []
   const support: ReturnType<typeof cell>[] = []
 
+  account.push(cell('user', '个人信息', employee ? '头像、姓名与组织归属' : '姓名与手机号', openProfile))
   account.push(cell('logout', '退出登录', '清除当前设备登录状态', doLogout))
   if (employee) account.push(cell('building', '我的企业', session.company?.name || '', () => uni.navigateTo({ url: P.companyInfo })))
   if (employee) account.push(cell('lock', '账号密码', session.user?.passwordSet ? '已设置' : '未设置', () => uni.navigateTo({ url: P.accountPassword })))
@@ -118,16 +123,18 @@ async function doLogout() {
   <view class="mine">
     <JzPageHeader title="我的" :subtitle="isCustomer(role) ? '业主同频账号' : '企业协同账号'" />
 
-    <view class="mine__profile" :style="{ backgroundColor: roleMeta.soft }">
-      <JzAvatar :src="session.emp?.avatarUrl || session.user?.avatarUrl || ''" :name="displayName()" :color="roleMeta.color" :size="96" />
+    <view class="mine__profile" :style="{ backgroundColor: roleMeta.soft }" @tap="openProfile">
+      <JzEmployeeAvatar v-if="session.emp" :src="session.emp.avatarUrl || session.user?.avatarUrl || ''" :name="displayName()" :role="session.emp.role" :status="session.emp.status" :size="96" />
+      <JzAvatar v-else :src="session.user?.avatarUrl || ''" :name="displayName()" :color="roleMeta.color" :size="96" />
       <view class="jz-grow mine__who">
         <view class="jz-row">
           <text class="mine__name">{{ displayName() }}</text>
           <JzTag :text="roleMeta.label" :color="roleMeta.color" />
         </view>
         <text class="mine__phone">{{ displayPhone() }}</text>
+        <text class="mine__profile-entry">{{ isCustomer(role) ? '查看个人信息' : '查看与编辑个人信息' }}</text>
       </view>
-      <text class="mine__role-tip">{{ isCustomer(role) ? '只看我的工地' : session.company?.name || session.emp?.title || '' }}</text>
+      <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.text3" />
     </view>
 
     <view v-for="group in groups" :key="group.key" class="mine__section">
@@ -152,6 +159,7 @@ async function doLogout() {
 .mine__name { font-size: $jzb-font-xl; font-weight: 700; color: $jzb-text-1; margin-right: 16rpx; }
 .mine__phone { display: block; margin-top: 8rpx; font-size: $jzb-font-sm; color: $jzb-text-2; }
 .mine__role-tip { font-size: $jzb-font-xs; color: $jzb-text-3; }
+.mine__profile-entry { display: block; margin-top: 10rpx; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 600; }
 .mine__section { margin: 0 $jzb-page-pad 26rpx; }
 .mine__section-head { display: flex; align-items: baseline; gap: 12rpx; margin-bottom: 12rpx; padding: 0 4rpx; }
 .mine__section-title { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }

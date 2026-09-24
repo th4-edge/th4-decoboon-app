@@ -93,6 +93,12 @@ export interface DesignerReport {
   quoteAmount: number
   signedAmount: number
   conversionRate: number
+  submittedQuoteCount: number
+  pendingDecisionQuoteCount: number
+  decidedOpportunityCount: number
+  acceptedOpportunityCount: number
+  finalQuoteAcceptanceRate: number
+  firstQuoteAcceptanceRate: number
   projectCount: number
   ongoingProjectCount: number
   finishedProjectCount: number
@@ -121,6 +127,12 @@ export interface DesignerPerformance {
   taskOverdueCount: number
   reportCount: number
   conversionRate: number
+  submittedQuoteCount: number
+  pendingDecisionQuoteCount: number
+  decidedOpportunityCount: number
+  acceptedOpportunityCount: number
+  finalQuoteAcceptanceRate: number
+  firstQuoteAcceptanceRate: number
 }
 
 export interface TeamMemberPerformance {
@@ -139,6 +151,12 @@ export interface TeamMemberPerformance {
   taskOverdueCount: number
   reportCount: number
   conversionRate: number
+  submittedQuoteCount: number
+  pendingDecisionQuoteCount: number
+  decidedOpportunityCount: number
+  acceptedOpportunityCount: number
+  finalQuoteAcceptanceRate: number
+  firstQuoteAcceptanceRate: number
 }
 
 export interface TeamLeaderReport {
@@ -160,6 +178,12 @@ export interface TeamLeaderReport {
   acceptedQuoteAmount: number
   signedAmount: number
   conversionRate: number
+  submittedQuoteCount: number
+  pendingDecisionQuoteCount: number
+  decidedOpportunityCount: number
+  acceptedOpportunityCount: number
+  finalQuoteAcceptanceRate: number
+  firstQuoteAcceptanceRate: number
   projectCount: number
   preparingProjectCount: number
   ongoingProjectCount: number
@@ -229,6 +253,12 @@ export interface StoreManagerReport {
   quoteAmount: number
   signedAmount: number
   conversionRate: number
+  submittedQuoteCount: number
+  pendingDecisionQuoteCount: number
+  decidedOpportunityCount: number
+  acceptedOpportunityCount: number
+  finalQuoteAcceptanceRate: number
+  firstQuoteAcceptanceRate: number
   projectCount: number
   preparingProjectCount: number
   ongoingProjectCount: number

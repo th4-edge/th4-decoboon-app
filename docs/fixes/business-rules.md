@@ -579,3 +579,13 @@ const x = filteredList.find(item => item.y === activeId && item.customerId === c
 * 全企业日期窗口必须保留已签约、服务中、已完工客户的**历史量房事实**，不能先按客户当前状态截断；当前状态只影响“待派单/待上门”等经营视图，不篡改历史事件；
 * 人员绩效页的月份、门店筛选必须透传到量房业绩；业务员拥有 `view:measure-workbench`，可进入“我的量房”；
 * 量房报告的数据源是 `Property + Measure`，不得为页面状态推断新建人工工作流状态。【FIX-021】
+
+***
+
+## 19. 装企员工头像与身份识别口径
+
+* 员工头像是跨客户、工地、任务、验收、设计和绩效场景的**统一身份锚点**，正式员工位置必须优先使用 `JzEmployeeAvatar`，不得只用通用 user 图标或首字方块；
+* 员工头像必须携带角色语义：岗位色点由 `ROLE_META` 派生，停用使用 warning 色点，离职使用弱化色点；
+* 头像上传是 multipart 文件契约：`user/user/update` 的文件字段必须为 `avatar`，禁止沿用通用接口的 `file` 字段；上传成功必须由返回值中的新头像地址确认，不能用请求成功替代业务成功；
+* 生产 `TH4_STORAGE_PROVIDER=oss` 时，头像文件必须写入阿里云 OSS 的 `avatar/{comId}/` 私有对象；OSS Bucket 和对象均不得依赖公共 ACL，统一通过既有公开路由 `/file/private/download?path=avatar%2F...` 的严格头像分支长期展示，其他文件仍必须签名，客户端不得直填非空 `avatarUrl`。历史本地/相对头像地址仍统一补成绝对地址后再进入会话和页面；
+* 客户头像继续使用 `JzAvatar`，不得把业主误标为装企员工角色。【FIX-022】

@@ -1,4 +1,5 @@
-import { post, listOf } from '@/core/http'
+import { post, listOf, upload as uploadRequest } from '@/core/http'
+import { runtime } from '@/config'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import type { CustomerAccess, Employee, EmployeeRole, InviteCode, Store, Team, UserProfile } from './model'
@@ -137,7 +138,7 @@ export function normalizeUser(raw: RawRecord): UserProfile {
     unionId: raw.unionId ?? raw.idSecret,
     phone: raw.phone ?? '',
     nickname: raw.nickname ?? currentEmployee?.name,
-    avatarUrl: raw.avatarUrl ?? currentEmployee?.avatarUrl,
+    avatarUrl: absoluteAvatar(raw.avatarUrl ?? currentEmployee?.avatarUrl),
     passwordSet: raw.passwordSet === true,
     status: (['active', 'disabled', 'deleted'].includes(status) ? status : 'active') as UserProfile['status'],
     currentEmployee: currentEmployee ? normalizeEmployee(currentEmployee) : undefined,
@@ -168,6 +169,22 @@ export function normalizeCustomerAccess(raw: RawRecord): CustomerAccess {
   }
 }
 
+
+/** 头像可能是服务端公开相对路径，这里统一补成可长期展示的绝对地址。 */
+function absoluteAvatar(url?: string) {
+  if (!url) return url
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('/')) return runtime.apiBase.replace(/\/$/, '') + url
+  return url
+}
+
+function profileEmployee(raw: RawRecord): Employee {
+  const source = (raw?.employee as RawRecord) || raw || {}
+  const employee = normalizeEmployee(source)
+  employee.avatarUrl = absoluteAvatar(employee.avatarUrl)
+  return employee
+}
+
 export function normalizeEmployee(raw: RawRecord): Employee {
   const store = normalizeStore(raw.store)
   const team = normalizeTeam(raw.team)
@@ -179,6 +196,7 @@ export function normalizeEmployee(raw: RawRecord): Employee {
     name: raw.name ?? '',
     phone: raw.phone ?? raw.telNo ?? '',
     role: normalizeRole(raw.role) || 'marketer',
+    avatarUrl: absoluteAvatar(raw.avatarUrl),
     title: raw.title ?? roleDisplayName(raw.role),
     companyId: company?.id,
     storeId: store?.id,
@@ -271,6 +289,19 @@ export const identityApi = {
 
   resignCompany: async (reason: string, forceHandover = false) =>
     post<Record<string, any>>('user/user/resign', { reason, forceHandover }),
+
+  /** 修改本人资料：姓名与头像；头像地址为空串表示恢复默认头像。 */
+  updateProfile: async (input: { name?: string; avatarUrl?: string }) => {
+    const raw = await post<RawRecord>('user/user/update', { name: input.name, avatarUrl: input.avatarUrl })
+    return profileEmployee(raw)
+  },
+
+  /**
+   * 上传头像文件：服务端写入公开目录并回填长期地址。
+   * 历史坑（FIX-022）：后端按 `avatar` 字段注入 @AutoFile，不能沿用通用上传的 `file` 字段，
+   * 否则接口会成功返回旧资料，用户看到“上传成功但头像没变”。
+   */
+  uploadAvatar: async (filePath: string) => profileEmployee(await uploadRequest<RawRecord>('user/user/update', filePath, {}, 'avatar')),
 
   companyInfo: async () => normalizeCompany(await post<RawRecord>('company/company/info', {})),
 

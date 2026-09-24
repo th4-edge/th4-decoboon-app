@@ -5,12 +5,14 @@ import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
+import { ROLE_META } from '@/roles/catalog'
 import type { Employee, ProjectMember } from '@/domains/identity/model'
 import type { Project } from '@/domains/project/model'
 import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
 import { toast, toastError } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -73,8 +75,8 @@ async function choose(emp: Employee) {
 const emps = computed(() => members.value.filter((m) => m.kind === 'employee'))
 const custs = computed(() => members.value.filter((m) => m.kind === 'customer'))
 function color(m: ProjectMember) {
-  if (m.kind === 'customer') return '#F53F3F'
-  return m.emp?.role === 'pm' ? '#FA8C16' : m.emp?.role === 'designer' ? '#722ED1' : m.emp?.role === 'boss' ? TOKEN_COLOR.primaryBase : '#13C2C2'
+  if (m.kind === 'customer') return ROLE_META.customer.color
+  return ROLE_META[m.emp?.role || m.role].color
 }
 
 /** 加入时间格式化：后端返回 20260917002637 这类紧凑时间戳时转为 YYYY-MM-DD。 */
@@ -93,14 +95,16 @@ function joinedText(value?: string | number) {
     <view class="jz-section"><text class="jz-section__title">工地岗位</text></view>
     <view class="jz-card mb__roles">
       <view class="mb__role-row" @tap="openPicker('pm')">
-        <view class="jz-grow">
+        <JzEmployeeAvatar v-if="manager" :src="manager.avatarUrl || ''" :name="manager.name" :role="manager.role" :status="manager.status" :size="72" />
+        <view class="jz-grow mb__role-person">
           <text class="mb__role-label">项目经理</text>
           <text class="mb__role-value" :class="{ 'mb__role-value--empty': !manager }">{{ manager?.name || '未指定（工地无法开工）' }}</text>
         </view>
         <text v-if="canSwitchMember" class="mb__role-action">{{ manager ? '切换' : '指定' }}</text>
       </view>
       <view class="mb__role-row" @tap="openPicker('designer')">
-        <view class="jz-grow">
+        <JzEmployeeAvatar v-if="designer" :src="designer.avatarUrl || ''" :name="designer.name" :role="designer.role" :status="designer.status" :size="72" />
+        <view class="jz-grow mb__role-person">
           <text class="mb__role-label">设计师</text>
           <text class="mb__role-value" :class="{ 'mb__role-value--empty': !designer }">{{ designer?.name || '未指定' }}</text>
         </view>
@@ -112,7 +116,7 @@ function joinedText(value?: string | number) {
     <view class="jz-section"><text class="jz-section__title">项目团队（{{ emps.length }}）</text></view>
     <view class="jz-card mb__list">
       <view v-for="m in emps" :key="m.id" class="mb__row">
-        <JzAvatar :src="m.emp?.avatarUrl || ''" :name="m.emp?.name" :color="color(m)" :size="76" />
+        <JzEmployeeAvatar :src="m.emp?.avatarUrl || ''" :name="m.emp?.name" :role="m.emp?.role || m.role" :status="m.emp?.status" :size="84" />
         <view class="jz-grow mb__who">
           <view class="jz-row">
             <text class="mb__name">{{ m.emp?.name }}</text>
@@ -128,9 +132,9 @@ function joinedText(value?: string | number) {
     <view class="jz-section"><text class="jz-section__title">业主同频（{{ custs.length }}）</text></view>
     <view class="jz-card mb__list">
       <view v-for="m in custs" :key="m.id" class="mb__row">
-        <JzAvatar :name="m.customer?.name" color="#F53F3F" :size="76" />
+        <JzAvatar :name="m.customer?.name" :color="ROLE_META.customer.color" :size="76" />
         <view class="jz-grow mb__who">
-          <view class="jz-row"><text class="mb__name">{{ m.customer?.name }}</text><JzTag text="业主" color="#F53F3F" /></view>
+          <view class="jz-row"><text class="mb__name">{{ m.customer?.name }}</text><JzTag text="业主" :color="ROLE_META.customer.color" /></view>
           <text class="mb__meta">{{ m.customer?.phone ? m.customer.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '' }} · 仅同频可见</text>
         </view>
       </view>
@@ -150,7 +154,7 @@ function joinedText(value?: string | number) {
         </view>
         <scroll-view scroll-y class="mb__sheet-list">
           <view v-for="e in candidates" :key="e.id" class="mb__sheet-item" @tap="choose(e)">
-            <JzAvatar :src="e.avatarUrl || ''" :name="e.name" :color="e.role === 'pm' ? '#FA8C16' : '#722ED1'" :size="68" />
+            <JzEmployeeAvatar :src="e.avatarUrl || ''" :name="e.name" :role="e.role" :status="e.status" :size="76" />
             <view class="jz-grow mb__sheet-who">
               <text class="mb__sheet-name">{{ e.name }}</text>
               <text class="mb__sheet-role">{{ e.title || e.role }} · {{ e.store?.name || '总店' }}</text>
@@ -173,6 +177,7 @@ function joinedText(value?: string | number) {
 .mb__role-value { display: block; margin-top: 6rpx; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
 .mb__role-value--empty { color: $jzb-danger; }
 .mb__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 6rpx 18rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
+.mb__role-person { margin-left: 18rpx; }
 .mb__role-tip { display: block; padding: 14rpx 0 6rpx; font-size: $jzb-font-xs; color: $jzb-text-4; }
 .mb__mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, .45); display: flex; flex-direction: column; justify-content: flex-end; z-index: 900; }
 .mb__sheet { background: $jzb-bg-card; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); max-height: 70vh; }

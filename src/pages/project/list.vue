@@ -11,6 +11,7 @@ import { projectApi } from '@/domains/project/api'
 import { visibleProjects } from '@/domains/project/scope'
 import { money } from '@/core/format'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -47,7 +48,11 @@ const bossStatus = ref<string>('all')
 const bossContractStage = ref<string>('all')
 const bossSort = ref<ProjectSortKey>('risk')
 
-onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
+onLoad((options?: Record<string, string | undefined>) => {
+  if (!isLoggedIn()) goTab(P.login)
+  const status = options?.status
+  if (status && FILTERS.some((item) => item.key === status)) filter.value = status as 'all' | ProjectStatus
+})
 onShow(() => { if (isLoggedIn()) refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
@@ -446,7 +451,12 @@ function openChangeWorkbench() {
           <view class="pl__card-topline">
             <view class="pl__card-title">
               <text class="pl__ops-name">{{ p.name }}</text>
-              <text class="pl__ops-sub">{{ p.community || p.address || '地址待完善' }} · {{ p.area }}㎡ · {{ p.manager?.name ? '项目经理 ' + p.manager.name : '未分配项目经理' }}</text>
+              <text class="pl__ops-sub">{{ p.community || p.address || '地址待完善' }} · {{ p.area }}㎡</text>
+              <view class="pl__people">
+                <view v-if="p.manager" class="pl__person"><JzEmployeeAvatar :src="p.manager.avatarUrl || ''" :name="p.manager.name" :role="p.manager.role" :status="p.manager.status" :size="44" /><text>项目经理 {{ p.manager.name }}</text></view>
+                <view v-if="p.designer" class="pl__person"><JzEmployeeAvatar :src="p.designer.avatarUrl || ''" :name="p.designer.name" :role="p.designer.role" :status="p.designer.status" :size="44" /><text>设计 {{ p.designer.name }}</text></view>
+                <text v-if="!p.manager && !p.designer" class="pl__person-empty">人员待分配</text>
+              </view>
             </view>
             <JzTag :text="statusLabel(p)" :color="statusColor(p)" />
           </view>
@@ -523,9 +533,9 @@ function openChangeWorkbench() {
                 <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />
                 <text>{{ p.community || p.address }} · {{ p.area }}㎡</text>
               </view>
-              <view class="pl__meta-line" v-if="p.designer || p.manager">
-                <JzIcon name="users" :size="24" :color="TOKEN_COLOR.text3" />
-                <text>{{ p.designer ? '设计 ' + p.designer.name : '' }}<text v-if="p.designer && p.manager"> · </text>{{ p.manager ? '经理 ' + p.manager.name : '' }}</text>
+              <view class="pl__people" v-if="p.designer || p.manager">
+                <view v-if="p.designer" class="pl__person"><JzEmployeeAvatar :src="p.designer.avatarUrl || ''" :name="p.designer.name" :role="p.designer.role" :status="p.designer.status" :size="40" /><text>设计 {{ p.designer.name }}</text></view>
+                <view v-if="p.manager" class="pl__person"><JzEmployeeAvatar :src="p.manager.avatarUrl || ''" :name="p.manager.name" :role="p.manager.role" :status="p.manager.status" :size="40" /><text>经理 {{ p.manager.name }}</text></view>
               </view>
             </view>
           </view>
@@ -609,6 +619,9 @@ function openChangeWorkbench() {
 .pl__card-title { flex: 1; min-width: 0; margin-right: 16rpx; }
 .pl__ops-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl__ops-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl__people { display: flex; align-items: center; flex-wrap: wrap; gap: 6rpx 16rpx; margin-top: 10rpx; }
+.pl__person { display: inline-flex; align-items: center; gap: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pl__person-empty { color: $jzb-text-4; font-size: $jzb-font-xs; }
 .pl__risk { display: flex; align-items: flex-start; gap: 10rpx; margin-top: 18rpx; padding: 16rpx 18rpx; border-radius: $jzb-radius-sm; background: $jzb-warning-soft; }
 .pl__risk--high { background: $jzb-danger-soft; }
 .pl__risk--attention { background: $jzb-warning-soft; }

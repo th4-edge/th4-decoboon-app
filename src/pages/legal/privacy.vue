@@ -17,7 +17,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 
       <view class="jz-card legal__card">
         <text class="legal__title">一、适用范围</text>
-        <text class="legal__paragraph">本政策适用于安徽昭青网络科技有限公司通过“装得清”微信小程序、Web 工作台及相关服务处理个人信息和业务数据的活动。企业客户、员工、被邀请成员及其他授权用户使用本服务时，应同时遵守其所属企业的内部制度和授权范围。</text>
+        <text class="legal__paragraph">本政策适用于{{ runtime.legalSubject }}通过“装得清”微信小程序、Web 工作台及相关服务处理个人信息和业务数据的活动。企业客户、员工、被邀请成员及其他授权用户使用本服务时，应同时遵守其所属企业的内部制度和授权范围。</text>
       </view>
 
       <view class="jz-card legal__card">

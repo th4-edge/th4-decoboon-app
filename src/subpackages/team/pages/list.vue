@@ -9,7 +9,7 @@ import { ROLE_META } from '@/roles/catalog'
 import { can } from '@/roles/permission'
 import { identityApi } from '@/domains/identity/api'
 import { toast } from '@/composables/toast'
-import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
@@ -62,7 +62,7 @@ const canInvite = computed(() => can(session.role || 'boss', 'act:inviteMember')
     <view class="team__list">
       <PageState v-if="loadError && !list.length" state="error" title="成员加载失败" :subtitle="loadError" @retry="refresh" />
       <view v-for="e in shown" :key="e.id" class="jz-card team__item">
-        <JzAvatar :src="e.avatarUrl || ''" :name="e.name" :color="ROLE_META[e.role as keyof typeof ROLE_META]?.color || TOKEN_COLOR.primaryBase" :size="80" />
+        <JzEmployeeAvatar :src="e.avatarUrl || ''" :name="e.name" :role="e.role" :status="e.status" :size="88" />
         <view class="jz-grow team__who">
           <view class="jz-row">
             <text class="team__name">{{ e.name }}</text>

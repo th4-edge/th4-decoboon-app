@@ -10,6 +10,7 @@ import type { EmployeeRole } from '@/domains/identity/model'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 
 const member = ref<Employee | null>(null)
 const empId = ref('')
@@ -45,7 +46,7 @@ function handover() { uni.navigateTo({ url: `${P.companyHandover}?empId=${empId.
     <JzPageHeader title="员工详情" subtitle="企业归属、状态与交接入口" />
     <view v-if="member" class="md-body">
       <view class="jz-card md-card">
-        <view class="md-head"><view class="md-avatar">{{ member.name.slice(0, 1) }}</view><view><text class="md-name">{{ member.name }}</text><text class="md-role">{{ ROLE_META[member.role]?.label || member.role }}</text></view><JzTag :text="status[member.status || 'active'][0]" :color="status[member.status || 'active'][1]" /></view>
+        <view class="md-head"><JzEmployeeAvatar :src="member.avatarUrl || ''" :name="member.name" :role="member.role" :status="member.status" :size="104" /><view><text class="md-name">{{ member.name }}</text><text class="md-role">{{ ROLE_META[member.role]?.label || member.role }}</text></view><JzTag :text="status[member.status || 'active'][0]" :color="status[member.status || 'active'][1]" /></view>
         <view class="md-row"><text>手机号</text><text>{{ member.phone }}</text></view>
         <view v-if="member.role !== 'boss'" class="md-row"><text>岗位</text><picker :range="editableRoles.map(item => item.label)" :value="roleIndex" @change="changeRole"><text>{{ editableRoles[roleIndex]?.label }}</text></picker></view>
         <view class="md-row"><text>所属企业</text><text>{{ member.company?.name || '-' }}</text></view>
@@ -65,7 +66,6 @@ function handover() { uni.navigateTo({ url: `${P.companyHandover}?empId=${empId.
 .md-body { padding: 28rpx; }
 .md-card { padding: 28rpx; }
 .md-head { display: flex; align-items: center; gap: 18rpx; padding-bottom: 24rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.md-avatar { display: flex; align-items: center; justify-content: center; width: 90rpx; height: 90rpx; color: $jzb-text-inverse; background: $jzb-gradient; border-radius: 30rpx; font-size: 40rpx; font-weight: 750; }
 .md-name { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .md-role { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .md-row { display: flex; justify-content: space-between; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; font-size: $jzb-font-sm; }

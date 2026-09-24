@@ -11,6 +11,7 @@ import { designApi } from '@/domains/design/api'
 import { toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
@@ -118,7 +119,7 @@ function customerMeta(customer: Customer) {
           </view>
           <text class="drp__meta">{{ customerMeta(customer) }}</text>
           <view class="drp__tags">
-            <text v-if="customer.designer" class="drp__tag">设计师 {{ customer.designer.name }}</text>
+            <view v-if="customer.designer" class="drp__designer"><JzEmployeeAvatar :src="customer.designer.avatarUrl || ''" :name="customer.designer.name" :role="customer.designer.role" :status="customer.designer.status" :size="40" /><text>设计师 {{ customer.designer.name }}</text></view>
             <!-- FIX-011：高优先从深色底白字改为 danger 色标签 -->
             <text v-if="highOf(customer.id) > 0" class="drp__tag drp__tag--high">高优先 {{ highOf(customer.id) }}</text>
           </view>
@@ -172,6 +173,7 @@ function customerMeta(customer: Customer) {
 .drp__meta { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.45; }
 .drp__tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; align-items: center; }
 .drp__tag { padding: 2rpx 8rpx; color: $jzb-text-2; background: $jzb-bg-page; border-radius: 6rpx; font-size: 20rpx; }
+.drp__designer { display: inline-flex; align-items: center; gap: 8rpx; padding-right: 12rpx; color: $jzb-text-2; background: $jzb-bg-page; border-radius: $jzb-radius-pill; font-size: 20rpx; }
 /* FIX-011：高优先 danger 色 */
 .drp__tag--high { color: $jzb-danger; background: $jzb-danger-soft; }
 

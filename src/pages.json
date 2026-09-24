@@ -242,6 +242,14 @@
       "root": "subpackages/account",
       "pages": [
         {
+          "path": "pages/profile",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "个人信息",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/password",
           "style": {
             "navigationBarTitleText": "账号密码",
@@ -919,6 +927,7 @@
         {
           "path": "pages/workers",
           "style": {
+            "navigationStyle": "custom",
             "navigationBarTitleText": "工人档案",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
@@ -927,8 +936,9 @@
         {
           "path": "pages/worker-edit",
           "style": {
+            "navigationStyle": "custom",
             "navigationBarTitleText": "工人信息",
-            "backgroundColor": "#FFFFFF"
+            "backgroundColor": "#F4F7F8"
           }
         }
       ]

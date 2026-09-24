@@ -31,6 +31,7 @@ import JzTabBar from '@/components/JzTabBar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
@@ -541,7 +542,8 @@ const projectSectionTitle = computed(() => {
 
       <view class="home__profile jz-card">
         <view class="home__profile-top">
-          <JzAvatar :src="avatarUrl" :name="displayName()" :color="roleMeta.color" :size="112" />
+          <JzEmployeeAvatar v-if="role !== 'customer' && emp" :src="avatarUrl" :name="displayName()" :role="emp.role" :status="emp.status" :size="112" />
+          <JzAvatar v-else :src="avatarUrl" :name="displayName()" :color="roleMeta.color" :size="112" />
           <view class="home__profile-ident">
             <view class="home__profile-name-row">
               <text class="home__profile-name">{{ displayName() }}</text>
@@ -651,7 +653,7 @@ const projectSectionTitle = computed(() => {
         <view class="jz-grow">
           <text class="home__performance-label">门店经营概览</text>
           <text class="home__performance-value">{{ money(storeReport.signedAmount) }}</text>
-          <text class="home__performance-sub">{{ storeReport.designerCount }} 位设计师 · {{ storeReport.ongoingProjectCount }} 个在施项目 · {{ storeReport.unassignedDesignerCount }} 位客户待指派 · 报价接受率 {{ storeReport.conversionRate }}%</text>
+          <text class="home__performance-sub">{{ storeReport.designerCount }} 位设计师 · {{ storeReport.ongoingProjectCount }} 个在施项目 · {{ storeReport.unassignedDesignerCount }} 位客户待指派 · 最终报价接受率 {{ storeReport.finalQuoteAcceptanceRate }}%</text>
         </view>
         <JzIcon name="chart" :size="42" :color="TOKEN_COLOR.primary" />
       </view>
@@ -660,7 +662,7 @@ const projectSectionTitle = computed(() => {
         <view class="jz-grow">
           <text class="home__performance-label">团队经营概览</text>
           <text class="home__performance-value">{{ money(teamLeaderReport.signedAmount) }}</text>
-          <text class="home__performance-sub">{{ teamLeaderReport.memberCount }} 位成员 · {{ teamLeaderReport.ongoingProjectCount }} 个在施项目 · {{ teamLeaderReport.unassignedDesignerCount }} 位客户待派单 · 报价接受率 {{ teamLeaderReport.conversionRate }}%</text>
+          <text class="home__performance-sub">{{ teamLeaderReport.memberCount }} 位成员 · {{ teamLeaderReport.ongoingProjectCount }} 个在施项目 · {{ teamLeaderReport.unassignedDesignerCount }} 位客户待派单 · 最终报价接受率 {{ teamLeaderReport.finalQuoteAcceptanceRate }}%</text>
         </view>
         <JzIcon name="chart" :size="42" color="#2F54EB" />
       </view>
@@ -669,7 +671,7 @@ const projectSectionTitle = computed(() => {
         <view class="jz-grow">
           <text class="home__performance-label">设计签约额</text>
           <text class="home__performance-value">{{ money(designerReport.signedAmount) }}</text>
-          <text class="home__performance-sub">报价接受率 {{ designerReport.conversionRate }}% · {{ designerReport.quoteCount }} 份报价 · {{ designerReport.projectCount }} 个项目</text>
+          <text class="home__performance-sub">最终报价接受率 {{ designerReport.finalQuoteAcceptanceRate }}% · {{ designerReport.quoteCount }} 份报价 · {{ designerReport.projectCount }} 个项目</text>
         </view>
         <JzIcon name="chart" :size="42" :color="TOKEN_COLOR.primary" />
       </view>
@@ -746,7 +748,8 @@ const projectSectionTitle = computed(() => {
                 <view class="home__project-icon home__project-icon--risk"><JzIcon name="alert-circle" :size="38" :color="p.riskLevel === 'high' ? TOKEN_COLOR.danger : TOKEN_COLOR.warning" :stroke-width="1.8" /></view>
                 <view class="home__project-title">
                   <text class="home__project-name">{{ p.name }}</text>
-                  <text class="home__project-no">{{ p.no || '装修项目' }} · {{ p.managerName || '未分配项目经理' }}</text>
+                  <text class="home__project-no">{{ p.no || '装修项目' }}</text>
+                  <view class="home__project-person"><JzEmployeeAvatar :name="p.managerName || '项目经理'" :role="'pm'" :size="40" /><text>{{ p.managerName || '未分配项目经理' }}</text></view>
                 </view>
                 <JzTag :text="riskText(p.riskLevel)" :color="p.riskLevel === 'high' ? TOKEN_COLOR.danger : p.riskLevel === 'medium' ? TOKEN_COLOR.warning : TOKEN_COLOR.text3" />
               </view>
@@ -789,7 +792,8 @@ const projectSectionTitle = computed(() => {
                 <view class="home__project-meta-item"><JzIcon name="calendar" :size="24" :color="TOKEN_COLOR.text4" /><text>{{ p.planEndDate ? `计划完工 ${p.planEndDate.slice(5, 10)}` : '完工日期待排期' }}</text></view>
               </view>
               <view class="home__project-foot">
-                <text class="home__project-manager">{{ p.manager?.name ? `项目经理 ${p.manager.name}` : '查看任务、日报与验收' }}</text>
+                <view v-if="p.manager" class="home__project-person"><JzEmployeeAvatar :src="p.manager.avatarUrl || ''" :name="p.manager.name" :role="p.manager.role" :status="p.manager.status" :size="44" /><text>项目经理 {{ p.manager.name }}</text></view>
+                <text v-else class="home__project-manager">查看任务、日报与验收</text>
                 <view class="home__project-enter"><text>进入工地</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
               </view>
             </view>

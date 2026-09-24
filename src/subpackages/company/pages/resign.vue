@@ -8,6 +8,7 @@ import { session } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 
 const reason = ref('')
 const force = ref(false)
@@ -51,7 +52,7 @@ function total() {
     <JzPageHeader title="退出企业" subtitle="退出后历史数据归属保留，但立即失去原企业访问权限" />
     <view class="resign-body">
       <view class="jz-card resign-company">
-        <JzIcon name="building" :size="44" :color="TOKEN_COLOR.danger" />
+        <JzEmployeeAvatar :src="session.emp?.avatarUrl || ''" :name="session.emp?.name || '当前员工'" :role="session.emp?.role || 'marketer'" :status="session.emp?.status" :size="88" />
         <view><text class="resign-company__name">{{ session.company?.name || '当前企业' }}</text><text class="resign-company__sub">{{ session.emp?.name }} · {{ session.emp?.role }}</text></view>
       </view>
       <view class="jz-section"><text class="jz-section__title">交接清单</text></view>

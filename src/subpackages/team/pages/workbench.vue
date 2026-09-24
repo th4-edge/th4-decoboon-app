@@ -250,9 +250,10 @@ function acceptanceLabel(raw: string) {
 .pm__hero-ring { width: 150rpx; height: 150rpx; border: 10rpx solid rgba(255,255,255,.35); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .pm__hero-ring text:first-child { font-size: 44rpx; font-weight: 750; }
 .pm__hero-ring text:last-child { margin-top: 2rpx; font-size: 20rpx; opacity: .86; }
-.pm__stats { padding: 0 $jzb-page-pad; display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
+.pm__stats { padding: 0 $jzb-page-pad; display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 20rpx; }
 .pm__stat { border-color: rgba(22,163,148,.12); background: linear-gradient(180deg, $jzb-text-inverse 0%, $jzb-primary-lightest 100%); box-shadow: 0 8rpx 24rpx rgba(14,138,125,.06); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
-.pm__stat { width: calc(25% - 11rpx); box-sizing: border-box; padding: 20rpx 8rpx 18rpx; display: flex; flex-direction: column; align-items: center; }
+/* 四列统计卡：用百分比宽度 + space-between 均分，避免 calc(rpx) 与 gap 组合把第 4 张挤到下一行 */
+.pm__stat { width: 23.5%; min-width: 0; margin-bottom: 10rpx; box-sizing: border-box; padding: 20rpx 8rpx 18rpx; display: flex; flex-direction: column; align-items: center; }
 .pm__stat:active { transform: scale(.98); box-shadow: 0 4rpx 12rpx rgba(14,138,125,.08); }
 .pm__stat-icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; background: $jzb-primary-lighter; }
 .pm__stat-icon--risk { background: $jzb-danger-soft; }
@@ -290,8 +291,8 @@ function acceptanceLabel(raw: string) {
 .pm__business-title { font-size: $jzb-font-md; font-weight: 700; }
 .pm__business-link { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
 .pm__business-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
-.pm__business-grid { margin-top: 22rpx; display: flex; flex-wrap: wrap; gap: 16rpx; }
-.pm__business-grid view { width: calc(50% - 8rpx); box-sizing: border-box; padding: 20rpx; background: rgba(255,255,255,.86); border: 1rpx solid rgba(22,163,148,.10); border-radius: $jzb-radius-sm; }
+.pm__business-grid { margin-top: 22rpx; display: flex; flex-wrap: wrap; justify-content: space-between; }
+.pm__business-grid view { width: 49%; margin-bottom: 16rpx; box-sizing: border-box; padding: 20rpx; background: rgba(255,255,255,.86); border: 1rpx solid rgba(22,163,148,.10); border-radius: $jzb-radius-sm; }
 .pm__business-grid text { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pm__business-grid text:last-child { margin-top: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 750; }
 .pm__customer, .pm__quote { margin-bottom: 14rpx; padding: 20rpx 22rpx; display: flex; align-items: center; border-color: rgba(22,163,148,.09); background: $jzb-gradient-surface; }

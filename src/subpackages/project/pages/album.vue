@@ -9,6 +9,7 @@ import { dateTimeText } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
@@ -204,7 +205,7 @@ function gridClass(count: number) {
 
           <view v-for="entry in stage.entries" :key="entry.key" class="album__entry jz-card">
             <view class="album__entry-head">
-              <view class="album__avatar">{{ authorOf(entry).slice(-2) }}</view>
+              <JzEmployeeAvatar class="album__avatar" :name="authorOf(entry)" :role="entry.authorRole || 'pm'" :size="72" />
               <view class="jz-grow">
                 <view class="album__author-row">
                   <text class="album__author">{{ authorOf(entry) }}</text>
@@ -295,13 +296,7 @@ function gridClass(count: number) {
   background: $jzb-bg-card; border: 3rpx solid $jzb-primary;
 }
 .album__entry-head { display: flex; align-items: flex-start; gap: 16rpx; }
-.album__avatar {
-  width: 68rpx; height: 68rpx; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 18rpx;
-  background: linear-gradient(145deg, $jzb-primary, $jzb-primary-dark);
-  color: #fff; font-size: $jzb-font-xs; font-weight: 700;
-}
+.album__avatar { margin-top: 2rpx; }
 .album__author-row { display: flex; align-items: center; gap: 10rpx; }
 .album__author { font-size: $jzb-font; font-weight: 700; color: $jzb-text-1; }
 .album__role { padding: 2rpx 12rpx; border-radius: 999rpx; font-size: 20rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; }

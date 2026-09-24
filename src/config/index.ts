@@ -36,6 +36,7 @@ export const P = {
   companyInvite: '/subpackages/company/pages/invite',
   companyResign: '/subpackages/company/pages/resign',
   companyHandover: '/subpackages/company/pages/handover',
+  accountProfile: '/subpackages/account/pages/profile',
   accountPassword: '/subpackages/account/pages/password',
   customerList: '/pages/customer/list',
   customerDetail: '/subpackages/customer/pages/detail',

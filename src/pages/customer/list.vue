@@ -9,6 +9,7 @@ import type { Customer, CustomerMetricCard, CustomerOwnerGroup, CustomerOverview
 import { CUSTOMER_SOURCE_META, CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { crmApi } from '@/domains/crm/api'
 import JzAvatar from '@/components/JzAvatar.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
@@ -46,12 +47,16 @@ let customerTops: Array<{ key: string; top: number; bottom: number }> = []
 let bossCustomerTops: Array<{ key: string; top: number }> = []
 let viewportHeight = 0
 
-onLoad(() => {
+onLoad((options?: Record<string, string | undefined>) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
   if (isCustomer(session.role) || !can(session.role, 'view:customers')) {
     uni.showToast({ title: '无客户查看权限', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 500)
     return
+  }
+  const preset = options?.filter
+  if (preset && (preset === 'assign' || ALL_FILTERS.some((item) => item.key === preset))) {
+    filter.value = preset as typeof filter.value
   }
 })
 onShow(() => refresh())
@@ -423,6 +428,7 @@ function bossBusinessAmount(customer: Customer) {
             <text class="cl__owner-meta">{{ bossAllCustomerCount }}客户</text>
           </view>
           <view v-for="group in bossOwnerGroups" :key="bossGroupKey(group)" class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === bossGroupKey(group) }" @tap="selectBossGroup(group)">
+            <JzEmployeeAvatar :name="group.ownerName" :role="'marketer'" :size="48" />
             <text class="cl__owner-name">{{ group.ownerName }}</text>
             <text class="cl__owner-meta">{{ group.customerCount }}客户</text>
             <text v-if="group.riskCustomerCount > 0" class="cl__owner-risk">风险{{ group.riskCustomerCount }}</text>
@@ -469,7 +475,11 @@ function bossBusinessAmount(customer: Customer) {
                     <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
                     <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
                   </view>
-                  <text class="cl__boss-owner">负责人 {{ c.owner?.name || '未分配' }}<template v-if="c.designer"> · 设计 {{ c.designer.name }}</template></text>
+                  <view class="cl__people">
+                    <view v-if="c.owner" class="cl__person"><JzEmployeeAvatar :src="c.owner.avatarUrl || ''" :name="c.owner.name" :role="c.owner.role" :status="c.owner.status" :size="40" /><text>顾问 {{ c.owner.name }}</text></view>
+                    <view v-if="c.designer" class="cl__person"><JzEmployeeAvatar :src="c.designer.avatarUrl || ''" :name="c.designer.name" :role="c.designer.role" :status="c.designer.status" :size="40" /><text>设计 {{ c.designer.name }}</text></view>
+                    <text v-if="!c.owner && !c.designer" class="cl__person-empty">待分配人员</text>
+                  </view>
                 </view>
                 <JzTag :text="riskLabel(c)" :color="riskColor(c)" />
               </view>
@@ -548,7 +558,11 @@ function bossBusinessAmount(customer: Customer) {
                 <JzTag :text="CUSTOMER_STAGE_META[c.stage].label" :color="CUSTOMER_STAGE_META[c.stage].color" />
                 <text v-if="c.grade" class="cl__grade" :class="`cl__grade--${c.grade.level.toLowerCase()}`">{{ c.grade.level }}</text>
               </view>
-              <text class="cl__boss-owner">负责人 {{ c.owner?.name || '未分配' }}<template v-if="c.designer"> · 设计 {{ c.designer.name }}</template></text>
+              <view class="cl__people">
+                <view v-if="c.owner" class="cl__person"><JzEmployeeAvatar :src="c.owner.avatarUrl || ''" :name="c.owner.name" :role="c.owner.role" :status="c.owner.status" :size="40" /><text>顾问 {{ c.owner.name }}</text></view>
+                <view v-if="c.designer" class="cl__person"><JzEmployeeAvatar :src="c.designer.avatarUrl || ''" :name="c.designer.name" :role="c.designer.role" :status="c.designer.status" :size="40" /><text>设计 {{ c.designer.name }}</text></view>
+                <text v-if="!c.owner && !c.designer" class="cl__person-empty">待分配人员</text>
+              </view>
             </view>
             <JzTag :text="riskLabel(c)" :color="riskColor(c)" />
           </view>
@@ -690,6 +704,9 @@ function bossBusinessAmount(customer: Customer) {
 .cl__grade--b { color: $jzb-warning; background: $jzb-warning-soft; }
 .cl__grade--c { color: $jzb-text-3; background: $jzb-bg-page; }
 .cl__boss-owner { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__people { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx 16rpx; margin-top: 8rpx; }
+.cl__person { display: inline-flex; align-items: center; gap: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cl__person-empty { color: $jzb-text-4; font-size: $jzb-font-xs; }
 .cl__boss-timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12rpx; margin-top: 20rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
 .cl__boss-timeline > view { display: flex; flex-direction: column; align-items: center; gap: 6rpx; color: $jzb-text-3; font-size: 20rpx; }
 .cl__boss-timeline > view text:last-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
@@ -709,7 +726,7 @@ function bossBusinessAmount(customer: Customer) {
 .cl--focus .cl__head, .cl--focus .cl__metrics, .cl--focus .cl__store-filter { display: none; }
 .cl--focus .cl__workspace { margin-top: 0; border-top: 0; }
 .cl__owner-panel { width: 172rpx; height: 100%; flex-shrink: 0; background: $jzb-text-inverse; border-right: 1rpx solid $jzb-border-light; }
-.cl__owner-item { position: relative; min-height: 108rpx; padding: 14rpx 12rpx; display: flex; flex-direction: column; justify-content: center; gap: 6rpx; color: $jzb-text-2; border-bottom: 1rpx solid $jzb-border-light; }
+.cl__owner-item { position: relative; min-height: 132rpx; padding: 14rpx 12rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6rpx; color: $jzb-text-2; border-bottom: 1rpx solid $jzb-border-light; text-align: center; }
 .cl__owner-item--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; box-shadow: inset 5rpx 0 0 $jzb-primary; }
 .cl__owner-name { font-size: $jzb-font-sm; font-weight: 700; line-height: 1.3; }
 .cl__owner-meta { color: $jzb-text-3; font-size: 20rpx; }

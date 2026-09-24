@@ -16,6 +16,7 @@ import { siteApi } from '@/domains/site/api'
 import { fileApi } from '@/domains/file/api'
 import { toast, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -183,7 +184,14 @@ function openStageAccept() {
       <view class="td__row"><text class="td__label">施工工艺</text><text class="td__val">{{ task.craft || '-' }}</text></view>
       <view class="td__row"><text class="td__label">规格要求</text><text class="td__val">{{ task.spec || task.acceptStandard || '-' }}</text></view>
       <view class="td__row"><text class="td__label">施工总量</text><text class="td__val">{{ task.quantity !== undefined ? task.quantity + (task.unit || '') : '-' }}</text></view>
-      <view class="td__row"><text class="td__label">负责人</text><text class="td__val">{{ task.owner?.name || '未指派' }}（{{ task.owner?.title || '-' }}）</text></view>
+      <view class="td__row">
+        <text class="td__label">负责人</text>
+        <view v-if="task.owner" class="td__person">
+          <JzEmployeeAvatar :src="task.owner.avatarUrl || ''" :name="task.owner.name" :role="task.owner.role" :status="task.owner.status" :size="48" />
+          <text>{{ task.owner.name }}（{{ task.owner.title || '-' }}）</text>
+        </view>
+        <text v-else class="td__val">未指派</text>
+      </view>
       <view class="td__row"><text class="td__label">计划时间</text><text class="td__val">{{ (task.plannedStart || '-').slice(0, 10) }} ~ {{ (task.plannedEnd || '-').slice(0, 10) }}</text></view>
     </view>
 
@@ -250,6 +258,8 @@ function openStageAccept() {
 .td__row { display: flex; flex-direction: row; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .td__label { width: 160rpx; font-size: $jzb-font; color: $jzb-text-3; flex-shrink: 0; }
 .td__val { flex: 1; font-size: $jzb-font; color: $jzb-text-1; line-height: 1.6; }
+.td__person { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12rpx; color: $jzb-text-1; font-size: $jzb-font; }
+.td__person text { min-width: 0; }
 .td__nodes { margin: 0 24rpx; padding: 24rpx; }
 .td__node-row { position: relative; }
 .td__node-line { position: absolute; left: 14rpx; top: -26rpx; bottom: auto; width: 4rpx; height: 26rpx; background: $jzb-border-light; }

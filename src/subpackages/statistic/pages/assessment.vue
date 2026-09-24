@@ -13,6 +13,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
@@ -198,7 +199,8 @@ function currentMonth() {
       <view v-if="report?.performances?.length" class="assess-list jz-card">
         <view v-for="item in report.performances" :key="`${item.employee?.id}-${item.role}`" class="assess-person">
           <view class="assess-person__head">
-            <view class="jz-grow">
+            <JzEmployeeAvatar :src="item.employee?.avatarUrl || ''" :name="item.employee?.name || '未命名成员'" :role="item.employee?.role || item.role" :status="item.employee?.status" :size="64" />
+            <view class="jz-grow assess-person__who">
               <text class="assess-person__name">{{ item.employee?.name || '未命名成员' }}</text>
               <text class="assess-person__role">{{ roleLabel(item.role) }}</text>
             </view>
@@ -248,6 +250,7 @@ function currentMonth() {
 .assess-person { padding: 24rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .assess-person:last-child { border-bottom: none; }
 .assess-person__head { display: flex; align-items: center; }
+.assess-person__who { margin-left: 14rpx; }
 .assess-person__name { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .assess-person__role { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .assess-person__rate { color: $jzb-primary-dark; font-size: 40rpx; font-weight: 760; }

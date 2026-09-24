@@ -11,6 +11,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 
 type Filter = 'Active' | 'Suspended' | 'Resigned'
@@ -101,7 +102,7 @@ async function resign(member: Employee) {
       <view v-if="members.length" class="member-list">
         <view v-for="member in members" :key="member.id" class="member-card jz-card">
           <view class="member-card__main" @tap="detail(member)">
-            <view class="member-avatar"><JzIcon name="user" :size="34" :color="TOKEN_COLOR.primary" /></view>
+            <JzEmployeeAvatar class="member-avatar" :src="member.avatarUrl || ''" :name="member.name" :role="member.role" :status="member.status" :size="88" />
             <view class="member-info">
               <view class="member-name-row">
                 <text class="member-name">{{ member.name }}</text>
@@ -179,16 +180,7 @@ async function resign(member: Employee) {
 .member-card { overflow: hidden; padding: 0; }
 .member-card__main { display: flex; align-items: center; padding: 24rpx; }
 .member-card__main:active { background: $jzb-bg-hover; }
-.member-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 72rpx;
-  height: 72rpx;
-  margin-right: 16rpx;
-  background: $jzb-primary-lighter;
-  border-radius: $jzb-radius-sm;
-}
+.member-avatar { margin-right: 16rpx; }
 .member-info { flex: 1; min-width: 0; }
 .member-name-row { display: flex; align-items: center; gap: 8rpx; }
 .member-name { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
