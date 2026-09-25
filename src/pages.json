@@ -574,6 +574,13 @@
           }
         },
         {
+          "path": "pages/ai-generation",
+          "style": {
+            "navigationBarTitleText": "AI 效果图生成",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/talk",
           "style": {
             "navigationBarTitleText": "谈单PPT",

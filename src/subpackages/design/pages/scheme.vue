@@ -584,6 +584,11 @@ function toQuote() {
   if (!designId.value || !customerId.value) return
   uni.navigateTo({ url: `${P.quoteEdit}?customerId=${customerId.value}&designId=${designId.value}&mode=custom` })
 }
+async function openGeneration() {
+  if (!designId.value) return
+  if (activeTab.value === 'base') await saveBase()
+  uni.navigateTo({ url: `${P.designGeneration}?designId=${designId.value}` })
+}
 </script>
 <template>
   <PageState v-if="pageLoading" state="loading" :rows="5" />
@@ -730,6 +735,7 @@ function toQuote() {
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
         <button v-if="activeTab === 'base'" class="jz-btn jz-btn--plain jz-btn--sm" :loading="savingBase" @tap="saveBase"><JzIcon name="check" :size="26" :color="TOKEN_COLOR.primary" /><text>保存方案资料</text></button>
+        <button v-if="activeTab === 'base'" class="jz-btn jz-btn--plain jz-btn--sm" @tap="openGeneration"><JzIcon name="star" :size="26" :color="TOKEN_COLOR.primary" /><text>AI 效果图</text></button>
         <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="finishScheme"><JzIcon name="check-circle" :size="26" :color="TOKEN_COLOR.primary" /><text>完成方案</text></button>
         <button class="jz-btn jz-btn--primary jz-grow" @tap="toQuote"><JzIcon name="calculator" :size="28" :color="TOKEN_COLOR.white" /><text>生成设计报价</text></button>
       </view>

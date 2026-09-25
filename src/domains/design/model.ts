@@ -110,6 +110,64 @@ export interface DesignScheme {
   updatedAt?: string
 }
 
+
+export type DesignGenerationMode = 'precise' | 'concept'
+export type DesignGenerationStatus =
+  | 'contextBuilding' | 'promptReady' | 'generating' | 'draftReady'
+  | 'designerConfirmed' | 'shared' | 'feedbackReceived' | 'revised' | 'locked' | 'failed'
+export type DesignRenderStatus = 'ready' | 'confirmed' | 'superseded' | 'failed'
+
+export interface DesignContextSnapshot {
+  id: string
+  contextJson?: string
+  missingFieldsJson?: string
+  conflictFlagsJson?: string
+  confidence: 'High' | 'Medium' | 'Low' | string
+  capturedAt?: string
+}
+
+export interface DesignPromptSnapshot {
+  id: string
+  visualPrompt?: string
+  /** 仅 Designer 返回。 */
+  talkPrompt?: string
+  documentBriefJson?: string
+  templateVersion?: string
+  renderedAt?: string
+}
+
+export interface DesignRenderVersion {
+  id: string
+  sequence: number
+  status: DesignRenderStatus
+  imageUrl?: string
+  deliverable: boolean
+  confirmedBy?: Employee
+  confirmedAt?: string
+  startedAt?: string
+  completedAt?: string
+}
+
+export interface DesignGenerationTask {
+  id: string
+  no: string
+  design?: DesignScheme
+  customer?: Customer
+  property?: Property
+  owner?: Employee
+  mode: DesignGenerationMode
+  status: DesignGenerationStatus
+  failureCode?: string
+  builtAt?: string
+  completedAt?: string
+  selectedRender?: DesignRenderVersion
+  contextSnapshot?: DesignContextSnapshot
+  promptSnapshot?: DesignPromptSnapshot
+  renderVersions?: DesignRenderVersion[]
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface TalkSection {
   id: string
   type: TalkSectionType

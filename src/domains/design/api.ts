@@ -8,6 +8,8 @@ import type { Quote } from '../trade/model'
 import { normalizeCatalogItem } from '../catalog/api'
 import type {
   DesignItem, DesignItemType, DesignRequirement, DesignScheme, DesignSpace, DesignStatus,
+  DesignContextSnapshot, DesignGenerationMode, DesignGenerationStatus, DesignGenerationTask,
+  DesignPromptSnapshot, DesignRenderStatus, DesignRenderVersion,
   PricingMode, RequirementCategory, RequirementKind, RequirementPriority, RequirementStatus,
   SpaceType, TalkPlan, TalkSection, TalkSectionType, TalkStatus
 } from './model'
@@ -93,6 +95,17 @@ const SECTION_TYPE: Record<string, TalkSectionType> = {
   Problem: 'problem', Demolition: 'demolition', Masonry: 'masonry', Optimization: 'optimization',
   RoomDesign: 'roomDesign', SoftDecor: 'softDecor', Material: 'material', Appliance: 'appliance',
   Investment: 'investment', Saving: 'saving', End: 'end'
+}
+
+const GENERATION_MODE: Record<string, DesignGenerationMode> = { Precise: 'precise', Concept: 'concept' }
+const GENERATION_MODE_API: Record<DesignGenerationMode, string> = { precise: 'Precise', concept: 'Concept' }
+const GENERATION_STATUS: Record<string, DesignGenerationStatus> = {
+  ContextBuilding: 'contextBuilding', PromptReady: 'promptReady', Generating: 'generating',
+  DraftReady: 'draftReady', DesignerConfirmed: 'designerConfirmed', Shared: 'shared',
+  FeedbackReceived: 'feedbackReceived', Revised: 'revised', Locked: 'locked', Failed: 'failed'
+}
+const RENDER_STATUS: Record<string, DesignRenderStatus> = {
+  Ready: 'ready', Confirmed: 'confirmed', Superseded: 'superseded', Failed: 'failed'
 }
 
 export function unitName(value: unknown): string {
@@ -318,6 +331,64 @@ async function signTalk(raw: RawRecord): Promise<TalkPlan> {
   }
 }
 
+function normalizeContextSnapshot(raw: RawRecord): DesignContextSnapshot {
+  return {
+    id: String(raw.id ?? raw.snapshotId ?? ''),
+    contextJson: raw.contextJson,
+    missingFieldsJson: raw.missingFieldsJson,
+    conflictFlagsJson: raw.conflictFlagsJson,
+    confidence: raw.confidence || 'Low',
+    capturedAt: dateTimeValue(raw.capturedAt)
+  }
+}
+
+function normalizePromptSnapshot(raw: RawRecord): DesignPromptSnapshot {
+  return {
+    id: String(raw.id ?? raw.promptId ?? ''),
+    visualPrompt: raw.visualPrompt,
+    talkPrompt: raw.talkPrompt ?? undefined,
+    documentBriefJson: raw.documentBriefJson,
+    templateVersion: raw.templateVersion,
+    renderedAt: dateTimeValue(raw.renderedAt)
+  }
+}
+
+function normalizeRenderVersion(raw: RawRecord): DesignRenderVersion {
+  return {
+    id: String(raw.id ?? raw.renderId ?? ''),
+    sequence: number(raw.sequence || 1),
+    status: RENDER_STATUS[enumValue(raw.status)] || 'ready',
+    imageUrl: raw.imageUrl,
+    deliverable: raw.deliverable === true,
+    confirmedBy: raw.confirmedBy ? normalizeEmployee(raw.confirmedBy) : undefined,
+    confirmedAt: dateTimeValue(raw.confirmedAt),
+    startedAt: dateTimeValue(raw.startedAt),
+    completedAt: dateTimeValue(raw.completedAt)
+  }
+}
+
+export function normalizeGenerationTask(raw: RawRecord): DesignGenerationTask {
+  return {
+    id: String(raw.id ?? raw.generationId ?? ''),
+    no: raw.no ?? '',
+    design: raw.design ? normalizeScheme(raw.design) : undefined,
+    customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    property: raw.property ? normalizeProperty(raw.property) : undefined,
+    owner: raw.owner ? normalizeEmployee(raw.owner) : undefined,
+    mode: GENERATION_MODE[enumValue(raw.mode)] || 'concept',
+    status: GENERATION_STATUS[enumValue(raw.status)] || 'contextBuilding',
+    failureCode: raw.failureCode,
+    builtAt: dateTimeValue(raw.builtAt),
+    completedAt: dateTimeValue(raw.completedAt),
+    selectedRender: raw.selectedRender ? normalizeRenderVersion(raw.selectedRender) : undefined,
+    contextSnapshot: raw.contextSnapshot ? normalizeContextSnapshot(raw.contextSnapshot) : undefined,
+    promptSnapshot: raw.promptSnapshot ? normalizePromptSnapshot(raw.promptSnapshot) : undefined,
+    renderVersions: raw.renderVersions ? (raw.renderVersions as RawRecord[]).map(normalizeRenderVersion) : undefined,
+    createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
+    updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)
+  }
+}
+
 export interface RequirementInput {
   requirementId?: string
   customerId: string
@@ -496,6 +567,25 @@ export const designApi = {
       remark: input.remark,
       sort: input.sort
     }).then(normalizeDesignItem),
+
+  buildGeneration: (designId: string, mode: DesignGenerationMode = 'precise') =>
+    post<RawRecord>('design/generation/build', {
+      designId,
+      mode: GENERATION_MODE_API[mode]
+    }).then(normalizeGenerationTask),
+
+  generationInfo: (generationId: string) =>
+    post<RawRecord>('design/generation/info', { generationId }).then(normalizeGenerationTask),
+
+  generations: async (designId: string, size = 5) =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/generation/page', {
+      designId, current: 1, size
+    })).map(normalizeGenerationTask),
+
+  confirmGeneration: (generationId: string, renderId: string, spaceId?: string) =>
+    post<RawRecord>('design/generation/update', {
+      generationId, renderId, spaceId
+    }).then(normalizeGenerationTask),
 
   talks: async (designId: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/talk/page', {
