@@ -460,6 +460,26 @@ export interface DesignItemInput {
   materialId?: string
 }
 
+async function signGenerationTask(raw: RawRecord): Promise<DesignGenerationTask> {
+  const task = normalizeGenerationTask(raw)
+  const designId = task.design?.id
+  if (!designId) return task
+  const all = [...(task.renderVersions || []), ...(task.selectedRender ? [task.selectedRender] : [])]
+  const paths = Array.from(new Set(all.map((item) => item.imageUrl).filter((item): item is string => !!item)))
+  if (!paths.length) return task
+  const signed = await fileApi.grant('Design', designId, paths)
+  const signedByPath = new Map(paths.map((path, index) => [path, signed[index] || path]))
+  const signVersion = (item: DesignRenderVersion): DesignRenderVersion => ({
+    ...item,
+    imageUrl: item.imageUrl ? signedByPath.get(item.imageUrl) || item.imageUrl : item.imageUrl
+  })
+  return {
+    ...task,
+    selectedRender: task.selectedRender ? signVersion(task.selectedRender) : undefined,
+    renderVersions: task.renderVersions?.map(signVersion)
+  }
+}
+
 export const designApi = {
   requirements: async (customerId: string, propertyId?: string) =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/requirement/page', {
@@ -572,20 +592,20 @@ export const designApi = {
     post<RawRecord>('design/generation/build', {
       designId,
       mode: GENERATION_MODE_API[mode]
-    }).then(normalizeGenerationTask),
+    }).then(signGenerationTask),
 
   generationInfo: (generationId: string) =>
-    post<RawRecord>('design/generation/info', { generationId }).then(normalizeGenerationTask),
+    post<RawRecord>('design/generation/info', { generationId }).then(signGenerationTask),
 
   generations: async (designId: string, size = 5) =>
-    listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/generation/page', {
+    Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/generation/page', {
       designId, current: 1, size
-    })).map(normalizeGenerationTask),
+    })).map(signGenerationTask)),
 
   confirmGeneration: (generationId: string, renderId: string, spaceId?: string) =>
     post<RawRecord>('design/generation/update', {
       generationId, renderId, spaceId
-    }).then(normalizeGenerationTask),
+    }).then(signGenerationTask),
 
   talks: async (designId: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/talk/page', {
