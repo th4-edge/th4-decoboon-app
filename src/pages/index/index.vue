@@ -18,6 +18,8 @@ import { PROJECT_STATUS_META, projectStageText } from '@/domains/project/meta'
 import { ROLE_ACTIONS, ROLE_META } from '@/roles/catalog'
 import { materialPlanWorkbenchApi } from '@/domains/material/api'
 import { projectApi } from '@/domains/project/api'
+import { carryoverApi } from '@/domains/carryover/api'
+import type { CarryoverBatch } from '@/domains/carryover/model'
 import { siteApi } from '@/domains/site/api'
 import { acceptanceApi } from '@/domains/acceptance/api'
 import { crmApi } from '@/domains/crm/api'
@@ -38,12 +40,26 @@ import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import { useSystem } from '@/composables/system'
 
 const role = computed(() => session.role || 'customer')
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
 const emp = computed(() => session.emp)
 const customer = computed(() => session.customer)
 const roleMeta = computed(() => ROLE_META[role.value])
+const { system } = useSystem()
+const loggedIn = computed(() => isLoggedIn())
+const padTop = computed(() => `${(system.value.statusBarHeight || 20) + 12}px`)
+const activeGuestFeature = ref(0)
+const guestFeatures: Array<{ key: string; title: string; subtitle: string; icon: IconName; color: string; points: string[] }> = [
+  { key: 'customer', title: '客户经营', subtitle: '从线索到签约，客户跟进不断档', icon: 'users', color: TOKEN_COLOR.primary, points: ['客户档案与跟进记录集中管理', '量房、设计、报价按阶段流转', '经营指标与风险提醒及时可见'] },
+  { key: 'design', title: '方案报价', subtitle: '设计、报价、谈单在线协同', icon: 'edit', color: TOKEN_COLOR.purple, points: ['设计方案与图纸统一归档', '项目清单支持多版本报价', '成本与销售价分角色查看'] },
+  { key: 'project', title: '项目履约', subtitle: '进度、任务、现场留证同频', icon: 'briefcase', color: TOKEN_COLOR.warning, points: ['施工计划与节点任务拆解', '现场进度、照片和问题留痕', '验收、整改线上闭环'] },
+  { key: 'finance', title: '经营财务', subtitle: '应收应付与成本利润一屏掌握', icon: 'chart', color: TOKEN_COLOR.success, points: ['收款计划与资金台账对应', '采购、材料成本按事实归集', '经营报表支撑管理决策'] }
+]
+
+function openLogin() { uni.navigateTo({ url: P.login }) }
 
 const projects = ref<Project[]>([])
 const acceptances = ref<Acceptance[]>([])
@@ -60,10 +76,10 @@ const bossWorkbenchLoading = ref(true)
 const alertReport = ref<BusinessAlertReport | null>(null)
 const unreadCount = ref(0)
 const materialPlanSummary = ref({ projects: 0, readyToOrder: 0, inTransit: 0, delayed: 0 })
+const carryoverBatch = ref<CarryoverBatch | null>(null)
 
 onLoad(() => {
-  if (!isLoggedIn()) goTab(P.login)
-  else if (session.sessionType === 'user' && !session.emp) uni.reLaunch({ url: P.companyJoin })
+  if (isLoggedIn() && session.sessionType === 'user' && !session.emp) uni.reLaunch({ url: P.companyJoin })
 })
 onShow(() => {
   if (!isLoggedIn()) return
@@ -71,8 +87,10 @@ onShow(() => {
   refresh()
   void onboardingRef.value?.reload()
 })
-onPullDownRefresh(() => Promise.all([refresh(), onboardingRef.value?.reload()])
-  .finally(() => uni.stopPullDownRefresh()))
+onPullDownRefresh(() => {
+  if (!loggedIn.value) { uni.stopPullDownRefresh(); return }
+  return Promise.all([refresh(), onboardingRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
+})
 
 const myProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
 const customerProject = computed(() => isCustomer(role.value) ? myProjects.value[0] || null : null)
@@ -270,11 +288,13 @@ async function refresh() {
   if (role.value === 'boss') {
     bossWorkbenchLoading.value = true
     try {
-      const [workbench, alerts, unread, materialBenches] = await Promise.all([
+      const [workbench, alerts, unread, materialBenches, carryover] = await Promise.all([
         statisticApi.bossWorkbench(), statisticApi.alerts(), collabApi.unread(role.value),
         // 材料计划工作台指标：待下单 / 在途 / 逾期（服务端按数据范围聚合）
-        materialPlanWorkbenchApi.list().catch(() => [])
+        materialPlanWorkbenchApi.list().catch(() => []),
+        carryoverApi.batchInfo().catch(() => null)
       ])
+      carryoverBatch.value = carryover?.id ? carryover : null
       bossWorkbench.value = workbench
       alertReport.value = alerts
       materialPlanSummary.value = {
@@ -290,6 +310,7 @@ async function refresh() {
     } catch (error) {
       bossWorkbench.value = null
       alertReport.value = null
+      carryoverBatch.value = null
       toastError(error, '经营状态暂不可确认')
     } finally {
       bossWorkbenchLoading.value = false
@@ -528,6 +549,7 @@ const projectSectionTitle = computed(() => {
 
 <template>
   <view class="home">
+    <template v-if="loggedIn">
     <JzPageHeader fixed :title="`${greeting}，${displayName()}`" :subtitle="orgLine">
       <template #right>
         <view class="home__bell" @tap="go(P.msgList)">
@@ -539,6 +561,14 @@ const projectSectionTitle = computed(() => {
     <view class="home__body">
       <!-- 角色横幅：明确当前身份与视图边界 -->
       <OnboardingChecklist ref="onboardingRef" />
+      <view v-if="role === 'boss' && carryoverBatch" class="home__carryover jz-card" @tap="go(P.carryoverHome)">
+        <view class="home__carryover-icon"><JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" /></view>
+        <view class="jz-grow">
+          <text class="home__carryover-title">业务承接进行中</text>
+          <text class="home__carryover-sub">继续录入在跑项目，让工地、业主和账务不断档</text>
+        </view>
+        <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
+      </view>
 
       <view class="home__profile jz-card">
         <view class="home__profile-top">
@@ -835,10 +865,107 @@ const projectSectionTitle = computed(() => {
     <view class="jz-tabbar-gap" />
 
     <JzTabBar :current="P.home" />
+    </template>
+
+    <template v-else>
+      <view class="guest" :style="{ paddingTop: padTop }">
+        <view class="guest__brand">
+          <JzBrandLogo variant="color" :size="92" />
+          <view class="guest__brand-copy">
+            <text class="guest__name">装得清</text>
+            <text class="guest__tagline">装修项目全流程协同</text>
+          </view>
+        </view>
+
+        <view class="guest__scope">
+          <view class="guest__scope-title">
+            <JzIcon name="building" :size="30" :color="TOKEN_COLOR.primary" />
+            <text>装企经营与项目协同系统</text>
+          </view>
+          <text class="guest__scope-text">负责人、被邀请员工及经项目授权的业主，须经邀请后使用</text>
+        </view>
+
+        <view class="guest__hero">
+          <text class="guest__eyebrow">游客可先浏览，再选择登录</text>
+          <text class="guest__title">让装修经营和项目交付都在线协同</text>
+          <text class="guest__desc">登录后按企业、角色和项目授权展示数据。</text>
+        </view>
+
+        <view class="guest__features">
+          <view
+            v-for="(feature, index) in guestFeatures"
+            :key="feature.key"
+            class="guest__feature"
+            :class="{ 'guest__feature--active': activeGuestFeature === index }"
+            @tap="activeGuestFeature = index"
+          >
+            <view class="guest__feature-icon" :style="{ backgroundColor: `${feature.color}18` }">
+              <JzIcon :name="feature.icon" :size="34" :color="feature.color" />
+            </view>
+            <text>{{ feature.title }}</text>
+          </view>
+        </view>
+
+        <view class="guest__detail jz-card">
+          <view class="guest__detail-head">
+            <view class="guest__detail-icon" :style="{ backgroundColor: `${guestFeatures[activeGuestFeature].color}18` }">
+              <JzIcon :name="guestFeatures[activeGuestFeature].icon" :size="38" :color="guestFeatures[activeGuestFeature].color" />
+            </view>
+            <view class="jz-grow">
+              <text class="guest__detail-title">{{ guestFeatures[activeGuestFeature].title }}</text>
+              <text class="guest__detail-sub">{{ guestFeatures[activeGuestFeature].subtitle }}</text>
+            </view>
+          </view>
+          <view class="guest__points">
+            <view v-for="point in guestFeatures[activeGuestFeature].points" :key="point" class="guest__point">
+              <JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" />
+              <text>{{ point }}</text>
+            </view>
+          </view>
+        </view>
+
+        <button class="jz-btn jz-btn--primary jz-btn--block guest__login" @tap="openLogin">手机号快捷登录</button>
+        <text class="guest__tip">浏览期间不会要求登录；仅在您主动点击登录后进入身份验证。</text>
+      </view>
+    </template>
   </view>
 </template>
 
 
 <style lang="scss" scoped>
 @import '@/styles/home.scss';
+
+.guest {
+  min-height: 100vh;
+  padding-left: 36rpx;
+  padding-right: 36rpx;
+  padding-bottom: 60rpx;
+  box-sizing: border-box;
+  background: radial-gradient(circle at 8% 0%, rgba(43, 196, 180, .18), transparent 34%), $jzb-bg-page;
+}
+.guest__brand { display: flex; align-items: center; padding-top: 28rpx; }
+.guest__brand-copy { margin-left: 20rpx; }
+.guest__name { display: block; color: $jzb-text-1; font-size: 40rpx; font-weight: 780; }
+.guest__tagline { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.guest__scope { margin-top: 30rpx; padding: 24rpx 26rpx; background: rgba(43,196,180,.11); border: 1rpx solid rgba(43,196,180,.24); border-radius: $jzb-radius-lg; }
+.guest__scope-title { display: flex; align-items: center; gap: 10rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 720; }
+.guest__scope-text { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 690; line-height: 1.5; }
+.guest__hero { margin-top: 54rpx; }
+.guest__eyebrow { display: inline-block; padding: 8rpx 18rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; background: $jzb-primary-lighter; border-radius: 999rpx; }
+.guest__title { display: block; margin-top: 22rpx; color: $jzb-text-1; font-size: 48rpx; font-weight: 780; line-height: 1.32; }
+.guest__desc { display: block; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.7; }
+.guest__features { display: flex; justify-content: space-between; margin-top: 44rpx; }
+.guest__feature { width: 23%; display: flex; flex-direction: column; align-items: center; gap: 12rpx; padding: 20rpx 4rpx; color: $jzb-text-2; font-size: $jzb-font-xs; border: 1rpx solid transparent; border-radius: $jzb-radius-lg; transition: all $jzb-duration-base $jzb-ease-out; }
+.guest__feature--active { color: $jzb-primary-dark; font-weight: 650; background: rgba(255, 255, 255, .86); border-color: rgba(43, 196, 180, .24); box-shadow: $jzb-shadow-card; }
+.guest__feature-icon { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 22rpx; }
+.guest__detail { margin-top: 32rpx; padding: 30rpx 28rpx; }
+.guest__detail-head { display: flex; align-items: center; }
+.guest__detail-icon { display: flex; align-items: center; justify-content: center; width: 76rpx; height: 76rpx; margin-right: 20rpx; border-radius: 24rpx; }
+.guest__detail-title { display: block; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 730; }
+.guest__detail-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.guest__points { margin-top: 26rpx; padding-top: 22rpx; border-top: 1rpx solid $jzb-border-light; }
+.guest__point { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.5; }
+.guest__point:first-child { margin-top: 0; }
+.guest__login { margin-top: 40rpx; }
+.guest__tip { display: block; margin-top: 20rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; text-align: center; }
 </style>

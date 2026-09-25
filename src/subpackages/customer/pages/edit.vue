@@ -59,7 +59,9 @@ async function save() {
       community: community.value.trim(), addr: addr.value.trim(),
       area: area.value ? Number(area.value) : undefined,
       budget: budget.value ? Number(budget.value) : undefined,
-      remark: remark.value.trim(), owner: session.emp || undefined
+      remark: remark.value.trim(),
+      // 历史坑：编辑已有客户时不能回传当前登录员工为负责人，否则 BOSS/店长保存基础资料会误改客户归属。
+      owner: id.value ? undefined : (session.emp || undefined)
     }
     await crmApi.save(payload)
     toast('保存成功', 'success')

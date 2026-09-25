@@ -57,3 +57,8 @@ export const CONTRACT_STAGE_META: Record<import('./model').ProjectContractStage,
   active: { label: '履约中', color: TOKEN_COLOR.primary },
   completed: { label: '已完成', color: TOKEN_COLOR.success }
 }
+
+
+export const PROJECT_ORIGIN_META = {
+  carryover: { label: '接管项目', color: TOKEN_COLOR.purple }
+} as const

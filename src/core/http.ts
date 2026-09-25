@@ -66,10 +66,29 @@ function providerFailure(message: string, code?: string): ProviderRequestError {
   return new ProviderRequestError(message, code)
 }
 
-function requestFailure(error: unknown): Error {
+function apiHost(): string {
+  return runtime.apiBase.replace(/^https?:\/\//i, '').split('/')[0]
+}
+
+/**
+ * 历史坑（FIX-025）：微信小程序的 request 和 uploadFile 使用两套独立合法域名。
+ * 线上只配置 request 时，普通接口正常，但所有文件上传都会在 uploadFile:fail 直接失败；
+ * 不能继续统一显示“网络异常”，否则会把平台配置问题误判成用户网络问题。
+ */
+function requestFailure(error: unknown, scope: 'request' | 'upload' = 'request'): Error {
   const errMsg = (error as { errMsg?: unknown } | null)?.errMsg
   if (typeof errMsg !== 'string' || !errMsg) return new Error('网络异常，请稍后重试')
-  if (errMsg.toLowerCase().includes('timeout')) return new Error('请求超时，请稍后重试')
+  const normalized = errMsg.toLowerCase()
+  if (normalized.includes('timeout')) return new Error('请求超时，请稍后重试')
+  if (scope === 'upload' && normalized.includes('url not in domain list')) {
+    return new Error(`上传域名未配置：请管理员将 ${apiHost()} 加入微信 uploadFile 合法域名`)
+  }
+  if (scope === 'upload' && (normalized.includes('ssl') || normalized.includes('certificate') || normalized.includes('cert'))) {
+    return new Error('上传服务证书异常，请联系管理员检查 HTTPS 证书')
+  }
+  if (scope === 'upload' && normalized.includes('fail')) {
+    return new Error('上传服务连接失败，请检查网络；如持续失败请联系管理员检查上传域名')
+  }
   return new Error('网络异常，请检查网络后重试')
 }
 
@@ -136,7 +155,7 @@ export function upload<T>(uri: string, filePath: string, formData: Record<string
           reject(providerFailure(message, body.errorCode?.code))
         }
       },
-      fail: (error) => reject(requestFailure(error))
+      fail: (error) => reject(requestFailure(error, 'upload'))
     })
   })
 }

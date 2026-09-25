@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import type { CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
+import type { CatalogImportBatch, CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
 import { fileApi } from '@/domains/file/api'
 import { can } from '@/roles/permission'
@@ -17,6 +17,9 @@ const pickerRef = ref<InstanceType<typeof CatalogPicker> | null>(null)
 // 标准采购成本敏感：仅企业负责人 / 店长 / 财务可见（后端同样裁剪，前端仅控制展示）
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const authorized = ref(false)
+const recentBatches = ref<CatalogImportBatch[]>([])
+const templateDownloading = ref(false)
+const isBoss = computed(() => session.role === 'boss')
 const editorOpen = ref(false)
 const editingId = ref('')
 const type = ref<CatalogType>('construction')
@@ -30,6 +33,7 @@ const unit = ref('㎡')
 const pricingMode = ref<CatalogPricingMode>('materialAndManual')
 const materialPrice = ref('')
 const manualPrice = ref('')
+const fixedTotalPrice = ref('')
 const costPrice = ref('')
 const craft = ref('')
 const criterion = ref('')
@@ -86,7 +90,7 @@ const pricePreview = computed(() => {
   const unitText = unit.value || '项'
   if (pricingMode.value === 'materialOnly') return `材料 ¥${material}/${unitText}`
   if (pricingMode.value === 'manualOnly') return `人工 ¥${manual}/${unitText}`
-  if (pricingMode.value === 'fixedTotal') return `固定总价 ¥${material + manual}（不按工程量折算）`
+  if (pricingMode.value === 'fixedTotal') return `固定总价 ¥${Number(fixedTotalPrice.value || 0)}（不按工程量折算）`
   return `材料 ¥${material} + 人工 ¥${manual} = ¥${material + manual}/${unitText}`
 })
 
@@ -104,7 +108,65 @@ onLoad(() => {
   }
   authorized.value = true
   void loadBrandSuggestions()
+  if (session.role === 'boss') void loadRecentBatches()
 })
+
+/** 最近导入记录（仅 BOSS，PRD §4.2） */
+async function loadRecentBatches() {
+  try {
+    recentBatches.value = await catalogApi.importBatchPage({ size: 3 })
+  } catch {
+    recentBatches.value = []
+  }
+}
+
+function openImport() {
+  uni.navigateTo({ url: P.catalogImport })
+}
+
+function openImportResult(batchId: string) {
+  uni.navigateTo({ url: `${P.catalogImportResult}?batchId=${batchId}` })
+}
+
+/** 下载 V1.0 标准模板 */
+async function downloadTemplate() {
+  if (templateDownloading.value) return
+  templateDownloading.value = true
+  try {
+    loading('准备模板…')
+    const template = await catalogApi.importTemplate()
+    uni.downloadFile({
+      url: template.url,
+      success: (result) => {
+        hideLoading()
+        if (result.statusCode !== 200) {
+          toastError(new Error(`模板下载失败(${result.statusCode})`), '模板下载失败')
+          return
+        }
+        uni.openDocument({
+          filePath: result.tempFilePath,
+          fileType: 'xlsx',
+          showMenu: true,
+          fail: () => toast('模板已下载，可在聊天文件中选择', 'success')
+        })
+      },
+      fail: (error) => {
+        hideLoading()
+        toastError(new Error(error.errMsg || '模板下载失败'), '模板下载失败')
+      }
+    })
+  } catch (error) {
+    hideLoading()
+    toastError(error, '模板下载失败')
+  } finally {
+    templateDownloading.value = false
+  }
+}
+
+const IMPORT_STATUS_LABEL: Record<string, string> = {
+  Uploaded: '已上传', Parsed: '已解析', PendingConfirm: '待确认', Importing: '导入中',
+  Imported: '已导入', PartiallyImported: '部分导入', Failed: '失败', Expired: '已过期', Revoked: '已撤销'
+}
 
 async function loadBrandSuggestions() {
   if (brandSuggestionsLoading.value) return
@@ -181,6 +243,7 @@ function create(value: CatalogType) {
   pricingMode.value = 'materialAndManual'
   materialPrice.value = ''
   manualPrice.value = ''
+  fixedTotalPrice.value = ''
   costPrice.value = ''
   craft.value = ''
   criterion.value = ''
@@ -211,7 +274,9 @@ function edit(item: CatalogItem) {
   pricingMode.value = item.pricingMode
   materialPrice.value = String(item.materialPrice || '')
   manualPrice.value = String(item.manualPrice || '')
-  costPrice.value = item.costPrice ? String(item.costPrice) : ''
+  fixedTotalPrice.value = item.fixedTotalPrice === undefined || item.fixedTotalPrice === null ? '' : String(item.fixedTotalPrice)
+  // 保留成本待维护语义：null/undefined 不回填为 0
+  costPrice.value = item.costPrice === null || item.costPrice === undefined ? '' : String(item.costPrice)
   craft.value = item.craft || ''
   criterion.value = item.criterion || ''
   description.value = item.description || ''
@@ -264,7 +329,9 @@ async function save() {
       pricingMode: pricingMode.value,
       materialPrice: Number(materialPrice.value || 0),
       manualPrice: Number(manualPrice.value || 0),
-      costPrice: Number(costPrice.value || 0),
+      fixedTotalPrice: pricingMode.value === 'fixedTotal' && fixedTotalPrice.value !== '' ? Number(fixedTotalPrice.value) : undefined,
+      // 成本空白 = 成本待维护（null）；0 = 明确零成本
+      costPrice: costPrice.value === '' ? null : Number(costPrice.value),
       craft: craft.value.trim() || undefined,
       criterion: criterion.value.trim() || undefined,
       description: description.value.trim() || undefined,
@@ -306,6 +373,32 @@ function onToggle(item: CatalogItem, active: boolean) {
   void doToggle(item, true)
 }
 
+/** 删除报价项目：必须二次确认；失败时展示后端业务原因并建议停用。 */
+async function confirmDelete(item: CatalogItem) {
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '删除报价项目',
+      content: `确认删除「${item.name}」？已被设计分项、套餐、报价、项目或供应链引用的项目不能删除，可改为停用。`,
+      confirmText: '删除',
+      confirmColor: '#E5484D',
+      success: (res) => resolve(Boolean(res.confirm)),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  loading('删除中…')
+  try {
+    await catalogApi.remove(item.id)
+    hideLoading()
+    toast('项目已删除', 'success')
+    pickerRef.value?.refresh()
+  } catch (error) {
+    hideLoading()
+    const message = error instanceof Error && error.message ? error.message : '删除失败，请稍后重试'
+    toast(message)
+  }
+}
+
 async function doToggle(item: CatalogItem, active: boolean) {
   loading(active ? '启用中…' : '停用中…')
   try {
@@ -333,7 +426,27 @@ async function doToggle(item: CatalogItem, active: boolean) {
       @select="edit"
       @create="create"
       @toggle="onToggle"
-    />
+      @delete="confirmDelete"
+    >
+      <template v-if="isBoss" #manage-toolbar>
+        <view class="cm__import">
+          <view class="cm__import-head">
+            <view><text class="cm__import-title">批量导入报价项目库</text><text class="cm__import-sub">按 V1.0 模板在电脑整理，手机上传预览后确认导入</text></view>
+          </view>
+          <view class="cm__import-actions">
+            <button class="jz-btn jz-btn--ghost jz-btn--sm" :disabled="templateDownloading" @tap="downloadTemplate">下载 V1.0 模板</button>
+            <button class="jz-btn jz-btn--sm" @tap="openImport">批量导入</button>
+          </view>
+          <view v-if="recentBatches.length" class="cm__import-recent">
+            <text class="cm__import-sub">最近导入记录</text>
+            <view v-for="item in recentBatches" :key="item.id" class="cm__import-row" @tap="openImportResult(item.id)">
+              <text>{{ item.batchNo }}</text>
+              <text class="cm__import-status">{{ IMPORT_STATUS_LABEL[item.status] || item.status }} · 新增 {{ item.importedRows }} / 错误 {{ item.errorRows }}</text>
+            </view>
+          </view>
+        </view>
+      </template>
+    </CatalogPicker>
 
     <view v-if="editorOpen" class="cm__mask" @tap="editorOpen = false">
       <view class="cm__sheet" @tap.stop>
@@ -371,7 +484,14 @@ async function doToggle(item: CatalogItem, active: boolean) {
           <text class="cm__label">计价公式</text>
           <view class="jz-chip-row"><view v-for="item in pricingOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': pricingMode === item.value }" @tap="pricingMode = item.value">{{ item.label }}</view></view>
           <view class="cm__formula"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>{{ formula }}</text></view>
-          <view class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /></view>
+          <input
+            v-if="pricingMode === 'fixedTotal'"
+            v-model="fixedTotalPrice"
+            type="digit"
+            class="jz-form-input"
+            placeholder="固定总价（不按工程量折算）"
+          />
+          <view v-else class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /></view>
           <view class="cm__price-preview">
             <text class="cm__price-preview-label">报价展示</text>
             <text class="cm__price-preview-value">{{ pricePreview }}</text>
@@ -380,7 +500,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
             <view class="cm__cost-head">
               <JzIcon name="lock" :size="26" :color="TOKEN_COLOR.primary" />
               <text class="cm__cost-title">标准成本价</text>
-              <text class="cm__cost-tag">{{ Number(costPrice || 0) > 0 ? '已维护' : '待维护' }}</text>
+              <text class="cm__cost-tag">{{ costPrice === '' ? '待维护' : '已维护' }}</text>
             </view>
             <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input" placeholder="企业当前标准成本价" />
             <text class="cm__cost-hint">成本价由企业负责人、店长和财务维护；合同签约时按当时成本冻结，后续调整不回溯已签约成本。</text>
@@ -437,6 +557,14 @@ async function doToggle(item: CatalogItem, active: boolean) {
 
 <style lang="scss" scoped>
 .cm { min-height: 100vh; background: $jzb-bg-page; }
+.cm__import { display: flex; flex-direction: column; gap: 12rpx; }
+.cm__import-title { font-size: 30rpx; font-weight: 600; color: #25313d; display: block; }
+.cm__import-sub { font-size: 24rpx; color: #8d98a5; display: block; margin-top: 6rpx; }
+.cm__import-actions { display: flex; gap: 16rpx; }
+.cm__import-recent { display: flex; flex-direction: column; gap: 12rpx; border-top: 1rpx solid #eef1f4; padding-top: 16rpx; }
+.cm__import-row { display: flex; justify-content: space-between; font-size: 24rpx; color: #667085; }
+.cm__import-status { color: #8d98a5; }
+
 .cm__mask { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
 .cm__sheet { width: 100%; height: 90vh; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
 .cm__head { padding: 30rpx $jzb-page-pad 22rpx; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }

@@ -13,7 +13,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
 import type { InviteCode } from '@/domains/identity/model'
-import { loginAsCustomer, loginAsToken, session } from '@/domains/identity/session'
+import { loginAsCustomer, loginAsToken, logout, session } from '@/domains/identity/session'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -97,12 +97,25 @@ async function enter(event: { detail?: { code?: string; errMsg?: string } }) {
 
 function goJoinCompany() { uni.navigateTo({ url: P.companyJoin }) }
 function goRegisterCompany() { uni.navigateTo({ url: P.enterprise }) }
-function backToLogin() { uni.reLaunch({ url: P.login }) }
+
+/**
+ * 历史坑（FIX-024）：未归属用户直接回首页会被首页拦截再次跳回未加入企业页。
+ * 用户明确选择返回或切换时，先结束本次未归属会话，再离开注册/授权链路。
+ */
+function leaveToHome() {
+  if (session.sessionType === 'user' && !session.emp) logout()
+  uni.reLaunch({ url: P.home })
+}
+
+function switchAccount() {
+  logout()
+  uni.reLaunch({ url: P.login })
+}
 </script>
 
 <template>
   <view class="owner-enter">
-    <JzPageHeader title="进入我的家" subtitle="验证手机号后查看您的装修项目" />
+    <JzPageHeader title="进入我的家" subtitle="验证手机号后查看您的装修项目" back />
 
     <view class="owner-enter__body">
       <view v-if="invite" class="jz-card owner-enter__card">
@@ -119,7 +132,7 @@ function backToLogin() { uni.reLaunch({ url: P.login }) }
         </view>
         <view class="owner-enter__tip">
           <JzIcon name="shield-check" :size="28" :color="TOKEN_COLOR.primary" />
-          <text>用微信授权手机号即可进入。手机号需与装修公司登记的号码一致，仅用于确认您的业主身份。</text>
+          <text>使用手机号快捷登录即可进入。手机号需与装修公司登记的号码一致，仅用于确认您的业主身份。</text>
         </view>
       </view>
 
@@ -127,7 +140,10 @@ function backToLogin() { uni.reLaunch({ url: P.login }) }
         <JzIcon name="alert-circle" :size="42" :color="TOKEN_COLOR.danger" />
         <text class="owner-enter__error-title">这条邀请已不可用</text>
         <text class="owner-enter__error-text">{{ loadError }}</text>
-        <button class="jz-btn jz-btn--ghost jz-btn--block" @tap="backToLogin">返回登录</button>
+        <view class="owner-enter__actions">
+          <button class="jz-btn jz-btn--primary jz-btn--block" @tap="leaveToHome">返回首页</button>
+          <button class="jz-btn jz-btn--ghost jz-btn--block" @tap="switchAccount">切换账号</button>
+        </view>
       </view>
 
       <view v-else class="jz-card owner-enter__card">
@@ -135,11 +151,13 @@ function backToLogin() { uni.reLaunch({ url: P.login }) }
         <text class="owner-enter__title owner-enter__title--block">暂时没找到您的装修项目</text>
         <text class="owner-enter__sub owner-enter__sub--block">
           可能装修公司还没有把您的手机号登记到项目里。请联系您的设计师，核对登记的手机号后把进入链接发给您；
-          如果您是装修公司，请从下面的入口继续。
+          也可以先返回首页浏览，需要时再重新进入。
         </text>
         <view class="owner-enter__actions">
+          <button class="jz-btn jz-btn--primary jz-btn--block" @tap="leaveToHome">返回首页，暂不进入我的家</button>
           <button class="jz-btn jz-btn--plain jz-btn--block" @tap="goJoinCompany">我是装修公司员工</button>
-          <button class="jz-btn jz-btn--primary jz-btn--block" @tap="goRegisterCompany">我要注册装修公司</button>
+          <button class="jz-btn jz-btn--ghost jz-btn--block" @tap="goRegisterCompany">我要注册装修公司</button>
+          <text class="owner-enter__switch" @tap="switchAccount">不是当前账号？切换账号</text>
         </view>
       </view>
 
@@ -149,7 +167,7 @@ function backToLogin() { uni.reLaunch({ url: P.login }) }
         open-type="getPhoneNumber"
         :loading="submitting"
         @getphonenumber="enter"
-      >微信授权手机号，进入我的家</button>
+      >手机号快捷登录，进入我的家</button>
     </view>
   </view>
 </template>
@@ -177,5 +195,6 @@ function backToLogin() { uni.reLaunch({ url: P.login }) }
 .owner-enter__error-title { display: block; margin-top: 16rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .owner-enter__error-text { display: block; margin: 10rpx 0 26rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.6; }
 .owner-enter__actions { margin-top: 26rpx; display: flex; flex-direction: column; gap: 16rpx; }
+.owner-enter__switch { display: block; padding: 14rpx 0 4rpx; color: $jzb-primary-dark; text-align: center; font-size: $jzb-font-xs; }
 .owner-enter__submit { margin-top: 32rpx; }
 </style>

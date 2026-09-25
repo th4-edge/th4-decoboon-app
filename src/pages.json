@@ -139,6 +139,13 @@
           }
         },
         {
+          "path": "pages/batch",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/edit",
           "style": {
             "navigationBarTitleText": "新建客户",
@@ -587,6 +594,20 @@
       "root": "subpackages/quote",
       "pages": [
         {
+          "path": "pages/catalog/import",
+          "style": {
+            "navigationBarTitleText": "报价项目库批量导入",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/catalog/import-result",
+          "style": {
+            "navigationBarTitleText": "导入结果",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/catalog/manage",
           "style": {
             "navigationBarTitleText": "家装材料库",
@@ -938,6 +959,33 @@
           "style": {
             "navigationStyle": "custom",
             "navigationBarTitleText": "工人信息",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/carryover",
+      "pages": [
+        {
+          "path": "pages/index",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/edit",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
+          "path": "pages/plan",
+          "style": {
+            "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
         }

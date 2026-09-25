@@ -111,3 +111,5 @@ npm run build:mp-weixin:release
 ```
 
 构建产物位于 `dist/build/mp-weixin`。发布记录见 `docs/16-微信小程序发布记录-2026-09-16.md`。
+
+微信公众平台的 `request` 与 `uploadFile` 是两套独立合法域名。正式发布前必须确认 `https://decoboon.joytsing.com` 同时加入 request、uploadFile 和 downloadFile 合法域名，排查步骤见 [`docs/18-生产上传域名排查.md`](./docs/18-生产上传域名排查.md)。

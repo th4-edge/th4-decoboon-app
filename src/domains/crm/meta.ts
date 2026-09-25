@@ -3,7 +3,7 @@ import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 
 export const CUSTOMER_SOURCE_META: Record<CustomerSource, string> = {
   lead: '短视频线索', referral: '转介绍', walkin: '自然到店',
-  old: '老客户', video: '抖音咨询', other: '其他'
+  old: '老客户', video: '抖音咨询', other: '其他', batch: '批量导入'
 }
 
 export const CUSTOMER_STAGE_META: Record<CustomerStage, { label: string; color: string }> = {

@@ -25,8 +25,8 @@ const showEmployeeJoin = ref(false)
 const inviteInput = ref('')
 const submitting = ref(false)
 
-const displayName = computed(() => session.user?.nickname || '微信用户')
-const displayPhone = computed(() => session.user?.phone || '未授权手机号')
+const displayName = computed(() => session.user?.nickname || '用户')
+const displayPhone = computed(() => session.user?.phone || '未绑定手机号')
 
 /** 只解析"员工邀请"：支持邀请编号或邀请链接中的 inviteId，不再猜测业主 token。 */
 function parseEmployeeInvite(raw: string): string | null {
@@ -62,15 +62,16 @@ async function openEmployeeInvite() {
   }
 }
 
-function later() { goTabHome() }
-
-function goTabHome() {
-  // 允许"暂不属于任何企业"的用户先离开，下次登录仍走同一判定
+function later() {
+  // 历史坑（FIX-024）：这里不能只回首页。未归属用户仍带 user 会话时，
+  // pages/index/index.vue 会再次强制跳回本页，形成“以后再说一直在原页”的死循环。
+  // 选择暂不加入即结束本次未归属登录，回到游客首页；下次主动登录时再询问。
+  if (session.token && session.sessionType === 'user' && !session.emp) logout()
   uni.reLaunch({ url: P.home })
 }
 
 async function relogin() {
-  const ok = await confirm('切换微信账号', '将退出当前登录，重新使用微信授权进入。是否继续？', '退出登录')
+  const ok = await confirm('切换账号', '将退出当前登录并重新进入，是否继续？', '退出登录')
   if (!ok) return
   logout()
   uni.reLaunch({ url: P.login })
@@ -138,9 +139,9 @@ async function relogin() {
       </view>
 
       <view class="entry-foot">
-        <button class="jz-btn jz-btn--text" @tap="later">以后再说</button>
-        <text class="entry-foot__hint">暂时不加入也没关系，下次登录会再问您一次。</text>
-        <text class="entry-foot__link" @tap="relogin">切换微信账号</text>
+        <button class="jz-btn jz-btn--text" @tap="later">以后再说，返回首页</button>
+        <text class="entry-foot__hint">暂不加入会退出本次未归属登录，先回首页浏览；下次登录时会再询问。</text>
+        <text class="entry-foot__link" @tap="relogin">切换账号</text>
       </view>
     </view>
   </view>

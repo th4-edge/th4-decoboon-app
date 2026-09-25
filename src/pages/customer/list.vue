@@ -35,6 +35,7 @@ const isBoss = computed(() => session.role === 'boss')
 const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
+const canBatchImport = computed(() => isBoss.value || isStoreManager.value)
 const loading = ref(false)
 const loadingMore = ref(false)
 const loadError = ref('')
@@ -341,6 +342,7 @@ async function loadMore() {
 
 function open(id: string) { uni.navigateTo({ url: `${P.customerDetail}?id=${id}` }) }
 function add() { uni.navigateTo({ url: P.customerEdit }) }
+function batchImport() { uni.navigateTo({ url: P.customerBatch }) }
 function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 
 function onKeywordInput() {
@@ -388,7 +390,13 @@ function bossBusinessAmount(customer: Customer) {
 
 <template>
   <view class="cl" :class="{ 'cl--boss': isBoss, 'cl--focus': bossWorkspaceFocused }">
-    <JzPageHeader title="客户经营" :subtitle="pageSubtitle" />
+    <JzPageHeader
+      title="客户经营"
+      :subtitle="pageSubtitle"
+      :right-text="canBatchImport ? '批量录入' : ''"
+      :right-icon="canBatchImport ? 'plus-square' : undefined"
+      @right="batchImport"
+    />
 
     <view v-if="!isBoss" class="cl__head">
       <view class="cl__search">

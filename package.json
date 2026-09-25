@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.1",
+  "version": "1.0.7",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -15,11 +15,14 @@
     "check:release-env": "node scripts/verify-release-env.mjs",
     "check:subpackages": "node scripts/check-subpackages.mjs",
     "check:onboarding": "node scripts/verify-onboarding-contract.mjs",
+    "check:registration": "node scripts/verify-registration-flow-contract.mjs",
     "check:document": "node scripts/verify-document-contract.mjs",
     "check:plan": "node scripts/verify-plan-contract.mjs",
     "check:home": "node scripts/verify-homepage-contract.mjs",
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
-    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages"
+    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
+    "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
+    "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",

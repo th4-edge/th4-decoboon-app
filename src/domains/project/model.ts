@@ -2,6 +2,7 @@ import type { Customer } from '../crm/model'
 import type { Property } from '@/domains/property/model'
 import type { Company, Employee } from '@/domains/identity/model'
 
+export type BusinessOrigin = 'new' | 'carryover'
 export type ProjectStatus = 'preparing' | 'ongoing' | 'suspended' | 'accepting' | 'finished' | 'settled'
 export type StageStatus = 'todo' | 'doing' | 'accepting' | 'done' | 'overdue'
 
@@ -17,7 +18,9 @@ export interface Project {
   contractAmount: number
   paidAmount: number
   status: ProjectStatus
+  businessOrigin?: BusinessOrigin
   progress: number
+  baselineProgress?: number
   startDate?: string
   planEndDate?: string
   actualEndDate?: string
@@ -84,8 +87,10 @@ export interface ProjectStage {
   id: string
   projectId: string
   name: string
+  stageCode?: string
   sort: number
   weight: number
+  baselineProgress?: number
   status: StageStatus
   progress: number
   plannedStart?: string

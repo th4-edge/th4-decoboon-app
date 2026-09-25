@@ -33,7 +33,7 @@ onLoad(async (query) => {
         return
       }
     } catch {
-      // 开发令牌失效时回到普通微信登录流程。
+      // 开发令牌失效时回到普通登录流程。
     }
   }
   if (session.role) goTab(P.home)
@@ -51,6 +51,10 @@ function ensureAgreed(): boolean {
 
 function toggleAgreed() {
   agreed.value = !agreed.value
+}
+
+function exitLogin() {
+  uni.navigateBack({ fail: () => uni.reLaunch({ url: P.home }) })
 }
 
 async function finishWxLogin(code: string, phoneCode?: string) {
@@ -77,10 +81,10 @@ async function finishWxLogin(code: string, phoneCode?: string) {
     hideLoading()
     if (error instanceof ProviderRequestError && error.code === 'PHONE_REQUIRED') {
       needPhone.value = true
-      toast('首次使用请授权手机号后继续')
+      toast('请使用手机号快捷登录后继续')
       return
     }
-    toast(error instanceof Error ? error.message : '微信登录失败')
+    toast(error instanceof Error ? error.message : '登录失败')
   } finally {
     submitting.value = false
   }
@@ -90,10 +94,10 @@ function requestWxCode(phoneCode?: string) {
   uni.login({
     provider: 'weixin',
     success: (loginResult) => {
-      if (!loginResult.code) { toast('微信登录失败，请重试'); return }
+      if (!loginResult.code) { toast('登录失败，请重试'); return }
       void finishWxLogin(loginResult.code, phoneCode)
     },
-    fail: () => toast('微信登录失败，请重试')
+    fail: () => toast('登录失败，请重试')
   })
 }
 
@@ -114,37 +118,64 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
 <template>
   <view class="login">
     <view class="login__shell" :style="{ paddingTop: padTop }">
+      <view class="login__nav">
+        <view class="login__back" @tap="exitLogin">
+          <JzIcon name="arrow-left" :size="32" :color="TOKEN_COLOR.text2" />
+          <text>返回</text>
+        </view>
+      </view>
+
       <view class="login__brand">
-        <JzBrandLogo class="login__logo" variant="white" :size="104" />
+        <JzBrandLogo class="login__logo" variant="white" :size="92" />
         <view class="login__brand-copy">
           <text class="login__name">装得清</text>
           <text class="login__tagline">装企数字化协同管理平台</text>
         </view>
       </view>
 
-      <view class="login__hero">
-        <text class="login__hero-title">让项目进度、现场协作与验收确认始终同频</text>
-        <view class="login__features">
-          <view class="login__feature"><JzIcon name="briefcase" :size="28" :color="TOKEN_COLOR.primary" /><text>项目经营</text></view>
-          <view class="login__feature"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场留证</text></view>
-          <view class="login__feature"><JzIcon name="shield-check" :size="28" :color="TOKEN_COLOR.primary" /><text>验收闭环</text></view>
+      <view class="login__scope">
+        <view class="login__scope-title">
+          <JzIcon name="building" :size="30" :color="TOKEN_COLOR.primary" />
+          <text>装企经营与项目协同系统</text>
         </view>
+        <text class="login__scope-text">面向企业负责人、被邀请员工及经项目授权的业主；新用户需经企业或项目邀请后使用</text>
       </view>
 
       <view class="login__panel">
         <view class="login__panel-head">
-          <text class="login__panel-title">微信登录</text>
-          <text class="login__panel-sub">已绑定微信身份直接登录，首次使用再授权手机号</text>
+          <text class="login__panel-title">手机号快捷登录</text>
+          <text class="login__panel-sub">请先确认您的使用身份，再选择是否继续</text>
+        </view>
+        <view class="login__audience">
+          <view class="login__audience-item">
+            <view class="login__audience-icon"><JzIcon name="building" :size="32" :color="TOKEN_COLOR.primary" /></view>
+            <view class="jz-grow">
+              <text class="login__audience-title">企业负责人开通</text>
+              <text class="login__audience-desc">在本小程序创建企业、配置组织并邀请员工。</text>
+            </view>
+          </view>
+          <view class="login__audience-item">
+            <view class="login__audience-icon"><JzIcon name="user-plus" :size="32" :color="TOKEN_COLOR.primary" /></view>
+            <view class="jz-grow">
+              <text class="login__audience-title">被邀请员工使用</text>
+              <text class="login__audience-desc">接受企业邀请后，使用登记的本人手机号登录。</text>
+            </view>
+          </view>
+          <view class="login__audience-item">
+            <view class="login__audience-icon"><JzIcon name="home" :size="32" :color="TOKEN_COLOR.primary" /></view>
+            <view class="jz-grow">
+              <text class="login__audience-title">经项目授权的业主使用</text>
+              <text class="login__audience-desc">接受项目邀请后，仅查看本人项目的进度、动态和验收。</text>
+            </view>
+          </view>
         </view>
         <button v-if="!needPhone" class="login__submit jz-btn jz-btn--primary jz-btn--block"
                 :loading="submitting" @tap="wxLogin">
-          <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" />
-          <text>微信登录</text>
+          <text>手机号快捷登录</text>
         </button>
         <button v-else class="login__submit jz-btn jz-btn--primary jz-btn--block" open-type="getPhoneNumber"
                 :loading="submitting" @getphonenumber="wxPhoneLogin">
-          <JzIcon name="message" :size="30" :color="TOKEN_COLOR.white" />
-          <text>首次使用，授权手机号继续</text>
+          <text>手机号快捷登录</text>
         </button>
         <view class="login__agree">
           <view class="login__agree-toggle" @tap="toggleAgreed">
@@ -161,6 +192,8 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
         </view>
       </view>
 
+      <button class="jz-btn jz-btn--ghost jz-btn--block login__cancel" @tap="exitLogin">暂不登录，返回浏览</button>
+
       <view class="login__version">装得清 v{{ runtime.version }}</view>
     </view>
   </view>
@@ -169,23 +202,33 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
 <style lang="scss" scoped>
 .login { min-height: 100vh; background: radial-gradient(circle at 8% 0%, rgba(43,196,180,.18), transparent 34%), $jzb-bg-page; }
 .login__shell { min-height: 100vh; padding-left: 40rpx; padding-right: 40rpx; box-sizing: border-box; }
-.login__brand { display: flex; align-items: center; margin-top: 54rpx; }
+.login__nav { display: flex; align-items: center; min-height: 72rpx; }
+.login__back { display: inline-flex; align-items: center; gap: 8rpx; min-height: 64rpx; padding: 0 18rpx 0 4rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.login__brand { display: flex; align-items: center; margin-top: 20rpx; }
 .login__logo { border-radius: 32rpx; box-shadow: $jzb-shadow-float; }
 .login__brand-copy { margin-left: 22rpx; }
 .login__name { display: block; color: $jzb-text-1; font-size: 44rpx; font-weight: 780; }
 .login__tagline { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.login__hero { margin-top: 80rpx; }
+.login__scope { margin-top: 22rpx; padding: 20rpx 24rpx; background: rgba(43,196,180,.11); border: 1rpx solid rgba(43,196,180,.24); border-radius: $jzb-radius-lg; }
+.login__scope-title { display: flex; align-items: center; gap: 10rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 720; }
+.login__scope-text { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 690; line-height: 1.5; }
 .login__hero-title { display: block; color: $jzb-text-1; font-size: 46rpx; font-weight: 760; line-height: 1.35; }
 .login__features { display: flex; justify-content: space-between; margin-top: 38rpx; }
 .login__feature { display: flex; align-items: center; gap: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
-.login__panel { margin-top: 70rpx; padding: 34rpx 30rpx 28rpx; background: rgba(255,255,255,.94); border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-xl; box-shadow: $jzb-shadow-card; }
+.login__panel { margin-top: 30rpx; padding: 28rpx 26rpx 24rpx; background: rgba(255,255,255,.94); border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-xl; box-shadow: $jzb-shadow-card; }
 .login__panel-title { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .login__panel-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
-.login__submit { display: flex; align-items: center; justify-content: center; gap: 10rpx; margin-top: 36rpx; }
+.login__audience { margin-top: 20rpx; padding: 4rpx 0; border-top: 1rpx solid $jzb-border-light; border-bottom: 1rpx solid $jzb-border-light; }
+.login__audience-item { display: flex; align-items: flex-start; padding: 11rpx 0; }
+.login__audience-icon { display: flex; align-items: center; justify-content: center; width: 52rpx; height: 52rpx; margin-right: 14rpx; background: $jzb-primary-lighter; border-radius: 18rpx; }
+.login__audience-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.login__audience-desc { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.42; }
+.login__submit { display: flex; align-items: center; justify-content: center; gap: 10rpx; margin-top: 28rpx; }
 .login__agree { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4rpx 0; margin-top: 28rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .login__agree-toggle, .login__agree-links { display: flex; align-items: center; justify-content: center; min-height: 44rpx; }
 .login__checkbox { display: flex; align-items: center; justify-content: center; width: 30rpx; height: 30rpx; margin-right: 10rpx; border: 2rpx solid $jzb-text-4; border-radius: 8rpx; }
 .login__checkbox--on { background: $jzb-primary-dark; border-color: $jzb-primary-dark; }
 .login__link { display: inline-flex; align-items: center; min-height: 44rpx; padding: 4rpx 2rpx; color: $jzb-primary-dark; }
-.login__version { margin-top: 40rpx; color: $jzb-text-4; text-align: center; font-size: $jzb-font-xs; }
+.login__cancel { margin-top: 30rpx; }
+.login__version { margin-top: 28rpx; color: $jzb-text-4; text-align: center; font-size: $jzb-font-xs; }
 </style>

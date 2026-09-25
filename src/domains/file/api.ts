@@ -13,6 +13,7 @@ export type PrivateFileScope =
   | 'GoodsReceipt'
   | 'StockMovement'
   | 'Catalog'
+  | 'Carryover'
 
 interface RawFileGrant {
   path?: string
@@ -57,6 +58,9 @@ function storageKey(path: string): string {
 }
 
 export const fileApi = {
+  /** 把后端返回的相对下载地址补全为可 downloadFile 的绝对地址。 */
+  absolute: (path?: string): string => (path ? absoluteUrl(path) : ''),
+
   isManaged: (path?: string): boolean => Boolean(path && isManagedPath(path)),
 
   /** 上传文件到企业/项目 OSS 路径，返回业务字段应保存的稳定对象键。 */

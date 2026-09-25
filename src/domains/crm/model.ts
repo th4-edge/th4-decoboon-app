@@ -1,6 +1,6 @@
 import type { Employee } from '@/domains/identity/model'
 
-export type CustomerSource = 'lead' | 'referral' | 'walkin' | 'old' | 'video' | 'other'
+export type CustomerSource = 'lead' | 'referral' | 'walkin' | 'old' | 'video' | 'other' | 'batch'
 export type CustomerStage = 'intention' | 'following' | 'pendingMeasure' | 'quote' | 'sign' | 'construction' | 'done' | 'lost'
 
 export type CustomerTagCategory = 'source' | 'behavior' | 'intent' | 'demand' | 'preference' | 'value' | 'risk'
@@ -146,6 +146,24 @@ export interface CustomerOverviewReport {
   size: number
   total: number
   hasMore: boolean
+}
+
+/** 批量手机号解析明细。 */
+export interface CustomerBatchItem {
+  input: string
+  phone?: string
+  status: 'valid' | 'duplicate' | 'invalid' | 'created'
+  reason?: string
+}
+
+/** 批量手机号解析预览 / 导入结果。 */
+export interface CustomerBatchPreview {
+  total: number
+  validCount: number
+  duplicateCount: number
+  invalidCount: number
+  createdCount: number
+  items: CustomerBatchItem[]
 }
 
 export interface CustomerFollow {

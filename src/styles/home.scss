@@ -104,3 +104,9 @@
 .home__material-value--danger { color: $jzb-danger; }
 .home__material-label { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .home__material-sub { display: block; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+
+/* 新装企业在跑项目承接提醒 */
+.home__carryover { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; display: flex; align-items: center; gap: 18rpx; background: $jzb-gradient-surface; }
+.home__carryover-icon { width: 68rpx; height: 68rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lightest; }
+.home__carryover-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.home__carryover-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.45; }

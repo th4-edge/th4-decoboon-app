@@ -109,7 +109,7 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
     uni.reLaunch({ url: P.home })
   } catch (error) {
     hideLoading()
-    toastError(error, session.token ? '加入企业失败' : '微信登录失败')
+    toastError(error, session.token ? '加入企业失败' : '手机号快捷登录失败')
   } finally {
     submitting.value = false
   }
@@ -125,7 +125,7 @@ function roleLabel() {
 
 <template>
   <view class="invite-page">
-    <JzPageHeader title="加入企业" subtitle="微信授权手机号后校验邀请归属" />
+    <JzPageHeader title="加入企业" subtitle="手机号快捷登录后校验邀请归属" />
     <view class="invite-body">
       <view v-if="invite" class="invite-card jz-card">
         <view class="invite-company">
@@ -143,7 +143,7 @@ function roleLabel() {
           <view><text>门店</text><text>{{ invite.store?.name || '默认门店' }}</text></view>
           <view><text>团队</text><text>{{ invite.team?.name || '未分配' }}</text></view>
         </view>
-        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>服务端将校验微信授权手机号与邀请手机号一致</text></view>
+        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>服务端将校验快捷登录手机号与邀请手机号一致</text></view>
       </view>
       <view v-else-if="loadError" class="invite-error jz-card">
         <JzIcon name="alert-circle" :size="42" :color="TOKEN_COLOR.danger" />
@@ -155,7 +155,7 @@ function roleLabel() {
 
       <button v-if="invite?.status === 'pending'" class="jz-btn jz-btn--primary jz-btn--block invite-submit"
               open-type="getPhoneNumber" :loading="submitting" @getphonenumber="accept">
-        微信授权手机号并加入
+        手机号快捷登录并加入
       </button>
     </view>
   </view>

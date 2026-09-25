@@ -80,6 +80,7 @@ const groups = computed(() => {
   if (employee && can(role.value, 'act:inviteMember')) organization.push(cell('user-plus', '邀请员工加入', '生成邀请并分配岗位', () => uni.navigateTo({ url: P.companyInvite })))
 
   if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
+  if (role.value === 'boss') business.push(cell('briefcase', '业务承接', '承接在跑项目，延续工地与账务', () => uni.navigateTo({ url: P.carryoverHome })))
   if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
   if (role.value === 'boss') business.push(cell('file-text', '付款计划模板', '收款节点、比例与触发条件', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
   if (role.value === 'boss') business.push(cell('calendar', '施工计划模板', '施工阶段、工期与验收方式', () => uni.navigateTo({ url: P.constructionPlanTemplates })))

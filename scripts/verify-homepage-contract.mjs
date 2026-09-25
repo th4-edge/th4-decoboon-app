@@ -11,6 +11,9 @@ const api = read('src/domains/statistic/api.ts')
 const home = read('src/pages/index/index.vue')
 const mine = read('src/pages/mine/index.vue')
 const dynamics = read('src/subpackages/statistic/pages/business-dynamics.vue')
+const login = read('src/pages/auth/login.vue')
+const inviteAccept = read('src/pages/invite/accept.vue')
+const ownerEnter = read('src/pages/owner/enter.vue')
 
 const failures = []
 const expect = (condition, message) => {
@@ -41,6 +44,24 @@ expect(home.includes('home__stat-dot'), '统计卡状态未使用彩色点展示
 expect(home.includes('showStatStatus'), '统计卡状态点缺少点击说明')
 expect(!home.includes('class="home__stat-status"'), '统计卡仍常驻展示状态文字胶囊')
 expect(!home.includes('class="home__stat-detail"'), '统计卡仍常驻展示状态详情')
+
+// 微信审核合规：首页先游客浏览，手机号快速验证前置页不出现混淆官方元素。
+expect(home.includes('先浏览，再选择登录') && home.includes('浏览期间不会要求登录'),
+  '首页缺少游客先浏览、自主登录的审核合规入口')
+expect(!home.includes('if (!isLoggedIn()) goTab(P.login)'), '首页仍在未登录时强制跳转登录')
+expect(login.includes('手机号快捷登录'), '登录页缺少“手机号快捷登录”文案')
+expect(home.includes('装企经营与项目协同系统') && home.includes('负责人、被邀请员工及经项目授权的业主'),
+  '首页缺少完整的系统使用范围说明')
+expect(login.includes('装企经营与项目协同系统') && login.includes('面向企业负责人、被邀请员工及经项目授权的业主'),
+  '登录页缺少授权前的完整使用范围说明')
+expect(login.includes('企业负责人开通') && login.includes('被邀请员工使用') && login.includes('经项目授权的业主使用'),
+  '登录页缺少负责人开通、员工邀请与业主项目授权的区别说明')
+expect(login.includes('function exitLogin') && login.includes('暂不登录，返回浏览'),
+  '登录页缺少可取消/返回的退出入口')
+expect(!login.includes('微信登录') && !login.includes('微信授权手机号'),
+  '登录页仍存在混淆官方元素的可见文案')
+expect(!inviteAccept.includes('微信授权手机号'), '邀请接受页仍存在微信授权手机号文案')
+expect(!ownerEnter.includes('微信授权手机号'), '业主进入页仍存在微信授权手机号文案')
 
 expect(dynamics.includes('客户、合同、项目与资金的高信号业务变化'), '经营动态页缺少范围说明')
 expect(dynamics.includes("'customer'") && dynamics.includes("'contract'") && dynamics.includes("'project'") && dynamics.includes("'finance'"),

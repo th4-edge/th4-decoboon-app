@@ -10,7 +10,7 @@ import type { Project, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
 import type { SiteReport } from '@/domains/site/model'
 import type { Contract } from '@/domains/trade/model'
-import { PROJECT_STATUS_META, STAGE_STATUS_META, projectStageText } from '@/domains/project/meta'
+import { PROJECT_ORIGIN_META, PROJECT_STATUS_META, STAGE_STATUS_META, projectStageText } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { dateTimeText, money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -259,7 +259,10 @@ function avatarOf(m: ProjectMember) {
             <text class="pd__hero-name">{{ project.name }}</text>
             <text class="pd__hero-no">{{ project.no }} · {{ project.address }}</text>
           </view>
-          <JzTag :text="PROJECT_STATUS_META[project.status].label" :color="TOKEN_COLOR.primary" :soft="false" />
+          <view class="jz-row" style="gap:8rpx;align-items:center;">
+            <JzTag v-if="project.businessOrigin === 'carryover'" :text="PROJECT_ORIGIN_META.carryover.label" :color="PROJECT_ORIGIN_META.carryover.color" :soft="false" />
+            <JzTag :text="PROJECT_STATUS_META[project.status].label" :color="TOKEN_COLOR.primary" :soft="false" />
+          </view>
         </view>
         <view class="pd__hero-progress">
           <view class="jz-grow">

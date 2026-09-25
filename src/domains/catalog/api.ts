@@ -1,8 +1,11 @@
-import { listOf, post } from '@/core/http'
+import { listOf, post, upload as uploadRequest } from '@/core/http'
 import type { PageResult } from '@/domains/common/model'
 import { dateTimeValue } from '@/core/format'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { CatalogItem, CatalogPricingMode, CatalogTree, CatalogType } from './model'
+import type {
+  CatalogImportBatch, CatalogImportRow, CatalogImportRowStatus, CatalogImportStatus,
+  CatalogItem, CatalogPricingMode, CatalogTree, CatalogType
+} from './model'
 import { fileApi } from '@/domains/file/api'
 
 type RawRecord = Record<string, any>
@@ -63,7 +66,11 @@ export function normalizeCatalogItem(raw: RawRecord): CatalogItem {
     pricingMode: MODE[enumValue(raw.pricingMode)] || 'materialAndManual',
     materialPrice: number(raw.materialPrice),
     manualPrice: number(raw.manualPrice),
-    costPrice: number(raw.costPrice),
+    fixedTotalPrice: raw.fixedTotalPrice === undefined || raw.fixedTotalPrice === null ? undefined : number(raw.fixedTotalPrice),
+    // 成本空白 = null（待维护），0 = 明确零成本：不能用 Number(undefined)=0 兜底
+    costPrice: raw.costPrice === undefined || raw.costPrice === null ? null : number(raw.costPrice),
+    sourceType: raw.sourceType ? (String(raw.sourceType) as CatalogItem['sourceType']) : undefined,
+    importBatchId: raw.importBatchId ? String(raw.importBatchId) : undefined,
     formula: raw.formula ?? '',
     craft: raw.craft,
     criterion: raw.criterion,
@@ -108,7 +115,8 @@ export interface CatalogInput {
   pricingMode: CatalogPricingMode
   materialPrice: number
   manualPrice: number
-  costPrice?: number
+  fixedTotalPrice?: number
+  costPrice?: number | null
   craft?: string
   criterion?: string
   description?: string
@@ -117,7 +125,130 @@ export interface CatalogInput {
   sort?: number
 }
 
+
+const IMPORT_STATUS: Record<string, CatalogImportStatus> = {
+  Uploaded: 'Uploaded', Parsed: 'Parsed', PendingConfirm: 'PendingConfirm', Importing: 'Importing',
+  Imported: 'Imported', PartiallyImported: 'PartiallyImported', Failed: 'Failed',
+  Expired: 'Expired', Revoked: 'Revoked'
+}
+const IMPORT_ROW_STATUS: Record<string, CatalogImportRowStatus> = {
+  Ready: 'Ready', Duplicate: 'Duplicate', SuspectedDuplicate: 'SuspectedDuplicate',
+  Error: 'Error', Imported: 'Imported', Skipped: 'Skipped'
+}
+const IMPORT_STATUS_API: Record<CatalogImportStatus, string> = {
+  Uploaded: 'Uploaded', Parsed: 'Parsed', PendingConfirm: 'PendingConfirm', Importing: 'Importing',
+  Imported: 'Imported', PartiallyImported: 'PartiallyImported', Failed: 'Failed',
+  Expired: 'Expired', Revoked: 'Revoked'
+}
+
+function normalizeImportBatch(raw: RawRecord): CatalogImportBatch {
+  return {
+    id: String(raw.id ?? raw.batchId ?? ''),
+    batchNo: raw.batchNo ?? '',
+    status: IMPORT_STATUS[enumValue(raw.status)] || 'PendingConfirm',
+    templateVersion: raw.templateVersion ?? 'V1.0',
+    validationVersion: raw.validationVersion,
+    originalFilename: raw.originalFilename,
+    contentType: raw.contentType,
+    fileSize: raw.fileSize === undefined ? undefined : Number(raw.fileSize),
+    fileSha256: raw.fileSha256,
+    duplicatePolicy: raw.duplicatePolicy === 'Import' ? 'Import' : 'Skip',
+    totalRows: Number(raw.totalRows ?? 0),
+    readyRows: Number(raw.readyRows ?? 0),
+    duplicateRows: Number(raw.duplicateRows ?? 0),
+    suspectedDuplicateRows: Number(raw.suspectedDuplicateRows ?? 0),
+    errorRows: Number(raw.errorRows ?? 0),
+    costPendingRows: Number(raw.costPendingRows ?? 0),
+    importedRows: Number(raw.importedRows ?? 0),
+    skippedRows: Number(raw.skippedRows ?? 0),
+    partialImport: raw.partialImport === true,
+    expireAt: dateTimeValue(raw.expireAt),
+    parsedAt: dateTimeValue(raw.parsedAt),
+    confirmedAt: dateTimeValue(raw.confirmedAt),
+    finishedAt: dateTimeValue(raw.finishedAt),
+    revokedAt: dateTimeValue(raw.revokedAt),
+    message: raw.message,
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined,
+    createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime)
+  }
+}
+
+function normalizeImportRow(raw: RawRecord): CatalogImportRow {
+  return {
+    id: String(raw.id ?? raw.rowId ?? ''),
+    rowNo: Number(raw.rowNo ?? 0),
+    status: IMPORT_ROW_STATUS[enumValue(raw.status)] || 'Ready',
+    errorField: raw.errorField,
+    errorCode: raw.errorCode,
+    errorReason: raw.errorReason,
+    itemName: raw.itemName ?? raw.item?.name,
+    itemType: raw.itemType ? TYPE[enumValue(raw.itemType)] || 'construction' : undefined,
+    unit: raw.unit ? UNIT_NAMES[enumValue(raw.unit)] || enumValue(raw.unit) : undefined,
+    pricingMode: raw.pricingMode ? MODE[enumValue(raw.pricingMode)] || 'materialAndManual' : undefined,
+    saleAmount: raw.saleAmount === undefined || raw.saleAmount === null ? undefined : Number(raw.saleAmount),
+    costPending: raw.costPending === true,
+    itemId: raw.item?.itemId ? String(raw.item.itemId) : undefined,
+    itemCode: raw.item?.code
+  }
+}
+
+export interface CatalogImportRowQuery {
+  batchId: string
+  status?: CatalogImportRowStatus
+  current?: number
+  size?: number
+}
+
 export const catalogApi = {
+  /** 下载 V1.0 标准模板（返回可 openDocument 的绝对地址）。 */
+  importTemplate: () => post<RawRecord>('catalog/import-template/build', {})
+    .then((raw) => ({ name: String(raw.name ?? '报价项目库批量导入模板_v1.0.xlsx'), url: fileApi.absolute(String(raw.url ?? '')) })),
+
+  /** 上传并解析模板文件，生成预览批次（不写正式项目库）。 */
+  importPreview: (filePath: string, fileName?: string) =>
+    uploadRequest<RawRecord>('catalog/import-batch/build', filePath, fileName ? { fileName } : {})
+      .then(normalizeImportBatch),
+
+  /** 批次详情（结果页刷新与过期识别）。 */
+  importBatchInfo: (batchId: string) =>
+    post<RawRecord>('catalog/import-batch/info', { batchId }).then(normalizeImportBatch),
+
+  /** 最近导入记录。 */
+  importBatchPage: async (query: { status?: CatalogImportStatus; current?: number; size?: number } = {}) => {
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('catalog/import-batch/page', {
+      status: query.status ? IMPORT_STATUS_API[query.status] : undefined,
+      current: query.current ?? 1,
+      size: query.size ?? 10
+    })
+    return listOf(result).map(normalizeImportBatch)
+  },
+
+  /** 确认导入：partialImport=true 表示已二次确认仅导入合格行。 */
+  importConfirm: (batchId: string, options: { partialImport?: boolean; duplicatePolicy?: 'Skip' | 'Import' } = {}) =>
+    post<RawRecord>('catalog/import-batch/save', {
+      batchId,
+      partialImport: options.partialImport === true,
+      duplicatePolicy: options.duplicatePolicy === 'Import' ? 'Import' : 'Skip'
+    }).then(normalizeImportBatch),
+
+  /** 撤销批次（24 小时内且无下游引用）。 */
+  importRevoke: (batchId: string) =>
+    post<RawRecord>('catalog/import-batch/update', { batchId, status: 'Revoked' }).then(normalizeImportBatch),
+
+  /** 导入行分页：预览摘要、重复项、疑似重复与错误清单。 */
+  importRows: async (query: CatalogImportRowQuery) => {
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('catalog/import-row/page', {
+      batchId: query.batchId,
+      status: query.status,
+      current: query.current ?? 1,
+      size: query.size ?? 20
+    })
+    return {
+      list: listOf(result).map(normalizeImportRow),
+      total: Array.isArray(result) ? result.length : Number(result.totalElements ?? result.total ?? 0)
+    }
+  },
+
   tree: (type: CatalogType) =>
     post<RawRecord>('catalog/item/tree', { type: TYPE_API[type] }).then((raw) => ({
       type: TYPE[enumValue(raw.type)] || type,
@@ -157,6 +288,7 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
+      fixedTotalPrice: input.fixedTotalPrice,
       costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
@@ -179,6 +311,7 @@ export const catalogApi = {
       pricingMode: MODE_API[input.pricingMode],
       materialPrice: input.materialPrice,
       manualPrice: input.manualPrice,
+      fixedTotalPrice: input.fixedTotalPrice,
       costPrice: input.costPrice,
       craft: input.craft,
       criterion: input.criterion,
@@ -187,6 +320,10 @@ export const catalogApi = {
       active: input.active,
       sort: input.sort
     }).then(signCatalogItem),
+
+  /** 删除报价项目：无下游引用时硬删除（明细与图片同事务删除）。 */
+  remove: (itemId: string) =>
+    post<RawRecord>('catalog/item/delete', { itemId }).then(normalizeCatalogItem),
 
   /** 启用/停用项目，复用当前完整数据，仅切换 active 字段 */
   toggleActive: (item: CatalogItem, active: boolean) =>

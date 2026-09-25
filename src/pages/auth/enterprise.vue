@@ -7,6 +7,7 @@ import { identityApi } from '@/domains/identity/api'
 import { loginAsEmployee, loginAsToken, session } from '@/domains/identity/session'
 import { hideLoading, loading, toast } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
 const companyTitle = ref('')
 const companyName = ref('')
@@ -14,6 +15,8 @@ const companyAddr = ref('')
 const storeName = ref('')
 const name = ref('')
 const submitting = ref(false)
+const hasRunningProjects = ref(false)
+function onRunningProjectsChange(event: any) { hasRunningProjects.value = !!event?.detail?.value }
 
 onLoad((query) => {
   if (!session.token || !session.user?.phone) {
@@ -55,7 +58,7 @@ async function submit() {
     loginAsEmployee(profile.currentEmployee, token.token, profile)
     hideLoading()
     toast('创建成功，已赠送免费试用', 'success')
-    setTimeout(() => goTab(P.home), 400)
+    setTimeout(() => goTab(hasRunningProjects.value ? P.carryoverHome : P.home), 400)
   } catch (error) {
     hideLoading()
     toast(error instanceof Error ? error.message : '创建失败，请重试')
@@ -67,10 +70,30 @@ async function submit() {
 
 <template>
   <view class="ent">
-    <view class="ent__head">
-      <view class="ent__icon"><JzIcon name="building" :size="52" :color="TOKEN_COLOR.primary" /></view>
-      <text class="ent__title">创建企业</text>
-      <text class="ent__sub">{{ session.user?.phone }} 已通过微信授权验证</text>
+    <view class="ent__hero">
+      <view class="ent__hero-main">
+        <view class="ent__hero-logo"><JzBrandLogo variant="white" :size="84" /></view>
+        <view class="jz-grow">
+          <text class="ent__hero-eyebrow">企业负责人开通</text>
+          <text class="ent__hero-title">创建您的装修企业</text>
+          <text class="ent__hero-sub">一次完成企业、总店与负责人档案</text>
+        </view>
+      </view>
+      <view class="ent__hero-meta">
+        <view class="ent__hero-chip">
+          <JzIcon name="shield-check" :size="26" :color="TOKEN_COLOR.white" />
+          <text>{{ session.user?.phone || '手机号' }} 已验证</text>
+        </view>
+        <view class="ent__hero-chip">
+          <JzIcon name="clock" :size="26" :color="TOKEN_COLOR.white" />
+          <text>约 1 分钟完成</text>
+        </view>
+      </view>
+      <view class="ent__hero-points">
+        <view><JzIcon name="users" :size="28" :color="TOKEN_COLOR.white" /><text>邀请员工</text></view>
+        <view><JzIcon name="briefcase" :size="28" :color="TOKEN_COLOR.white" /><text>管理项目</text></view>
+        <view><JzIcon name="chart" :size="28" :color="TOKEN_COLOR.white" /><text>经营分析</text></view>
+      </view>
     </view>
 
     <view class="ent__card">
@@ -97,21 +120,52 @@ async function submit() {
         <text class="ent__label">企业地址</text>
         <input v-model="companyAddr" maxlength="256" placeholder="选填" />
       </view>
+      <view class="ent__field ent__field--switch">
+        <view class="jz-grow">
+          <text class="ent__label">已有在建项目</text>
+          <text class="ent__switch-note">开启后，创建企业将进入“业务承接”，逐个录入项目。</text>
+        </view>
+        <switch :checked="hasRunningProjects" color="#16A394" @change="onRunningProjectsChange" />
+      </view>
     </view>
 
     <button class="jz-btn jz-btn--primary jz-btn--block ent__submit" :loading="submitting" @tap="submit">
       创建企业并进入工作台
     </button>
-    <view class="ent__tip">企业注册使用微信身份 + 授权手机号双重校验。</view>
+    <view class="ent__tip">企业注册仅使用手机号快捷登录校验负责人身份，不会读取通讯录。</view>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.ent { min-height: 100vh; padding: 48rpx 24rpx 80rpx; box-sizing: border-box; background: $jzb-bg-page; }
-.ent__head { padding: 0 16rpx 32rpx; }
-.ent__icon { display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; background: $jzb-primary-lighter; border-radius: 32rpx; }
-.ent__title { display: block; margin-top: 24rpx; font-size: 48rpx; font-weight: 750; color: $jzb-text-1; }
-.ent__sub { display: block; margin-top: 10rpx; font-size: $jzb-font-sm; color: $jzb-text-3; }
+.ent { min-height: 100vh; padding: 32rpx 24rpx 80rpx; box-sizing: border-box; background: $jzb-bg-page; }
+.ent__hero {
+  position: relative; overflow: hidden; padding: 32rpx 30rpx 28rpx; margin-bottom: 24rpx;
+  color: $jzb-text-inverse; background: $jzb-gradient; border-radius: $jzb-radius-xl;
+  box-shadow: 0 18rpx 48rpx rgba(14, 138, 125, .20);
+}
+.ent__hero::after {
+  content: ''; position: absolute; right: -90rpx; top: -120rpx; width: 320rpx; height: 320rpx;
+  border-radius: 50%; background: rgba(255, 255, 255, .10); pointer-events: none;
+}
+.ent__hero-main { position: relative; z-index: 1; display: flex; align-items: center; }
+.ent__hero-logo {
+  display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; margin-right: 22rpx;
+  background: rgba(255, 255, 255, .14); border: 1rpx solid rgba(255, 255, 255, .18); border-radius: 30rpx;
+}
+.ent__hero-eyebrow { display: block; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; font-weight: 650; }
+.ent__hero-title { display: block; margin-top: 6rpx; font-size: 42rpx; font-weight: 780; line-height: 1.25; }
+.ent__hero-sub { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; }
+.ent__hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 26rpx; }
+.ent__hero-chip {
+  display: flex; align-items: center; gap: 8rpx; min-height: 48rpx; padding: 0 16rpx;
+  color: $jzb-text-inverse; background: rgba(255, 255, 255, .14); border-radius: 999rpx;
+  font-size: 21rpx;
+}
+.ent__hero-points {
+  position: relative; z-index: 1; display: flex; justify-content: space-between; margin-top: 26rpx;
+  padding-top: 22rpx; border-top: 1rpx solid rgba(255, 255, 255, .18);
+}
+.ent__hero-points > view { display: flex; align-items: center; gap: 8rpx; color: rgba(255, 255, 255, .88); font-size: $jzb-font-xs; }
 .ent__card { padding: 6rpx 28rpx 20rpx; background: $jzb-text-inverse; border-radius: $jzb-radius-lg; }
 .ent__group { display: block; padding: 24rpx 0 10rpx; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-primary-dark; }
 .ent__group--gap { margin-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }

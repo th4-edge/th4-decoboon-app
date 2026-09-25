@@ -47,12 +47,14 @@ const customerProjects = ref<Project[]>([])
 const properties = ref<Property[]>([])
 const activePropertyId = ref('')
 const designers = ref<Employee[]>([])
+const owners = ref<Employee[]>([])
 const booted = ref(false)
 const loadError = ref('')
 const sectionError = ref('')
 const actionLoading = ref(false)
 const openDesignerOnLoad = ref(false)
 const designerSheetOpen = ref(false)
+const ownerSheetOpen = ref(false)
 /** FIX-006：评级依据从独立卡片改为评级标签旁的 ? 图标，点击弹出浮层。 */
 const showGradePopup = ref(false)
 
@@ -99,6 +101,8 @@ const canAssignDesigner = computed(() => can(session.role, 'act:assignDesigner')
   && customer.value?.stage === 'pendingMeasure' && !!customer.value.measureAt)
 /** 字段级变更/指定设计师入口：有 assignDesigner 权限即可，不受阶段限制（设计师离职、客户要求更换等场景）。 */
 const canChangeDesigner = computed(() => can(session.role, 'act:assignDesigner'))
+const canChangeOwner = computed(() => session.role === 'boss' || isStoreManager.value)
+const canDeleteCustomer = computed(() => session.role === 'boss')
 const hasAddress = computed(() => !!customer.value?.addr?.trim())
 const activeProperty = computed(() => properties.value.find((item) => item.id === activePropertyId.value)
   || properties.value[0] || null)
@@ -241,6 +245,9 @@ const primaryAction = computed<PrimaryAction | null>(() => {
   return null
 })
 const designerActions = computed(() => designers.value.map((item) => ({
+  label: `${item.name}${item.store?.name ? ' · ' + item.store.name : ''}`
+})))
+const ownerActions = computed(() => owners.value.map((item) => ({
   label: `${item.name}${item.store?.name ? ' · ' + item.store.name : ''}`
 })))
 
@@ -422,6 +429,61 @@ async function assignDesigner() {
   }
 }
 
+async function assignOwner() {
+  actionLoading.value = true
+  try {
+    const all = await identityApi.employees()
+    const currentStoreId = session.emp?.store?.id
+    owners.value = all.filter((item) => item.status === 'active'
+      && ['boss', 'storeManager', 'teamLeader', 'marketer'].includes(item.role)
+      && (session.role === 'boss' || !currentStoreId || item.store?.id === currentStoreId))
+    if (!owners.value.length) {
+      toast('当前范围暂无可转交的客户负责人')
+      return
+    }
+    ownerSheetOpen.value = true
+  } catch (error) {
+    toastError(error, '负责人列表加载失败')
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+async function onOwnerSelect(index: number) {
+  const owner = owners.value[index]
+  if (!owner || !customer.value) return
+  loading('正在变更客户负责人…')
+  try {
+    customer.value = await crmApi.save({ id: id.value, owner })
+    toast(`已变更客户负责人为 ${owner.name}`, 'success')
+    await load()
+  } catch (error) {
+    toastError(error, '变更客户负责人失败')
+  } finally {
+    hideLoading()
+  }
+}
+
+async function deleteCustomer() {
+  if (!customer.value || !canDeleteCustomer.value) return
+  const ok = await confirm(
+    '删除客户',
+    `确认删除 ${customer.value.name}（${customer.value.phone}）？仅无跟进、房屋、设计、报价、合同和项目事实的客户可以删除。`,
+    '确认删除'
+  )
+  if (!ok) return
+  loading('正在删除客户…')
+  try {
+    await crmApi.delete(id.value)
+    toast('客户已删除', 'success')
+    setTimeout(() => uni.navigateBack({ fail: () => uni.reLaunch({ url: P.customerList }) }), 400)
+  } catch (error) {
+    toastError(error, '客户删除失败')
+  } finally {
+    hideLoading()
+  }
+}
+
 async function onDesignerSelect(index: number) {
   const designer = designers.value[index]
   if (!designer) return
@@ -489,11 +551,12 @@ function viewMeasure(property: Property) {
         </view>
       </view>
       <view class="cd__roles">
-        <view class="cd__role">
-          <text class="cd__role-label">负责顾问</text>
-          <view class="cd__role-person">
+        <view class="cd__role" :class="{ 'cd__role--clickable': canChangeOwner }" @tap="canChangeOwner && assignOwner()">
+          <text class="cd__role-label">客户负责人</text>
+          <view class="cd__role-value-row">
             <JzEmployeeAvatar v-if="customer.owner" :src="customer.owner.avatarUrl || ''" :name="customer.owner.name" :role="customer.owner.role" :status="customer.owner.status" :size="52" />
             <text class="cd__role-value">{{ customer.owner?.name || '待分配' }}</text>
+            <JzIcon v-if="canChangeOwner" name="arrow-right" :size="22" :color="TOKEN_COLOR.text3" />
           </view>
         </view>
         <view class="cd__role-divider" />
@@ -622,6 +685,11 @@ function viewMeasure(property: Property) {
       <JzEmpty v-if="!follows.length" text="暂无跟进记录" sub="记录每次沟通，保持客户转化上下文" />
     </view>
 
+    <view v-if="canDeleteCustomer" class="cd__danger-zone">
+      <button class="jz-btn jz-btn--danger-ghost jz-btn--block" @tap="deleteCustomer">删除客户</button>
+      <text>仅在客户没有跟进、房屋、设计、报价、合同和项目事实时可删除。</text>
+    </view>
+
     <!-- FIX-006：评级依据浮层——点击头部评级旁的 ? 图标弹出，点击遮罩关闭 -->
     <view v-if="showGradePopup" class="cd__grade-mask" @tap="showGradePopup = false">
       <view class="cd__grade-popup" @tap.stop>
@@ -677,6 +745,14 @@ function viewMeasure(property: Property) {
     :actions="designerActions"
     @select="onDesignerSelect"
     @update:visible="designerSheetOpen = $event"
+  />
+
+  <JzActionSheet
+    :visible="ownerSheetOpen"
+    title="选择客户负责人"
+    :actions="ownerActions"
+    @select="onOwnerSelect"
+    @update:visible="ownerSheetOpen = $event"
   />
 </template>
 
@@ -763,4 +839,6 @@ function viewMeasure(property: Property) {
 .cd__follow-next { display: block; margin-top: 12rpx; color: $jzb-warning; font-size: $jzb-font-xs; }
 .cd__error { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20rpx; padding: 40rpx; }
 .cd__error-title { color: $jzb-text-2; font-size: $jzb-font-md; font-weight: 600; text-align: center; }
+.cd__danger-zone { margin: 36rpx 24rpx 0; }
+.cd__danger-zone text { display: block; margin-top: 12rpx; color: $jzb-text-3; text-align: center; font-size: 20rpx; }
 </style>

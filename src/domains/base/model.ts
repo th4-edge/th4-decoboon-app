@@ -38,7 +38,8 @@ export interface MaterialOption {
   spec?: string
   materialPrice: number
   manualPrice: number
-  costPrice: number
+  /** null = 成本待维护，0 = 明确零成本 */
+  costPrice: number | null
 }
 
 export interface GiftPack {

@@ -138,7 +138,7 @@ function normalizeDesignItem(raw: RawRecord): DesignItem {
     quantity: number(raw.quantity),
     materialPrice: number(raw.materialPrice),
     manualPrice: number(raw.manualPrice),
-    costPrice: number(raw.costPrice),
+    costPrice: raw.costPrice === undefined || raw.costPrice === null ? null : number(raw.costPrice),
     pricingMode: PRICING_MODE[enumValue(raw.pricingMode)] || 'materialAndManual',
     amount: number(raw.amount),
     cost: number(raw.cost),
@@ -378,7 +378,8 @@ export interface DesignItemInput {
   quantity: number
   materialPrice: number
   manualPrice: number
-  costPrice: number
+  /** null = 成本待维护，0 = 明确零成本 */
+  costPrice: number | null
   pricingMode: PricingMode
   criterion?: string
   remark?: string

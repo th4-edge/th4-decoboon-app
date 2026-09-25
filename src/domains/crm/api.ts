@@ -2,7 +2,7 @@ import { post, listOf } from '@/core/http'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Customer, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag } from './model'
+import type { Customer, CustomerBatchItem, CustomerBatchPreview, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 
@@ -54,8 +54,10 @@ export function normalizeCustomer(raw: RawRecord): Customer {
     gender: gender === 'M' || gender === 'F' ? gender : undefined,
     source: source === 'oldcustomer'
       ? 'old'
-      : (['lead', 'referral', 'walkin', 'video', 'other'].includes(source)
-          ? source as Customer['source'] : 'other'),
+      : source === 'batchphone'
+        ? 'batch'
+        : (['lead', 'referral', 'walkin', 'video', 'other'].includes(source)
+            ? source as Customer['source'] : 'other'),
     community: raw.community,
     addr: raw.addr,
     area: raw.area == null ? undefined : Number(raw.area),
@@ -145,7 +147,7 @@ function normalizeStageCount(raw: RawRecord): CustomerStageCount {
 function writePayload(customer: Partial<Customer>): RawRecord {
   const sourceMap: Record<Customer['source'], string> = {
     lead: 'Lead', referral: 'Referral', walkin: 'WalkIn', old: 'OldCustomer',
-    video: 'Video', other: 'Other'
+    video: 'Video', other: 'Other', batch: 'BatchPhone'
   }
   const payload: RawRecord = {
     name: customer.name,
@@ -164,6 +166,26 @@ function writePayload(customer: Partial<Customer>): RawRecord {
 
 const FOLLOW_WAY_API: Record<CustomerFollow['way'], string> = {
   phone: 'Phone', visit: 'Visit', wechat: 'Wechat', video: 'Video', other: 'Other'
+}
+
+function normalizeBatchItem(raw: RawRecord): CustomerBatchItem {
+  return {
+    input: String(raw.input ?? ''),
+    phone: raw.phone ? String(raw.phone) : undefined,
+    status: String(raw.status ?? 'invalid') as CustomerBatchItem['status'],
+    reason: raw.reason ? String(raw.reason) : undefined
+  }
+}
+
+function normalizeBatchPreview(raw: RawRecord): CustomerBatchPreview {
+  return {
+    total: Number(raw.total ?? 0),
+    validCount: Number(raw.validCount ?? 0),
+    duplicateCount: Number(raw.duplicateCount ?? 0),
+    invalidCount: Number(raw.invalidCount ?? 0),
+    createdCount: Number(raw.createdCount ?? 0),
+    items: Array.isArray(raw.items) ? raw.items.map((item) => normalizeBatchItem(item as RawRecord)) : []
+  }
 }
 
 function normalizeFollow(raw: RawRecord): CustomerFollow {
@@ -252,6 +274,14 @@ export const crmApi = {
     }
     return normalizeCustomer(await post<RawRecord>('customer/customer/save', payload))
   },
+
+  delete: (id: string) => post<RawRecord>('customer/customer/delete', { customerId: id }).then(normalizeCustomer),
+
+  batchPreview: (text: string) =>
+    post<RawRecord>('customer/customer-batch/build', { text }).then(normalizeBatchPreview),
+
+  batchSave: (text: string, ownerId: string) =>
+    post<RawRecord>('customer/customer-batch/save', { text, ownerId }).then(normalizeBatchPreview),
 
   follows: async (customerId: string) => {
     const uri = session.role === 'pm' ? 'project/manager/customer-follow/page' : 'customer/customer-follow/page'

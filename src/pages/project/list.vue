@@ -6,7 +6,7 @@ import { P, goTab } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
 import type { Project, ProjectMetricCard, ProjectOverviewReport, ProjectRiskLevel, ProjectSortKey, ProjectStatus } from '@/domains/project/model'
-import { CONTRACT_STAGE_META, PROJECT_RISK_META, PROJECT_RISK_TYPE_META, PROJECT_STATUS_META, projectStageText } from '@/domains/project/meta'
+import { CONTRACT_STAGE_META, PROJECT_ORIGIN_META, PROJECT_RISK_META, PROJECT_RISK_TYPE_META, PROJECT_STATUS_META, projectStageText } from '@/domains/project/meta'
 import { projectApi } from '@/domains/project/api'
 import { visibleProjects } from '@/domains/project/scope'
 import { money } from '@/core/format'
@@ -458,7 +458,10 @@ function openChangeWorkbench() {
                 <text v-if="!p.manager && !p.designer" class="pl__person-empty">人员待分配</text>
               </view>
             </view>
-            <JzTag :text="statusLabel(p)" :color="statusColor(p)" />
+            <view class="jz-row" style="gap:8rpx;align-items:center;">
+              <JzTag v-if="p.businessOrigin === 'carryover'" :text="PROJECT_ORIGIN_META.carryover.label" :color="PROJECT_ORIGIN_META.carryover.color" />
+              <JzTag :text="statusLabel(p)" :color="statusColor(p)" />
+            </view>
           </view>
 
           <view v-if="isRisky(p)" class="pl__risk" :class="riskTone(p)">
@@ -527,7 +530,10 @@ function openChangeWorkbench() {
             <view class="pl__card-main">
               <view class="jz-between">
                 <text class="pl__card-name">{{ p.name }}</text>
-                <JzTag :text="statusLabel(p)" :color="statusColor(p)" />
+                <view class="jz-row" style="gap:8rpx;align-items:center;">
+                  <JzTag v-if="p.businessOrigin === 'carryover'" :text="PROJECT_ORIGIN_META.carryover.label" :color="PROJECT_ORIGIN_META.carryover.color" />
+                  <JzTag :text="statusLabel(p)" :color="statusColor(p)" />
+                </view>
               </view>
               <view class="pl__meta-line">
                 <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text3" />

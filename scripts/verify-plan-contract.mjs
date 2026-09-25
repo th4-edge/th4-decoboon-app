@@ -8,6 +8,9 @@ const pagesJson = read('src/pages.json')
 const minePage = read('src/pages/mine/index.vue')
 const backendContext = read('../../后端代码/th4-decoboon/src/main/java/com/th4/edge/decoboon/plan/context/ContractPlanContext.java')
 const companyTemplateContext = read('../../后端代码/th4-decoboon/src/main/java/com/th4/edge/decoboon/plan/context/CompanyPlanTemplateContext.java')
+const carryoverApi = read('src/domains/carryover/api.ts')
+const carryoverPlanPage = read('src/subpackages/carryover/pages/plan.vue')
+const carryoverIndexPage = read('src/subpackages/carryover/pages/index.vue')
 
 const required = [
   ['计划模板接口', planApi, 'plan/template/page'],
@@ -22,7 +25,13 @@ const required = [
   ['企业付款模板上下文', companyTemplateContext, 'savePayment'],
   ['企业施工模板上下文', companyTemplateContext, 'saveConstruction'],
   ['合同快照', backendContext, 'ContractPaymentPlan'],
-  ['项目阶段快照', backendContext, 'ContractConstructionStage']
+  ['项目阶段快照', backendContext, 'ContractConstructionStage'],
+  ['接管后阶段新增', carryoverApi, 'carryover/plan/stage/save'],
+  ['接管后阶段排序', carryoverApi, 'carryover/plan/stage/reorder'],
+  ['接管后计划确认', carryoverApi, 'carryover/plan/confirm'],
+  ['接管后计划引导页', carryoverPlanPage, '确认接管点'],
+  ['接管后计划入口', pagesJson, '"path": "pages/plan"'],
+  ['业务承接返回交互', carryoverIndexPage, '<JzPageHeader back']
 ]
 const missing = required.filter(([, source, token]) => !source.includes(token)).map(([label]) => label)
 if (missing.length) {

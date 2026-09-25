@@ -24,6 +24,7 @@ const emit = defineEmits<{
   (e: 'select-many', value: CatalogItem[]): void
   (e: 'create', value: CatalogType): void
   (e: 'toggle', item: CatalogItem, active: boolean): void
+  (e: 'delete', item: CatalogItem): void
 }>()
 
 const activeType = ref<CatalogType>(props.type)
@@ -133,6 +134,18 @@ function loadMore() {
 }
 function close() { emit('update:visible', false) }
 function choose(item: CatalogItem) { emit('select', item); close() }
+/** 卡片“更多”操作菜单：启用/停用与删除（删除必须由父页面二次确认后执行）。 */
+function openManageActions(item: CatalogItem) {
+  uni.showActionSheet({
+    itemList: [item.active ? '停用' : '启用', '删除项目'],
+    success: (res) => {
+      if (res.tapIndex === 0) emit('toggle', item, !item.active)
+      if (res.tapIndex === 1) emit('delete', item)
+    },
+    fail: () => { /* 用户取消 */ }
+  })
+}
+
 function activate(item: CatalogItem) {
   if (props.manage) {
     emit('select', item)
@@ -157,13 +170,19 @@ function confirmMultiple() {
   close()
 }
 function priceText(item: CatalogItem) {
-  if (item.pricingMode === 'fixedTotal') return money(item.materialPrice + item.manualPrice)
+  // 固定总价使用独立字段；兼容历史数据回退材料+人工
+  if (item.pricingMode === 'fixedTotal') {
+    const total = item.fixedTotalPrice ?? (item.materialPrice + item.manualPrice)
+    return `${money(total)} 固定总价`
+  }
   if (item.pricingMode === 'manualOnly') return `${money(item.manualPrice)}/${item.unit}`
   if (item.pricingMode === 'materialOnly') return `${money(item.materialPrice)}/${item.unit}`
   return `${money(item.materialPrice + item.manualPrice)}/${item.unit}`
 }
 function costText(item: CatalogItem) {
-  return Number(item.costPrice || 0) > 0 ? `成本 ${money(item.costPrice)}` : '成本未维护'
+  // null = 成本待维护；0 = 明确零成本（不得显示为待维护）
+  if (item.costPrice === null || item.costPrice === undefined) return '成本待维护'
+  return item.costPrice > 0 ? `成本 ${money(item.costPrice)}` : '成本 ¥0.00（明确零成本）'
 }
 function modeLabel(mode: CatalogPricingMode) {
   return { materialAndManual: '材料+人工', materialOnly: '仅材料', manualOnly: '仅人工', fixedTotal: '固定总价' }[mode]
@@ -186,6 +205,12 @@ defineExpose({
         <view v-if="manage" class="jz-btn jz-btn--primary jz-btn--sm cp__create" @tap="emit('create', activeType)"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.white" /><text>新增{{ typeLabel }}</text></view>
         <view class="cp__close" @tap="close"><JzIcon name="close" :size="26" :color="TOKEN_COLOR.text3" /></view>
       </view>
+    </view>
+
+    <!-- 管理模式工具栏插槽：由维护页注入批量导入/模板下载等入口，
+         必须渲染在固定层内部，否则会被 .cp 全屏层覆盖而不可见 -->
+    <view v-if="manage" class="cp__manage-toolbar">
+      <slot name="manage-toolbar" />
     </view>
 
     <scroll-view scroll-x class="cp__types" :show-scrollbar="false">
@@ -225,12 +250,11 @@ defineExpose({
                 <text class="cp__item-meta jz-clamp-2">{{ [item.brand, item.series, item.spec].filter(Boolean).join(' · ') || item.category }}</text>
               </view>
               <text class="cp__item-price">{{ priceText(item) }}</text>
-              <view v-if="manage" class="cp__item-edit" @tap.stop="emit('select', item)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.text3" /></view>
               <view v-if="multiple" class="cp__check" :class="{ 'cp__check--on': selectedIds.has(item.id) }"><JzIcon v-if="selectedIds.has(item.id)" name="check" :size="20" :color="TOKEN_COLOR.white" :stroke-width="3" /></view>
             </view>
             <view class="cp__formula"><text>{{ modeLabel(item.pricingMode) }}</text><text class="jz-clamp-2">{{ item.formula }}</text></view>
             <view v-if="item.craft" class="cp__craft jz-clamp-2">{{ item.craft }}</view>
-            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage" class="cp__item-toggle" :class="{ 'cp__item-toggle--on': !item.active }" @tap.stop="emit('toggle', item, !item.active)"><JzIcon :name="item.active ? 'pause' : 'play'" :size="18" /><text>{{ item.active ? '停用' : '启用' }}</text></view><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
+            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage" class="cp__item-more" @tap.stop="openManageActions(item)"><text>更多</text></view><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
           </view>
           <view v-if="loading" class="cp__loading">正在加载…</view>
           <view v-else-if="hasMore" class="cp__more" @tap="loadMore">加载更多</view>
@@ -254,6 +278,7 @@ defineExpose({
 
 <style lang="scss" scoped>
 .cp { position: fixed; inset: 0; z-index: 120; display: flex; flex-direction: column; background: $jzb-bg-page; }
+.cp__manage-toolbar { flex-shrink: 0; padding: 0 $jzb-page-pad 16rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
 .cp__header { padding: 24rpx $jzb-page-pad 20rpx; display: flex; align-items: flex-start; gap: 16rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
 .cp__header-main { flex: 1; min-width: 0; }
 .cp__header-actions { flex-shrink: 0; display: flex; align-items: center; gap: 12rpx; padding-top: 4rpx; }
@@ -287,9 +312,8 @@ defineExpose({
 .cp__item-tag { flex-shrink: 0; padding: 2rpx 10rpx; color: $jzb-text-3; background: $jzb-bg-hover; border-radius: $jzb-radius-xs; font-size: 20rpx; font-weight: 500; }
 .cp__item-edit { width: 48rpx; height: 48rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
 .cp__item-edit:active { background: $jzb-bg-hover; }
-.cp__item-toggle { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6rpx; padding: 8rpx 16rpx; color: $jzb-text-3; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
-.cp__item-toggle:active { background: $jzb-bg-hover; }
-.cp__item-toggle--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; }
+.cp__item-more { flex-shrink: 0; display: inline-flex; align-items: center; padding: 8rpx 20rpx; color: $jzb-text-2; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
+.cp__item-more:active { background: $jzb-primary-lightest; color: $jzb-primary-dark; }
 .cp__item-head { display: flex; align-items: flex-start; gap: 14rpx; }
 .cp__item-head .jz-grow { min-width: 0; }
 .cp__item-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; }

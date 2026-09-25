@@ -11,6 +11,9 @@ import { STAGE_STATUS_META } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
+import { carryoverApi } from '@/domains/carryover/api'
+import type { CarryoverProject } from '@/domains/carryover/model'
+import { toastError } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -18,6 +21,7 @@ const id = ref('')
 const project = ref<Project | null>(null)
 const stages = ref<ProjectStage[]>([])
 const tasks = ref<Task[]>([])
+const carryover = ref<CarryoverProject | null>(null)
 const editPlan = computed(() => can(session.role || 'boss', 'edit:plan') && session.role !== 'customer')
 
 onLoad((q) => {
@@ -30,6 +34,14 @@ async function load() {
   project.value = p || null
   stages.value = [...s].sort((a, b) => a.sort - b.sort)
   tasks.value = t
+  if (p?.businessOrigin === 'carryover') {
+    try {
+      const page = await carryoverApi.page()
+      carryover.value = page.list.find(item => item.projectId === id.value) || null
+    } catch (error) {
+      toastError(error, '接管计划状态加载失败')
+    }
+  }
 }
 const sorted = computed(() => stages.value)
 const spanDays = computed(() => {
@@ -43,6 +55,10 @@ function openStage(sid: string) { uni.navigateTo({ url: `${P.stageDetail}?id=${s
 function openTask(tid: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${tid}` }) }
 function goMembers() { uni.navigateTo({ url: `${P.projectMembers}?id=${id.value}` }) }
 function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}` }) }
+function openCarryoverPlan() {
+  if (!carryover.value?.id) { toastError(new Error('未找到接管项目'), '接管计划入口暂不可用'); return }
+  uni.navigateTo({ url: `${P.carryoverPlan}?itemId=${carryover.value.id}` })
+}
 </script>
 
 <template>
@@ -51,6 +67,16 @@ function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}`
       <view class="plan__sum-item"><text class="plan__sum-val">{{ project.startDate?.slice(5) }} ~ {{ project.planEndDate?.slice(5) }}</text><text class="plan__sum-label">计划工期（{{ spanDays }} 天）</text></view>
       <view class="plan__sum-item"><text class="plan__sum-val">{{ stages.length }}</text><text class="plan__sum-label">施工阶段</text></view>
       <view class="plan__sum-item"><text class="plan__sum-val">{{ tasks.length }}</text><text class="plan__sum-label">施工任务</text></view>
+    </view>
+
+    <view v-if="carryover" class="jz-card plan__arrange plan__carryover">
+      <view class="jz-grow">
+        <text class="plan__arrange-title">接管后剩余施工计划</text>
+        <text class="plan__arrange-sub">先确定接管后的后续阶段，再复用排期入口拆任务；历史阶段不补录。</text>
+      </view>
+      <button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openCarryoverPlan">
+        {{ carryover.planStatus === 'confirmed' || carryover.planStatus === 'locked' ? '查看计划' : '去制定' }}
+      </button>
     </view>
 
     <view class="jz-card plan__arrange" v-if="editPlan">
@@ -112,6 +138,7 @@ function arrange() { uni.navigateTo({ url: `${P.projectPlanEdit}?id=${id.value}`
 .plan__sum-val { font-size: $jzb-font; font-weight: 700; color: $jzb-primary-dark; }
 .plan__sum-label { margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .plan__arrange { margin: 0 24rpx 20rpx; padding: 24rpx; display: flex; flex-direction: row; align-items: center; background: $jzb-gradient-soft; }
+.plan__carryover { border: 1rpx solid rgba(22,163,148,.16); }
 .plan__arrange-title { display: block; font-size: $jzb-font; font-weight: 700; color: $jzb-primary-dark; }
 .plan__arrange-sub { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.6; }
 .plan__list { padding: 0 24rpx; }

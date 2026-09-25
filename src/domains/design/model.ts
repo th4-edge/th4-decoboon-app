@@ -65,7 +65,8 @@ export interface DesignItem {
   quantity: number
   materialPrice: number
   manualPrice: number
-  costPrice: number
+  /** null = 成本待维护，0 = 明确零成本 */
+  costPrice: number | null
   pricingMode: PricingMode
   amount: number
   cost: number
