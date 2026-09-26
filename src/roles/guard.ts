@@ -21,6 +21,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.designRequirements, anyOf: ['edit:design'] },
   { path: P.designRequirement, anyOf: ['edit:design'] },
   { path: P.designScheme, anyOf: ['edit:design'] },
+  { path: P.designGeneration, anyOf: ['edit:design'] },
   { path: P.designTalk, anyOf: ['view:design'] },
   { path: P.catalogManage, anyOf: ['edit:catalog'] },
   { path: P.quoteList, anyOf: ['view:quote'] },

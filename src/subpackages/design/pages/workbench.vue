@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { workbenchApi } from '@/domains/workbench/api'
 import type { DesignWorkbenchItem } from '@/domains/workbench/model'
 import { toastError } from '@/composables/toast'
@@ -64,6 +65,14 @@ function openDesign(custId: string, propertyId: string | null) {
     return
   }
   uni.navigateTo({ url: `${P.designList}?customerId=${custId}&propertyId=${propertyId}` })
+}
+
+function openAiFocus(custId: string, propertyId: string | null) {
+  if (!propertyId) {
+    uni.showToast({ title: '请先为客户创建房屋', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url: `${P.designList}?customerId=${custId}&propertyId=${propertyId}&focusDesign=1` })
 }
 
 function openRequirements(custId: string, propertyId: string | null) {
@@ -150,6 +159,10 @@ function isOverdue(stayDays: number): boolean {
             停留 {{ item.stayDays }} 天
           </text>
           <view class="wb__actions">
+            <view v-if="item.schemeCount > 0 && can(session.role, 'edit:design')" class="wb__btn wb__btn--ghost" @tap.stop="openAiFocus(item.custId, item.propertyId)">
+              <JzIcon name="star" :size="24" :color="TOKEN_COLOR.primary" />
+              <text>AI 生成</text>
+            </view>
             <view v-if="!item.hasRequirement" class="wb__btn wb__btn--ghost" @tap.stop="openRequirements(item.custId, item.propertyId)">
               <JzIcon name="edit" :size="24" :color="TOKEN_COLOR.primary" />
               <text>录诉求</text>

@@ -94,6 +94,7 @@ export const P = {
   designRequirements: '/subpackages/design/pages/requirements',
   designRequirement: '/subpackages/design/pages/requirement',
   designScheme: '/subpackages/design/pages/scheme',
+  designGeneration: '/subpackages/design/pages/ai-generation',
   designTalk: '/subpackages/design/pages/talk',
   designWorkbench: '/subpackages/design/pages/workbench',
   quoteWorkbench: '/subpackages/quote/pages/workbench',

@@ -37,6 +37,7 @@ const hasLoadedOnce = ref(false)
 const loadError = ref('')
 const copyingId = ref('')
 const deletingId = ref('')
+const focusDesign = ref(false)
 let loadSeq = 0
 
 const quotableDesigns = computed(() =>
@@ -91,6 +92,7 @@ onLoad((query) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
   customerId.value = query?.customerId || ''
   propertyId.value = query?.propertyId || ''
+  focusDesign.value = query?.focusDesign === '1' || query?.focusDesign === 1
   if (!customerId.value) {
     toast('缺少客户信息')
     setTimeout(() => uni.navigateBack(), 500)
@@ -234,6 +236,7 @@ function openProject() {
   if (project.value) uni.navigateTo({ url: `${P.projectDetail}?id=${project.value.id}` })
 }
 function openTalk(id: string) { uni.navigateTo({ url: `${P.designTalk}?talkId=${id}` }) }
+function openGeneration(design: DesignScheme) { uni.navigateTo({ url: `${P.designGeneration}?designId=${design.id}` }) }
 
 async function generateQuote(design: DesignScheme) {
   if (locked.value) { toast(lockTip.value); return }
@@ -343,6 +346,7 @@ function statusClass(status: DesignStatus) {
       </view>
     </view>
 
+    <view v-if="focusDesign && designs.length" class="jz-card dl__ai-focus"><JzIcon name="star" :size="30" :color="TOKEN_COLOR.primary" /><view><text>请选择要生成效果图的设计方案</text><text>从方案卡片点击“AI 生成”继续</text></view></view>
     <view class="jz-section">
       <text class="jz-section__title">设计方案（{{ designs.length }}）</text>
     </view>
@@ -373,6 +377,13 @@ function statusClass(status: DesignStatus) {
               <text v-else class="dl__scheme-price-empty">待报价</text>
             </view>
             <view v-if="canEdit && !locked" class="dl__scheme-actions">
+              <button
+                class="dl__copy-btn"
+                @tap.stop="openGeneration(item.design)"
+              >
+                <JzIcon name="star" :size="20" :color="TOKEN_COLOR.primary" />
+                <text>AI 生成</text>
+              </button>
               <button
                 class="dl__copy-btn"
                 :disabled="!!copyingId"
@@ -497,6 +508,10 @@ function statusClass(status: DesignStatus) {
 
 .dl__list { padding: 0 24rpx; }
 
+.dl__ai-focus { margin: 20rpx 24rpx 0; padding: 20rpx 24rpx; display: flex; gap: 14rpx; align-items: center; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.dl__ai-focus view { flex: 1; min-width: 0; }
+.dl__ai-focus text { display: block; }
+.dl__ai-focus text:last-child { margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .dl__scheme {
   position: relative;
   padding: 24rpx;
