@@ -3,6 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
+        "navigationBarTitleText": "装得清 · 首页",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -11,6 +12,7 @@
     {
       "path": "pages/project/list",
       "style": {
+        "navigationBarTitleText": "项目",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -19,6 +21,7 @@
     {
       "path": "pages/dynamic/index",
       "style": {
+        "navigationBarTitleText": "动态",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -27,6 +30,7 @@
     {
       "path": "pages/mine/index",
       "style": {
+        "navigationBarTitleText": "我的",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -50,6 +54,7 @@
     {
       "path": "pages/owner/enter",
       "style": {
+        "navigationBarTitleText": "我的家",
         "navigationStyle": "custom",
         "backgroundColor": "#F4F7F8"
       }
@@ -92,6 +97,7 @@
     {
       "path": "pages/customer/list",
       "style": {
+        "navigationBarTitleText": "客户",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -100,6 +106,7 @@
     {
       "path": "pages/finance/index",
       "style": {
+        "navigationBarTitleText": "财务",
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#F4F7F8"
@@ -260,6 +267,13 @@
           "path": "pages/password",
           "style": {
             "navigationBarTitleText": "账号密码",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/help",
+          "style": {
+            "navigationBarTitleText": "使用帮助",
             "backgroundColor": "#F4F7F8"
           }
         }
@@ -852,6 +866,14 @@
           "path": "pages/analysis",
           "style": {
             "navigationBarTitleText": "经营驾驶舱",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/success",
+          "style": {
+            "navigationBarTitleText": "使用进度",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }

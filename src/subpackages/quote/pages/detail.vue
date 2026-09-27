@@ -13,6 +13,7 @@ import { designApi } from '@/domains/design/api'
 import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, loading, hideLoading, toast, toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -28,6 +29,12 @@ const busy = ref(false)
 const pdfBusy = ref(false)
 const project = ref<Project | null>(null)
 const contract = ref<Contract | null>(null)
+
+// 报价详情转发给业主/家人：标题带项目名，让对方知道打开的是哪一户的清单。
+useShare(() => ({
+  title: (project.value?.name || quote.value?.title) ? `${project.value?.name || quote.value?.title} 装修报价清单` : '装得清 · 装修报价清单',
+  path: `${P.quoteDetail}?id=${id.value}`
+}))
 const changes = ref<ContractChange[]>([])
 const customerQuotes = ref<Quote[]>([])
 const loadingCustomerQuotes = ref(false)

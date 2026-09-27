@@ -81,6 +81,8 @@ const groups = computed(() => {
 
   if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
   if (role.value === 'boss') business.push(cell('briefcase', '业务承接', '承接在跑项目，延续工地与账务', () => uni.navigateTo({ url: P.carryoverHome })))
+  if (role.value === 'boss') business.push(cell('chart', '员工绩效业绩', '按员工汇总转化、签约、交付与验收', () => uni.navigateTo({ url: P.performanceAssessment })))
+  if (role.value === 'boss') business.push(cell('chart', '使用进度', '7/14/30 天激活、岗位使用与流失风险', () => uni.navigateTo({ url: P.successProgram })))
   if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
   if (role.value === 'boss') business.push(cell('file-text', '付款计划模板', '收款节点、比例与触发条件', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
   if (role.value === 'boss') business.push(cell('calendar', '施工计划模板', '施工阶段、工期与验收方式', () => uni.navigateTo({ url: P.constructionPlanTemplates })))
@@ -101,6 +103,7 @@ const groups = computed(() => {
   if (employee) business.push(cell('alert-circle', '客户意见投诉', '受理、回复和关闭客户事项', () => uni.navigateTo({ url: P.feedbackList })))
 
   support.push(cell('bell', '消息通知', '', () => uni.navigateTo({ url: P.msgList })))
+  support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', () => uni.navigateTo({ url: P.helpCenter })))
   support.push(cell('message', '联系客服', '微信在线客服 / 客服邮箱', () => uni.navigateTo({ url: P.about })))
   support.push(cell('info', '关于装得清', 'v1.0.0', () => uni.navigateTo({ url: P.about })))
 

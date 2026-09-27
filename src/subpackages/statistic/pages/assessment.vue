@@ -141,7 +141,7 @@ function currentMonth() {
 
 <template>
   <view class="assess-page">
-    <JzPageHeader title="人员绩效考核" subtitle="设计师转化、顾问签约与 PM 履约自动核算" right-icon="refresh" @right="load" />
+    <JzPageHeader title="员工绩效业绩" subtitle="按员工汇总转化、签约、准时交付与验收通过" right-icon="refresh" @right="load" />
     <view class="assess-body">
       <JzStoreFilter v-model="storeId" @change="load" />
 

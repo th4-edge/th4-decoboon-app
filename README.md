@@ -19,6 +19,20 @@ npm run type-check
 
 默认网关前缀为 `/api/`，可通过 `.env` 的 `VITE_API_BASE` 覆盖。Provider 响应约定为 `{ success, data, errorCode }`。
 
+## 小程序自动操作与官网录屏
+
+官网短视频、产品演示和过程录屏统一使用微信开发者工具中的真实小程序，不使用 Web、H5、接口回放或 Mock 冒充。
+
+```bash
+# 无视频演练
+npm run record:site:dry -- --reuse-session
+
+# 自动操作 + 微信开发者工具窗口录屏 + 1080p 竖版干净帧视频
+ZHUANGDEQING_RECORD_DEV_TOKEN="<本地测试员工 devToken>" MP_PROJECTID="<本地测试项目ID>" npm run record:site
+```
+
+完整说明、场景配置和业主同频录屏见 `scripts/recording/README.md`。录制默认只使用专用测试环境，有副作用的动作必须单独授权。
+
 ## 工程结构
 
 ```text

@@ -14,12 +14,18 @@ import type { Property } from '@/domains/property/model'
 import CatalogPicker from '@/components/CatalogPicker.vue'
 import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
-import JzIcon from '@/components/JzIcon.vue'
-import JzIconButton from '@/components/JzIconButton.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzActionSheet from '@/components/JzActionSheet.vue'
 import DesignEditorSheets from '@/subpackages/design/components/DesignEditorSheets/DesignEditorSheets.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
 type TabKey = 'base' | 'space' | 'construction' | 'material' | 'other'
+type SchemeSheetAction = {
+  key: 'save' | 'ai' | 'finish'
+  label: string
+  icon: IconName
+  tone?: 'primary'
+}
 const designId = ref('')
 const customerId = ref('')
 const propertyId = ref('')
@@ -30,6 +36,7 @@ const spaces = ref<DesignSpace[]>([])
 const items = ref<DesignItem[]>([])
 const activeTab = ref<TabKey>('base')
 const savingBase = ref(false)
+const actionSheetOpen = ref(false)
 const pageLoading = ref(true)
 const pageError = ref('')
 const name = ref('')
@@ -204,6 +211,17 @@ const tabs: { key: TabKey; label: string; count: number }[] = [
   { key: 'material', label: '主材分项', count: 0 },
   { key: 'other', label: '其他项目', count: 0 }
 ]
+const moreActions = computed<SchemeSheetAction[]>(() => {
+  const actions: SchemeSheetAction[] = []
+  if (activeTab.value === 'base') {
+    actions.push(
+      { key: 'save', label: '保存方案资料', icon: 'check', tone: 'primary' },
+      { key: 'ai', label: 'AI 效果图', icon: 'star', tone: 'primary' }
+    )
+  }
+  actions.push({ key: 'finish', label: '完成方案', icon: 'check-circle', tone: 'primary' })
+  return actions
+})
 const itemSpaceLabel = computed(() => spaces.value.find((item) => item.id === itemSpaceId.value)?.name || '综合项目')
 const totalItemAmount = computed(() => items.value.reduce((sum, item) => sum + item.amount, 0))
 const totalItemAmountByTab = computed(() => tabItems.value.reduce((sum, item) => sum + item.amount, 0))
@@ -326,9 +344,10 @@ function fillScheme(value: DesignScheme) {
   }
   coverUrl.value = value.coverUrl || ''
 }
-async function saveBase() {
-  if (!name.value.trim()) { toast('请填写方案名称'); return }
-  if (!customerId.value) { toast('缺少客户信息'); return }
+async function saveBase(notify = true): Promise<boolean> {
+  if (savingBase.value) return false
+  if (!name.value.trim()) { toast('请填写方案名称'); return false }
+  if (!customerId.value) { toast('缺少客户信息'); return false }
   savingBase.value = true
   loading('保存设计方案…')
   try {
@@ -345,9 +364,11 @@ async function saveBase() {
     })
     designId.value = saved.id
     scheme.value = saved
-    toast('方案资料已保存', 'success')
+    if (notify) toast('方案资料已保存', 'success')
+    return true
   } catch (error) {
     toastError(error, '方案保存失败')
+    return false
   } finally {
     hideLoading()
     savingBase.value = false
@@ -569,7 +590,8 @@ async function reloadDetail() {
   ensureActiveSpace()
 }
 async function finishScheme() {
-  if (!designId.value) { await saveBase(); if (!designId.value) return }
+  const saved = await saveBase(false)
+  if (!saved || !designId.value) return
   const ok = await confirm('完成设计方案', '系统将校验区域和分项，完成后进入待谈单状态。', '完成方案')
   if (!ok) return
   loading('校验方案…')
@@ -580,14 +602,23 @@ async function finishScheme() {
     toastError(error, '方案未通过校验')
   } finally { hideLoading() }
 }
-function toQuote() {
-  if (!designId.value || !customerId.value) return
+async function toQuote() {
+  if (!customerId.value) { toast('缺少客户信息'); return }
+  const saved = await saveBase(false)
+  if (!saved || !designId.value) return
   uni.navigateTo({ url: `${P.quoteEdit}?customerId=${customerId.value}&designId=${designId.value}&mode=custom` })
 }
 async function openGeneration() {
-  if (!designId.value) return
-  if (activeTab.value === 'base') await saveBase()
+  const saved = await saveBase(false)
+  if (!saved || !designId.value) return
   uni.navigateTo({ url: `${P.designGeneration}?designId=${designId.value}` })
+}
+function handleMoreAction(index: number) {
+  const action = moreActions.value[index]
+  if (!action) return
+  if (action.key === 'save') { void saveBase(); return }
+  if (action.key === 'ai') { void openGeneration(); return }
+  void finishScheme()
 }
 </script>
 <template>
@@ -733,13 +764,22 @@ async function openGeneration() {
       <view v-else class="jz-card"><JzEmpty text="尚未录入区域尺寸" sub="请先在“区域尺寸”中录入空间，再添加分项" /></view>
     </view>
     <view class="jz-actionbar">
-      <view class="jz-actionbar__inner">
-        <button v-if="activeTab === 'base'" class="jz-btn jz-btn--plain jz-btn--sm" :loading="savingBase" @tap="saveBase"><JzIcon name="check" :size="26" :color="TOKEN_COLOR.primary" /><text>保存方案资料</text></button>
-        <button v-if="activeTab === 'base'" class="jz-btn jz-btn--plain jz-btn--sm" @tap="openGeneration"><JzIcon name="star" :size="26" :color="TOKEN_COLOR.primary" /><text>AI 效果图</text></button>
-        <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="finishScheme"><JzIcon name="check-circle" :size="26" :color="TOKEN_COLOR.primary" /><text>完成方案</text></button>
-        <button class="jz-btn jz-btn--primary jz-grow" @tap="toQuote"><JzIcon name="calculator" :size="28" :color="TOKEN_COLOR.white" /><text>生成设计报价</text></button>
+      <view class="jz-actionbar__inner ds__actionbar">
+        <button class="jz-btn jz-btn--ghost ds__more-btn" @tap="actionSheetOpen = true">
+          <JzIcon name="more" :size="26" :color="TOKEN_COLOR.primary" /><text>更多</text>
+        </button>
+        <button class="jz-btn jz-btn--primary jz-grow" @tap="toQuote">
+          <JzIcon name="calculator" :size="28" :color="TOKEN_COLOR.white" /><text>生成设计报价</text>
+        </button>
       </view>
     </view>
+    <JzActionSheet
+      :visible="actionSheetOpen"
+      title="方案操作"
+      :actions="moreActions"
+      @select="handleMoreAction"
+      @update:visible="actionSheetOpen = $event"
+    />
     <DesignEditorSheets
       v-model:space-open="spaceOpen"
       v-model:space-type="spaceType"

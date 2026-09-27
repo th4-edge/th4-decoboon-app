@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
-import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
 import type { EmployeeRole, InviteCode, Store, Team } from '@/domains/identity/model'
 import { toast, toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -35,10 +36,10 @@ onLoad(async () => {
   try { teams.value = await identityApi.teams() } catch { teams.value = [] }
 })
 
-onShareAppMessage(() => generated.value ? {
-  title: `${inviteName.value}，邀请你加入装得清企业`,
-  path: `/pages/invite/accept?inviteId=${generated.value.id}`
-} : { title: '装得清员工邀请', path: P.login })
+// 邀请令牌是一次性的，朋友圈分享无法携带页面参数，因此显式关闭朋友圈入口。
+useShare(() => (generated.value
+  ? { title: `${inviteName.value}，邀请你加入装得清企业`, path: `${P.inviteAccept}?inviteId=${generated.value.id}` }
+  : { title: '装得清 · 员工邀请', path: P.login }), null)
 
 async function create() {
   if (!inviteName.value.trim()) { toast('请填写被邀请人姓名'); return }

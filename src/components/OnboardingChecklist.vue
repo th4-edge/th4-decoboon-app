@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { P, isTabPath } from '@/config'
+import { P, goTab, isTabPath } from '@/config'
 import { onboardingApi } from '@/domains/onboarding/api'
 import type { GuideStep, OnboardingGuide } from '@/domains/onboarding/model'
 import { session } from '@/domains/identity/session'
@@ -73,8 +73,12 @@ function goAction(action?: string | null) {
     uni.showToast({ title: '入口暂不可用', icon: 'none' })
     return
   }
-  if (isTabPath(path.split('?')[0])) uni.redirectTo({ url: path })
+  if (isTabPath(path.split('?')[0])) goTab(path)
   else uni.navigateTo({ url: path })
+}
+
+function goHelp() {
+  uni.navigateTo({ url: P.helpCenter })
 }
 
 function goStep(step: GuideStep) {
@@ -121,7 +125,7 @@ defineExpose({ reload: load })
       </view>
       <JzIcon name="refresh" :size="34" :color="TOKEN_COLOR.primary" />
     </view>
-    <text class="onboarding__error-action">点击重新读取真实业务状态</text>
+    <view class="onboarding__error-foot"><text class="onboarding__error-action">点击重新读取真实业务状态</text><text class="onboarding__help-link" @tap.stop="goHelp">查看常见问题</text></view>
   </view>
 
   <view v-else-if="visible && guide" class="onboarding jz-card">
@@ -166,6 +170,13 @@ defineExpose({ reload: load })
         </view>
       </view>
     </scroll-view>
+    <view class="onboarding__help" @tap="goHelp">
+      <view class="jz-grow">
+        <text class="onboarding__help-title">不知道这一步怎么做？</text>
+        <text class="onboarding__help-sub">查看当前岗位上手步骤和常见错误处理</text>
+      </view>
+      <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.primary" />
+    </view>
   </view>
 </template>
 
@@ -190,7 +201,12 @@ defineExpose({ reload: load })
 .onboarding__next-title { display: block; margin-top: 4rpx; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .onboarding__next-sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.45; }
 .onboarding__message { margin-top: 20rpx; padding: 18rpx 20rpx; color: $jzb-text-3; font-size: $jzb-font-xs; background: $jzb-text-inverse; border-radius: $jzb-radius-sm; }
-.onboarding__error-action { display: block; margin-top: 20rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
+.onboarding__error-foot { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.onboarding__help-link { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
+.onboarding__help { display: flex; align-items: center; margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
+.onboarding__help-title { display: block; color: $jzb-text-2; font-size: $jzb-font-xs; font-weight: 650; }
+.onboarding__help-sub { display: block; margin-top: 4rpx; color: $jzb-text-4; font-size: 20rpx; }
+.onboarding__error-action { display: block; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .onboarding__scroll { width: 100%; margin-top: 18rpx; white-space: nowrap; }
 .onboarding__steps { display: inline-flex; gap: 14rpx; }
 .onboarding__step { position: relative; width: 220rpx; min-height: 136rpx; padding: 18rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }

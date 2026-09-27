@@ -16,6 +16,7 @@ import { dateTimeText, money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { projectApi } from '@/domains/project/api'
 import { toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import { financeApi } from '@/domains/finance/api'
 import type { FinanceProjectReport } from '@/domains/finance/model'
 import { scheduleApi } from '@/domains/schedule/api'
@@ -52,6 +53,12 @@ type ProjectTab = 'overview' | 'plan' | 'tasks' | 'feed' | 'members' | 'change' 
 const tab = ref<ProjectTab>('overview')
 const loading = ref(true)
 const loadError = ref('')
+
+// 工地详情是业主最常转发给家人、工长的页面：标题用项目名而非功能名。
+useShare(() => ({
+  title: project.value?.name ? `${project.value.name} · 装修进度随时查看` : '装得清 · 装修进度随时查看',
+  path: `${P.projectDetail}?id=${id.value}`
+}))
 
 onLoad((q) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })

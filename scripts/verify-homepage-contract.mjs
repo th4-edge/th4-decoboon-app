@@ -32,6 +32,14 @@ expect(bossActions.length === 6, '企业负责人首页功能域必须固定为�
 // 2026-09-21 用户确认：以代码文案为准（客户经营/方案设计/报价谈单），脚本同步
 expect(bossActions.join('|') === '客户经营|方案设计|报价谈单|合同签约|履约驾驶舱|财务总览',
   '企业负责人首页功能域范围不符合产品设计')
+expect(home.includes('经营专业工作台') && home.includes('professionalWorkbenches'),
+  '企业负责人首页缺少二级专业工作台区')
+for (const label of ['量房经营', '选材工作台', '材料计划', '增减项经营']) {
+  expect(home.includes(`label: '${label}'`), `企业负责人首页缺少${label}入口`)
+}
+for (const path of ['P.customerMeasureWorkbench', 'P.selectionBoard', 'P.materialPlanWorkbench', 'P.projectChangeWorkbench']) {
+  expect(home.includes(`path: ${path}`), `企业负责人首页专业工作台未接入 ${path}`)
+}
 expect(catalog.includes('boss: [TAB.home, TAB.customer, TAB.project, TAB.finance, TAB.mine]'),
   '企业负责人 Tab Bar 发生变化')
 
@@ -77,4 +85,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('首页产品契约校验通过：四项指示灯、六项功能域、风险项目、经营动态和“我的”边界均已冻结。')
+console.log('首页产品契约校验通过：四项指示灯、六项一级功能域、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')

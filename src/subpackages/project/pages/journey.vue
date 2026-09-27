@@ -8,6 +8,7 @@ import { journeyApi } from '@/domains/journey/api'
 import type { CustomerJourney, JourneyAction, JourneyFact } from '@/domains/journey/model'
 import { dateTimeText, selectionLineText } from '@/core/format'
 import { toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -19,6 +20,12 @@ const targetSection = ref('')
 const journey = ref<CustomerJourney | null>(null)
 const loading = ref(true)
 const loadError = ref('')
+
+// 项目旅程是业主与家人的共用视图：分享的是"这一户的进度"，不是产品功能。
+useShare(() => ({
+  title: journey.value?.projectName ? `${journey.value.projectName} · 装修全过程` : '装得清 · 装修全过程随时查看',
+  path: `${P.projectJourney}?projectId=${projectId.value}`
+}))
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }

@@ -19,6 +19,8 @@
 .ds__tab--on text { color: rgba(255,255,255,.8); }
 .ds__panel { margin-top: 0; }
 .ds__save-base { margin-top: 26rpx; }
+.ds__actionbar { gap: 16rpx; }
+.ds__more-btn { min-width: 160rpx; padding: 0 24rpx; }
 .ds__section { padding: 24rpx $jzb-page-pad 40rpx; }
 .ds__section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }
 .ds__section-title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.35; }

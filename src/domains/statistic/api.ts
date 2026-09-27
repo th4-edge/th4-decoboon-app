@@ -1,6 +1,6 @@
 import { post } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, StoreManagerReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus } from './model'
+import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeQuote } from '../trade/api'
@@ -285,7 +285,62 @@ function normalizeEmployeePerformance(raw: RawRecord): EmployeePerformance {
   }
 }
 
+const SUCCESS_ACTIVATION_MAP: Record<string, SuccessActivationStatus> = {
+  NotActivated: 'not_activated', InProgress: 'in_progress', Activated: 'activated', Risk: 'risk'
+}
+const SUCCESS_MILESTONE_MAP: Record<string, SuccessMilestoneStatus> = {
+  Done: 'done', Todo: 'todo', Overdue: 'overdue'
+}
+const CHURN_RISK_MAP: Record<string, ChurnRiskLevel> = {
+  Low: 'low', Medium: 'medium', High: 'high'
+}
+
+function normalizeSuccessMilestone(raw: RawRecord): SuccessMilestone {
+  return {
+    key: String(raw.key ?? ''),
+    label: String(raw.label ?? ''),
+    description: String(raw.description ?? ''),
+    targetDay: Number(raw.targetDay ?? 0),
+    status: SUCCESS_MILESTONE_MAP[valueOf(raw.status)] || 'todo',
+    count: Number(raw.count ?? 0),
+    actionLabel: raw.actionLabel ? String(raw.actionLabel) : undefined,
+    actionPath: raw.actionPath ? String(raw.actionPath) : undefined
+  }
+}
+
+function normalizeRoleActivation(raw: RawRecord): RoleActivation {
+  return {
+    role: String(raw.role ?? ''),
+    label: String(raw.label ?? ''),
+    configuredCount: Number(raw.configuredCount ?? 0),
+    activeCount: Number(raw.activeCount ?? 0),
+    activated: raw.activated === true,
+    evidence: String(raw.evidence ?? '')
+  }
+}
+
+function normalizeSuccessProgram(raw: RawRecord): SuccessProgramReport {
+  return {
+    companyName: String(raw.companyName ?? ''),
+    startDate: String(raw.startDate ?? ''),
+    daysSinceCreated: Number(raw.daysSinceCreated ?? 0),
+    activationStatus: SUCCESS_ACTIVATION_MAP[valueOf(raw.activationStatus)] || 'not_activated',
+    activationScore: Number(raw.activationScore ?? 0),
+    roleActivationRate: Number(raw.roleActivationRate ?? 0),
+    riskLevel: CHURN_RISK_MAP[valueOf(raw.riskLevel)] || 'low',
+    nextAction: raw.nextAction ? String(raw.nextAction) : undefined,
+    nextActionLabel: raw.nextActionLabel ? String(raw.nextActionLabel) : undefined,
+    nextActionPath: raw.nextActionPath ? String(raw.nextActionPath) : undefined,
+    riskReasons: Array.isArray(raw.riskReasons) ? raw.riskReasons.map(String) : [],
+    milestones: Array.isArray(raw.milestones) ? raw.milestones.map((item) => normalizeSuccessMilestone(item as RawRecord)) : [],
+    roleActivations: Array.isArray(raw.roleActivations) ? raw.roleActivations.map((item) => normalizeRoleActivation(item as RawRecord)) : [],
+    refreshedAt: raw.refreshedAt ? String(raw.refreshedAt) : undefined
+  }
+}
+
 export const statisticApi = {
+  successProgram: async (): Promise<SuccessProgramReport> =>
+    normalizeSuccessProgram(await post<RawRecord>('statistic/success/report', {})),
   bossWorkbench: async (month?: string, eventLimit = 6): Promise<BossWorkbench> => {
     const raw = await post<RawRecord>('statistic/boss/workbench', { month, eventLimit })
     return {

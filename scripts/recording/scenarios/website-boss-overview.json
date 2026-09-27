@@ -1,0 +1,53 @@
+{
+  "id": "website-boss-overview",
+  "title": "官网短视频 · 老板经营视角",
+  "loginTokenEnv": "ZHUANGDEQING_RECORD_DEV_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    {
+      "id": "S01",
+      "action": "reLaunch",
+      "url": "/pages/index/index",
+      "waitMs": 2800,
+      "frameDurationMs": 2800,
+      "caption": "老板首页：先看需要处理的经营事实"
+    },
+    {
+      "id": "S02",
+      "action": "reLaunch",
+      "url": "/pages/customer/list",
+      "waitMs": 2200,
+      "frameDurationMs": 2200,
+      "caption": "客户经营：客户、房屋和下一步"
+    },
+    {
+      "id": "S03",
+      "action": "reLaunch",
+      "url": "/pages/project/list",
+      "waitMs": 2200,
+      "frameDurationMs": 2200,
+      "caption": "项目经营：项目阶段、风险和金额"
+    },
+    {
+      "id": "S04",
+      "action": "navigateTo",
+      "url": "/subpackages/project/pages/detail?id=${projectid}",
+      "requiresVars": ["projectid"],
+      "waitMs": 2600,
+      "frameDurationMs": 2600,
+      "optional": true,
+      "caption": "项目详情：现场、任务和业主同频"
+    },
+    {
+      "id": "S05",
+      "action": "reLaunch",
+      "url": "/pages/finance/index",
+      "waitMs": 2400,
+      "frameDurationMs": 2400,
+      "caption": "财务总览：收款、成本和经营口径"
+    }
+  ]
+}

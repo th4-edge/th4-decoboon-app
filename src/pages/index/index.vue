@@ -29,6 +29,7 @@ import { projectMetrics, visibleProjects } from '@/domains/project/scope'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import OnboardingChecklist from '@/components/OnboardingChecklist.vue'
+import SuccessProgramCard from '@/components/SuccessProgramCard.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -42,9 +43,11 @@ import JzMoney from '@/components/JzMoney.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 import { useSystem } from '@/composables/system'
+import { useShare } from '@/composables/share'
 
 const role = computed(() => session.role || 'customer')
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
+const successProgramRef = ref<{ reload: () => Promise<void> } | null>(null)
 const emp = computed(() => session.emp)
 const customer = computed(() => session.customer)
 const roleMeta = computed(() => ROLE_META[role.value])
@@ -60,6 +63,14 @@ const guestFeatures: Array<{ key: string; title: string; subtitle: string; icon:
 ]
 
 function openLogin() { uni.navigateTo({ url: P.login }) }
+
+// 首页是品牌词搜索与内容承接的落地页，分享文案以收到的人为主语，
+// 不复述功能清单；未登录访客同样可打开。
+useShare(() => ({
+  title: '装得清 · 把报价、合同、施工、验收和收款串成一条链',
+  path: P.home
+}), '装得清 · 中小装修公司的经营管理工具')
+
 
 const projects = ref<Project[]>([])
 const acceptances = ref<Acceptance[]>([])
@@ -86,10 +97,11 @@ onShow(() => {
   if (session.sessionType === 'user' && !session.emp) { uni.reLaunch({ url: P.companyJoin }); return }
   refresh()
   void onboardingRef.value?.reload()
+  void successProgramRef.value?.reload()
 })
 onPullDownRefresh(() => {
   if (!loggedIn.value) { uni.stopPullDownRefresh(); return }
-  return Promise.all([refresh(), onboardingRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
+  return Promise.all([refresh(), onboardingRef.value?.reload(), successProgramRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
 })
 
 const myProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
@@ -506,6 +518,14 @@ function openBusinessEvent(event: BusinessEvent) {
   if (event.category === 'finance') go(P.financeHome)
 }
 
+const professionalWorkbenches: Array<{ key: string; label: string; subtitle: string; icon: IconName; path: string }> = [
+  { key: 'measure', label: '量房经营', subtitle: '预约、派单与逾期', icon: 'ruler', path: P.customerMeasureWorkbench },
+  { key: 'selection', label: '选材工作台', subtitle: '在建项目选材进度', icon: 'wrench', path: P.selectionBoard },
+  { key: 'material', label: '材料计划', subtitle: '下单、在途与到场', icon: 'package', path: P.materialPlanWorkbench },
+  { key: 'change', label: '增减项经营', subtitle: '审批、确认与金额', icon: 'file-text', path: P.projectChangeWorkbench },
+  { key: 'performance', label: '员工绩效业绩', subtitle: '转化、签约与交付验收', icon: 'chart', path: P.performanceAssessment }
+]
+
 const quicks = computed(() =>
   ROLE_ACTIONS[role.value]
     .filter((item) => !item.capability || can(role.value, item.capability))
@@ -561,6 +581,7 @@ const projectSectionTitle = computed(() => {
     <view class="home__body">
       <!-- 角色横幅：明确当前身份与视图边界 -->
       <OnboardingChecklist ref="onboardingRef" />
+      <SuccessProgramCard ref="successProgramRef" />
       <view v-if="role === 'boss' && carryoverBatch" class="home__carryover jz-card" @tap="go(P.carryoverHome)">
         <view class="home__carryover-icon"><JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" /></view>
         <view class="jz-grow">
@@ -711,6 +732,24 @@ const projectSectionTitle = computed(() => {
         <view v-for="q in quicks" :key="q.label" class="home__quick" @tap="q.action()">
           <view class="home__quick-icon"><JzIcon :name="iconName(q.icon)" :size="38" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
           <text class="home__quick-label">{{ q.label }}</text>
+        </view>
+      </view>
+
+      <!-- 企业负责人：六项高频功能域之外的经营专业工作台 -->
+      <view v-if="role === 'boss'" class="home__professional">
+        <view class="home__professional-head">
+          <text class="home__professional-title">经营专业工作台</text>
+          <text class="home__professional-sub">量房、选材、材料、增减项与员工绩效集中处理</text>
+        </view>
+        <view class="home__professional-grid jz-card">
+          <view v-for="item in professionalWorkbenches" :key="item.key" class="home__professional-item" @tap="go(item.path)">
+            <view class="home__professional-icon"><JzIcon :name="item.icon" :size="32" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
+            <view class="home__professional-copy">
+              <text class="home__professional-label">{{ item.label }}</text>
+              <text class="home__professional-desc">{{ item.subtitle }}</text>
+            </view>
+            <JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" />
+          </view>
         </view>
       </view>
 

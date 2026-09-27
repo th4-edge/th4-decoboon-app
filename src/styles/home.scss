@@ -93,6 +93,19 @@
 .home__bell { width: 64rpx; height: 64rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.14); }
 .home__more { display: flex; align-items: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 
+/* 企业负责人：六项高频功能域之外的经营专业工作台 */
+.home__professional { margin: 0 $jzb-page-pad 18rpx; }
+.home__professional-head { margin-bottom: $jzb-space-3; padding: 0 $jzb-space-1; }
+.home__professional-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.home__professional-sub { display: block; margin-top: $jzb-space-1; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.home__professional-grid { display: flex; flex-wrap: wrap; padding: $jzb-space-1; }
+.home__professional-item { width: 50%; box-sizing: border-box; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-space-3; }
+.home__professional-item:active { opacity: .72; }
+.home__professional-icon { width: 64rpx; height: 64rpx; flex: 0 0 64rpx; border-radius: $jzb-radius; background: $jzb-primary-lightest; display: flex; align-items: center; justify-content: center; }
+.home__professional-copy { flex: 1; min-width: 0; }
+.home__professional-label { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.home__professional-desc { display: block; margin-top: $jzb-space-1; overflow: hidden; color: $jzb-text-3; font-size: $jzb-font-xs; text-overflow: ellipsis; white-space: nowrap; }
+
 /* 材料计划：企业负责人首页直达材料计划工作台 */
 .home__material { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; }
 .home__material-head { display: flex; align-items: center; justify-content: space-between; }

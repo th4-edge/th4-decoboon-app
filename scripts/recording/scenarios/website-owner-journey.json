@@ -1,0 +1,46 @@
+{
+  "id": "website-owner-journey",
+  "title": "官网短视频 · 工地与业主同频",
+  "loginTokenEnv": "ZHUANGDEQING_OWNER_RECORD_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    {
+      "id": "O01",
+      "action": "reLaunch",
+      "url": "/pages/index/index",
+      "waitMs": 2800,
+      "frameDurationMs": 2800,
+      "caption": "业主首页：先看自己的家到哪一步"
+    },
+    {
+      "id": "O02",
+      "action": "navigateTo",
+      "url": "/subpackages/project/pages/detail?id=${projectid}",
+      "requiresVars": ["projectid"],
+      "waitMs": 2400,
+      "frameDurationMs": 2400,
+      "caption": "项目详情：进度、动态和待确认"
+    },
+    {
+      "id": "O03",
+      "action": "navigateTo",
+      "url": "/subpackages/project/pages/album?id=${projectid}",
+      "requiresVars": ["projectid"],
+      "waitMs": 2200,
+      "frameDurationMs": 2200,
+      "caption": "工地相册：现场证据回到项目"
+    },
+    {
+      "id": "O04",
+      "action": "navigateTo",
+      "url": "/subpackages/project/pages/owner-acceptance?projectId=${projectid}",
+      "requiresVars": ["projectid"],
+      "waitMs": 2600,
+      "frameDurationMs": 2600,
+      "caption": "验收整改：业主本人确认或驳回"
+    }
+  ]
+}

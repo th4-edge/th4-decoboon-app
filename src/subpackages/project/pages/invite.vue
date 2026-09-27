@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
-import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
+import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import type { InviteCode } from '@/domains/identity/model'
@@ -9,6 +9,7 @@ import type { Project } from '@/domains/project/model'
 import { projectApi } from '@/domains/project/api'
 import { identityApi } from '@/domains/identity/api'
 import { toast, toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import JzIcon from '@/components/JzIcon.vue'
 
 const id = ref('')
@@ -63,10 +64,11 @@ function share() {
   toast('请使用右上角微信分享，邀请链接已绑定本工地', 'success')
 }
 
-onShareAppMessage(() => ({
+// 邀请令牌是一次性的，朋友圈分享无法携带页面参数，因此显式关闭朋友圈入口。
+useShare(() => ({
   title: `${project.value?.name || '我的家'} · 装得清进度同频`,
   path: invitePath()
-}))
+}), null)
 </script>
 
 <template>

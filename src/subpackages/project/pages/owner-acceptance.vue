@@ -7,6 +7,7 @@ import { useOwnerJourney } from '@/domains/journey/useOwnerJourney'
 import type { JourneyFact } from '@/domains/journey/model'
 import { diffDays, dueText, factDisplay } from '@/core/format'
 import { toastError } from '@/composables/toast'
+import { useShare } from '@/composables/share'
 import OwnerFactHero from '@/components/owner/OwnerFactHero.vue'
 import OwnerFactList from '@/components/owner/OwnerFactList.vue'
 import PageState from '@/components/PageState/PageState.vue'
@@ -16,6 +17,12 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 const projectId = ref('')
 const loaded = ref(false)
 const { journey, loading, loadingError, load, section } = useOwnerJourney()
+
+// 阶段验收是唯一需要业主主动确认的页面，分享标题直接写清楚要做什么。
+useShare(() => ({
+  title: journey.value?.projectName ? `${journey.value.projectName} 阶段验收，请确认` : '装得清 · 阶段验收请确认',
+  path: `${P.ownerAcceptance}?projectId=${projectId.value}`
+}))
 
 const current = computed(() => section('acceptance'))
 const items = computed(() => current.value?.items || [])

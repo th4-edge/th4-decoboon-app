@@ -16,6 +16,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
+import { requestSubscribe, SUBSCRIBE_SCENARIO } from '@/composables/subscribeMessage'
 
 const stageId = ref('')
 const stage = ref<ProjectStage | null>(null)
@@ -112,6 +113,11 @@ async function confirm(pass: boolean) {
   const issues = rejectIssues()
   if (!pass && !issues.length) { toast('请填写需要整改的问题'); return }
   if (!pass && !rectificationOwner.value) { toast('当前项目未指定项目经理，无法提交整改要求'); return }
+  // 微信要求授权类能力必须在用户点击手势内调用，因此放在提交动作之前而不是提交成功后；
+  // 未配置模板 ID 时 requestSubscribe 直接返回 false，不弹出任何授权框。
+  if (pass) {
+    await requestSubscribe([SUBSCRIBE_SCENARIO.ownerAcceptancePending], { silent: true })
+  }
   loading('提交确认…')
   try {
     const uploadedIssueImages = pass ? [] : await Promise.all(rectificationIssueImages.value.map(async (path) => (

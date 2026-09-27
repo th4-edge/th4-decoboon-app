@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -22,7 +22,11 @@
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
     "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
     "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
-    "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs"
+    "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs",
+    "record:site": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json",
+    "record:site:dry": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json --no-record",
+    "record:owner": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-owner-journey.json",
+    "record:owner:dry": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-owner-journey.json --no-record"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",

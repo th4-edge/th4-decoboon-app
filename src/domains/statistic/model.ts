@@ -426,3 +426,44 @@ export interface BusinessTarget {
   grossProfit: number
   activeProjectCount: number
 }
+
+export type SuccessActivationStatus = 'not_activated' | 'in_progress' | 'activated' | 'risk'
+export type SuccessMilestoneStatus = 'done' | 'todo' | 'overdue'
+export type ChurnRiskLevel = 'low' | 'medium' | 'high'
+
+export interface SuccessMilestone {
+  key: string
+  label: string
+  description: string
+  targetDay: number
+  status: SuccessMilestoneStatus
+  count: number
+  actionLabel?: string
+  actionPath?: string
+}
+
+export interface RoleActivation {
+  role: string
+  label: string
+  configuredCount: number
+  activeCount: number
+  activated: boolean
+  evidence: string
+}
+
+export interface SuccessProgramReport {
+  companyName: string
+  startDate: string
+  daysSinceCreated: number
+  activationStatus: SuccessActivationStatus
+  activationScore: number
+  roleActivationRate: number
+  riskLevel: ChurnRiskLevel
+  nextAction?: string
+  nextActionLabel?: string
+  nextActionPath?: string
+  riskReasons: string[]
+  milestones: SuccessMilestone[]
+  roleActivations: RoleActivation[]
+  refreshedAt?: string
+}
