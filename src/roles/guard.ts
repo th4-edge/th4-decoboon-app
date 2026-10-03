@@ -66,6 +66,12 @@ function pathOf(url: string): string {
   return url.split('?')[0]
 }
 
+/** 判断指定路径是否存在页面级能力规则。 */
+export function hasRouteRule(url: string): boolean {
+  const path = pathOf(url)
+  return ROUTE_RULES.some((item) => item.path === path)
+}
+
 export function canVisit(url: string): boolean {
   const path = pathOf(url)
   if (path.startsWith('/pages/auth/')) return true

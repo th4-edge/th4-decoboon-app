@@ -219,7 +219,7 @@ function goContractChange() {
 function goInviteOwner() { uni.navigateTo({ url: `${P.projectInvite}?id=${id.value}` }) }
 function addTask() {
   const sid = currentStage.value?.id || sortedStages.value[0]?.id || ''
-  uni.navigateTo({ url: `${P.taskEdit}?projectId=${id.value}&stageId=${sid}` })
+  uni.navigateTo({ url: `${P.projectPlanEdit}?projectId=${id.value}&stageId=${sid}` })
 }
 function report() {
   uni.navigateTo({ url: `${P.reportEdit}?projectId=${id.value}&stageId=${currentStage.value?.id || ''}` })

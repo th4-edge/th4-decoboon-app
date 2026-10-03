@@ -9,6 +9,7 @@ import { money, moneyParts } from '@/core/format'
 import type { SiteReport } from '@/domains/site/model'
 import { CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { toastError } from '@/composables/toast'
+import { useTeamContext } from '@/composables/teamContext'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
@@ -35,6 +36,7 @@ const teamReport = ref<TeamLeaderReport | null>(null)
 const pmReport = ref<PmReport | null>(null)
 const loading = ref(false)
 const loadError = ref('')
+const { requireTeam } = useTeamContext()
 const isDesigner = computed(() => session.role === 'designer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
@@ -42,7 +44,7 @@ const isPm = computed(() => session.role === 'pm')
 const isMarketer = computed(() => session.role === 'marketer')
 const hasData = computed(() => !!(pmReport.value || teamReport.value || storeReport.value || designerReport.value || marketerReport.value))
 
-onShow(() => { if (isLoggedIn()) void load() })
+onShow(() => { if (isLoggedIn() && requireTeam()) void load() })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {

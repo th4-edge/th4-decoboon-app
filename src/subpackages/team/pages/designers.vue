@@ -15,6 +15,7 @@ import { statisticApi } from '@/domains/statistic/api'
 import { workbenchApi } from '@/domains/workbench/api'
 import { money } from '@/core/format'
 import { hideLoading, loading, toastError } from '@/composables/toast'
+import { useTeamContext } from '@/composables/teamContext'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -64,11 +65,13 @@ let designCustomerTops: Array<{ key: string; top: number }> = []
 const assignTarget = ref<Customer | null>(null)
 const booting = ref(false)
 const loadError = ref('')
+const { requireTeam } = useTeamContext()
 
 onLoad(() => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
+  if (!requireTeam()) return
 })
-onShow(() => refresh())
+onShow(() => { if (requireTeam()) refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 const pendingAssignments = computed(() => customers.value

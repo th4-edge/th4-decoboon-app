@@ -61,6 +61,19 @@ onLoad((q) => {
   id.value = q?.id || ''
   projectId.value = q?.projectId || ''
   stageId.value = q?.stageId || ''
+  // 新建任务必须从系统工艺任务库选择 CatalogItem，后端 Save 也会强制校验。
+  // 历史入口只传 projectId/stageId，若继续停留在本页将因缺少 catalogId 保存失败（XA-20261004-001）。
+  if (!id.value) {
+    if (!projectId.value) {
+      toast('缺少项目上下文，无法新建任务')
+      setTimeout(() => uni.reLaunch({ url: P.home }), 500)
+      return
+    }
+    const query = [`projectId=${projectId.value}`]
+    if (stageId.value) query.push(`stageId=${stageId.value}`)
+    uni.redirectTo({ url: `${P.projectPlanEdit}?${query.join('&')}` })
+    return
+  }
   // 加载失败时给出可读提示，避免未捕获异常直接抛到用户界面
   void load().catch((error) => toastError(error, '任务信息加载失败'))
 })

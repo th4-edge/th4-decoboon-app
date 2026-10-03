@@ -25,10 +25,12 @@ const stageId = ref('')
 const zoneId = ref('')
 const selected = ref<{ ct: CraftTask; zone: Zone; qty: number }[]>([])
 const savedCount = ref(0)
+const requestedStageId = ref('')
 
 onLoad((q) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
-  projectId.value = q?.id || ''
+  projectId.value = q?.id || q?.projectId || ''
+  requestedStageId.value = q?.stageId || ''
   load()
 })
 async function load() {
@@ -41,7 +43,8 @@ async function load() {
   stages.value = [...st].sort((a, b) => a.sort - b.sort)
   zones.value = zn
   allCraft.value = ct
-  const first = stages.value.find((s) => s.status === 'todo' || s.status === 'doing') || stages.value[0]
+  const requested = stages.value.find((s) => s.id === requestedStageId.value)
+  const first = requested || stages.value.find((s) => s.status === 'todo' || s.status === 'doing') || stages.value[0]
   stageId.value = first?.id || ''
   applyZone()
 }

@@ -2,6 +2,8 @@
 import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { initSession, loginAsCustomer, loginAsEmployee, loginAsUser, session } from '@/domains/identity/session'
 import { identityApi } from '@/domains/identity/api'
+import { P } from '@/config'
+import { canVisit, hasRouteRule } from '@/roles/guard'
 
 onLaunch(() => {
   initSession()
@@ -9,8 +11,27 @@ onLaunch(() => {
 })
 
 onShow(() => {
-  refreshIdentity()
+  refreshIdentity().finally(scheduleRouteGuard)
 })
+
+/**
+ * uni.addInterceptor 覆盖站内跳转，但无法拦截小程序冷启动直达页。
+ * 页面栈形成后补一次能力校验，避免无权限深链打开错误页（XA-20261004-002）。
+ */
+function scheduleRouteGuard() {
+  setTimeout(enforceCurrentPageAccess, 0)
+  setTimeout(enforceCurrentPageAccess, 100)
+}
+
+function enforceCurrentPageAccess() {
+  const pages = getCurrentPages()
+  const current = pages[pages.length - 1]
+  const route = current?.route
+  if (!route) return
+  const url = `/${route}`
+  if (!hasRouteRule(url)) return
+  if (!canVisit(url)) uni.reLaunch({ url: P.home })
+}
 
 async function refreshIdentity() {
   if (!session.token || !session.role) return

@@ -9,6 +9,7 @@ import { ROLE_META } from '@/roles/catalog'
 import { can } from '@/roles/permission'
 import { identityApi } from '@/domains/identity/api'
 import { toast } from '@/composables/toast'
+import { useTeamContext } from '@/composables/teamContext'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -23,6 +24,7 @@ const { items: list, loading, loadingMore, loadError, loadMoreError, hasMore, re
   20
 )
 const filter = ref<'all' | 'boss' | 'storeManager' | 'teamLeader' | 'designer' | 'pm' | 'marketer'>('all')
+const { requireTeam } = useTeamContext()
 const FILTERS = [
   { key: 'all', label: '全部' }, { key: 'boss', label: '负责人' }, { key: 'storeManager', label: '店长' },
   { key: 'teamLeader', label: '团队长' },
@@ -31,12 +33,13 @@ const FILTERS = [
 
 onLoad(() => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  if (!requireTeam()) return
   if (!can(session.role, 'view:team')) {
     toast('当前账号无权查看企业团队')
     setTimeout(() => uni.navigateBack(), 500)
   }
 })
-onShow(() => { if (can(session.role, 'view:team')) refresh() })
+onShow(() => { if (requireTeam() && can(session.role, 'view:team')) refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 const shown = computed(() => filter.value === 'all' ? list.value : list.value.filter((e) => e.role === filter.value))

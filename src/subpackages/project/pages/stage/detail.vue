@@ -96,7 +96,7 @@ function acceptPage() {
   uni.navigateTo({ url: `${P.acceptEdit}?stageId=${id.value}` })
 }
 function addTask() {
-  uni.navigateTo({ url: `${P.taskEdit}?projectId=${stage.value?.projectId}&stageId=${id.value}` })
+  uni.navigateTo({ url: `${P.projectPlanEdit}?projectId=${stage.value?.projectId}&stageId=${id.value}` })
 }
 function openTask(tid: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${tid}` }) }
 function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDetail}?id=${project.value.id}` }) }

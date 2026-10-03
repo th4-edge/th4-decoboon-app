@@ -11,6 +11,55 @@
 
 ***
 
+## FIX-027・全角色审计缺陷：PM 手工任务、深链权限与 TeamLeader 空态
+
+* 日期：2026-10-04
+* 报告角色：PM / 业务员 / 团队负责人 / 开发自测
+* 影响模块：施工任务 / 页面权限 / 团队工作台
+* 严重度：P1 主流程走不通，P2 权限与空态体验
+
+### 现象
+
+1. PM 在项目/阶段详情点“新建任务”，填写后点保存无反应，任务不落库；后端报“工艺任务不能为空”。
+2. Marketer 直接冷启动/深链打开资金台账页面时，路由层未阻断，页面先打开再由接口返回 403。
+3. TeamLeader 未绑定团队时，首页能提示“尚未绑定团队”，但设计调度、团队成员和团队业绩页显示“加载失败”。
+
+### 根因
+
+1. `task/edit.vue` 没有 `catalogId` 选择入口，而后端 `project/task/save` 对新建任务强制要求 CatalogItem。
+2. `uni.addInterceptor` 只能覆盖站内 `navigateTo/redirectTo/reLaunch/switchTab`，无法覆盖小程序冷启动直达页。
+3. 三个 TeamLeader 页面只判断 `view:team` 等能力，没有校验 `session.emp.team` 是否存在；无团队时直接请求团队报表，错误被渲染成加载失败。
+
+### 修复方案
+
+1. 新建任务统一进入既有工艺任务库排期页；`task/edit` 只编辑已有任务，旧入口无 `id` 时自动重定向到工艺任务库。
+2. App `onShow` 在页面栈形成后补一次 `hasRouteRule + canVisit` 检查，无权限直达页返回首页。
+3. 新增 `useTeamContext`，TeamLeader 无团队访问依赖团队的数据页时给出明确提示并返回首页。
+
+### 代码改动
+
+* `src/subpackages/project/pages/detail.vue`、`stage/detail.vue`：新建任务跳转 `projectPlanEdit`；
+* `src/subpackages/project/pages/task/edit.vue`：新建模式重定向工艺任务库；
+* `src/subpackages/project/pages/plan-edit.vue`：兼容 `projectId + stageId` 深链参数；
+* `src/roles/guard.ts`、`src/App.vue`：补冷启动/深链权限检查；
+* `src/composables/teamContext.ts` 与三个 TeamLeader 页面：统一无团队处理；
+* `scripts/verify-navigation-contract.mjs`：新增静态导航与权限契约守卫。
+
+### 业务观察者审查
+
+* 行业对标：施工任务必须来自企业工艺库，不能做任意文本任务；本修复符合家装报价/施工项标准化。
+* 闭环检查：合同生成的目录任务和 PM 补充排期统一走 `stage × zone × catalogItem`，不会破坏设计与施工交接。
+* 权限与数据隔离：深链由页面层先行阻断，接口仍保留最终校验；没有放宽权限。
+* 降级与空态：无团队时返回首页并保留明确提示；不再把权限/团队前置问题伪装成加载失败。
+* 结论：通过。
+
+### 验证
+
+* `npm run verify:mp-weixin`：通过（含新增 `check:navigation`）。
+* 真实验证：PM 原新建任务入口自动进入工艺任务库；选择“拆除--保温墙铲除”后成功生成带 `catalog_item_id` 的任务。
+* 真实验证：Marketer 冷启动打开资金台账，App `onShow` 后返回首页。
+* 真实验证：TeamLeader 临时解除团队绑定后访问设计调度，返回首页。
+
 ## FIX-026・客户批量手机号录入、负责人变更与企业负责人删除
 
 * 日期：2026-09-26
