@@ -112,6 +112,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   designer: [
     { key: 'requirements', label: '客户诉求', icon: 'message', path: P.designRequirements, capability: 'edit:design' },
     { key: 'customers', label: '客户', icon: 'user', path: P.customerList, capability: 'view:customers' },
+    { key: 'customer-create', label: '登记客户', icon: 'edit', path: P.customerEdit, capability: 'act:followCustomer' },
     { key: 'quotes', label: '方案报价', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
     { key: 'project-create', label: '合同签约', icon: 'shield-check', path: P.projectCreate, capability: 'edit:project' },
     { key: 'projects', label: '施工项目', icon: 'briefcase', path: P.projectList },

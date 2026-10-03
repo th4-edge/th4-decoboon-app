@@ -23,7 +23,7 @@ export const STAGE_STATUS_META: Record<StageStatus, { label: string; color: stri
  * "当前阶段"文案。
  *
  * 历史坑：各页面原先写 `project.currentStageName || '待开工'` —— `currentStageName` 是需要回填的
- * 派生列，取不到时就硬编码成"待开工"，与项目状态"待验收"同时出现，违反 DEC-009 决策二
+ * 派生列必须按实际项目状态展示，避免与项目状态冲突。
  * "项目当前阶段名称与项目级状态不得同时表达相互矛盾的结论"。缺失时一律回退到项目状态文案。
  */
 export function projectStageText(project?: {

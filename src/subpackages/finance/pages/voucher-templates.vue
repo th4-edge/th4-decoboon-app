@@ -73,7 +73,7 @@ function openBlank() {
         <view class="vt-guide__icon"><JzIcon name="info" :size="34" :color="TOKEN_COLOR.primary" /></view>
         <view class="jz-grow">
           <text class="vt-guide__title">先套用，再微调</text>
-          <text class="vt-guide__sub">平台已内置装企常用凭证；点开任意模板可预览字段与版式，保存后仅对本站企业生效。</text>
+          <text class="vt-guide__sub">平台已内置装企常用凭证；点开任意模板可预览内容和版式，保存后仅对本站企业生效。</text>
         </view>
       </view>
 

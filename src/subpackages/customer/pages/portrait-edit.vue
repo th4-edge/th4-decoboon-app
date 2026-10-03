@@ -127,7 +127,7 @@ async function save() {
 
 <template>
   <view class="pe">
-    <JzPageHeader title="客户画像" subtitle="十项营销画像字段，全部可空，未填写不影响主链推进" />
+    <JzPageHeader title="客户画像" subtitle="十项客户偏好可按需填写；未填写不影响后续业务办理" />
 
     <view class="pe__customer jz-card">
       <JzIcon name="user" :size="30" :color="TOKEN_COLOR.primary" />

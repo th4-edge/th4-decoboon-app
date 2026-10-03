@@ -104,6 +104,7 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
     'edit:project', 'edit:plan', 'act:report', 'act:followCustomer', 'act:convertCustomer',
+    'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
     'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance'
   ],
   pm: [

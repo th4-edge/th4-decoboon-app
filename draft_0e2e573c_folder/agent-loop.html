@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="装得清抖音智能体闭环架构：内容、搜索承接、付费、转化、数据五个智能体协同工作">
+<title>智能体闭环架构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #FAFAF8;
+    padding: 24px 16px;
+    color: #2E2E2A;
+  }
+  .loop-container {
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loop-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1D4E39;
+    margin-bottom: 4px;
+  }
+  .loop-subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #7A7A72;
+    margin-bottom: 12px;
+  }
+  .agents-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .agent-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    border-top: 3px solid #2F7D5A;
+    box-shadow: 0 2px 8px rgba(26,26,23,0.04);
+  }
+  .agent-card.accent { border-top-color: #D98B52; }
+  .agent-num {
+    display: inline-block;
+    width: 22px; height: 22px;
+    line-height: 22px;
+    border-radius: 50%;
+    background: #2F7D5A;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .agent-card.accent .agent-num { background: #D98B52; }
+  .agent-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1A1A17;
+    margin-bottom: 6px;
+  }
+  .agent-task {
+    font-size: 11px;
+    color: #66665F;
+    line-height: 1.5;
+  }
+  .arrow-down {
+    text-align: center;
+    color: #7FBB9B;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .feedback-bar {
+    background: #EEF6F1;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #1D4E39;
+    border: 1px dashed #7FBB9B;
+  }
+  .feedback-bar b { color: #2F7D5A; }
+  .flow-label {
+    text-align: center;
+    font-size: 11px;
+    color: #7A7A72;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="loop-container">
+  <div class="loop-title">装得清抖音获客 · 五智能体闭环</div>
+  <div class="loop-subtitle">精准内容打标签 → 搜索流量承接 → 付费放大转化 → 线索变客户 → 数据反哺</div>
+
+  <div class="agents-row">
+    <div class="agent-card">
+      <div class="agent-num">1</div>
+      <div class="agent-name">内容智能体</div>
+      <div class="agent-task">问题-解决式选题<br/>三类模板周更3条<br/>打垂直标签</div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-num">2</div>
+      <div class="agent-name">搜索承接智能体</div>
+      <div class="agent-task">长尾词SEO埋点<br/>小程序挂载<br/>评论区置顶引导</div>
+    </div>
+    <div class="agent-card accent">
+      <div class="agent-num">3</div>
+      <div class="agent-name">付费投放智能体</div>
+      <div class="agent-task">Lookalike冷启动<br/>Spark Ads放大<br/>重定向追投</div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-num">4</div>
+      <div class="agent-name">转化闭环智能体</div>
+      <div class="agent-task">企微即时跟进<br/>1v1演示<br/>客户群激活</div>
+    </div>
+    <div class="agent-card">
+      <div class="agent-num">5</div>
+      <div class="agent-name">数据复盘智能体</div>
+      <div class="agent-task">完播/CPL/转化率<br/>淘汰低效创意<br/>反哺选题与投放</div>
+    </div>
+  </div>
+
+  <div class="arrow-down">↓</div>
+
+  <div class="feedback-bar">
+    <span>数据复盘智能体 → 输出高完播选题 & 高转化案例 → 反哺 <b>内容智能体</b> 与 <b>付费投放智能体</b>，形成周迭代闭环</span>
+  </div>
+  <div class="flow-label">5-6个月形成：内容获客 → 付费放大 → 客户成功 → 客户案例内容素材 · 飞轮</div>
+</div>
+</body>
+</html>

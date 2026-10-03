@@ -28,14 +28,14 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 
       <view class="jz-card legal__card">
         <text class="legal__title">三、账号、微信身份与企业组织</text>
-        <text class="legal__paragraph">您可以通过微信授权登录。首次使用或由企业邀请加入时，可能需要授权手机号，并由企业管理员为您设置门店、团队、岗位和数据范围。您应保证提供的身份信息和联系方式真实、准确、有效，并及时更新。</text>
+        <text class="legal__paragraph">您可以通过微信授权登录。首次使用或由企业邀请加入时，可能需要授权手机号，并由企业管理员为您设置门店、团队、岗位和可见范围。您应保证提供的身份信息和联系方式真实、准确、有效，并及时更新。</text>
         <text class="legal__paragraph">企业管理员可根据组织管理需要邀请、停用、调整或移交成员账号。您应妥善保管微信账号、手机号和登录凭证，不得出租、出借、转让账号。因您主动泄露凭证或未妥善保管设备造成的损失，由您依法承担相应责任。</text>
       </view>
 
       <view class="jz-card legal__card">
-        <text class="legal__title">四、数据范围与权限</text>
+        <text class="legal__title">四、可见范围与权限</text>
         <text class="legal__paragraph">系统中的客户、报价、合同、项目、材料、财务和统计信息实行企业、门店、团队、本人及项目参与关系等分级授权。您仅可在所属企业授予的范围内查询和操作数据。任何绕过权限、伪造参数、越权访问、批量导出或传播非授权数据的行为均被禁止。</text>
-        <text class="legal__paragraph">前端菜单和按钮仅用于交互提示，不构成权限依据。我们有权根据服务端安全策略拦截异常访问并记录审计日志。</text>
+        <text class="legal__paragraph">页面菜单和按钮仅用于操作提示，不代表实际权限。我们有权拦截异常访问并记录安全日志，以保护企业和用户数据安全。</text>
       </view>
 
       <view class="jz-card legal__card">
@@ -57,7 +57,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 
       <view class="jz-card legal__card">
         <text class="legal__title">八、知识产权</text>
-        <text class="legal__paragraph">装得清软件、界面、商标、文档、技术方案及相关知识产权归我们或合法权利人所有。未经书面许可，任何人不得复制、修改、反编译、出租、出售、传播或用于竞争性产品。您输入的业务数据不因使用服务而转移其原有权利。</text>
+        <text class="legal__paragraph">装得清软件、界面、商标、文档、设计方案及相关知识产权归我们或合法权利人所有。未经书面许可，任何人不得复制、修改、反向工程、出租、出售、传播或用于竞争性产品。您输入的业务数据不因使用服务而转移其原有权利。</text>
       </view>
 
       <view class="jz-card legal__card">

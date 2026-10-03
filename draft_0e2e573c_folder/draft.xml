@@ -1,0 +1,204 @@
+<title>装得清抖音智能体运营体系 — 合肥装企精准获客闭环作战手册</title>
+
+<callout emoji="🎯" background-color="light-green" border-color="green">
+<p><b>核心策略：</b>用"精准内容打标签 → 搜索流量承接 → 付费放大转化"，聚焦合肥装企老板/管理者痛点，避开泛流量，实现从线索到付费客户的闭环。B端转化周期3-6个月，前3个月跑通模型，5-6个月形成飞轮。</p>
+</callout>
+
+<h1 seq="auto">战略总览：为什么是这套打法</h1>
+
+<h2 seq="auto">业务问题与机会</h2>
+<p>装企老板在抖音上的行为不是"刷到就买"，而是带着明确痛点主动搜索——人工对账出错、工地扯皮、工期失控、材料对不上账。传统泛流量打法（追热点、拍装修效果图）吸引来的是业主和同行，不是决策者。因此本方案不做品牌曝光，只做<b>垂直痛点内容 + 搜索占位 + 精准付费放大</b>，让装企老板在搜"装修管理"时就看到装得清。</p>
+
+<h2 seq="auto">五智能体闭环架构</h2>
+<p>整个抖音获客体系拆为五个协同工作的智能体角色，周度迭代：</p>
+<html5-block path="@./draft_0e2e573c_folder/agent-loop.html"/>
+
+<h2 seq="auto">目标人群与核心痛点</h2>
+<table>
+<colgroup><col width="180"/><col width="320"/><col width="320"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>人群</p></th><th background-color="light-gray"><p>核心痛点</p></th><th background-color="light-gray"><p>内容钩子方向</p></th></tr></thead>
+<tbody>
+<tr><td><p><b>装企老板/创始人</b></p><p>5-20人团队</p></td><td><p>对账每月错3次以上；工地扯皮客户投诉多；工期延误看不清原因；材料成本对不上</p></td><td><p>"合肥装企老板，人工对账每月错3次？""工地扯皮客户投诉？"</p></td></tr>
+<tr><td><p><p><b>项目经理/监理</b></p><p>管3-5个工地</p></td><td><p>现场拍照汇报乱；节点验收拖；工人进度靠催</p></td><td><p>"跑3个工地要一天？手机3步远程看完"</p></td></tr>
+<tr><td><p><b>财务/内勤</b></p><p>1-3人</p></td><td><p>报价单Excel改8版；应收应付手工核；老板要数据翻聊天记录</p></td><td><p>"报价做一下午？3步出单还自动核成本"</p></td></tr>
+</tbody>
+</table>
+
+<h1 seq="auto">内容智能体：用"问题-解决"打垂直标签</h1>
+
+<h2 seq="auto">钩子设计：前3秒定生死</h2>
+<p>所有视频前3秒必须直击装企老板具体痛点，禁止开场自我介绍或产品介绍。钩子公式：<b>城市/身份 + 具体数字痛点 + 反问</b>。</p>
+<ul>
+<li>"合肥装企老板，人工对账每月错3次？"</li>
+<li>"工地扯皮客户投诉？项目经理还在微信群里拍照？"</li>
+<li>"报价做一下午，客户还嫌贵？3步出单还自动核成本"</li>
+</ul>
+<p>避免硬广：不说"装得清多么好用"，只说痛点和解决动作，产品在第10秒后自然出现。</p>
+
+<h2 seq="auto">三类内容模板</h2>
+<table>
+<colgroup><col width="120"/><col width="100"/><col width="280"/><col width="320"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>类型</p></th><th background-color="light-gray"><p>时长</p></th><th background-color="light-gray"><p>结构</p></th><th background-color="light-gray"><p>示例脚本</p></th></tr></thead>
+<tbody>
+<tr>
+<td><p><b>演示类</b></p><p>手机录屏</p></td>
+<td><p>30秒</p></td>
+<td><p>前3秒痛点钩子 → 3步操作录屏 → 结果对比 → 旁白"告别加班"</p></td>
+<td><p>钩子："报价做一下午？"→ 录屏：①选模板②改数量③一键导出 → 旁白："合肥张总以前每天做到9点，现在10分钟"</p></td>
+</tr>
+<tr>
+<td><p><b>案例类</b></p><p>本地客户</p></td>
+<td><p>45秒</p></td>
+<td><p>前3秒数据钩子 → 用前痛点 → 用后变化（打码）→ 数据对比 → CTA</p></td>
+<td><p>钩子："合肥10人装企，工期缩20%"→ 打码聊天记录/报表截图 → "不是加班加出来的，是系统卡节点"</p></td>
+</tr>
+<tr>
+<td><p><b>干货类</b></p><p>口播+字幕</p></td>
+<td><p>60秒</p></td>
+<td><p>前3秒避坑钩子 → 3招干货（每招15秒）→ 最后一招植入装得清方案</p></td>
+<td><p>"装修避坑3招"→ ①材料价锁死②节点照片留痕③财务自动对账 → 第③招带出装得清功能</p></td>
+</tr>
+</tbody>
+</table>
+
+<h2 seq="auto">发布节奏与慢推流</h2>
+<ul>
+<li><b>频率：</b>每周3条 = 2条干货 + 1条演示；案例类每月穿插2-3条，随客户成功节奏补。</li>
+<li><b>关键词：</b>标题、字幕、话题标签埋"装修管理""合肥装企""装修公司管理""工地管理"等词，让算法识别为垂直内容。</li>
+<li><b>7天慢推流：</b>B端内容不靠爆发靠长尾，完播率和评论区"求试用"互动会在发布后7天内持续加热，不要因为首日数据差就删视频。</li>
+</ul>
+
+<h1 seq="auto">搜索承接智能体：抢占主动需求</h1>
+
+<h2 seq="auto">短视频SEO长尾词库</h2>
+<p>标题、字幕、置顶评论必须自然嵌入以下长尾词，抢占装企老板主动搜索时的结果位：</p>
+<table>
+<colgroup><col width="200"/><col width="320"/><col width="300"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>词类</p></th><th background-color="light-gray"><p>长尾词示例</p></th><th background-color="light-gray"><p>匹配内容类型</p></th></tr></thead>
+<tbody>
+<tr><td><p><b>本地+软件</b></p></td><td><p>合肥装修公司管理软件、合肥装企ERP推荐、合肥装修工地管理系统</p></td><td><p>演示类 + 案例类</p></td></tr>
+<tr><td><p><b>痛点+方案</b></p></td><td><p>装修公司对账总错怎么办、装修工地扯皮怎么管、装修报价软件哪个好用</p></td><td><p>干货类</p></td></tr>
+<tr><td><p><b>岗位+工具</b></p></td><td><p>装修项目经理用什么管工地、装修财务怎么对账、装修老板怎么看施工进度</p></td><td><p>演示类</p></td></tr>
+<tr><td><p><b>对比+选择</b></p></td><td><p>装修ERP和Excel区别、装企管理系统哪家好、装修SaaS避坑</p></td><td><p>干货类</p></td></tr>
+</tbody>
+</table>
+
+<h2 seq="auto">评论区与小程序挂载</h2>
+<ul>
+<li><b>置顶评论：</b>每条视频发布后立即置顶"想免费试用装得清，评论区扣1，发你3步上手视频+合肥本地案例包"。"扣1"既拉互动又筛选意向。</li>
+<li><b>小程序挂载：</b>视频挂"免费试用"小程序，落地页只放"1分钟需求诊断"表单——<b>仅要公司规模 + 当前最痛的点</b>两个字段，降低门槛，不一步要电话。</li>
+<li><b>主页简介：</b>简介写"合肥装企管理系统 | 3步出报价·远程看工地·自动对账 | 免费试用点下方"，让搜索进来的人一眼知道你是谁。</li>
+</ul>
+
+<h2 seq="auto">私域承接SOP</h2>
+<ol>
+<li seq="auto">用户表单提交后，自动回复案例包PDF + 企微添加引导。</li>
+<li seq="auto">企微通过后自动打标签：<b>城市-规模-痛点</b>（如"合肥-10人装企-对账痛点"），决定后续跟进话术。</li>
+<li seq="auto">24小时内专属顾问1v1联系，不群发广告，先问"目前工地几个、最头疼哪块"。</li>
+</ol>
+
+<h1 seq="auto">付费投放智能体：精准放大线索</h1>
+
+<h2 seq="auto">三阶段投放策略</h2>
+<table>
+<colgroup><col width="120"/><col width="140"/><col width="280"/><col width="280"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>阶段</p></th><th background-color="light-gray"><p>时间</p></th><th background-color="light-gray"><p>人群与创意</p></th><th background-color="light-gray"><p>预算与出价</p></th></tr></thead>
+<tbody>
+<tr>
+<td><p><b>冷启动</b></p></td>
+<td><p>第1-2周</p></td>
+<td><p>上传现有客户/网站访客做自定义人群，建"合肥装企老板"Lookalike；投Lead Generation轻表单（公司名+电话）；CTA优先"免费试用"</p></td>
+<td><p>500元/天起；同时跑3-5组素材测CTR；不急着要转化，先攒模型</p></td>
+</tr>
+<tr>
+<td><p><b>优化放大</b></p></td>
+<td><p>第3-4周</p></td>
+<td><p>高互动视频（完播&gt;40%）开Spark Ads加热；CTR&lt;1%的创意直接淘汰；预算集中到转化最优组；表单缩短到公司名+电话即可</p></td>
+<td><p>CPL&lt;300元逐步加预算（每次+20%）；CPL&gt;500元换创意不硬扛</p></td>
+</tr>
+<tr>
+<td><p><b>重定向</b></p></td>
+<td><p>第4周起</p></td>
+<td><p>追投两类人：①看过视频未留资 ②点过小程序未提交；素材换成"客户成功案例"加深信任，不重复硬推功能</p></td>
+<td><p>预算占比20-30%；出价低于冷启动组；目标是把已种草的人推过表单</p></td>
+</tr>
+</tbody>
+</table>
+
+<h2 seq="auto">素材淘汰规则</h2>
+<ul>
+<li>投放满3天，CTR &lt; 1% → 停投，钩子重写。</li>
+<li>完播率 &lt; 25% → 前3秒重做，不换整体选题。</li>
+<li>表单点击率 &lt; 3% → 小程序落地页或CTA文案有问题，优先改CTA。</li>
+</ul>
+
+<h1 seq="auto">转化闭环智能体：线索变客户</h1>
+
+<h2 seq="auto">即时跟进（24小时内）</h2>
+<ul>
+<li>企微自动发"3步快速上手"视频（5分钟以内，讲怎么建第一个工地、怎么出第一份报价）。</li>
+<li>专属顾问1v1约30分钟演示，演示时直接用客户公司的真实数据（客户规模、现有工地数）讲，不演示demo。</li>
+<li>跟进节奏：D0通过 → D1演示 → D3试用开通引导 → D7激活检查 → D15付费沟通。</li>
+</ul>
+
+<h2 seq="auto">试用激活</h2>
+<ul>
+<li>建"合肥客户群"，群内每日发1个功能使用小技巧（施工提醒、财务报表怎么看），不发广告。</li>
+<li>试用第3天检查"是否建了工地/录了报价"，没激活的客户顾问主动帮录第一条数据——数据一旦进系统，留存率翻倍。</li>
+<li>用本地同行案例做催活："合肥XX装饰用了施工提醒，延误少了60%"。</li>
+</ul>
+
+<h2 seq="auto">口碑反哺</h2>
+<ul>
+<li>付费后第30天，请成功客户拍1条"用后变化"短视频（手机自拍即可，打码隐私），作为新内容素材。</li>
+<li>客户案例视频优先投本地（合肥+周边），老板看老板的案例信任度远高于自说自话。</li>
+<li>每产出1条客户案例，回流给内容智能体作为案例类模板补充。</li>
+</ul>
+
+<h1 seq="auto">数据复盘智能体：盯核心指标</h1>
+
+<h2 seq="auto">转化漏斗</h2>
+<html5-block path="@./draft_0e2e573c_folder/funnel.html"/>
+
+<h2 seq="auto">三层指标看板</h2>
+<table>
+<colgroup><col width="120"/><col width="220"/><col width="240"/><col width="240"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>层级</p></th><th background-color="light-gray"><p>指标</p></th><th background-color="light-gray"><p>健康阈值</p></th><th background-color="light-gray"><p>不达标动作</p></th></tr></thead>
+<tbody>
+<tr><td><p><b>内容</b></p></td><td><p>完播率、评论"求试用"数、主页访问率</p></td><td><p>完播率 &gt; 40% 留量；每周至少3条"求试用"评论</p></td><td><p>完播低 → 改前3秒；评论少 → 干货里加"扣1"引导</p></td></tr>
+<tr><td><p><b>付费</b></p></td><td><p>CTR、CPL（单条线索成本）、表单提交率</p></td><td><p>CPL &lt; 300元扩预算；CTR &gt; 1%</p></td><td><p>CPL &gt; 500元 → 换创意/缩人群；CTR&lt;1% → 停投重写钩子</p></td></tr>
+<tr><td><p><b>转化</b></p></td><td><p>试用开通率、7日活跃、试用→付费率</p></td><td><p>试用→付费 &gt; 20%；7日活跃 &gt; 60%</p></td><td><p>&lt; 10% → 补1v1辅导；活跃低 → 客户群加功能答疑</p></td></tr>
+</tbody>
+</table>
+
+<h1 seq="auto">3个月执行路线图与预算</h1>
+
+<h2 seq="auto">分阶段路线图</h2>
+<html5-block path="@./draft_0e2e573c_folder/roadmap.html"/>
+
+<h2 seq="auto">预算分配建议（月度）</h2>
+<table>
+<colgroup><col width="180"/><col width="180"/><col width="200"/><col width="260"/></colgroup>
+<thead><tr><th background-color="light-gray"><p>项目</p></th><th background-color="light-gray"><p>月预算（参考）</p></th><th background-color="light-gray"><p>占比</p></th><th background-color="light-gray"><p>说明</p></th></tr></thead>
+<tbody>
+<tr><td><p><b>付费投放</b></p></td><td><p>15,000元（500元/天×30天）</p></td><td><p>~70%</p></td><td><p>冷启动期；CPL跑稳后按ROI动态调整</p></td></tr>
+<tr><td><p><b>内容制作</b></p></td><td><p>3,000-5,000元</p></td><td><p>~15%</p></td><td><p>手机录屏为主，含少量剪辑、字幕、封面设计</p></td></tr>
+<tr><td><p><b>小程序/表单承接</b></p></td><td><p>1,000-2,000元</p></td><td><p>~8%</p></td><td><p>落地页优化、案例包制作、企微SCRM工具</p></td></tr>
+<tr><td><p><b>机动/测试</b></p></td><td><p>2,000元</p></td><td><p>~7%</p></td><td><p>新创意测试、新关键词尝试、重定向追投</p></td></tr>
+</tbody>
+</table>
+<p><b>说明：</b>以上为冷启动期建议预算，实际以首月CPL和试用→付费率为准。若首月CPL&lt;300元且试用→付费&gt;15%，第二月投放预算可上浮30-50%；若两项均不达标，先优化内容和承接页，不加预算。</p>
+
+<h1 seq="auto">避坑红线</h1>
+
+<callout emoji="⚠️" background-color="light-orange" border-color="orange">
+<p><b>三条不可碰的红线，违反即回滚：</b></p>
+</callout>
+
+<ol>
+<li seq="auto"><b>拒绝泛流量：</b>不追娱乐热点、不拍装修效果图吸引业主粉。泛粉不仅不转化，还会打乱算法标签，导致后续精准人群跑不出来。账号只发装企老板关心的管理话题。</li>
+<li seq="auto"><b>本地深耕优先：</b>前3个月内容只拍合肥客户案例，老板看合肥同行的变化比看全国案例更有代入感。本地标签打稳后再考虑外扩。</li>
+<li seq="auto"><b>长期主义：</b>B端决策周期3-6个月，不要因为第一条视频没爆、第一周线索少就否定打法。稳定周更3条 + 数据周迭代，比单条爆款更重要。3个月见线索稳定，5-6个月才形成飞轮。</li>
+</ol>
+
+<p>—— 按此路径执行，<b>3个月可稳定获取合肥装企精准线索，5-6个月形成"内容获客 → 付费放大 → 客户成功 → 内容素材"自增强闭环</b>。</p>

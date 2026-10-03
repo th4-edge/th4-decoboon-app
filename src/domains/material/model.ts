@@ -66,7 +66,7 @@ export interface GoodsReceipt {
   remark?: string
 }
 
-/** 主材选材状态（SCN-006 / BR-004：文本化确认，按版本保留历史）。 */
+/** 主材选材状态：文本化确认，按版本保留历史。 */
 export type MaterialSelectionStatus = 'draft' | 'pendingConfirm' | 'confirmed'
 
 /** 签约后主材选材确认记录。 */

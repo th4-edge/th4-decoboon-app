@@ -285,7 +285,7 @@ function now(): string {
       </view>
 
       <view v-if="task?.contextSnapshot" class="jz-card ag__snapshot">
-        <view class="ag__section-head"><view><text class="ag__section-title">生成依据</text><text class="ag__section-sub">来自后端冻结快照，不在前端重新拼接</text></view><JzTag :text="`置信度 ${task.contextSnapshot.confidence}`" :color="task.contextSnapshot.confidence === 'High' ? TOKEN_COLOR.success : task.contextSnapshot.confidence === 'Low' ? TOKEN_COLOR.warning : TOKEN_COLOR.primary" /></view>
+        <view class="ag__section-head"><view><text class="ag__section-title">生成信息</text><text class="ag__section-sub">根据当前客户、房屋和方案内容整理</text></view><JzTag :text="`置信度 ${task.contextSnapshot.confidence}`" :color="task.contextSnapshot.confidence === 'High' ? TOKEN_COLOR.success : task.contextSnapshot.confidence === 'Low' ? TOKEN_COLOR.warning : TOKEN_COLOR.primary" /></view>
         <view class="ag__facts">
           <view><text>户型</text><b>{{ contextData.property?.layout || scheme?.property?.layout || '待补充' }}</b></view>
           <view><text>面积</text><b>{{ contextData.property?.area || scheme?.area || '—' }}㎡</b></view>

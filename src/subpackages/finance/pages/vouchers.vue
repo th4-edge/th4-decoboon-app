@@ -616,7 +616,7 @@ void bootSheetSources()
           </view>
         </view>
 
-        <text class="ps__count">共 {{ sheetTotal }} 个项目（服务端检索）</text>
+        <text class="ps__count">共 {{ sheetTotal }} 个项目</text>
 
         <scroll-view scroll-y class="ps__list" @scrolltolower="loadMoreSheetProjects">
           <view class="ps__item" :class="{ 'ps__item--on': !projectId }" @tap="selectProject('')">

@@ -54,7 +54,7 @@ const emptyRow = (): BatchRow => ({ name: '', itemType: 'Construction', amount: 
 const batchRows = ref<BatchRow[]>([emptyRow()])
 
 const role = computed(() => (session.role || 'customer') as string)
-/** 成本对项目经理、设计师、业务员整体隐藏（BR-003）。 */
+/** 成本对项目经理、设计师和业务员整体隐藏。 */
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(role.value))
 const requireLine = computed(() => ['replace', 'quantity', 'price'].includes(type.value))
 const line = computed(() => lines.value.find((item) => item.id === sourceLineId.value) || null)

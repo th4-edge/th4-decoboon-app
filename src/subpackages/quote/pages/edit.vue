@@ -277,7 +277,7 @@ async function save() {
           <view><text>{{ design.area }}㎡</text><text>方案面积</text></view>
         </view>
         <view class="qe__estimate"><text>折前分项合计</text><text>{{ money(estimatedAmount) }}</text></view>
-        <view class="qe__formula"><JzIcon name="info" :size="24" :color="TOKEN_COLOR.primary" /><text>报价总额 = 分项合计 × 折扣 + 5% 税金，金额由服务端计算。</text></view>
+        <view class="qe__formula"><JzIcon name="info" :size="24" :color="TOKEN_COLOR.primary" /><text>报价总额 = 分项合计 × 折扣 + 5% 税金，金额由系统自动计算。</text></view>
       </view>
       <view v-else-if="mode === 'package' && template" class="qe__design">
         <view class="qe__design-head"><text class="jz-clamp-2">{{ template.name }}</text><text>{{ mode === 'package' ? '套餐' : '报价' }}</text></view>

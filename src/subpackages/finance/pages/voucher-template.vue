@@ -237,7 +237,7 @@ async function save() {
         </view>
 
         <view class="tpl-block">
-          <text class="tpl-block__title">凭证头字段</text>
+          <text class="tpl-block__title">凭证头信息</text>
           <view class="tpl-fields">
             <view v-for="item in HEADER_FIELDS" :key="item.key" class="tpl-field" @tap="fields[item.key] = !fields[item.key]">
               <view class="tpl-check" :class="{ 'tpl-check--on': fields[item.key] }" />
@@ -247,7 +247,7 @@ async function save() {
         </view>
 
         <view class="tpl-block">
-          <text class="tpl-block__title">明细行字段</text>
+          <text class="tpl-block__title">明细行信息</text>
           <view class="tpl-fields">
             <view v-for="item in DETAIL_FIELDS" :key="item.key" class="tpl-field" @tap="fields[item.key] = !fields[item.key]">
               <view class="tpl-check" :class="{ 'tpl-check--on': fields[item.key] }" />

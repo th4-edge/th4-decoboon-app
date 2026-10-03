@@ -295,7 +295,7 @@ function moduleText(module: PlanModule) {
     finance: '财务结算',
     analytics: '经营分析',
     ai: 'AI辅助',
-    api: '开放接口'
+    api: '外部协同'
   })[module]
 }
 

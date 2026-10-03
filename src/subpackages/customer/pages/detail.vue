@@ -77,6 +77,8 @@ const QUOTE_STATUS_META: Record<QuoteStatus, { label: string; color: string }> =
 const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
+const isCustomerOwner = computed(() => Boolean(customer.value?.owner?.id && customer.value.owner.id === session.emp?.id))
+const isAssignedDesigner = computed(() => Boolean(customer.value?.designer?.id && customer.value.designer.id === session.emp?.id))
 const showMarketing = computed(() => isMarketer.value || isStoreManager.value || isTeamLeader.value)
 const canFollow = computed(() => can(session.role, 'act:followCustomer'))
 const canQuote = computed(() => can(session.role, 'edit:quote'))
@@ -94,7 +96,7 @@ const canScheduleMeasure = computed(() => can(session.role, 'act:scheduleMeasure
   && properties.value.length > 0
   && !hasMeasureRecord.value
   && ['following', 'pendingMeasure'].includes(customer.value.stage)
-  && (!customer.value.designer || isStoreManager.value || session.role === 'boss'))
+  && (!customer.value.designer || isStoreManager.value || session.role === 'boss' || isCustomerOwner.value || isAssignedDesigner.value))
 const canRecordMeasure = computed(() => can(session.role, 'edit:design')
   && !!activeProperty.value && !activeProperty.value.latestMeasureAt)
 const canAssignDesigner = computed(() => can(session.role, 'act:assignDesigner')
@@ -182,7 +184,7 @@ const gradeText = computed(() => {
 })
 const gradeDetail = computed(() => {
   const breakdown = customerGrade.value?.breakdown
-  if (!breakdown?.length) return '分级由服务端规则自动计算'
+  if (!breakdown?.length) return '根据客户跟进、到访、量房等信息自动评估'
   return breakdown.map((item) => `${item.label} ${item.score}/${item.weight || '-'}：${item.reason}`).join('\n')
 })
 const portraitItems = computed(() => {

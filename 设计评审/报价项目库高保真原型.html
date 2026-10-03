@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装得清 · 报价项目库高保真优化原型</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f7d5a'/%3E%3Cpath d='M8 10h16M8 16h16M8 22h10' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --brand-50:#eef6f1; --brand-100:#d6eadf; --brand-200:#add5bf; --brand-300:#7fbb9b;
+  --brand-400:#529e77; --brand-500:#2f7d5a; --brand-600:#26654a; --brand-700:#1d4e39;
+  --brand-800:#153829; --brand-900:#0c221a;
+  --ink-950:#1a1a17; --ink-800:#2e2e2a; --ink-600:#66665f; --ink-400:#b8b8b0;
+  --line-200:#ebebe6; --surface-50:#fafaf8; --surface-100:#f5f5f2; --surface-0:#fff;
+  --success:#22a06b; --success-bg:#e9f7f0; --warning:#e8a020; --warning-bg:#fdf4e3;
+  --danger:#e5484d; --danger-bg:#fdecec; --info:#3b7de8; --info-bg:#ebf2fe;
+  --text-primary:#1a1a17; --text-secondary:#66665f; --text-tertiary:#8a8a82;
+  --radius-xs:6px; --radius-sm:10px; --radius-md:14px; --radius-lg:18px; --radius-pill:999px;
+  --shadow-card:0 1px 3px rgba(26,26,23,.05),0 1px 2px rgba(26,26,23,.03);
+  --shadow-md:0 12px 32px rgba(26,26,23,.10);
+  --font: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font);color:var(--text-primary);background:var(--surface-100);line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font-family:inherit;font-size:inherit}
+:focus-visible{outline:2px solid var(--brand-400);outline-offset:2px;border-radius:4px}
+.icon{width:18px;height:18px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-sm{width:14px;height:14px}
+
+/* ===== 应用外壳（沿用整体原型，聚焦内容区） ===== */
+.app{display:flex;min-height:100vh}
+.sidebar{position:fixed;inset:0 auto 0 0;width:236px;z-index:30;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,#10251f 0%,#0b2d28 100%);border-right:1px solid rgba(255,255,255,.07)}
+.brand{height:64px;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand__mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--brand-500);box-shadow:0 8px 20px rgba(0,0,0,.22)}
+.brand__mark svg{width:22px;height:22px}
+.brand__text strong{display:block;color:#fff;font-size:16px;font-weight:700}
+.brand__text span{color:rgba(255,255,255,.48);font-size:10px}
+.role-card{margin:16px 14px 12px;padding:13px 14px;display:grid;gap:3px;border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-sm);background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 var(--brand-400)}
+.role-card__label{color:var(--brand-300);font-size:10px;font-weight:600;letter-spacing:.04em}
+.role-card strong{color:#fff;font-size:14px}
+.role-card small{color:rgba(255,255,255,.5);font-size:10px}
+.nav{flex:1;padding:4px 10px 20px;overflow-y:auto}
+.nav__item{display:flex;align-items:center;gap:11px;height:42px;margin:2px 0;padding:0 12px;color:rgba(255,255,255,.68);font-size:13px;border-radius:10px;transition:all .12s}
+.nav__item:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav__item.active{color:#fff;font-weight:600;background:rgba(47,125,90,.32);box-shadow:inset 3px 0 0 var(--brand-300)}
+.nav__group{color:rgba(255,255,255,.35);font-size:10px;letter-spacing:.08em;padding:12px 12px 4px;font-weight:600}
+.main{flex:1;min-width:0;margin-left:236px}
+.topbar{position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;gap:12px;padding:0 18px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line-200);backdrop-filter:blur(14px)}
+.icon-btn{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line-200);border-radius:10px;background:#fff;color:#526270;transition:all .12s}
+.icon-btn:hover{background:var(--surface-50);border-color:var(--brand-300);color:var(--brand-600)}
+.breadcrumb{display:flex;align-items:center;gap:7px;color:var(--text-tertiary);font-size:13px;white-space:nowrap}
+.breadcrumb .sep{color:var(--line-200)}
+.breadcrumb .cur{color:var(--text-primary);font-weight:500}
+.gctx{flex:1 1 440px;max-width:620px;margin-left:6px}
+.gctx__box{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--line-200);border-radius:10px;background:var(--surface-50);color:var(--text-tertiary);font-size:12.5px}
+.gctx__box input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:12.5px;color:var(--text-primary)}
+.topbar__right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.scope-tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;font-size:11.5px;color:var(--brand-700);background:var(--brand-50);border:1px solid var(--brand-100);border-radius:var(--radius-pill)}
+.scope-tag b{color:var(--brand-600)}
+.user-btn{display:flex;align-items:center;gap:9px;min-width:150px;height:40px;padding:3px 8px;border-radius:10px;transition:background .12s}
+.user-btn:hover{background:var(--surface-50)}
+.avatar{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--brand-600);color:#fff;font-size:14px;font-weight:700}
+.user-meta strong{display:block;font-size:13px;color:var(--text-primary)}
+.user-meta small{font-size:10px;color:var(--text-tertiary)}
+
+/* ===== 页面头（压缩版 hero） ===== */
+.content{padding:20px 24px 48px;max-width:1560px;margin:0 auto}
+.page-head{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:22px 26px;margin-bottom:14px;border-radius:var(--radius-lg);color:#fff;background:linear-gradient(135deg,var(--brand-900),var(--brand-800) 62%,var(--brand-700));overflow:hidden;box-shadow:var(--shadow-md)}
+.page-head::after{content:'';position:absolute;right:-70px;top:-110px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(82,158,119,.38),transparent 68%)}
+.page-head__copy{position:relative;z-index:1;min-width:0}
+.page-head__eyebrow{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px;color:rgba(255,255,255,.66);font-size:10.5px;font-weight:600;letter-spacing:.12em}
+.page-head h1{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.page-head p{margin-top:7px;color:rgba(255,255,255,.74);font-size:12.5px;line-height:1.6;max-width:520px}
+.page-head__stats{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.head-stat{display:flex;align-items:baseline;gap:6px;padding:8px 13px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:var(--radius-sm)}
+.head-stat b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.head-stat span{font-size:10.5px;color:rgba(255,255,255,.68)}
+.page-head__tools{position:relative;z-index:1;width:min(420px,100%);display:flex;flex-direction:column;gap:8px}
+.search-wrap{display:flex;align-items:center;gap:8px;min-height:46px;padding:5px 6px 5px 13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:12px;backdrop-filter:blur(10px);color:rgba(255,255,255,.72)}
+.search-wrap input{flex:1;min-width:0;border:0;outline:0;background:none;color:#fff;font-size:13px}
+.search-wrap input::placeholder{color:rgba(255,255,255,.52)}
+.search-wrap .btn-search{height:34px;padding:0 16px;border-radius:8px;background:#fff;color:var(--brand-800);font-size:12px;font-weight:700;transition:all .12s}
+.search-wrap .btn-search:hover{background:var(--brand-50)}
+.search-meta{display:flex;justify-content:space-between;gap:12px;color:rgba(255,255,255,.56);font-size:10px}
+.search-meta .manage{display:inline-flex;align-items:center;gap:5px;color:rgba(255,255,255,.8);transition:color .12s}
+.search-meta .manage:hover{color:#fff}
+
+/* ===== 一级分类标签 ===== */
+.tabs{display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:6px;background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-md);box-shadow:var(--shadow-card);overflow-x:auto}
+.tab{display:inline-flex;align-items:center;gap:8px;min-height:42px;flex:0 0 auto;padding:0 14px;color:var(--ink-600);font-size:13px;border-radius:9px;border:1px solid transparent;transition:all .12s}
+.tab:hover{color:var(--brand-700);background:var(--brand-50)}
+.tab.active{color:#fff;font-weight:600;background:var(--brand-500);box-shadow:0 6px 14px rgba(47,125,90,.24)}
+.tab .tone-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.tab .t-count{min-width:22px;padding:2px 7px;font-size:10px;text-align:center;background:var(--surface-100);border-radius:var(--radius-pill);color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.tab.active .t-count{background:rgba(255,255,255,.22);color:#fff}
+.tab.is-empty{opacity:.55}
+.tab.is-empty .t-count{color:var(--text-tertiary)}
+
+/* ===== 三栏工作台 ===== */
+.desk{display:grid;grid-template-columns:232px minmax(0,1fr) 376px;gap:14px;align-items:start}
+.filters,.detail{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-md);box-shadow:var(--shadow-card)}
+.filters{padding:14px}
+.filters h3{font-size:12.5px;font-weight:600;color:var(--ink-950);display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.filters h3 .reset{font-size:10.5px;font-weight:400;color:var(--brand-600);cursor:pointer}
+.filters h3 .reset:hover{color:var(--brand-500)}
+.cat{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:36px;padding:0 10px;margin-bottom:2px;color:var(--ink-600);font-size:12px;text-align:left;border:1px solid transparent;border-radius:8px;transition:all .12s}
+.cat:hover{color:var(--brand-700);background:var(--brand-50)}
+.cat.active{color:#fff;font-weight:600;background:var(--brand-600);box-shadow:0 5px 12px rgba(38,101,74,.2)}
+.cat b{font-size:10px;font-weight:500;opacity:.72;font-variant-numeric:tabular-nums}
+.adv-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:12px;padding:11px 0 9px;color:var(--ink-800);font-size:12px;font-weight:600;border-top:1px solid var(--line-200)}
+.adv-toggle svg{transition:transform .15s}
+.adv-toggle svg.open{transform:rotate(90deg)}
+.adv-field{margin-bottom:9px}
+.adv-field span{display:block;font-size:10.5px;color:var(--text-tertiary);margin-bottom:4px}
+.adv-field select{width:100%;height:34px;padding:0 9px;border:1px solid var(--line-200);border-radius:8px;background:var(--surface-50);color:var(--ink-800);outline:0;font-size:12px}
+.adv-field select:focus{border-color:var(--brand-300);background:#fff}
+
+.canvas{min-width:0}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px;color:var(--text-tertiary);font-size:11px;flex-wrap:wrap}
+.toolbar__title{display:flex;align-items:baseline;gap:5px;color:var(--ink-600)}
+.toolbar__title strong{color:var(--ink-950);font-size:20px;font-variant-numeric:tabular-nums}
+.toolbar__title em{margin-left:6px;padding:3px 9px;color:var(--brand-700);font-size:10px;font-style:normal;background:var(--brand-50);border:1px solid var(--brand-100);border-radius:var(--radius-pill)}
+.toolbar__hint{font-size:10.5px;color:var(--text-tertiary)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:12px;min-height:180px}
+.card{position:relative;overflow:hidden;background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-md);cursor:pointer;transition:border-color .14s,box-shadow .14s,transform .14s}
+.card:hover{border-color:var(--brand-300);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.card.active{border-color:var(--brand-500);box-shadow:0 0 0 2px rgba(47,125,90,.18),var(--shadow-card)}
+.card__visual{position:relative;height:118px;background:linear-gradient(135deg,color-mix(in srgb,var(--tone,#2f7d5a) 9%,#fff),var(--surface-100));display:grid;place-items:center;color:var(--tone,#2f7d5a)}
+.card__visual .ph{display:flex;flex-direction:column;align-items:center;gap:6px}
+.card__visual .ph svg{width:28px;height:28px;opacity:.75}
+.card__visual .ph span{font-size:10.5px;color:var(--ink-600)}
+.card__type{position:absolute;left:9px;top:9px;display:inline-flex;align-items:center;gap:5px;padding:3px 8px;background:rgba(255,255,255,.92);border-radius:var(--radius-pill);font-size:9.5px;font-weight:600;color:var(--ink-800);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.card__type .tone-dot{width:6px;height:6px;border-radius:50%;background:var(--tone,#2f7d5a)}
+.card__selected{position:absolute;right:9px;top:9px;padding:3px 9px;background:var(--brand-500);color:#fff;font-size:9.5px;font-weight:600;border-radius:var(--radius-pill);box-shadow:0 3px 8px rgba(47,125,90,.3)}
+.card__sample{position:absolute;right:9px;bottom:9px;padding:2px 7px;background:rgba(26,26,23,.55);color:#fff;font-size:9px;border-radius:var(--radius-pill);letter-spacing:.04em}
+.card__body{padding:12px 13px}
+.card__tags{display:flex;gap:5px;flex-wrap:wrap}
+.card__tags span{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:10px;color:var(--ink-600);background:var(--surface-100);border-radius:var(--radius-pill)}
+.card__tags .off{color:var(--danger);background:var(--danger-bg)}
+.card h3{margin:9px 0 3px;font-size:14px;font-weight:600;line-height:1.4;color:var(--ink-950)}
+.card .code{display:block;font-size:10px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.card__price{display:flex;align-items:baseline;gap:5px;margin-top:9px;padding:8px 10px;background:var(--brand-50);border-radius:8px;color:var(--brand-800);font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.card__price .unit{font-size:10px;font-weight:500;color:var(--brand-700);opacity:.75}
+.card__meta{margin-top:7px;font-size:10.5px;color:var(--ink-600)}
+.card p{display:-webkit-box;margin-top:7px;overflow:hidden;font-size:10.5px;line-height:1.55;color:var(--text-tertiary);-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.pagination{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:18px}
+.pg{min-width:34px;height:34px;display:grid;place-items:center;padding:0 8px;border:1px solid var(--line-200);border-radius:8px;background:var(--surface-0);color:var(--ink-600);font-size:12px;transition:all .12s}
+.pg:hover{border-color:var(--brand-300);color:var(--brand-700)}
+.pg.active{background:var(--brand-500);border-color:var(--brand-500);color:#fff;font-weight:600}
+.pg.disabled{opacity:.4;pointer-events:none}
+.pg svg{width:14px;height:14px}
+
+/* ===== 详情面板 ===== */
+.detail{padding:0;border-top:3px solid var(--brand-500)}
+.detail__hero{position:relative;height:150px;background:linear-gradient(135deg,color-mix(in srgb,var(--tone,#2f7d5a) 12%,#fff),var(--surface-100));display:grid;place-items:center;color:var(--tone,#2f7d5a)}
+.detail__hero .ph{display:flex;flex-direction:column;align-items:center;gap:8px}
+.detail__hero .ph svg{width:36px;height:36px;opacity:.7}
+.detail__hero .ph span{font-size:11px;color:var(--ink-600)}
+.detail__hero-type{position:absolute;left:12px;top:12px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(255,255,255,.92);border-radius:var(--radius-pill);font-size:10px;font-weight:600;color:var(--ink-800);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.detail__hero-type .tone-dot{width:6px;height:6px;border-radius:50%;background:var(--tone,#2f7d5a)}
+.detail__body{padding:16px}
+.detail__head{padding-bottom:13px;border-bottom:1px solid var(--line-200)}
+.detail__tags{display:flex;gap:5px;flex-wrap:wrap}
+.detail__tags span{padding:3px 8px;font-size:10px;color:var(--ink-600);background:var(--surface-100);border-radius:var(--radius-pill)}
+.detail__tags .off{color:var(--danger);background:var(--danger-bg)}
+.detail h2{margin:10px 0 4px;font-size:19px;font-weight:700;line-height:1.4;color:var(--ink-950)}
+.detail .code{font-size:10px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.sec{padding:15px 0;border-bottom:1px solid var(--line-200)}
+.sec:last-child{border-bottom:0}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.sec-head span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink-950)}
+.sec-head span .icon{color:var(--brand-500);width:15px;height:15px}
+.sec-head em{padding:3px 9px;font-size:9.5px;font-style:normal;color:var(--brand-700);background:var(--brand-50);border-radius:var(--radius-pill)}
+.price-grid{display:grid;gap:8px}
+.price-grid.two{grid-template-columns:1fr 1fr}
+.price-card{display:flex;flex-direction:column;gap:3px;padding:13px 14px;color:#fff;background:linear-gradient(135deg,var(--brand-700),var(--brand-600));border-radius:10px;box-shadow:0 6px 14px rgba(29,78,57,.18)}
+.price-card span{font-size:10px;color:rgba(255,255,255,.68)}
+.price-card strong{font-size:24px;line-height:1.15;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.price-card small{font-size:10px;color:rgba(255,255,255,.62)}
+.price-note{margin-top:9px;font-size:10.5px;color:var(--ink-600);line-height:1.6}
+.cost-card{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 12px;color:var(--warning);background:var(--warning-bg);border:1px solid rgba(232,160,32,.28);border-radius:9px}
+.cost-card span{font-size:10px}
+.cost-card strong{font-size:15px;font-variant-numeric:tabular-nums}
+.cost-card small{margin-left:auto;font-size:9px;color:var(--text-tertiary)}
+.block-text{padding:12px;font-size:11.5px;line-height:1.8;color:var(--ink-600);background:var(--surface-50);border-left:3px solid var(--brand-400);border-radius:0 8px 8px 0;white-space:pre-wrap}
+.block-text.criterion{background:var(--success-bg);border-left-color:var(--success)}
+.desc-box{padding:12px;font-size:11px;line-height:1.7;color:var(--ink-600);background:var(--surface-50);border-radius:9px}
+.desc-box small{display:block;margin-top:7px;font-size:10px;color:var(--text-tertiary)}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.gallery div{height:68px;border-radius:8px;background:var(--surface-100);display:grid;place-items:center;color:var(--ink-400);font-size:9.5px}
+.empty-inline{margin:0;font-size:10.5px;color:var(--text-tertiary)}
+.detail__meta{display:flex;flex-wrap:wrap;gap:6px 14px;padding-top:12px;font-size:10px;color:var(--text-tertiary)}
+
+/* ===== 空态 ===== */
+.empty-state{grid-column:1/-1;text-align:center;padding:52px 20px;color:var(--text-tertiary)}
+.empty-state svg{width:46px;height:46px;margin:0 auto 12px;color:var(--ink-400)}
+.empty-state h3{font-size:15px;font-weight:600;color:var(--ink-800);margin-bottom:6px}
+.empty-state p{font-size:12px}
+.empty-state .btn{margin-top:14px}
+
+/* ===== 提示 ===== */
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,16px);z-index:99;display:flex;align-items:center;gap:8px;padding:11px 18px;background:var(--ink-950);color:#fff;font-size:12.5px;border-radius:var(--radius-pill);opacity:0;pointer-events:none;transition:all .22s;box-shadow:var(--shadow-md)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:15px;height:15px;color:var(--brand-300)}
+
+/* ===== 响应式 ===== */
+@media (max-width:1440px){ .desk{grid-template-columns:216px minmax(0,1fr) 340px} }
+@media (max-width:1240px){
+  .breadcrumb{display:none}
+  .desk{grid-template-columns:200px minmax(0,1fr)}
+  .detail{grid-column:1/-1;position:static;max-height:none;display:grid;grid-template-columns:minmax(0,1fr)}
+  .detail__hero{height:110px}
+}
+@media (max-width:1024px){
+  .sidebar{width:76px}
+  .brand__text,.role-card{display:none}
+  .brand{padding:0;justify-content:center}
+  .nav__item{justify-content:center;padding:0}
+  .nav__item span:not(.icon){display:none}
+  .main{margin-left:76px}
+  .gctx{display:none}
+}
+@media (max-width:900px){
+  .desk{grid-template-columns:1fr}
+  .filters{position:static;max-height:none}
+  .page-head{flex-direction:column;align-items:stretch;padding:18px}
+  .page-head__tools{width:100%}
+  .content{padding:14px 14px 40px}
+  .topbar{padding:0 12px}
+  .scope-tag{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand__mark"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h8M8 12.5h8M8 16h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+      <span class="brand__text"><strong>装得清</strong><span>岗位工作台</span></span>
+    </div>
+    <div class="role-card">
+      <span class="role-card__label">当前角色 · 设计师</span>
+      <strong>本人负责</strong>
+      <small>Self · 仅本人设计范围</small>
+    </div>
+    <nav class="nav">
+      <div class="nav__group">工作</div>
+      <div class="nav__item"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg><span>设计工作台</span></div>
+      <div class="nav__item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg><span>设计业绩</span></div>
+      <div class="nav__item"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/></svg><span>客户档案</span></div>
+      <div class="nav__item"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8.5 14.5l2 2 4-4"/></svg><span>待办中心</span></div>
+      <div class="nav__item active"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>报价项目库</span></div>
+      <div class="nav__item"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>方案报价</span></div>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" data-toast="菜单折叠（演示）"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+      <div class="breadcrumb"><span>业务</span><span class="sep">/</span><span class="cur">报价项目库</span></div>
+      <div class="gctx">
+        <div class="gctx__box">
+          <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input placeholder="搜索对象或旧菜单名称" />
+        </div>
+      </div>
+      <div class="topbar__right">
+        <span class="scope-tag"><b>本人负责</b> · Self</span>
+        <button class="icon-btn" data-toast="消息中心：暂无未读消息"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+        <button class="user-btn" data-toast="个人中心（演示）">
+          <span class="avatar">鹏</span>
+          <span class="user-meta"><strong>董夏鹏</strong><small>设计师</small></span>
+          <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:#9aa5b1"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- ===== 页面头 ===== -->
+      <header class="page-head">
+        <div class="page-head__copy">
+          <span class="page-head__eyebrow"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>CATALOG LIBRARY · 报价基础</span>
+          <h1>报价项目库</h1>
+          <p>查询企业标准报价、施工工艺与验收标准，帮助设计师快速完成报价判断；价格维护在「项目库维护」中完成。</p>
+          <div class="page-head__stats">
+            <div class="head-stat"><b id="hsTotal">160</b><span>个当前分类项目</span></div>
+            <div class="head-stat"><b id="hsCat">7</b><span>个二级分类</span></div>
+            <div class="head-stat"><b id="hsType">6</b><span>个一级分类</span></div>
+          </div>
+        </div>
+        <div class="page-head__tools">
+          <div class="search-wrap">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="kw" type="search" placeholder="搜索项目名称、编码、分类、品牌..." />
+            <button class="btn-search" id="btnSearch">查询</button>
+          </div>
+          <div class="search-meta">
+            <span>支持名称、编码、分类、品牌、系列、规格</span>
+            <button class="manage" data-toast="项目库维护入口（演示）"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>维护项目库</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===== 一级分类 ===== -->
+      <nav class="tabs" id="typeTabs" aria-label="报价项目一级分类"></nav>
+
+      <!-- ===== 三栏工作台 ===== -->
+      <div class="desk">
+        <aside class="filters">
+          <h3>二级分类 <button class="reset" id="btnReset">重置筛选</button></h3>
+          <div id="catList"></div>
+          <button class="adv-toggle" id="advToggle"><span>品牌 / 系列 / 规格</span><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div id="advFields" style="display:none;padding-top:8px"></div>
+        </aside>
+
+        <main class="canvas">
+          <div class="toolbar">
+            <div class="toolbar__title"><strong id="tbCount">160</strong><span>个项目</span><em id="tbFilter">施工</em><em id="tbSample" style="display:none;background:var(--warning-bg);color:var(--warning);border-color:rgba(232,160,32,.3)">示例数据</em></div>
+            <span class="toolbar__hint">报价基础查询与学习 · 不在此页修改价格</span>
+          </div>
+          <div class="grid" id="grid"></div>
+          <div class="empty-state" id="emptyState" hidden>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <h3 id="emptyTitle">当前分类下暂无可查询项目</h3>
+            <p id="emptyDesc">切换一级 / 二级分类，或调整搜索条件后重试。</p>
+          </div>
+          <div class="pagination" id="pager"></div>
+        </main>
+
+        <aside class="detail" id="detailPanel"></aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span id="toastText"></span></div>
+
+<script>
+/* ===== 数据：施工/拆除为真实页面数据；其余为标注「示例」的演示数据 ===== */
+var TYPES = [
+  { key:'construction', label:'施工', count:160, tone:'#C56A1A', catCount:7 },
+  { key:'material',     label:'主材', count:254, tone:'#3B7DE8', catCount:4 },
+  { key:'soft',         label:'软装', count:13,  tone:'#6958C8', catCount:3 },
+  { key:'appliance',    label:'电器', count:0,   tone:'#168A96', catCount:0 },
+  { key:'general',      label:'综合', count:15,  tone:'#52635F', catCount:2 },
+  { key:'custom',       label:'全屋定制', count:108, tone:'#1D7A5A', catCount:2 }
+];
+var CATS = {
+  construction:['拆除','木制作','木工','水电','油漆','现浇、钢结构','瓦工'],
+  material:['瓷砖','地板','卫浴洁具','门'],
+  soft:['家具','灯具','窗帘布艺'],
+  general:['搬运','垃圾清运'],
+  custom:['柜体定制','木作造型']
+};
+var PRICING = { materialAndManual:'材料 + 人工', materialOnly:'仅材料', manualOnly:'仅人工', fixedTotal:'固定总价' };
+var REAL_ITEMS = [
+  { id:'1', name:'拆除--保温墙铲除', code:'MH-CON-16', cat:'拆除', mode:'manualOnly', manual:27.4, unit:'㎡', craft:'1.外墙保温层铲除。', criterion:'1.外墙保温层铲除。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'2', name:'拆除--墙体拆除（12墙）', code:'MH-CON-6', cat:'拆除', mode:'manualOnly', manual:54.8, unit:'㎡', craft:'1.指非承重隔墙，且墙体为砖结构。\n2.须经物业同意，客户办理相关手续后施工。\n3.工程量按墙面立面面积计算。', criterion:'1.拆除后断面平整。\n2.垃圾归堆、袋装清理。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'3', name:'拆除--墙体拆除（24墙）', code:'MH-CON-7', cat:'拆除', mode:'manualOnly', manual:68.5, unit:'㎡', craft:'1.指非承重隔墙，且墙体为砖结构。\n2.须经物业同意，客户办理相关手续后施工。\n3.工程量按墙面立面面积计算。', criterion:'1.拆除后断面平整。\n2.垃圾归堆、袋装清理。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'4', name:'拆除--墙体拆除后粉边', code:'MH-CON-9', cat:'拆除', mode:'manualOnly', manual:28.8, unit:'m', craft:'1.人工费+辅材料费\n2.水泥沙浆找平', criterion:'1.找平顺直、无空鼓。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'5', name:'拆除--墙地砖拆除', code:'MH-CON-18', cat:'拆除', mode:'manualOnly', manual:24, unit:'㎡', craft:'1.原墙/地砖铲除。\n2.不含墙/地面粉平。\n3.不含墙/地面防水处理。', criterion:'1.砖面铲除干净，基层无松动。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'6', name:'拆除--墙顶面白灰/腻子粉铲除', code:'MH-CON-5', cat:'拆除', mode:'manualOnly', manual:6.8, unit:'㎡', craft:'1.铲除垃圾袋装清理归堆。\n2.如需机器铲除需另加10元/㎡。\n3.原墙面乳胶漆/墙纸铲除加8元/㎡。', criterion:'1.铲除干净，无残留浮灰。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'7', name:'拆除--小面积拆除墙体（2.5平以下）', code:'MH-CON-8', cat:'拆除', mode:'manualOnly', manual:143.8, unit:'项', craft:'1.指非承重隔墙，且墙体为砖结构。\n2.须经物业同意，客户办理相关手续后施工。\n3.墙体拆除不足1㎡按每处计算。', criterion:'1.拆除后断面平整。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'8', name:'拆除--开孔（燃气孔，空调孔）', code:'MH-CON-30', cat:'拆除', mode:'manualOnly', manual:62.3, unit:'个', craft:'1.拆除垃圾袋装清理归堆', criterion:'1.孔洞尺寸准确、边缘整齐。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'9', name:'拆除--拆除后粉刷', code:'MH-CON-17', cat:'拆除', mode:'manualOnly', manual:28.8, unit:'㎡', craft:'1.人工费+辅材料费\n2.水泥沙浆找平', criterion:'1.粉刷面平整、无起砂。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'10', name:'拆除--拆除后粉边', code:'MH-CON-14', cat:'拆除', mode:'manualOnly', manual:28.8, unit:'m', craft:'1.人工费+辅材料费\n2.水泥沙浆找平', criterion:'1.找平顺直。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'11', name:'拆除--拆除木地板', code:'MH-CON-28', cat:'拆除', mode:'manualOnly', manual:9.6, unit:'㎡', craft:'1.拆除垃圾清理归堆', criterion:'1.拆除干净、无残留。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'12', name:'拆除--拆除橱柜', code:'MH-CON-25', cat:'拆除', mode:'manualOnly', manual:191.8, unit:'套', craft:'1.拆除垃圾清理归堆', criterion:'1.整体拆除、不破坏墙面。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'13', name:'拆除--拆除门窗', code:'MH-CON-23', cat:'拆除', mode:'manualOnly', manual:28.8, unit:'个', craft:'1.拆除垃圾清理归堆', criterion:'1.拆除完整、洞口无损坏。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'14', name:'拆除--拆除门窗套', code:'MH-CON-24', cat:'拆除', mode:'manualOnly', manual:19.2, unit:'个', craft:'1.拆除垃圾清理归堆', criterion:'1.拆除干净、无残留。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'15', name:'拆除--拆除顶面吊顶', code:'MH-CON-22', cat:'拆除', mode:'manualOnly', manual:17.3, unit:'㎡', craft:'1.拆除垃圾清理归堆', criterion:'1.拆除干净、吊杆清理。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'16', name:'拆除--拆除马桶.卫浴', code:'MH-CON-26', cat:'拆除', mode:'manualOnly', manual:76.7, unit:'套', craft:'1.拆除垃圾清理归堆', criterion:'1.拆除完整、下水口封堵。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'17', name:'拆除--暗踢脚线拆除', code:'MH-CON-29', cat:'拆除', mode:'manualOnly', manual:19.2, unit:'m', craft:'1.铲除垃圾袋装清理归堆', criterion:'1.铲除干净、基层平整。', source:'昭青装饰报价表', maintainer:'张伟' },
+  { id:'18', name:'拆除--混凝土墙打门洞', code:'MH-CON-15', cat:'拆除', mode:'manualOnly', manual:855, unit:'个', craft:'1.拆除垃圾清理归堆，门洞高度2.2米内，宽度0.9米内（不建议做）。', criterion:'1.洞口尺寸准确、结构安全。', source:'昭青装饰报价表', maintainer:'张伟' }
+];
+/* 示例条目生成（演示用） */
+var SAMPLE_SEEDS = [
+  { name:'主材--地面瓷砖（示例）', code:'MH-MAT-01', cat:'瓷砖', mode:'materialOnly', material:98, unit:'㎡', brand:'示例品牌A', series:'岩板系列', spec:'800×800' },
+  { name:'主材--强化木地板（示例）', code:'MH-MAT-02', cat:'地板', mode:'materialOnly', material:76, unit:'㎡', brand:'示例品牌B', series:'原木系列', spec:'1215×165' },
+  { name:'主材--马桶（示例）', code:'MH-MAT-03', cat:'卫浴洁具', mode:'fixedTotal', fixed:1980, unit:'套', brand:'示例品牌C', series:'节水系列', spec:'305坑距' },
+  { name:'主材--实木复合门（示例）', code:'MH-MAT-04', cat:'门', mode:'materialAndManual', material:680, manual:120, unit:'樘', brand:'示例品牌D', series:'简约系列', spec:'标准门洞' },
+  { name:'软装--三人位沙发（示例）', code:'MH-SOFT-01', cat:'家具', mode:'fixedTotal', fixed:4680, unit:'件', brand:'示例品牌E', series:'现代系列', spec:'2.4m' },
+  { name:'综合--垃圾清运（示例）', code:'MH-GEN-01', cat:'搬运', mode:'manualOnly', manual:12, unit:'㎡', brand:'', series:'', spec:'' },
+  { name:'全屋定制--衣柜投影（示例）', code:'MH-CUS-01', cat:'柜体定制', mode:'materialAndManual', material:480, manual:150, unit:'㎡', brand:'示例品牌F', series:'PET系列', spec:'18mm' }
+];
+function sampleItems(type, cat){
+  var out = [];
+  SAMPLE_SEEDS.forEach(function(s, i){
+    if(s.cat !== cat) return;
+    out.push({ id:'s' + type + '_' + i, name:s.name, code:s.code, cat:s.cat, mode:s.mode, material:s.material, manual:s.manual, fixed:s.fixed, unit:s.unit, brand:s.brand, series:s.series, spec:s.spec, craft:'示例工艺说明：' + s.name + ' 的施工工艺待维护。', criterion:'示例验收标准：按企业标准执行。', source:'示例数据源', maintainer:'维护人', sample:true });
+  });
+  return out;
+}
+
+/* ===== 状态 ===== */
+var state = { type:'construction', cat:'', page:1, kw:'', brand:'', series:'', spec:'' };
+var POOL = [];           // 当前类型 + 分类下的条目池
+var PAGE_SIZE = 18;
+var curType, curCat;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var toastTimer=null;
+function toast(msg){
+  $('toastText').textContent = msg; $('toast').classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ $('toast').classList.remove('show'); }, 2200);
+}
+function findType(k){ for(var i=0;i<TYPES.length;i++) if(TYPES[i].key===k) return TYPES[i]; return TYPES[0]; }
+function poolFor(type, cat){
+  var items = [];
+  if(type==='construction'){
+    items = REAL_ITEMS.filter(function(it){ return !cat || it.cat===cat; });
+  } else {
+    var cats = CATS[type] || [];
+    cats.forEach(function(c){
+      if(!cat || c===cat) items = items.concat(sampleItems(type, c));
+    });
+  }
+  return items;
+}
+function filterPool(){
+  var kw = state.kw.trim();
+  var list = POOL.filter(function(it){
+    if(state.brand && it.brand !== state.brand) return false;
+    if(state.series && it.series !== state.series) return false;
+    if(state.spec && it.spec !== state.spec) return false;
+    if(kw){
+      var hay = (it.name + ' ' + (it.code||'') + ' ' + (it.cat||'') + ' ' + (it.brand||'') + ' ' + (it.series||'') + ' ' + (it.spec||'')).toLowerCase();
+      if(hay.indexOf(kw.toLowerCase()) < 0) return false;
+    }
+    return true;
+  });
+  return list;
+}
+
+/* ===== 渲染 ===== */
+function renderTabs(){
+  var html = '';
+  TYPES.forEach(function(t){
+    html += '<button class="tab' + (state.type===t.key?' active':'') + (t.count===0?' is-empty':'') + '" data-type="' + t.key + '" title="' + (t.count===0?'当前暂无该项目分类':'') + '">' +
+      '<span class="tone-dot" style="background:' + t.tone + '"></span><span>' + t.label + '</span><span class="t-count">' + t.count + '</span></button>';
+  });
+  $('typeTabs').innerHTML = html;
+}
+function renderCats(){
+  var cats = CATS[state.type] || [];
+  var html = '<button class="cat' + (!state.cat?' active':'') + '" data-cat="" ><span>全部分类</span><b>' + (curType?curType.count:'—') + '</b></button>';
+  cats.forEach(function(c){
+    var n = state.type==='construction' ? REAL_ITEMS.filter(function(it){return it.cat===c;}).length : SAMPLE_SEEDS.filter(function(s){return s.cat===c;}).length;
+    html += '<button class="cat' + (state.cat===c?' active':'') + '" data-cat="' + esc(c) + '"><span>' + esc(c) + '</span><b>' + n + '</b></button>';
+  });
+  $('catList').innerHTML = html;
+  var t = findType(state.type);
+  $('hsTotal').textContent = t.count;
+  $('hsCat').textContent = t.catCount;
+  $('hsType').textContent = TYPES.length;
+}
+function renderAdv(){
+  var html = '';
+  var type = state.type;
+  if(type === 'construction' || type === 'material' || type === 'soft' || type === 'custom' || type === 'general'){
+    html += '<div class="adv-field"><span>品牌</span><select id="selBrand"><option value="">全部品牌</option>' +
+      (type==='material' ? '<option>示例品牌A</option><option>示例品牌B</option><option>示例品牌C</option><option>示例品牌D</option>' :
+      type==='construction' ? '<option>（施工类暂未维护品牌）</option>' : '<option>示例品牌E</option><option>示例品牌F</option>') + '</select></div>';
+    html += '<div class="adv-field"><span>系列</span><select id="selSeries"><option value="">全部系列</option><option>岩板系列</option><option>原木系列</option><option>节水系列</option><option>简约系列</option></select></div>';
+    html += '<div class="adv-field"><span>规格</span><select id="selSpec"><option value="">全部规格</option><option>800×800</option><option>1215×165</option><option>305坑距</option><option>标准门洞</option></select></div>';
+  } else {
+    html = '<div class="adv-field"><span>该分类暂无品牌数据</span></div>';
+  }
+  $('advFields').innerHTML = html;
+  ['selBrand','selSeries','selSpec'].forEach(function(id){
+    var el = $(id);
+    if(!el) return;
+    el.addEventListener('change', function(){
+      if(id==='selBrand') state.brand = this.value;
+      if(id==='selSeries') state.series = this.value;
+      if(id==='selSpec') state.spec = this.value;
+      state.page = 1;
+      renderAll();
+    });
+  });
+}
+function pricePrimary(it){
+  if(it.mode==='fixedTotal') return { txt:'固定总价 ¥' + fmt(it.fixed), unit:'不乘工程量' };
+  if(it.mode==='materialOnly') return { txt:'材料 ¥' + fmt(it.material), unit:'/' + it.unit };
+  if(it.mode==='manualOnly') return { txt:'人工 ¥' + fmt(it.manual), unit:'/' + it.unit };
+  return { txt:'材料 ¥' + fmt(it.material) + ' + 人工 ¥' + fmt(it.manual), unit:'/' + it.unit };
+}
+function fmt(n){ if(n==null) return '待维护'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function metaOf(it){
+  var v=[it.brand,it.series,it.spec].filter(Boolean);
+  return v.length? v.join(' · ') : '品牌 / 系列 / 规格待补充';
+}
+function renderGrid(){
+  var list = filterPool();
+  var t = findType(state.type);
+  $('tbCount').textContent = list.length;
+  $('tbFilter').textContent = [t.label, state.cat].filter(Boolean).join(' · ') || t.label;
+  var hasSample = list.some(function(it){ return it.sample; });
+  $('tbSample').style.display = hasSample ? 'inline-block' : 'none';
+  var totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if(state.page > totalPages) state.page = totalPages;
+  var slice = list.slice((state.page-1)*PAGE_SIZE, state.page*PAGE_SIZE);
+  var html = '';
+  slice.forEach(function(it){
+    var p = pricePrimary(it);
+    html += '<article class="card' + (state.selectedId===it.id?' active':'') + '" data-id="' + it.id + '" style="--tone:' + t.tone + '">' +
+      '<div class="card__visual"><div class="ph"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>' + esc(t.label) + ' · ' + esc(it.cat) + '</span></div>' +
+      '<span class="card__type"><span class="tone-dot"></span>' + esc(t.label) + '</span>' +
+      (state.selectedId===it.id?'<span class="card__selected">查看中</span>':'') +
+      (it.sample?'<span class="card__sample">示例</span>':'') + '</div>' +
+      '<div class="card__body"><div class="card__tags"><span>' + esc(it.cat) + '</span>' + (it.brand?'<span>' + esc(it.brand) + '</span>':'') + '</div>' +
+      '<h3>' + esc(it.name) + '</h3><small class="code">' + esc(it.code||'编码待生成') + '</small>' +
+      '<div class="card__price">' + esc(p.txt) + '<span class="unit">' + esc(p.unit) + '</span></div>' +
+      '<div class="card__meta">' + esc(metaOf(it)) + '</div>' +
+      '<p>' + esc((it.craft||'施工工艺待补充').slice(0,72)) + '</p></div></article>';
+  });
+  $('grid').innerHTML = html;
+  $('emptyState').hidden = list.length > 0;
+  if(!list.length){
+    $('emptyTitle').textContent = state.kw ? '没有匹配「' + state.kw + '」的项目' : (state.cat ? '「' + state.cat + '」下暂无可查询项目' : '当前分类下暂无可查询项目');
+    $('emptyDesc').textContent = '切换一级 / 二级分类，或调整搜索条件后重试。';
+  }
+  renderPager(totalPages);
+  if(state.selectedId){
+    var sel = list.filter(function(x){return x.id===state.selectedId;})[0];
+    renderDetail(sel || slice[0] || null);
+  } else {
+    renderDetail(slice[0] || null);
+  }
+}
+function renderPager(totalPages){
+  if(totalPages<=1){ $('pager').innerHTML=''; return; }
+  var html = '<button class="pg disabled" id="pgPrev"><svg class="icon" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>';
+  var start = Math.max(1, state.page-2), end = Math.min(totalPages, start+4);
+  start = Math.max(1, end-4);
+  for(var i=start;i<=end;i++){
+    html += '<button class="pg' + (i===state.page?' active':'') + '" data-page="' + i + '">' + i + '</button>';
+  }
+  html += '<button class="pg" id="pgNext"><svg class="icon" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>';
+  $('pager').innerHTML = html;
+  var prev=$('pgPrev'), next=$('pgNext');
+  if(state.page<=1){ prev.classList.add('disabled'); } else { prev.classList.remove('disabled'); prev.addEventListener('click', function(){ state.page--; renderGrid(); }); }
+  if(state.page>=totalPages){ next.classList.add('disabled'); } else { next.classList.remove('disabled'); next.addEventListener('click', function(){ state.page++; renderGrid(); }); }
+  Array.prototype.forEach.call(document.querySelectorAll('#pager .pg[data-page]'), function(b){
+    b.addEventListener('click', function(){ state.page = Number(this.getAttribute('data-page')); renderGrid(); });
+  });
+}
+function renderDetail(it){
+  var panel = $('detailPanel');
+  if(!it){
+    panel.innerHTML = '<div class="empty-state" style="grid-column:auto;padding:44px 20px"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><h3>选择一个报价项目</h3><p>点击中间卡片后，这里展示报价构成、施工工艺、验收标准与参考图片。</p></div>';
+    return;
+  }
+  var t = findType(state.type);
+  var cards = '';
+  if(it.mode==='fixedTotal'){
+    cards = '<div class="price-card"><span>固定总价</span><strong>¥' + fmt(it.fixed) + '</strong><small>不乘工程量</small></div>';
+  } else if(it.mode==='manualOnly'){
+    cards = '<div class="price-card"><span>人工单价</span><strong>¥' + fmt(it.manual) + '</strong><small>单位：' + esc(it.unit) + '</small></div>';
+  } else if(it.mode==='materialOnly'){
+    cards = '<div class="price-card"><span>材料单价</span><strong>¥' + fmt(it.material) + '</strong><small>单位：' + esc(it.unit) + '</small></div>';
+  } else {
+    cards = '<div class="price-card"><span>材料价</span><strong>¥' + fmt(it.material) + '</strong><small>单位：' + esc(it.unit) + '</small></div>' +
+            '<div class="price-card"><span>人工价</span><strong>¥' + fmt(it.manual) + '</strong><small>单位：' + esc(it.unit) + '</small></div>';
+  }
+  var modeNote = it.mode==='manualOnly' ? '本项目只计人工，不包含材料。' : it.mode==='materialOnly' ? '本项目只计材料，不包含人工。' : it.mode==='fixedTotal' ? '固定总价，不乘工程量。' : '材料价与人工价分别计价，按单位工程量分别核算。';
+  panel.innerHTML =
+    '<div class="detail__hero" style="--tone:' + t.tone + '"><div class="ph"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>' + esc(t.label) + ' · ' + esc(it.cat) + '</span></div>' +
+    '<span class="detail__hero-type"><span class="tone-dot"></span>' + esc(t.label) + '</span>' + (it.sample?'<span class="card__sample" style="bottom:auto;top:44px">示例</span>':'') + '</div>' +
+    '<div class="detail__body">' +
+    '<div class="detail__head"><div class="detail__tags"><span>' + esc(it.cat) + '</span>' + (it.brand?'<span>' + esc(it.brand) + '</span>':'') + '</div>' +
+    '<h2>' + esc(it.name) + '</h2><span class="code">' + esc(it.code||'编码待生成') + '</span></div>' +
+    '<section class="sec"><div class="sec-head"><span><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5"/></svg>报价构成</span><em>' + PRICING[it.mode] + '</em></div>' +
+    '<div class="price-grid' + (it.mode==='materialAndManual'?' two':'') + '">' + cards + '</div>' +
+    '<p class="price-note">' + modeNote + '</p>' +
+    '<div class="cost-card"><span>标准成本</span><strong>¥' + fmt(it.cost!=null?it.cost: (it.material!=null?Math.round(it.material*0.78):null)) + '</strong><small>仅成本权限角色可见</small></div></section>' +
+    '<section class="sec"><div class="sec-head"><span><svg class="icon" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>施工工艺</span></div><div class="block-text">' + esc(it.craft||'暂未维护施工工艺。') + '</div></section>' +
+    '<section class="sec"><div class="sec-head"><span><svg class="icon" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>验收标准</span></div><div class="block-text criterion">' + esc(it.criterion||'暂未维护验收标准。') + '</div></section>' +
+    '<section class="sec"><div class="sec-head"><span><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>项目说明</span></div>' +
+    '<div class="desc-box"><p>' + esc(it.craft||'暂无补充说明。') + '</p><small>报价来源：' + esc(it.source||'待补充') + ' · 维护人：' + esc(it.maintainer||'待确认') + '</small></div></section>' +
+    '<section class="sec"><div class="sec-head"><span><svg class="icon" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>参考图片</span></div>' +
+    '<p class="empty-inline">暂未上传参考图片。</p></section>' +
+    '<div class="detail__meta">' + (it.brand?'<span>品牌：' + esc(it.brand) + '</span>':'') + (it.series?'<span>系列：' + esc(it.series) + '</span>':'') + (it.spec?'<span>规格：' + esc(it.spec) + '</span>':'') + '<span>维护人：' + esc(it.maintainer||'待确认') + '</span></div>' +
+    '</div>';
+}
+function renderAll(){
+  curType = findType(state.type);
+  POOL = poolFor(state.type, state.cat);
+  renderTabs();
+  renderCats();
+  renderAdv();
+  renderGrid();
+}
+
+/* ===== 事件 ===== */
+document.getElementById('typeTabs').addEventListener('click', function(e){
+  var tab = e.target.closest('.tab');
+  if(!tab) return;
+  state.type = tab.getAttribute('data-type');
+  state.cat=''; state.page=1; state.kw=''; state.brand=''; state.series=''; state.spec='';
+  $('kw').value='';
+  state.selectedId = null;
+  renderAll();
+  var t = findType(state.type);
+  toast('已切换到「' + t.label + '」分类' + (t.count===0?'（暂无项目）':''));
+});
+document.getElementById('catList').addEventListener('click', function(e){
+  var b = e.target.closest('.cat');
+  if(!b) return;
+  state.cat = b.getAttribute('data-cat') || '';
+  state.page=1; state.selectedId=null; state.brand=''; state.series=''; state.spec='';
+  renderAll();
+});
+$('btnReset').addEventListener('click', function(){
+  state.cat=''; state.page=1; state.kw=''; state.brand=''; state.series=''; state.spec='';
+  $('kw').value='';
+  state.selectedId=null;
+  renderAll();
+  toast('已重置筛选条件');
+});
+$('advToggle').addEventListener('click', function(){
+  var box = $('advFields');
+  var show = box.style.display === 'none';
+  box.style.display = show ? 'block' : 'none';
+  this.querySelector('svg').classList.toggle('open', show);
+});
+$('btnSearch').addEventListener('click', function(){ state.kw = $('kw').value; state.page=1; state.selectedId=null; renderGrid(); });
+$('kw').addEventListener('keydown', function(e){ if(e.key==='Enter'){ state.kw=this.value; state.page=1; state.selectedId=null; renderGrid(); } });
+$('grid').addEventListener('click', function(e){
+  var card = e.target.closest('.card');
+  if(!card) return;
+  state.selectedId = card.getAttribute('data-id');
+  renderGrid();
+});
+document.addEventListener('click', function(e){
+  var t = e.target.closest('[data-toast]');
+  if(t) toast(t.getAttribute('data-toast'));
+});
+renderAll();
+</script>
+</body>
+</html>

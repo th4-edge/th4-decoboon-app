@@ -132,7 +132,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
               <view><text>{{ money(catalog.manualPrice) }}</text><text>人工</text></view>
               <view><text>{{ catalog.unit }}</text><text>单位</text></view>
             </view>
-            <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>{{ catalog.formula }}，最终金额由服务端按工程量计算。</text></view>
+            <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>{{ catalog.formula }}，最终金额由系统按工程量计算。</text></view>
             <text v-if="catalog.craft" class="ds__catalog-craft">{{ catalog.craft }}</text>
             <view class="ds__quantity-row"><text>工程量（{{ catalog.unit }}，0为赠送）*</text><input :value="quantities[catalog.id] ?? '1'" type="digit" class="jz-form-input ds__quantity-input" placeholder="请输入工程量" @input="emit('quantity-input', catalog.id, $event)" /></view>
           </view>

@@ -60,7 +60,7 @@ const errors = computed(() => {
 })
 
 const canSubmit = computed(() => !submitting.value && Object.keys(errors.value).length === 0)
-const footerHint = computed(() => errors.value.name ? '请先填写工人姓名' : '请检查标红的字段')
+const footerHint = computed(() => errors.value.name ? '请先填写工人姓名' : '请检查标红的内容')
 
 function errorOf(key: FieldKey) {
   return touched[key] || submitAttempted.value ? errors.value[key] || '' : ''

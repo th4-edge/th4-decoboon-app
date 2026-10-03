@@ -110,7 +110,7 @@ async function submit() {
       <button class="jz-btn jz-btn--primary jz-btn--block password-submit" :loading="submitting" @tap="submit">
         {{ passwordSet ? '保存新密码' : '设置密码' }}
       </button>
-      <text class="password-tip">密码仅保存为 BCrypt 哈希，服务端和前端均不会展示明文密码。</text>
+      <text class="password-tip">密码仅以加密形式保存，页面不会展示明文密码。</text>
     </view>
   </view>
 </template>

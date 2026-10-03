@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>装得清 · 整体页面高保真优化原型（设计师工作台）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f7d5a'/%3E%3Cpath d='M8 10h16M8 16h16M8 22h10' stroke='%23fff' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --brand-50:#eef6f1; --brand-100:#d6eadf; --brand-200:#add5bf; --brand-300:#7fbb9b;
+  --brand-400:#529e77; --brand-500:#2f7d5a; --brand-600:#26654a; --brand-700:#1d4e39;
+  --brand-800:#153829; --brand-900:#0c221a;
+  --ink-950:#1a1a17; --ink-800:#2e2e2a; --ink-600:#66665f; --ink-400:#b8b8b0;
+  --line-200:#ebebe6; --surface-50:#fafaf8; --surface-100:#f5f5f2; --surface-0:#fff;
+  --success:#22a06b; --success-bg:#e9f7f0; --warning:#e8a020; --warning-bg:#fdf4e3;
+  --danger:#e5484d; --danger-bg:#fdecec; --info:#3b7de8; --info-bg:#ebf2fe;
+  --text-primary:#1a1a17; --text-secondary:#66665f; --text-tertiary:#8a8a82;
+  --radius-xs:6px; --radius-sm:10px; --radius-md:14px; --radius-lg:18px; --radius-pill:999px;
+  --shadow-card:0 1px 3px rgba(26,26,23,.05),0 1px 2px rgba(26,26,23,.03);
+  --shadow-md:0 10px 28px rgba(26,26,23,.10);
+  --sidebar-w:236px; --topbar-h:64px;
+  --font: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font);color:var(--text-primary);background:var(--surface-100);line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font-family:inherit}
+a{color:var(--brand-600);text-decoration:none}
+:focus-visible{outline:2px solid var(--brand-400);outline-offset:2px;border-radius:4px}
+.icon{width:18px;height:18px;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon-sm{width:14px;height:14px}
+
+/* ===== 应用外壳 ===== */
+.app{display:flex;min-height:100vh}
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar-w);z-index:30;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,#10251f 0%,#0b2d28 100%);border-right:1px solid rgba(255,255,255,.07);transition:width .2s cubic-bezier(.4,0,.2,1)}
+.sidebar.collapsed{width:76px}
+.brand{height:var(--topbar-h);display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand__mark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--brand-500);box-shadow:0 8px 20px rgba(0,0,0,.22);flex:0 0 auto}
+.brand__mark svg{width:22px;height:22px}
+.brand__text{display:flex;flex-direction:column;white-space:nowrap}
+.brand__text strong{color:#fff;font-size:16px;font-weight:700;letter-spacing:.02em}
+.brand__text span{color:rgba(255,255,255,.48);font-size:10px}
+.sidebar.collapsed .brand{padding:0;justify-content:center}
+.sidebar.collapsed .brand__text,.sidebar.collapsed .role-card{display:none}
+.role-card{margin:16px 14px 12px;padding:13px 14px;display:grid;gap:3px;border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-sm);background:rgba(255,255,255,.06);box-shadow:inset 3px 0 0 var(--brand-400)}
+.role-card__label{color:var(--brand-300);font-size:10px;font-weight:600;letter-spacing:.04em}
+.role-card strong{color:#fff;font-size:14px;line-height:1.3}
+.role-card small{color:rgba(255,255,255,.5);font-size:10px}
+.nav{flex:1;padding:4px 10px 20px;overflow-y:auto}
+.nav__item{display:flex;align-items:center;gap:11px;height:42px;margin:2px 0;padding:0 12px;color:rgba(255,255,255,.68);font-size:13px;border-radius:10px;transition:all .12s;cursor:pointer;user-select:none}
+.nav__item:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav__item.active{color:#fff;font-weight:600;background:rgba(47,125,90,.32);box-shadow:inset 3px 0 0 var(--brand-300)}
+.sidebar.collapsed .nav__item{justify-content:center;padding:0}
+.nav__item .nav__count{margin-left:auto;min-width:22px;padding:2px 7px;font-size:10px;text-align:center;background:rgba(255,255,255,.14);border-radius:var(--radius-pill);color:rgba(255,255,255,.85)}
+.sidebar.collapsed .nav__item .nav__count{display:none}
+.nav__divider{height:1px;margin:10px 6px;background:rgba(255,255,255,.08)}
+.nav__group{color:rgba(255,255,255,.35);font-size:10px;letter-spacing:.08em;padding:12px 12px 4px;font-weight:600}
+.sidebar.collapsed .nav__group{text-align:center;padding:12px 0 4px}
+
+.main{flex:1;min-width:0;margin-left:var(--sidebar-w);transition:margin-left .2s cubic-bezier(.4,0,.2,1)}
+.sidebar.collapsed ~ .main{margin-left:76px}
+
+/* ===== 顶栏 ===== */
+.topbar{position:sticky;top:0;z-index:20;height:var(--topbar-h);display:flex;align-items:center;gap:12px;padding:0 18px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line-200);backdrop-filter:blur(14px)}
+.icon-btn{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border:1px solid var(--line-200);border-radius:10px;background:#fff;color:#526270;transition:all .12s}
+.icon-btn:hover{background:var(--surface-50);border-color:var(--brand-300);color:var(--brand-600)}
+.breadcrumb{display:flex;align-items:center;gap:7px;color:var(--text-tertiary);font-size:13px;white-space:nowrap;flex:0 0 auto}
+.breadcrumb .sep{color:var(--line-200)}
+.breadcrumb .cur{color:var(--text-primary);font-weight:500}
+.gctx{margin-left:6px;flex:1 1 460px;max-width:640px}
+.gctx__box{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--line-200);border-radius:10px;background:var(--surface-50);color:var(--text-tertiary);font-size:12.5px}
+.gctx__box svg{color:var(--text-tertiary)}
+.gctx__box input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:12.5px;color:var(--text-primary)}
+.gctx__box .scope-pill{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;font-size:10.5px;color:var(--brand-700);background:var(--brand-50);border:1px solid var(--brand-100);border-radius:var(--radius-pill);white-space:nowrap}
+.topbar__right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.scope-tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;font-size:11.5px;color:var(--brand-700);background:var(--brand-50);border:1px solid var(--brand-100);border-radius:var(--radius-pill);white-space:nowrap}
+.scope-tag b{color:var(--brand-600);font-weight:600}
+.user-btn{display:flex;align-items:center;gap:9px;min-width:150px;height:40px;padding:3px 8px;border-radius:10px;transition:background .12s}
+.user-btn:hover{background:var(--surface-50)}
+.avatar{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--brand-600);color:#fff;font-size:14px;font-weight:700}
+.user-meta{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.user-meta strong{font-size:13px;color:var(--text-primary);max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-meta small{font-size:10px;color:var(--text-tertiary)}
+
+/* ===== 内容区 ===== */
+.content{padding:20px 24px 48px;max-width:1560px;margin:0 auto}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;flex-wrap:wrap}
+.page-head__copy h1{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.page-head__copy .eyebrow{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--brand-600);font-size:11px;font-weight:600;letter-spacing:.06em}
+.page-head__copy p{color:var(--text-secondary);font-size:13px;margin-top:5px}
+.page-head__stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat-chip{display:flex;flex-direction:column;gap:1px;min-width:86px;padding:9px 14px;background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-sm);box-shadow:var(--shadow-card)}
+.stat-chip b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.stat-chip b.warn{color:var(--danger)}
+.stat-chip span{font-size:10.5px;color:var(--text-tertiary)}
+
+/* ===== 步骤条 ===== */
+.steps{display:flex;align-items:stretch;gap:6px;background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:8px;margin-bottom:16px;overflow-x:auto}
+.step{flex:1;min-width:118px;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--radius-sm);color:var(--text-tertiary);transition:all .15s;cursor:pointer;border:1px solid transparent}
+.step:hover{background:var(--surface-50)}
+.step.current{background:var(--brand-50);border-color:var(--brand-200);color:var(--brand-800)}
+.step.done{color:var(--ink-600)}
+.step .step-num{width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--surface-100);color:var(--text-secondary);font-size:12px;font-weight:700;flex:0 0 auto}
+.step .step-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.step.done .step-num{background:var(--success);color:#fff}
+.step.current .step-num{background:var(--brand-500);color:#fff;box-shadow:0 5px 12px rgba(47,125,90,.28)}
+.step .step-name{font-size:13.5px;font-weight:600}
+.step .step-sub{font-size:10.5px;color:var(--text-tertiary);margin-top:1px}
+.step .step-state{margin-left:auto;font-size:10px;padding:2px 8px;border-radius:var(--radius-pill);white-space:nowrap}
+.step.current .step-state{background:var(--brand-100);color:var(--brand-700)}
+.step.done .step-state{background:var(--success-bg);color:var(--success)}
+
+/* ===== 三栏工作台 ===== */
+.desk{display:grid;grid-template-columns:264px minmax(0,1fr) 300px;gap:14px;align-items:start}
+.col-pool,.col-canvas,.col-context{background:var(--surface-0);border:1px solid var(--line-200);border-radius:var(--radius-md);box-shadow:var(--shadow-card);overflow:hidden}
+.col-pool{position:sticky;top:84px;max-height:calc(100vh - 104px);display:flex;flex-direction:column}
+.col-context{position:sticky;top:84px;max-height:calc(100vh - 104px);overflow-y:auto}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line-200)}
+.panel-head h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px}
+.panel-head h2 .icon{color:var(--brand-500)}
+.panel-head .count-badge{font-size:10px;color:var(--text-tertiary);background:var(--surface-100);padding:2px 8px;border-radius:var(--radius-pill)}
+.pool-search{padding:10px 12px 6px}
+.pool-search__box{display:flex;align-items:center;gap:7px;height:38px;padding:0 10px;border:1px solid var(--line-200);border-radius:9px;background:var(--surface-50);color:var(--text-tertiary)}
+.pool-search__box:focus-within{border-color:var(--brand-300);background:#fff}
+.pool-search__box input{flex:1;min-width:0;border:0;outline:0;background:none;font-size:12.5px;color:var(--text-primary)}
+.pool-tabs{display:flex;gap:6px;padding:8px 12px}
+.pool-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;height:32px;border-radius:8px;font-size:12px;color:var(--text-secondary);transition:all .12s}
+.pool-tab:hover{background:var(--surface-50)}
+.pool-tab.active{background:var(--brand-50);color:var(--brand-700);font-weight:600}
+.pool-tab b{font-size:11px;font-variant-numeric:tabular-nums}
+.pool-list{flex:1;overflow-y:auto;padding:2px 12px 12px}
+.cust{position:relative;padding:13px 12px;margin-top:4px;border:1px solid var(--line-200);border-radius:var(--radius-sm);background:var(--surface-0);cursor:pointer;transition:all .14s}
+.cust:hover{border-color:var(--brand-200);box-shadow:var(--shadow-card)}
+.cust.active{border-color:var(--brand-400);box-shadow:0 0 0 2px rgba(47,125,90,.14)}
+.cust__top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.cust__name{font-size:13.5px;font-weight:600;color:var(--text-primary)}
+.cust__tag{font-size:10px;padding:2px 7px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;gap:4px}
+.cust__tag.overdue{color:#fff;background:var(--danger);font-weight:600}
+.cust__tag.today{color:var(--success);background:var(--success-bg)}
+.cust__tag.normal{color:var(--info);background:var(--info-bg)}
+.cust__tag .icon{width:11px;height:11px}
+.cust__addr{font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:5px}
+.cust__meta{font-size:11px;color:var(--text-tertiary);margin-top:5px;display:flex;flex-wrap:wrap;gap:3px 10px}
+.cust__meta b{color:var(--ink-800);font-weight:600;font-variant-numeric:tabular-nums}
+.cust__foot{display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-200);font-size:10.5px}
+.cust__due{color:var(--danger);font-weight:600}
+.cust__focus{color:var(--warning);display:inline-flex;align-items:center;gap:4px}
+.pool-empty{text-align:center;padding:36px 16px;color:var(--text-tertiary);font-size:12px}
+.pool-empty svg{width:38px;height:38px;margin:0 auto 10px;color:var(--ink-400)}
+
+.col-canvas{min-width:0}
+.canvas-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line-200);flex-wrap:wrap}
+.canvas-head__left h2{font-size:15px;font-weight:600}
+.canvas-head__left p{font-size:11.5px;color:var(--text-tertiary);margin-top:2px}
+.canvas-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:600;transition:all .13s;white-space:nowrap}
+.btn svg{width:14px;height:14px}
+.btn--primary{background:var(--brand-500);color:#fff;box-shadow:0 6px 14px rgba(47,125,90,.22)}
+.btn--primary:hover{background:var(--brand-600)}
+.btn--ghost{background:var(--surface-0);border:1px solid var(--line-200);color:var(--ink-600)}
+.btn--ghost:hover{border-color:var(--brand-300);color:var(--brand-700);background:var(--brand-50)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.object-card{margin:14px 18px;padding:14px 16px;border:1px solid var(--line-200);border-radius:var(--radius-sm);background:linear-gradient(180deg,#fff,var(--surface-50))}
+.object-card__title{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--text-tertiary);letter-spacing:.05em;margin-bottom:9px}
+.object-card__title .icon{color:var(--brand-500);width:15px;height:15px}
+.object-card__row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.object-card__name{font-size:17px;font-weight:700;color:var(--text-primary)}
+.object-card__home{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-800)}
+.object-card__badge{font-size:10.5px;padding:3px 9px;border-radius:var(--radius-pill)}
+.object-card__badge.overdue{color:#fff;background:var(--danger);font-weight:600}
+.object-card__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.object-card__kv{background:var(--surface-0);border:1px solid var(--line-200);border-radius:9px;padding:9px 11px}
+.object-card__kv span{display:block;font-size:10px;color:var(--text-tertiary)}
+.object-card__kv b{font-size:13px;color:var(--ink-800);font-variant-numeric:tabular-nums;font-weight:600}
+.canvas-board{margin:0 18px 18px;border:1px solid var(--line-200);border-radius:var(--radius-sm);overflow:hidden}
+.board-tabs{display:flex;gap:4px;padding:8px;background:var(--surface-50);border-bottom:1px solid var(--line-200)}
+.board-tab{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font-size:12px;color:var(--text-secondary);transition:all .12s}
+.board-tab:hover{background:#fff;color:var(--brand-700)}
+.board-tab.active{background:#fff;color:var(--brand-700);font-weight:600;box-shadow:var(--shadow-card)}
+.board-tab .dot{width:6px;height:6px;border-radius:50%}
+.board-body{padding:16px}
+.flow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.flow-step{border:1px solid var(--line-200);border-radius:var(--radius-sm);padding:13px;background:var(--surface-0);position:relative}
+.flow-step.done{border-color:var(--success-bg);background:var(--success-bg)}
+.flow-step.current{border-color:var(--brand-300);background:var(--brand-50)}
+.flow-step .f-index{font-size:10px;font-weight:700;color:var(--text-tertiary);letter-spacing:.06em}
+.flow-step.done .f-index{color:var(--success)}
+.flow-step.current .f-index{color:var(--brand-600)}
+.flow-step h4{font-size:12.5px;font-weight:600;margin:5px 0 4px;display:flex;align-items:center;gap:6px}
+.flow-step p{font-size:11px;color:var(--text-secondary);line-height:1.6}
+.flow-step .f-check{position:absolute;right:10px;top:10px;width:16px;height:16px;color:var(--success)}
+.board-empty{text-align:center;padding:44px 16px;color:var(--text-tertiary)}
+.board-empty svg{width:44px;height:44px;margin:0 auto 12px;color:var(--ink-400)}
+.board-hint{display:flex;align-items:center;gap:8px;margin:0 18px 18px;padding:10px 14px;font-size:11.5px;color:var(--text-secondary);background:var(--surface-50);border-radius:9px}
+.board-hint svg{width:15px;height:15px;color:var(--info);flex:0 0 auto}
+
+.col-context .ctx-block{padding:13px 16px;border-bottom:1px solid var(--line-200)}
+.col-context .ctx-block:last-child{border-bottom:0}
+.ctx-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink-800);margin-bottom:10px}
+.ctx-title .icon{color:var(--brand-500);width:15px;height:15px}
+.kv{display:grid;grid-template-columns:74px 1fr;gap:7px 10px;font-size:11.5px}
+.kv dt{color:var(--text-tertiary)}
+.kv dd{color:var(--ink-800);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kv dd b{font-variant-numeric:tabular-nums}
+.ctx-tags{display:flex;flex-wrap:wrap;gap:6px}
+.ctx-tag{font-size:10.5px;padding:3px 9px;border-radius:var(--radius-pill);background:var(--surface-100);color:var(--ink-600)}
+.ctx-tag.warn{background:var(--warning-bg);color:var(--warning)}
+.ctx-tag.ok{background:var(--success-bg);color:var(--success)}
+.contact-row{display:flex;align-items:center;gap:9px;margin-top:4px}
+.contact-avatar{width:30px;height:30px;border-radius:var(--radius-pill);display:grid;place-items:center;background:var(--brand-100);color:var(--brand-700);font-size:12px;font-weight:700;flex:0 0 auto}
+.contact-row .c-info{min-width:0;flex:1}
+.contact-row .c-info b{display:block;font-size:12.5px}
+.contact-row .c-info span{font-size:11px;color:var(--text-tertiary);font-variant-numeric:tabular-nums}
+.contact-row .icon-btn{width:30px;height:30px}
+
+/* ===== 提示 ===== */
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,16px);z-index:99;display:flex;align-items:center;gap:8px;padding:11px 18px;background:var(--ink-950);color:#fff;font-size:12.5px;border-radius:var(--radius-pill);opacity:0;pointer-events:none;transition:all .22s;box-shadow:var(--shadow-md)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:15px;height:15px;color:var(--brand-300)}
+
+/* ===== 响应式 ===== */
+@media (max-width:1360px){
+  .breadcrumb{display:none}
+  .desk{grid-template-columns:236px minmax(0,1fr)}
+  .col-context{grid-column:1/-1;position:static;max-height:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .col-context .ctx-block{border-bottom:0;border-right:1px solid var(--line-200)}
+}
+@media (max-width:1024px){
+  :root{--sidebar-w:76px}
+  .brand__text,.role-card{display:none}
+  .brand{padding:0;justify-content:center}
+  .sidebar:not(.collapsed){width:76px}
+  .sidebar:not(.collapsed) .brand__text,.sidebar:not(.collapsed) .role-card{display:none}
+  .sidebar:not(.collapsed) .nav__item{justify-content:center;padding:0}
+  .sidebar:not(.collapsed) .nav__item .nav__count{display:none}
+  .sidebar:not(.collapsed) .nav__group{text-align:center;padding:12px 0 4px}
+  .main{margin-left:76px}
+  .gctx__box .scope-pill{display:none}
+}
+@media (max-width:900px){
+  .desk{grid-template-columns:1fr}
+  .col-pool{position:static;max-height:none}
+  .content{padding:16px 14px 40px}
+  .topbar{padding:0 12px;gap:8px}
+  .scope-tag{display:none}
+  .steps{flex-wrap:nowrap}
+  .flow{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<!-- ===== 应用外壳：侧边栏 ===== -->
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand__mark">
+        <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h8M8 12.5h8M8 16h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </span>
+      <span class="brand__text"><strong>装得清</strong><span>岗位工作台</span></span>
+    </div>
+    <div class="role-card">
+      <span class="role-card__label">当前角色 · 设计师</span>
+      <strong>本人负责</strong>
+      <small>Self · 仅本人设计范围</small>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav__group">工作</div>
+      <div class="nav__item active" data-page="workbench"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg><span>设计工作台</span></div>
+      <div class="nav__item" data-page="performance"><svg class="icon" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg><span>设计业绩</span></div>
+      <div class="nav__item" data-page="customers"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>客户档案</span></div>
+      <div class="nav__item" data-page="todo"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8.5 14.5l2 2 4-4"/></svg><span>待办中心</span><span class="nav__count">3</span></div>
+      <div class="nav__divider"></div>
+      <div class="nav__group">业务</div>
+      <div class="nav__item" data-page="catalog"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>报价项目库</span></div>
+      <div class="nav__item" data-page="quote"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg><span>方案报价</span></div>
+    </nav>
+  </aside>
+
+  <!-- ===== 顶栏 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="sidebarToggle" title="展开或收起菜单"><svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+      <div class="breadcrumb"><span>工作台</span><span class="sep">/</span><span class="cur" id="crumbCur">量房工作台</span></div>
+      <div class="gctx">
+        <div class="gctx__box">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="globalSearch" placeholder="搜索对象或旧菜单名称" />
+          <span class="scope-pill"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3.5 9h17M3.5 15h17"/></svg>企业全局</span>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <span class="scope-tag"><b>本人负责</b> · Self</span>
+        <button class="icon-btn" title="消息中心" data-toast="消息中心：暂无未读消息"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+        <button class="user-btn" data-toast="个人中心（演示）">
+          <span class="avatar">鹏</span>
+          <span class="user-meta"><strong>董夏鹏</strong><small>设计师</small></span>
+          <svg class="icon icon-sm" viewBox="0 0 24 24" style="color:#9aa5b1"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- ===== 视图：量房工作台 ===== -->
+      <section id="view-workbench">
+        <div class="page-head">
+          <div class="page-head__copy">
+            <span class="eyebrow"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>设计师工作台 · 销售推进</span>
+            <h1>量房工作台</h1>
+            <p>左侧行程池跟进今日与逾期的量房安排，中间画布执行量房动作，右侧查看客户与房屋上下文。</p>
+          </div>
+          <div class="page-head__stats">
+            <div class="stat-chip"><b id="statAll">1</b><span>全部行程</span></div>
+            <div class="stat-chip"><b class="warn" id="statOverdue">1</b><span>已逾期</span></div>
+            <div class="stat-chip"><b id="statToday">0</b><span>今日量房</span></div>
+          </div>
+        </div>
+
+        <nav class="steps" id="stepsNav" aria-label="销售流程步骤">
+          <div class="step current" data-step="measure">
+            <span class="step-num">1</span>
+            <span class="step-text"><span class="step-name">量房</span><span class="step-sub">现场测量与户型确认</span></span>
+            <span class="step-state">进行中</span>
+          </div>
+          <div class="step" data-step="design">
+            <span class="step-num">2</span>
+            <span class="step-text"><span class="step-name">方案</span><span class="step-sub">平面与效果方案</span></span>
+            <span class="step-state">未开始</span>
+          </div>
+          <div class="step" data-step="quote">
+            <span class="step-num">3</span>
+            <span class="step-text"><span class="step-name">报价</span><span class="step-sub">预算与报价单</span></span>
+            <span class="step-state">未开始</span>
+          </div>
+          <div class="step" data-step="contract">
+            <span class="step-num">4</span>
+            <span class="step-text"><span class="step-name">签约</span><span class="step-sub">合同与首付款</span></span>
+            <span class="step-state">未开始</span>
+          </div>
+          <div class="step" data-step="build">
+            <span class="step-num">5</span>
+            <span class="step-text"><span class="step-name">施工协同</span><span class="step-sub">工程与节点验收</span></span>
+            <span class="step-state">未开始</span>
+          </div>
+        </nav>
+
+        <div class="desk">
+          <!-- 左：量房行程池 -->
+          <aside class="col-pool">
+            <div class="panel-head">
+              <h2><svg class="icon" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M12 7v5l3 3"/></svg>量房行程池</h2>
+              <span class="count-badge" id="poolCount">1 位客户</span>
+            </div>
+            <div class="pool-search">
+              <div class="pool-search__box">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input id="poolSearch" placeholder="客户 / 小区 / 电话" />
+              </div>
+            </div>
+            <div class="pool-tabs" id="poolTabs">
+              <button class="pool-tab active" data-filter="all">全部 <b id="fAll">1</b></button>
+              <button class="pool-tab" data-filter="overdue">逾期 <b id="fOverdue">1</b></button>
+              <button class="pool-tab" data-filter="today">今日 <b id="fToday">0</b></button>
+            </div>
+            <div class="pool-list" id="poolList"></div>
+          </aside>
+
+          <!-- 中：现场执行画布 -->
+          <section class="col-canvas">
+            <div class="canvas-head">
+              <div class="canvas-head__left">
+                <h2 id="canvasTitle">现场执行画布</h2>
+                <p id="canvasSub">当前量房对象 · 点击左侧客户可切换</p>
+              </div>
+              <div class="canvas-actions">
+                <button class="btn btn--ghost" id="btnRefresh"><svg class="icon" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"/></svg>刷新状态</button>
+                <button class="btn btn--ghost" id="btnFocus"><svg class="icon" viewBox="0 0 24 24"><path d="M12 15l-2.5 1.5.6-3-2.3-2 3-.4L12 8l1.2 3.1 3 .4-2.3 2 .6 3z"/></svg>维护关注点</button>
+                <button class="btn btn--primary" id="btnMeasure"><svg class="icon" viewBox="0 0 24 24"><path d="M3 17l14-14M9 9l3 3M13 5l3 3M17 9l3 3"/><path d="M3 21h18"/></svg>开始量房</button>
+              </div>
+            </div>
+            <div class="object-card" id="objectCard"></div>
+            <div class="canvas-board">
+              <div class="board-tabs" id="boardTabs">
+                <button class="board-tab active" data-tab="flow"><span class="dot" style="background:var(--brand-500)"></span>量房流程</button>
+                <button class="board-tab" data-tab="data"><span class="dot" style="background:var(--info)"></span>户型数据</button>
+                <button class="board-tab" data-tab="notes"><span class="dot" style="background:var(--warning)"></span>现场备注</button>
+              </div>
+              <div class="board-body" id="boardBody"></div>
+            </div>
+            <div class="board-hint">
+              <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              <span id="boardHint">提示：量房数据仅设计师本人可见，客户可在移动端查看进度。</span>
+            </div>
+          </section>
+
+          <!-- 右：客户与设计准备上下文 -->
+          <aside class="col-context" id="contextPanel"></aside>
+        </div>
+      </section>
+
+      <!-- ===== 视图占位：其他工作台（演示） ===== -->
+      <section id="view-placeholder" hidden>
+        <div class="page-head">
+          <div class="page-head__copy">
+            <span class="eyebrow">设计师工作台</span>
+            <h1 id="phTitle">设计工作台</h1>
+            <p>本原型聚焦「量房工作台」与「报价项目库」两个页面的高保真优化；其余工作台在此示意入口与导航结构。</p>
+          </div>
+        </div>
+        <div class="board-empty" style="padding:70px 20px">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>
+          <p style="font-size:13px;margin-top:6px">该模块为演示占位，点击左侧导航可切换视图。</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span id="toastText"></span></div>
+
+<script>
+/* ===== 演示数据（真实页面数据 + 示例客户，示例数据已在页脚标注） ===== */
+var CUSTOMERS = [
+  { id:1, name:'UI测试客户', phone:'13800009901', community:'融创城', house:'1801', area:128, layout:'户型待补充', budget:'28万', status:'overdue', due:'09-25 10:30', focus:'关注点待维护', follow:['预约中'], houseFull:'融创城 8 栋 1801 室', preStep:1, preTime:'—', arrTime:'09-25 10:30 已逾期' },
+  { id:2, name:'王女士（示例）', phone:'13911112222', community:'北城世纪城', house:'2203', area:96, layout:'三室两厅', budget:'18万', status:'today', due:'今天 14:30', focus:'客餐厅一体，需重点沟通收纳', follow:['今日量房'], houseFull:'北城世纪城 2 期 12 栋 2203 室', preStep:2, preTime:'已电话确认', arrTime:'今天 14:30' },
+  { id:3, name:'李先生（示例）', phone:'13733334444', community:'融创城', house:'1102', area:142, layout:'四室两厅', budget:'35万', status:'normal', due:'10-03 09:30', focus:'关注采光与阳台封窗方案', follow:['待确认'], houseFull:'融创城 1 期 5 栋 1102 室', preStep:1, preTime:'待确认', arrTime:'10-03 09:30' }
+];
+
+var state = {
+  filter:'all',
+  keyword:'',
+  selected:1,
+  boardTab:'flow'
+};
+
+/* ===== 工具 ===== */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+var toastTimer = null;
+function toast(msg){
+  $('toastText').textContent = msg;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ $('toast').classList.remove('show'); }, 2200);
+}
+function statusBadge(c){
+  if(c.status==='overdue') return '<span class="cust__tag overdue"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>逾期</span>';
+  if(c.status==='today') return '<span class="cust__tag today">今日量房</span>';
+  return '<span class="cust__tag normal">进行中</span>';
+}
+
+/* ===== 行程池渲染 ===== */
+function filtered(){
+  var kw = state.keyword.trim();
+  var list = CUSTOMERS.filter(function(c){
+    if(state.filter==='overdue' && c.status!=='overdue') return false;
+    if(state.filter==='today' && c.status!=='today') return false;
+    if(kw && (c.name.indexOf(kw)<0 && c.community.indexOf(kw)<0 && c.phone.indexOf(kw)<0)) return false;
+    return true;
+  });
+  return list;
+}
+function renderPool(){
+  var list = filtered();
+  $('poolCount').textContent = list.length + ' 位客户';
+  var html = '';
+  list.forEach(function(c){
+    html += '<div class="cust' + (state.selected===c.id?' active':'') + '" data-id="' + c.id + '">' +
+      '<div class="cust__top"><span class="cust__name">' + esc(c.name) + '</span>' + statusBadge(c) + '</div>' +
+      '<div class="cust__addr"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>' + esc(c.community) + ' · ' + esc(c.house) + '</div>' +
+      '<div class="cust__meta">' + c.area + '㎡ · ' + esc(c.layout) + ' · 预算 <b>' + esc(c.budget) + '</b></div>' +
+      '<div class="cust__foot"><span class="cust__due"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>' + esc(c.due) + '</span><span class="cust__focus"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 2l2.4 5 5.6.6-4.2 3.8 1.2 5.6L12 14.2 7 17l1.2-5.6L4 7.6l5.6-.6z"/></svg>' + esc(c.focus) + '</span></div>' +
+      '</div>';
+  });
+  if(!list.length){
+    html = '<div class="pool-empty"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 15s1.5-2 4-2 4 2 4 2M9 9h.01M15 9h.01"/></svg><p>' + (state.keyword ? '没有匹配「' + esc(state.keyword) + '」的客户' : '当前筛选下没有量房行程') + '</p></div>';
+  }
+  $('poolList').innerHTML = html;
+  ['fAll','fOverdue','fToday'].forEach(function(id,i){
+    $(id).textContent = CUSTOMERS.filter(function(c){ return ['all','overdue','today'][i]==='all' ? true : c.status===['all','overdue','today'][i]; }).length;
+  });
+  $('statAll').textContent = CUSTOMERS.length;
+  $('statOverdue').textContent = CUSTOMERS.filter(function(c){return c.status==='overdue';}).length;
+  $('statToday').textContent = CUSTOMERS.filter(function(c){return c.status==='today';}).length;
+}
+function renderCanvas(){
+  var c = CUSTOMERS.filter(function(x){return x.id===state.selected;})[0];
+  if(!c) return;
+  $('canvasTitle').textContent = '现场执行画布';
+  $('canvasSub').textContent = '当前量房对象 · ' + c.name + ' · ' + c.community + ' · ' + c.house;
+  $('objectCard').innerHTML =
+    '<div class="object-card__title"><svg class="icon" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/></svg>当前量房对象</div>' +
+    '<div class="object-card__row"><span class="object-card__name">' + esc(c.name) + '</span><span class="object-card__home"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/></svg>' + esc(c.houseFull) + '</span>' +
+    (c.status==='overdue' ? '<span class="object-card__badge overdue">已逾期 · 需立即处理</span>' : (c.status==='today' ? '<span class="object-card__badge" style="background:var(--success-bg);color:var(--success);font-weight:600">今日量房</span>' : '<span class="object-card__badge" style="background:var(--info-bg);color:var(--info)">已预约</span>')) + '</div>' +
+    '<div class="object-card__grid">' +
+      '<div class="object-card__kv"><span>建筑面积</span><b>' + c.area + ' ㎡</b></div>' +
+      '<div class="object-card__kv"><span>户型</span><b>' + esc(c.layout) + '</b></div>' +
+      '<div class="object-card__kv"><span>预算范围</span><b>' + esc(c.budget) + '</b></div>' +
+      '<div class="object-card__kv"><span>预约时间</span><b>' + esc(c.arrTime) + '</b></div>' +
+    '</div>';
+  renderBoard();
+  renderContext(c);
+}
+function renderBoard(){
+  var c = CUSTOMERS.filter(function(x){return x.id===state.selected;})[0];
+  if(!c) return;
+  var t = state.boardTab;
+  var html = '';
+  if(t==='flow'){
+    var steps = [
+      { idx:'01', name:'量房准备', desc:'核对户型图、携带测量工具与标准话术，确认预约时间。', st:'done' },
+      { idx:'02', name:'现场测量', desc:'逐间测量墙面、地面、梁柱与门窗洞口尺寸，记录现场问题。', st:'current' },
+      { idx:'03', name:'数据确认', desc:'与客户确认户型数据与关注点，约定方案沟通时间。', st:'' }
+    ];
+    html = '<div class="flow">';
+    steps.forEach(function(s){
+      html += '<div class="flow-step ' + s.st + '">' +
+        (s.st==='done' ? '<svg class="icon f-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>' : '') +
+        '<span class="f-index">' + s.idx + '</span><h4>' + s.name + '</h4><p>' + s.desc + '</p></div>';
+    });
+    html += '</div>';
+  } else if(t==='data'){
+    html = '<div class="board-empty"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 4v16"/></svg><p style="font-size:12px;margin-top:6px">完成现场测量后，户型数据将在此呈现（演示态）。</p></div>';
+  } else {
+    html = '<div class="board-empty"><svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg><p style="font-size:12px;margin-top:6px">现场备注与照片暂未录入，量房后由设计师补充。</p></div>';
+  }
+  $('boardBody').innerHTML = html;
+}
+function renderContext(c){
+  $('contextPanel').innerHTML =
+    '<div class="ctx-block"><div class="ctx-title"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/></svg>客户信息</div>' +
+    '<div class="kv"><dt>客户</dt><dd>' + esc(c.name) + '</dd><dt>电话</dt><dd><b>' + esc(c.phone) + '</b></dd><dt>来源</dt><dd>到店接待（示例）</dd><dt>营销进度</dt><dd>量房阶段</dd></div>' +
+    '<div class="contact-row" style="margin-top:10px"><span class="contact-avatar">' + esc(c.name[0]) + '</span><span class="c-info"><b>' + esc(c.name) + '</b><span>' + esc(c.phone) + '</span></span>' +
+    '<button class="icon-btn" data-toast="拨打电话（演示）"><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 10a16 16 0 0 0 6 6l1.4-1.4a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.6 2z"/></svg></button>' +
+    '<button class="icon-btn" data-toast="添加微信（演示）"><svg class="icon" viewBox="0 0 24 24"><path d="M14.5 7a5.5 5.5 0 1 0 .4 11H13l-2.5 2v-2.3A6.5 6.5 0 0 0 14.5 7zM7 9h.01M10 9h.01"/></svg></button></div></div>' +
+    '<div class="ctx-block"><div class="ctx-title"><svg class="icon" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>装修房屋</div>' +
+    '<div class="kv"><dt>房屋</dt><dd>' + esc(c.houseFull) + '</dd><dt>面积</dt><dd><b>' + c.area + ' ㎡</b></dd><dt>户型</dt><dd>' + esc(c.layout) + '</dd><dt>状态</dt><dd>预约中（示例）</dd></div></div>' +
+    '<div class="ctx-block"><div class="ctx-title"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>跟进状态</div>' +
+    '<div class="ctx-tags"><span class="ctx-tag">上次跟进：' + esc(c.preTime) + '</span><span class="ctx-tag' + (c.status==='overdue'?' warn':'') + '">预约：' + esc(c.due) + '</span></div>' +
+    '<div style="margin-top:10px"><div class="kv"><dt>关注点</dt><dd>' + esc(c.focus) + '</dd></div></div></div>';
+}
+
+/* ===== 事件绑定 ===== */
+function bind(){
+  $('sidebarToggle').addEventListener('click', function(){
+    $('sidebar').classList.toggle('collapsed');
+  });
+  document.getElementById('nav').addEventListener('click', function(e){
+    var item = e.target.closest('.nav__item');
+    if(!item) return;
+    document.querySelectorAll('.nav__item').forEach(function(n){ n.classList.remove('active'); });
+    item.classList.add('active');
+    var page = item.getAttribute('data-page');
+    var crumbMap = { workbench:'量房工作台', performance:'设计业绩', customers:'客户档案', todo:'待办中心', catalog:'报价项目库', quote:'方案报价' };
+    $('crumbCur').textContent = crumbMap[page] || page;
+    if(page==='workbench'){
+      $('view-workbench').hidden = false;
+      $('view-placeholder').hidden = true;
+    } else {
+      $('view-workbench').hidden = true;
+      $('view-placeholder').hidden = false;
+      var titles = { performance:'设计业绩', customers:'客户档案', todo:'待办中心', catalog:'报价项目库', quote:'方案报价' };
+      $('phTitle').textContent = titles[page] || page;
+      toast('「' + (titles[page]||page) + '」为演示占位，详见报价项目库独立原型');
+    }
+  });
+  document.getElementById('stepsNav').addEventListener('click', function(e){
+    var step = e.target.closest('.step');
+    if(!step) return;
+    document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('current'); });
+    step.classList.add('current');
+    var map = { measure:'量房工作台', design:'设计工作台', quote:'报价工作台', contract:'签约工作台', build:'施工协同' };
+    $('crumbCur').textContent = map[step.getAttribute('data-step')] || '量房工作台';
+    toast('已切换至「' + (map[step.getAttribute('data-step')]) + '」（演示）');
+  });
+  document.getElementById('poolTabs').addEventListener('click', function(e){
+    var tab = e.target.closest('.pool-tab');
+    if(!tab) return;
+    document.querySelectorAll('.pool-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    state.filter = tab.getAttribute('data-filter');
+    renderPool();
+  });
+  $('poolSearch').addEventListener('input', function(){ state.keyword = this.value; renderPool(); });
+  $('poolList').addEventListener('click', function(e){
+    var card = e.target.closest('.cust');
+    if(!card) return;
+    state.selected = Number(card.getAttribute('data-id'));
+    renderPool();
+    renderCanvas();
+  });
+  document.getElementById('boardTabs').addEventListener('click', function(e){
+    var tab = e.target.closest('.board-tab');
+    if(!tab) return;
+    document.querySelectorAll('.board-tab').forEach(function(t){ t.classList.remove('active'); });
+    tab.classList.add('active');
+    state.boardTab = tab.getAttribute('data-tab');
+    renderBoard();
+  });
+  $('btnRefresh').addEventListener('click', function(){ toast('状态已刷新（演示）'); });
+  $('btnFocus').addEventListener('click', function(){ toast('关注点维护：进入编辑弹窗（演示）'); });
+  $('btnMeasure').addEventListener('click', function(){ toast('开始量房：调用移动测量端（演示）'); });
+  $('globalSearch').addEventListener('keydown', function(e){ if(e.key==='Enter') toast('搜索「' + this.value + '」（演示）'); });
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-toast]');
+    if(t) toast(t.getAttribute('data-toast'));
+  });
+}
+bind();
+renderPool();
+renderCanvas();
+</script>
+</body>
+</html>

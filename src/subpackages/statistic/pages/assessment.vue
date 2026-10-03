@@ -172,7 +172,7 @@ function currentMonth() {
             <view class="assess-measure__head">
               <view class="jz-grow">
                 <text class="assess-measure__name">{{ group.marketerName || '未分配业务员' }}</text>
-                <text class="assess-measure__sub">{{ group.storeName || '当前数据范围' }} · {{ group.itemCount }} 户</text>
+                <text class="assess-measure__sub">{{ group.storeName || '当前可见范围' }} · {{ group.itemCount }} 户</text>
               </view>
               <text class="assess-measure__rate">{{ group.appointmentRate ?? 0 }}%</text>
             </view>

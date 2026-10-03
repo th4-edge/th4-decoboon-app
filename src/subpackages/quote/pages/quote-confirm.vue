@@ -242,7 +242,7 @@ async function submit() {
           <text class="qc__breakdown-final-label">最终价格</text>
           <text class="qc__breakdown-final-value">¥{{ money(finalAmount) }}</text>
         </view>
-        <text class="qc__breakdown-tip">最终金额以服务端计算为准</text>
+        <text class="qc__breakdown-tip">最终金额由系统自动计算</text>
       </view>
 
       <view v-if="!hasItems" class="jz-card qc__empty">

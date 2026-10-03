@@ -143,7 +143,7 @@ function roleLabel() {
           <view><text>门店</text><text>{{ invite.store?.name || '默认门店' }}</text></view>
           <view><text>团队</text><text>{{ invite.team?.name || '未分配' }}</text></view>
         </view>
-        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>服务端将校验快捷登录手机号与邀请手机号一致</text></view>
+        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>系统会核对快捷登录手机号与邀请手机号是否一致</text></view>
       </view>
       <view v-else-if="loadError" class="invite-error jz-card">
         <JzIcon name="alert-circle" :size="42" :color="TOKEN_COLOR.danger" />

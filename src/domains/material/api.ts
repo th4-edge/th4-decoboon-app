@@ -217,7 +217,7 @@ function normalizeSelection(raw: RawRecord): import('./model').MaterialSelection
 }
 
 /**
- * 签约后主材选材确认（SCN-006 / BR-004 / DEC-003）。
+ * 签约后主材选材确认。
  * 文本化保存、按版本保留历史、不改报价合同成本，采购前是否强制以已确认选材为准由装企流程另行配置。
  */
 export const materialSelectionApi = {
