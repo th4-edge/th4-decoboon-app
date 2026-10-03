@@ -554,6 +554,14 @@ import type { HouseItem } from '@/types/house'
 - 修改本文件后，必须同步检查当前 Token 真源 `src/uni.scss`、目标文件 `src/styles/tokens.scss`、可能新增的 `src/styles/tokens.ts / src/styles/variables.css`、相关 `src/styles/*.scss` 和现有 `Jz*` 组件，避免文档数值与运行值不一致。
 - 全局业务架构、Provider 路由对照和联调顺序见 `docs/04-App工程架构与接口对接.md`；业务设计见 `docs/01`、`docs/02`、`docs/03`。
 
+### 16.1 分支与发布（强制）
+
+- 长期分支只有 `dev` / `test` / `prod`；`master/main` 归档后不再保留，本次收敛以 `dev` 为唯一日常开发入口。
+- 正常发布链固定为 `feature|fix -> dev -> test -> prod`；`test` 只接收已通过 App 门禁的 `dev` 批次，`prod` 只接收已验证的 `test` 批次。
+- `feature/*`、`fix/*`、`hotfix/*`、`integration/*` 合入下游后立即删除；未合入且暂不使用的分支删除前先打 `archive/<branch>-<YYYYMMDD>` 标签。
+- 禁止长期保留特性分支、多 worktree 或直接在 `dev/test/prod` 上开发；`git branch` 出现三条之外长期分支即为违规。
+- 每次提交前至少运行 `npm run type-check`；涉及页面、分包或发布行为时运行 `npm run verify:mp-weixin`。本地收敛和提交默认不推送远端，远端清理必须另行获得明确授权。
+
 ---
 
 ## 17. 微信小程序分包强制规范（必须遵守）
