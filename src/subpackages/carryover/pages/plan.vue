@@ -7,9 +7,11 @@ import type { ProjectStage } from '@/domains/project/model'
 import type { CarryoverPlanChange, CarryoverProject } from '@/domains/carryover/model'
 import { carryoverApi } from '@/domains/carryover/api'
 import { projectApi } from '@/domains/project/api'
-import { toast, toastError, loading, hideLoading } from '@/composables/toast'
+import { confirm, toast, toastError, loading, hideLoading } from '@/composables/toast'
+import { useInputDialog } from '@/composables/inputDialog'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzInputDialog from '@/components/JzInputDialog.vue'
 
 const itemId = ref('')
 const item = ref<CarryoverProject | null>(null)
@@ -18,6 +20,7 @@ const changes = ref<CarryoverPlanChange[]>([])
 const loadingPage = ref(false)
 const editorVisible = ref(false)
 const saving = ref(false)
+const { dialog: inputDialog, open: openInputDialog, confirm: confirmInputDialog, cancel: cancelInputDialog } = useInputDialog()
 
 const editor = reactive({
   stageId: '',
@@ -158,9 +161,7 @@ async function moveStage(index: number, delta: number) {
 async function confirmPlan() {
   if (!baselineStage.value) { toast('接管基线阶段缺失，请先检查项目数据'); return }
   const content = `当前阶段：${baselineStage.value.name}\n后续阶段：${futureStages.value.map(stage => stage.name).join('、')}\n\n确认后可作为接管后的正式剩余施工计划。`
-  const ok = await new Promise<boolean>(resolve => {
-    uni.showModal({ title: '确认接管后施工计划', content, confirmText: '确认发布', success: (result: any) => resolve(!!result.confirm) })
-  })
+  const ok = await confirm('确认接管后施工计划', content, '确认发布')
   if (!ok) return
   try {
     item.value = await carryoverApi.planConfirm(itemId.value)
@@ -181,21 +182,17 @@ function goProjectPlan() {
   uni.navigateTo({ url: `${P.projectPlan}?id=${projectId.value}` })
 }
 
-function askReason(title: string, content: string): Promise<string | undefined> {
-  return new Promise(resolve => {
-    uni.showModal({
-      title,
-      content,
-      editable: true,
-      placeholderText: '填写调整原因（已锁定计划必填）',
-      confirmText: '继续',
-      success: (result: any) => {
-        if (!result.confirm) resolve(undefined)
-        else resolve((result.content || '').trim())
-      },
-      fail: () => resolve(undefined)
-    } as any)
+async function askReason(title: string, content: string): Promise<string | undefined> {
+  const value = await openInputDialog({
+    title,
+    label: '调整原因',
+    description: content,
+    placeholder: '填写调整原因（已锁定计划必填）',
+    multiline: true,
+    maxlength: 500,
+    confirmText: '继续'
   })
+  return value || undefined
 }
 
 function dateText(value?: string) {
@@ -361,6 +358,21 @@ function planActionText(action: CarryoverPlanChange['action']) {
       </view>
     </view>
   </view>
+    <JzInputDialog
+      :visible="inputDialog.visible"
+      :title="inputDialog.title"
+      :label="inputDialog.label"
+      :description="inputDialog.description"
+      :placeholder="inputDialog.placeholder"
+      :model-value="inputDialog.value"
+      :multiline="inputDialog.multiline"
+      :maxlength="inputDialog.maxlength"
+      :confirm-text="inputDialog.confirmText"
+      :cancel-text="inputDialog.cancelText"
+      @update:model-value="inputDialog.value = $event"
+      @confirm="confirmInputDialog"
+      @cancel="cancelInputDialog"
+    />
 </template>
 
 <style lang="scss" scoped>

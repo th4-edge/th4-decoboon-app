@@ -24,7 +24,10 @@ const report = ref<PmReport | null>(null)
 const loading = ref(false)
 const loadError = ref('')
 const tab = ref<TabKey>('projects')
-const isPm = computed(() => session.role === 'pm')
+const canView = computed(() => session.role === 'pm' || session.role === 'boss')
+const isBoss = computed(() => session.role === 'boss')
+const pageTitle = computed(() => isBoss.value ? '履约驾驶舱' : '项目经理履约驾驶舱')
+const pageSubtitle = computed(() => isBoss.value ? '全公司项目履约、风险、验收与材料总览' : '仅展示本人负责项目及其关联业务')
 const tabItems = computed(() => {
   const r = report.value
   return [
@@ -38,12 +41,12 @@ const tabItems = computed(() => {
 
 onLoad(() => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
-  if (!isPm.value) {
-    uni.showToast({ title: '仅项目经理可访问履约驾驶舱', icon: 'none' })
+  if (!canView.value) {
+    uni.showToast({ title: '仅企业负责人和项目经理可访问履约驾驶舱', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 500)
   }
 })
-onShow(() => { if (isLoggedIn() && isPm.value) void load() })
+onShow(() => { if (isLoggedIn() && canView.value) void load() })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
@@ -92,11 +95,11 @@ function acceptanceLabel(raw: string) {
 
 <template>
   <view class="pm">
-    <JzPageHeader title="项目经理履约驾驶舱" subtitle="仅展示本人负责项目及其关联业务" />
+    <JzPageHeader :title="pageTitle" :subtitle="pageSubtitle" />
 
     <PageState v-if="loadError && !report" state="error" title="履约数据加载失败" :subtitle="loadError" @retry="load" />
     <JzSkeleton v-else-if="loading && !report" :rows="5" />
-    <view v-else-if="isPm && report" class="pm__body">
+    <view v-else-if="canView && report" class="pm__body">
       <view class="pm__hero">
         <view class="pm__hero-main">
           <text class="pm__hero-label">在管履约项目</text>
@@ -181,6 +184,7 @@ function acceptanceLabel(raw: string) {
             </view>
             <text class="pm__task-meta">{{ task.projectName || '项目任务' }} · {{ task.zone?.name || '' }} · {{ taskDue(task) }}</text>
           </view>
+          <view class="pm__card-action"><text>处理任务</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
         </view>
         <JzEmpty v-if="!report.urgentTasks.length" text="近 3 天无临期任务" sub="全部施工任务均处于安全排期" />
       </view>
@@ -192,7 +196,7 @@ function acceptanceLabel(raw: string) {
             <text class="pm__acceptance-title">{{ acceptanceLabel(item.customerStatus) }}</text>
             <text class="pm__acceptance-sub">{{ item.projectName || '项目' }} · {{ item.stageName || '施工阶段' }} · {{ item.content || '等待验收闭环' }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.text4" />
+          <view class="pm__card-action"><text>{{ item.customerStatus === 'rejected' ? '处理整改' : '查看验收' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
         </view>
         <JzEmpty v-if="!report.pendingAcceptances.length" text="暂无待处理验收" sub="阶段任务完成后提交业主确认" />
       </view>
@@ -204,6 +208,7 @@ function acceptanceLabel(raw: string) {
             <JzTag :text="materialDue(item.requiredAt)" :color="materialDue(item.requiredAt).includes('延迟') ? TOKEN_COLOR.danger : TOKEN_COLOR.primary" />
           </view>
           <text class="pm__material-meta">{{ item.quantity }}{{ item.unit }} · {{ item.spec || '按项目材料标准' }}</text>
+          <view class="pm__card-action"><text>查看项目</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
         </view>
         <JzEmpty v-if="!report.materialRisks.length" text="暂无材料到场风险" sub="未来 3 天材料计划均正常" />
       </view>
@@ -234,7 +239,7 @@ function acceptanceLabel(raw: string) {
       </view>
     </view>
 
-    <view v-else class="pm__denied"><JzEmpty text="仅项目经理可查看" sub="请使用邀请注册的项目经理账号登录" /></view>
+    <view v-else class="pm__denied"><JzEmpty text="仅企业负责人和项目经理可查看" sub="请使用企业负责人或项目经理账号登录" /></view>
   </view>
 </template>
 
@@ -265,6 +270,7 @@ function acceptanceLabel(raw: string) {
 .pm__quick-item:active { opacity: .72; }
 .pm__quick-icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: $jzb-primary-lighter; }
 .pm__quick-item text { margin-top: 8rpx; }
+.pm__card-action { display: inline-flex; align-items: center; gap: 4rpx; flex: none; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .pm__tabs { margin-bottom: 16rpx; white-space: nowrap; }
 .pm__tab-row { display: inline-flex; padding: 0 $jzb-page-pad; }
 .pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.14); border-radius: $jzb-radius-pill; transition: color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }

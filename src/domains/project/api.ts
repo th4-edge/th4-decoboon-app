@@ -5,7 +5,7 @@ import type { Employee, ProjectMember } from '@/domains/identity/model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeProperty } from '@/domains/property/api'
-import type { Project, ProjectAlbumEntry, ProjectContractStage, ProjectMetricCard, ProjectOverviewReport, ProjectRiskLevel, ProjectRiskType, ProjectSortKey, ProjectStage, ProjectStatusCount } from './model'
+import type { BusinessOrigin, Project, ProjectAlbumEntry, ProjectContractStage, ProjectMetricCard, ProjectOverviewReport, ProjectRiskLevel, ProjectRiskType, ProjectSortKey, ProjectStage, ProjectStatusCount } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 import { fileApi, type PrivateFileScope } from '@/domains/file/api'
@@ -19,6 +19,9 @@ const PROJECT_STATUS: Record<string, Project['status']> = {
 const PROJECT_STATUS_API: Record<Project['status'], string> = {
   preparing: 'Preparing', ongoing: 'Ongoing', suspended: 'Suspended',
   accepting: 'Accepting', finished: 'Finished', settled: 'Settled'
+}
+const BUSINESS_ORIGIN_API: Record<BusinessOrigin, string> = {
+  new: 'New', carryover: 'Carryover'
 }
 
 const STAGE_STATUS: Record<string, ProjectStage['status']> = {
@@ -170,6 +173,8 @@ export interface ProjectPageQuery {
   statuses?: Project['status'][]
   /** 设计师筛选（empId）。 */
   designerId?: string
+  /** 项目类型：正常业务 / 历史接管。 */
+  businessOrigin?: BusinessOrigin
 }
 
 export interface ProjectOverviewQuery {
@@ -264,6 +269,7 @@ export const projectApi = {
     if (query.keyword && query.keyword.trim()) body.keyword = query.keyword.trim()
     if (query.statuses && query.statuses.length) body.statuses = query.statuses.map((item) => PROJECT_STATUS_API[item])
     if (query.designerId) body.designerId = query.designerId
+    if (query.businessOrigin) body.businessOrigin = BUSINESS_ORIGIN_API[query.businessOrigin]
     const result = await post<PageResult<RawRecord> | RawRecord[]>(uri, body)
     const page = toPageData(result, current, size)
     return { ...page, list: page.list.map(normalizeProject) }

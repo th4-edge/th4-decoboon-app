@@ -9,7 +9,7 @@ import { DIRECTION_LABEL, PAYABLE_STATUS_META, PAYABLE_TYPE_META, RECEIVABLE_STA
 import { PROJECT_STATUS_META } from '@/domains/project/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { confirm, toast, toastError } from '@/composables/toast'
+import { confirm, confirmDanger, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -69,7 +69,10 @@ async function changeSettlement(status: 'confirmed' | 'closed') {
   const settlement = report.value?.settlement
   if (!settlement || !editable.value) return
   const content = status === 'closed' ? '关闭前系统将校验应收、应付是否全部结清，并同步项目为已结算。' : '确认项目收入、成本、利润与结算金额。'
-  if (!await confirm(status === 'closed' ? '关闭项目结算' : '确认结算', content)) return
+  const ok = status === 'closed'
+    ? await confirmDanger('关闭项目结算', content, '关闭结算')
+    : await confirm('确认项目结算', content, '确认结算')
+  if (!ok) return
   try {
     await financeApi.updateSettlement(settlement.id, status)
     await refresh()
@@ -80,7 +83,7 @@ async function changeSettlement(status: 'confirmed' | 'closed') {
 async function releaseRetention() {
   const settlement = report.value?.settlement
   if (!settlement || !editable.value) return
-  const ok = await confirm('释放质保金', '确认质保期已到并完成质保金释放？', '确认释放')
+  const ok = await confirmDanger('释放质保金', '确认质保期已到并完成质保金释放？', '确认释放')
   if (!ok) return
   try {
     await financeApi.releaseRetention(settlement.id)
@@ -177,7 +180,7 @@ async function releaseRetention() {
     <view v-else-if="report && tab === 'settlement'" class="fin-body">
       <view v-if="!report.settlement" class="fp-settle-empty">
         <JzIcon name="file-text" :size="64" :color="TOKEN_COLOR.primary" /><text class="fp-settle-empty__title">尚未生成结算</text><text class="fp-settle-empty__sub">系统将按合同、应收、应付和实收实付自动归集项目利润。</text>
-        <button v-if="editable" class="jz-btn jz-btn--primary fp-settle-btn" @tap="generateSettlement">生成结算</button>
+        <button v-if="editable" class="jz-btn jz-btn--primary fp-settle-btn" @tap="generateSettlement"><JzIcon name="calculator" :size="28" :color="TOKEN_COLOR.white" /><text>生成结算</text></button>
       </view>
       <template v-else>
         <view class="fp-settle-hero">
@@ -203,10 +206,10 @@ async function releaseRetention() {
           <view class="fp-settle-row"><text>质保金</text><text>{{ money(report.settlement.retentionAmount) }} · {{ report.settlement.retentionRate }}%</text></view>
         </view>
         <view v-if="editable" class="fp-actions">
-          <button v-if="report.settlement.status === 'draft' || report.settlement.status === 'confirmed'" class="jz-btn jz-btn--ghost" @tap="generateSettlement">重算</button>
-          <button v-if="report.settlement.status === 'draft'" class="jz-btn jz-btn--primary" @tap="changeSettlement('confirmed')">确认结算</button>
-          <button v-if="report.settlement.status === 'confirmed'" class="jz-btn jz-btn--neutral" @tap="changeSettlement('closed')">关闭结算</button>
-          <button v-if="report.settlement.status === 'retentionPending'" class="jz-btn jz-btn--primary" @tap="releaseRetention">释放质保金</button>
+          <button v-if="report.settlement.status === 'draft' || report.settlement.status === 'confirmed'" class="jz-btn jz-btn--ghost" @tap="generateSettlement"><JzIcon name="refresh" :size="24" :color="TOKEN_COLOR.primary" /><text>重算</text></button>
+          <button v-if="report.settlement.status === 'draft'" class="jz-btn jz-btn--primary" @tap="changeSettlement('confirmed')"><JzIcon name="check-circle" :size="24" :color="TOKEN_COLOR.white" /><text>确认结算</text></button>
+          <button v-if="report.settlement.status === 'confirmed'" class="jz-btn jz-btn--neutral" @tap="changeSettlement('closed')"><JzIcon name="lock" :size="24" :color="TOKEN_COLOR.primary" /><text>关闭结算</text></button>
+          <button v-if="report.settlement.status === 'retentionPending'" class="jz-btn jz-btn--primary" @tap="releaseRetention"><JzIcon name="wallet" :size="24" :color="TOKEN_COLOR.white" /><text>释放质保金</text></button>
         </view>
       </template>
     </view>

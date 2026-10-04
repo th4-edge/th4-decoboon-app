@@ -9,7 +9,7 @@ import { carryoverApi } from '@/domains/carryover/api'
 import type { CarryoverAdjustment, CarryoverAttachment, CarryoverAttachmentCategory, CarryoverAdjustmentType, CarryoverCostStatus, CarryoverProjectInput, CarryoverProjectStatus } from '@/domains/carryover/model'
 import type { ProjectStatus } from '@/domains/project/model'
 import { fileApi } from '@/domains/file/api'
-import { toast, toastError, loading, hideLoading } from '@/composables/toast'
+import { confirm, confirmDanger, toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
@@ -253,9 +253,7 @@ async function removeAttachment(item: CarryoverAttachment) {
 
 async function withdraw() {
   if (!id.value) return
-  const result = await new Promise<boolean>((resolve) => {
-    uni.showModal({ title: '撤回承接项目', content: '撤回后项目不会生成正式工地，确认撤回？', success: res => resolve(!!res.confirm) })
-  })
+  const result = await confirmDanger('撤回承接项目', '撤回后项目不会生成正式工地，确认撤回？', '确认撤回')
   if (!result) return
   try {
     status.value = (await carryoverApi.cancel(id.value, '用户撤回未提交承接项目')).status
@@ -314,9 +312,7 @@ async function confirmFinancialFacts() {
     '',
     '请确认以上是接管日尚未结清的余额和已发生成本，不是历史累计收款、历史累计付款或未来预算。'
   ].join('\n')
-  return new Promise<boolean>((resolve) => {
-    uni.showModal({ title: '提交前核对财务数据', content, confirmText: '确认无误', success: res => resolve(!!res.confirm) })
-  })
+  return confirm('提交前核对财务数据', content, '确认无误')
 }
 
 async function submitCarryover() {

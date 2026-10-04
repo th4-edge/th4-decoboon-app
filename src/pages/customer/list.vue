@@ -15,6 +15,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzActionCard from '@/components/JzActionCard.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
@@ -621,12 +622,21 @@ function bossBusinessAmount(customer: Customer) {
         </template>
       </view>
       <view v-if="loadError" class="jz-card cl__error"><text>{{ loadError }}</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="refresh">重新加载</button></view>
+      <JzActionCard
+        v-else-if="!loading && !list.length && canAdd()"
+        tone="primary"
+        icon="user-plus"
+        title="登记第一位客户"
+        description="录入联系方式、来源和意向，后续跟进、量房、报价和签约都会围绕这条客户档案展开。"
+        action-label="登记客户"
+        @tap="add"
+      />
       <JzEmpty v-else-if="!loading && !shown.length" text="没有匹配的客户" sub="换个筛选条件，或登记一位新客户" />
       <ListFooter v-if="!loadError && shown.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
     </view>
     </template>
 
-    <JzFloatAdd v-if="canAdd()" text="登记客户" @tap="add" />
+    <JzFloatAdd v-if="canAdd() && list.length" text="登记客户" @tap="add" />
     <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.customerList" />
   </view>

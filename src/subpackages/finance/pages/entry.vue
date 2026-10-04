@@ -1,20 +1,28 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { projectApi } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { financeApi } from '@/domains/finance/api'
+import {
+  consumeFinanceProjectPickerResult,
+  type FinanceProjectSelection
+} from '@/domains/finance/project-picker'
+import {
+  consumeLedgerCategoryPickerResult,
+  type LedgerCategorySelection
+} from '@/domains/finance/ledger-category-picker'
 import { laborApi } from '@/domains/labor/api'
 import type { Worker } from '@/domains/labor/model'
 import type {
-  FundAccount, LedgerDirection, Payable, PayableType, Receivable
+  FundAccount, Ledger, LedgerDirection, Payable, PayableType, Receivable
 } from '@/domains/finance/model'
 import { ACCOUNT_LABEL, PAYABLE_TYPE_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
-import JzIcon from '@/components/JzIcon.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -23,7 +31,10 @@ type EntryType = 'receivable' | 'receipt' | 'payable' | 'payment' | 'ledger'
 const today = () => new Date().toISOString().slice(0, 10)
 const type = ref<EntryType>('receivable')
 const editId = ref('')
-const projects = ref<Project[]>([])
+const selectedProject = ref<FinanceProjectSelection | null>(null)
+const selectedCategory = ref<LedgerCategorySelection | null>(null)
+const originalLedger = ref<Ledger | null>(null)
+const editReason = ref('')
 const receivables = ref<Receivable[]>([])
 const payables = ref<Payable[]>([])
 const workers = ref<Worker[]>([])
@@ -50,6 +61,7 @@ const form = reactive({
   sourceNo: '',
   direction: 'income' as LedgerDirection,
   category: '',
+  categoryId: '',
   counterparty: '',
   summary: '',
   remark: ''
@@ -60,18 +72,15 @@ const title = computed(() => ({
   receipt: '登记客户收款',
   payable: editId.value ? '编辑应付单' : form.payableType === 'salary' ? '新增工人工资' : '新增应付成本',
   payment: '安排业务付款',
-  ledger: '手工记账'
+  ledger: editId.value ? '更正手工记账' : '手工记账'
 }[type.value]))
 const subtitle = computed(() => ({
   receivable: '按合同节点安排首期款、进度款与尾款',
   receipt: '收款将自动核销应收并写入资金台账',
   payable: '材料款、项目款、工资与费用形成统一付款义务',
   payment: '付款将自动核销应付并形成项目成本',
-  ledger: '企业通用或项目直接收支，生成不可变资金流水'
+  ledger: editId.value ? '元数据更正留痕；金额、方向、日期或账户变化将冲正重记' : '企业通用或项目直接收支，生成不可变资金流水'
 }[type.value]))
-const projectOptions = computed(() => projects.value.map((item) => ({ label: `${item.name} · ${item.no}`, value: item.id })))
-const projectIndex = computed(() => Math.max(projectOptions.value.findIndex((item) => item.value === form.projectId), 0))
-const selectedProject = computed(() => projects.value.find((item) => item.id === form.projectId))
 const receivableOptions = computed(() => receivables.value
   .filter((item) => item.outstandingAmount > 0)
   .map((item) => ({ label: `${item.name} · 待收¥${item.outstandingAmount}`, value: item.id })))
@@ -99,6 +108,29 @@ const accountIndex = computed(() => Math.max(accountOptions.findIndex((item) => 
 const directionOptions = [{ label: '收入', value: 'income' }, { label: '支出', value: 'expense' }]
 const directionIndex = computed(() => Math.max(directionOptions.findIndex((item) => item.value === form.direction), 0))
 
+const submitLabel = computed(() => {
+  if (submitting.value) return '处理中…'
+  if (type.value === 'receivable') return editId.value ? '保存应收节点' : '创建应收节点'
+  if (type.value === 'receipt') return '确认收款登记'
+  if (type.value === 'payable') {
+    if (editId.value) return '保存应付成本'
+    return form.payableType === 'salary' ? '创建工资应付' : '创建应付成本'
+  }
+  if (type.value === 'payment') return '确认付款并核销'
+  if (!editId.value) return '保存手工流水'
+  return ledgerFinanciallyChanged() ? '冲正并重记' : '保存更正'
+})
+const submitIcon = computed<IconName>(() =>
+  type.value === 'ledger' && editId.value && ledgerFinanciallyChanged() ? 'history' : 'check-circle'
+)
+const submitHint = computed(() => {
+  if (type.value !== 'ledger' || !editId.value) return ''
+  if (!editReason.value.trim()) return '请先填写更正原因，系统会记录操作人和修订前后内容。'
+  return ledgerFinanciallyChanged()
+    ? '金额、方向、日期或账户发生变化，保存后将生成冲正流水并重新登记。'
+    : '本次仅更正分类、摘要等元数据，系统会保留原流水和修订记录。'
+})
+
 const booting = ref(false)
 const loadError = ref('')
 
@@ -114,13 +146,26 @@ onLoad((query) => {
   void boot()
 })
 
+onShow(() => {
+  const projectResult = consumeFinanceProjectPickerResult()
+  if (projectResult) {
+    if (projectResult.action === 'clear') setProject(null)
+    else setProject(projectResult.project)
+  }
+  const categoryResult = consumeLedgerCategoryPickerResult()
+  if (categoryResult) {
+    if (categoryResult.action === 'clear') clearCategory()
+    else setCategory(categoryResult.category)
+  }
+})
+
 async function boot() {
   booting.value = true
   loadError.value = ''
   try {
-    projects.value = await projectApi.list()
     if (can(session.role, 'view:worker')) workers.value = await laborApi.workers()
     await hydrate(editId.value)
+    if (form.projectId && selectedProject.value?.id !== form.projectId) await loadProjectSelection()
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '表单数据加载失败'
     toastError(error, '表单数据加载失败')
@@ -134,7 +179,7 @@ async function hydrate(id: string) {
     const list = await financeApi.receivables()
     const item = id ? list.find((row) => row.id === id) : undefined
     if (item) {
-      form.projectId = item.project.id; form.name = item.name; form.stageName = item.stageName || ''
+      form.projectId = item.project.id; setProject(projectSelection(item.project)); form.name = item.name; form.stageName = item.stageName || ''
       form.receivableType = item.type; form.amount = String(item.amount); form.date = item.dueDate
       form.invoiceRequired = item.invoiceRequired; form.invoiceNo = item.invoiceNo || ''; form.remark = item.remark || ''
     } else if (form.projectId) await loadReceivables()
@@ -147,7 +192,7 @@ async function hydrate(id: string) {
     const list = await financeApi.payables()
     const item = id ? list.find((row) => row.id === id) : undefined
     if (item) {
-      form.projectId = item.project?.id || ''; form.name = item.name; form.payableType = item.type
+      form.projectId = item.project?.id || ''; setProject(projectSelection(item.project)); form.name = item.name; form.payableType = item.type
       form.payeeName = item.payeeEmployee?.name || item.payeeName || ''; form.period = item.period || ''
       form.amount = String(item.amount); form.date = item.dueDate; form.urgent = item.urgent
       form.sourceNo = item.sourceNo || ''; form.remark = item.remark || ''
@@ -156,10 +201,34 @@ async function hydrate(id: string) {
     payables.value = await financeApi.payables()
     const target = payables.value.find((item) => item.id === form.payableId)
     if (target) {
-      form.projectId = target.project?.id || ''; form.payeeName = target.payeeEmployee?.name || target.payeeName || ''
+      form.projectId = target.project?.id || ''; setProject(projectSelection(target.project)); form.payeeName = target.payeeEmployee?.name || target.payeeName || ''
       form.amount = String(target.outstandingAmount)
     }
     form.date = today()
+  } else if (type.value === 'ledger') {
+    if (id) {
+      const item = await financeApi.ledgerInfo(id)
+      originalLedger.value = item
+      form.projectId = item.project?.id || ''
+      setProject(projectSelection(item.project))
+      form.direction = item.direction
+      form.categoryId = item.categoryNode?.id || ''
+      form.category = item.category
+      selectedCategory.value = item.categoryNode ? {
+        id: item.categoryNode.id,
+        name: item.categoryNode.name,
+        path: item.categoryNode.name,
+        direction: item.categoryNode.direction
+      } : null
+      form.amount = String(item.amount)
+      form.account = item.account
+      form.date = item.occurredAt
+      form.counterparty = item.counterparty || ''
+      form.summary = item.summary
+      form.remark = item.remark || ''
+    } else {
+      form.date = today()
+    }
   } else {
     form.date = today()
   }
@@ -170,17 +239,97 @@ async function loadReceivables() {
   receivables.value = await financeApi.receivables({ projectId: form.projectId })
   if (!receivables.value.some((item) => item.id === form.receivableId)) form.receivableId = ''
 }
-function onProject(event: any) { form.projectId = projectOptions.value[Number(event.detail.value)]?.value || ''; form.receivableId = ''; form.payableId = ''; if (type.value === 'receipt') void loadReceivables() }
 function onReceivable(event: any) { form.receivableId = receivableOptions.value[Number(event.detail.value)]?.value || ''; const target = receivables.value.find((item) => item.id === form.receivableId); if (target) form.amount = String(target.outstandingAmount) }
 function onPayable(event: any) { form.payableId = payableOptions.value[Number(event.detail.value)]?.value || ''; const target = payables.value.find((item) => item.id === form.payableId); if (target) { form.payeeName = target.payeeEmployee?.name || target.payeeName || ''; form.amount = String(target.outstandingAmount) } }
 function onReceivableType(event: any) { form.receivableType = receivableTypeOptions[Number(event.detail.value)]?.value as Receivable['type'] || 'other' }
 function onPayableType(event: any) { form.payableType = payableTypeOptions[Number(event.detail.value)]?.value as PayableType || 'other' }
 function onWorker(event: any) { form.workerId = workerOptions.value[Number(event.detail.value)]?.value || '' }
 function onAccount(event: any) { form.account = accountOptions[Number(event.detail.value)]?.value as FundAccount || 'companyBank' }
-function onDirection(event: any) { form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income' }
+function onDirection(event: any) {
+  form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income'
+  if (type.value === 'ledger') clearCategory()
+}
 function onInvoiceSwitch(event: any) { form.invoiceRequired = !!event.detail.value }
 function onUrgentSwitch(event: any) { form.urgent = !!event.detail.value }
 function selectLabel(options: { label: string }[], index: number) { return options[index]?.label || '' }
+
+function projectSelection(project?: Project | null): FinanceProjectSelection | null {
+  if (!project?.id) return null
+  return {
+    id: project.id,
+    name: project.name,
+    no: project.no,
+    customerName: project.customer?.name
+  }
+}
+
+function setProject(project: FinanceProjectSelection | null) {
+  form.projectId = project?.id || ''
+  selectedProject.value = project
+  form.receivableId = ''
+  form.payableId = ''
+  if (type.value === 'receipt') void loadReceivables()
+}
+
+async function loadProjectSelection() {
+  if (!form.projectId) { selectedProject.value = null; return }
+  try {
+    selectedProject.value = projectSelection(await projectApi.info(form.projectId))
+      || { id: form.projectId, name: '已选项目' }
+  } catch {
+    selectedProject.value = { id: form.projectId, name: '已选项目' }
+  }
+}
+
+function openProjectPicker() {
+  const params = [`selectedId=${encodeURIComponent(form.projectId)}`]
+  if (selectedProject.value) {
+    params.push(`selectedName=${encodeURIComponent(selectedProject.value.name)}`)
+    if (selectedProject.value.no) params.push(`selectedNo=${encodeURIComponent(selectedProject.value.no)}`)
+  }
+  uni.navigateTo({ url: `${P.financeProjectPicker}?${params.join('&')}` })
+}
+
+function clearProject() {
+  setProject(null)
+}
+
+function setCategory(category: LedgerCategorySelection | null) {
+  selectedCategory.value = category
+  form.categoryId = category?.id || ''
+  if (category) form.category = category.name
+}
+
+function clearCategory() {
+  setCategory(null)
+  form.category = ''
+}
+
+function onCategoryInput() {
+  selectedCategory.value = null
+  form.categoryId = ''
+}
+
+function openCategoryPicker() {
+  const params = [`direction=${form.direction}`]
+  if (form.categoryId) {
+    params.push(`selectedId=${encodeURIComponent(form.categoryId)}`)
+    if (selectedCategory.value?.name) params.push(`selectedName=${encodeURIComponent(selectedCategory.value.name)}`)
+    if (selectedCategory.value?.path) params.push(`selectedPath=${encodeURIComponent(selectedCategory.value.path)}`)
+  } else if (form.category.trim()) {
+    params.push(`selectedText=${encodeURIComponent(form.category.trim())}`)
+  }
+  uni.navigateTo({ url: `${P.financeLedgerCategoryPicker}?${params.join('&')}` })
+}
+
+function ledgerFinanciallyChanged() {
+  const original = originalLedger.value
+  if (!original) return false
+  return form.direction !== original.direction
+    || Number(form.amount) !== original.amount
+    || form.account !== original.account
+    || form.date !== original.occurredAt
+}
 
 async function submit() {
   const amount = Number(form.amount)
@@ -189,6 +338,7 @@ async function submit() {
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
   if (type.value === 'payment' && !form.payableId) { toast('请选择应付单'); return }
   if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类和摘要'); return }
+  if (type.value === 'ledger' && editId.value && !editReason.value.trim()) { toast('请填写更正原因'); return }
   submitting.value = true; loading('保存中...')
   try {
     if (type.value === 'receivable') {
@@ -203,7 +353,27 @@ async function submit() {
       if (isSalaryPayment.value && !form.workerId) { toast('工资付款请选择发放工人'); return }
       await financeApi.createPayment({ payableId: form.payableId, amount, account: form.account, paidAt: form.date, payeeName: form.payeeName, workerId: isSalaryPayment.value ? form.workerId : undefined, remark: form.remark })
     } else {
-      await financeApi.saveLedger({ projectId: form.projectId || undefined, direction: form.direction, category: form.category, amount, account: form.account, occurredAt: form.date, counterparty: form.counterparty, summary: form.summary, remark: form.remark })
+      const payload = {
+        projectId: form.projectId || '0',
+        direction: form.direction,
+        category: form.category.trim(),
+        categoryId: form.categoryId || '0',
+        amount,
+        account: form.account,
+        occurredAt: form.date,
+        counterparty: form.counterparty,
+        summary: form.summary.trim(),
+        remark: form.remark
+      }
+      if (editId.value) {
+        if (ledgerFinanciallyChanged()) {
+          await financeApi.correctLedger({ ...payload, ledgerId: editId.value, reason: editReason.value.trim() })
+        } else {
+          await financeApi.updateLedger({ ...payload, ledgerId: editId.value, reason: editReason.value.trim() })
+        }
+      } else {
+        await financeApi.saveLedger({ ...payload, projectId: form.projectId || undefined, categoryId: form.categoryId || undefined })
+      }
     }
     hideLoading(); toast('保存成功', 'success'); setTimeout(() => uni.navigateBack(), 500)
   } catch (error) {
@@ -223,12 +393,16 @@ async function submit() {
     <JzSkeleton v-else-if="booting" :rows="5" />
     <template v-else>
     <view class="fin-form-card">
-      <view v-if="type !== 'payment' || !form.projectId" class="fin-field">
+      <view v-if="type !== 'payment' || !form.projectId" class="fin-field fin-field--tap" @tap="openProjectPicker">
         <text class="fin-field__label">所属项目</text>
-        <picker :range="projectOptions" range-key="label" :value="projectIndex" @change="onProject">
-          <view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.projectId }">{{ form.projectId ? selectLabel(projectOptions, projectIndex) : '企业通用账务' }}</view>
-        </picker>
-        <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+        <view class="fe-project">
+          <view class="fe-project__main">
+            <text class="fe-project__name" :class="{ 'fin-field__placeholder': !form.projectId }">{{ selectedProject?.name || '企业通用账务' }}</text>
+            <text v-if="selectedProject?.no" class="fe-project__meta">{{ selectedProject.no }}{{ selectedProject.customerName ? ` · ${selectedProject.customerName}` : '' }}</text>
+          </view>
+          <view v-if="form.projectId" class="fe-project__clear" @tap.stop="clearProject"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.text3" /><text>取消</text></view>
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+        </view>
       </view>
 
       <template v-if="type === 'receivable'">
@@ -245,7 +419,7 @@ async function submit() {
         <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">收款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">付款方</text><input v-model="form.payerName" maxlength="64" :placeholder="selectedProject?.customer?.name || '默认项目客户'" /></view>
+        <view class="fin-field"><text class="fin-field__label">付款方</text><input v-model="form.payerName" maxlength="64" :placeholder="selectedProject?.customerName || '默认项目客户'" /></view>
       </template>
 
       <template v-else-if="type === 'payable'">
@@ -270,7 +444,15 @@ async function submit() {
 
       <template v-else>
         <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">业务分类</text><input v-model="form.category" maxlength="32" placeholder="如 办公费用 / 其他收入" /></view>
+        <view class="fin-field fe-category-field">
+          <text class="fin-field__label">业务分类</text>
+          <input v-model="form.category" maxlength="128" placeholder="输入或选择业务分类" @input="onCategoryInput" />
+          <view class="fe-category-pick" @tap.stop="openCategoryPicker"><JzIcon name="clipboard" :size="24" :color="TOKEN_COLOR.primary" /><text>选择</text></view>
+        </view>
+        <view v-if="selectedCategory" class="fe-category-path">
+          <JzIcon name="folder" :size="22" :color="TOKEN_COLOR.primary" />
+          <text>已选：{{ selectedCategory.path }}</text>
+        </view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">发生日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
@@ -278,13 +460,21 @@ async function submit() {
         <view class="fin-field"><text class="fin-field__label">摘要</text><input v-model="form.summary" maxlength="128" placeholder="一句话说明资金用途" /></view>
       </template>
 
+      <view v-if="type === 'ledger' && editId" class="fin-field"><text class="fin-field__label">更正原因</text><input v-model="editReason" maxlength="500" placeholder="必填，说明记错原因" /></view>
       <view class="fin-field fe-remark"><text class="fin-field__label">备注</text><textarea v-model="form.remark" maxlength="500" auto-height placeholder="可选，记录凭证、批次或补充说明" /></view>
     </view>
 
-    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
+    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">仅企业负责人可更正手工记账。分类、摘要等元数据修改会留痕；金额、方向、日期或账户变化将自动冲正重记。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
 
     <view class="fin-form-actions">
-      <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="submitting" @tap="submit">{{ submitting ? '保存中...' : '确认保存' }}</button>
+      <view v-if="submitHint" class="fe-submit-note">
+        <JzIcon name="info" :size="24" :color="TOKEN_COLOR.primary" />
+        <text>{{ submitHint }}</text>
+      </view>
+      <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="submitting" @tap="submit">
+        <JzIcon :name="submitIcon" :size="28" :color="TOKEN_COLOR.white" />
+        <text>{{ submitLabel }}</text>
+      </button>
     </view>
     </template>
   </view>
@@ -296,8 +486,18 @@ async function submit() {
 .fe-head__title { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .fe-head__sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fe-unit { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.fin-field--tap { cursor: pointer; }
+.fe-category-field { gap: 8rpx; }
+.fe-category-pick { flex: none; display: flex; align-items: center; gap: 4rpx; padding: 12rpx 0 12rpx 12rpx; color: $jzb-primary; font-size: $jzb-font-xs; }
+.fe-category-path { display: flex; align-items: center; gap: 8rpx; margin: -1rpx 0 0; padding: 14rpx 0 18rpx 142rpx; color: $jzb-text-3; border-top: 1rpx solid $jzb-border-light; font-size: $jzb-font-xs; }
+.fe-project { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12rpx; }
+.fe-project__main { flex: 1; min-width: 0; text-align: right; }
+.fe-project__name { display: block; color: $jzb-text-1; font-size: $jzb-font; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fe-project__meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fe-project__clear { flex: none; display: flex; align-items: center; gap: 4rpx; padding: 12rpx 0 12rpx 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .fe-remark { min-height: 150rpx; align-items: flex-start; padding-top: 28rpx; }
 .fe-remark textarea { min-height: 90rpx; }
+.fe-submit-note { display: flex; align-items: flex-start; gap: 8rpx; margin-bottom: 18rpx; padding: 16rpx 18rpx; color: $jzb-text-3; background: $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.5; }
 .fe-tip { display: flex; align-items: flex-start; margin: 20rpx $jzb-page-pad 0; padding: 20rpx; color: $jzb-text-3; background: $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .fe-tip text { margin-left: 10rpx; }
 </style>

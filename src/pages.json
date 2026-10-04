@@ -799,6 +799,23 @@
           }
         },
         {
+          "path": "pages/project-picker",
+          "style": {
+            "navigationBarTitleText": "选择所属项目",
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/ledger-category-picker",
+          "style": {
+            "navigationBarTitleText": "选择业务分类",
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/vouchers",
           "style": {
             "navigationBarTitleText": "收付凭证",

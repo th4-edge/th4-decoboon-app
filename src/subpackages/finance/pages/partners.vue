@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { money } from '@/core/format'
@@ -27,8 +27,8 @@ const overdueOnly = ref(false)
 const loading = ref(false)
 const loadError = ref('')
 
-const totalOutstanding = computed(() => ledgers.value.reduce((sum, item) => sum + Number(item.outstanding || 0), 0))
-const totalOverdue = computed(() => ledgers.value.reduce((sum, item) => sum + Number(item.overdueAmount || 0), 0))
+const totalOutstanding = ref(0)
+const totalOverdue = ref(0)
 
 onShow(() => void load())
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
@@ -38,7 +38,9 @@ async function load() {
   loadError.value = ''
   try {
     const result = await financeApi.partnerLedger(overdueOnly.value ? { overdueOnly: true } : {})
-    ledgers.value = Array.isArray(result) ? (result as unknown as LedgerRow[]) : []
+    ledgers.value = result.rows as LedgerRow[]
+    totalOutstanding.value = result.outstandingAmount
+    totalOverdue.value = result.overdueAmount
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '供应商往来加载失败'
     toastError(error, '供应商往来加载失败')

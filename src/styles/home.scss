@@ -35,6 +35,7 @@
 .home__stat--attention .home__stat-dot { background: $jzb-warning; box-shadow: 0 0 0 8rpx rgba(230,126,34,.12); }
 .home__stat--danger .home__stat-dot { background: $jzb-danger; box-shadow: 0 0 0 8rpx rgba(229,72,77,.12); }
 .home__quicks { margin: 0 $jzb-page-pad 12rpx; padding: 24rpx 12rpx 8rpx; display: flex; flex-wrap: wrap; }
+.home__quicks--boss .home__quick { width: 25%; }
 .home__performance { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; display: flex; align-items: center; background: $jzb-gradient-surface; }
 .home__performance-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .home__performance-value { display: block; margin-top: 6rpx; color: $jzb-primary-dark; font-size: 42rpx; font-weight: 750; }
@@ -93,18 +94,20 @@
 .home__bell { width: 64rpx; height: 64rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.14); }
 .home__more { display: flex; align-items: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 
-/* 企业负责人：六项高频功能域之外的经营专业工作台 */
+/* 企业负责人：四项高频功能域之外的经营专业工作台 */
 .home__professional { margin: 0 $jzb-page-pad 18rpx; }
-.home__professional-head { margin-bottom: $jzb-space-3; padding: 0 $jzb-space-1; }
-.home__professional-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
-.home__professional-sub { display: block; margin-top: $jzb-space-1; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.home__professional-head { padding: 34rpx $jzb-space-1 18rpx; }
+.home__professional-title { display: flex; align-items: center; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.home__professional-title::before { content: ''; width: 8rpx; height: 30rpx; margin-right: 14rpx; border-radius: 8rpx; background: $jzb-gradient; }
+.home__professional-sub { display: block; margin-top: 10rpx; padding-left: 22rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 .home__professional-grid { display: flex; flex-wrap: wrap; padding: $jzb-space-1; }
-.home__professional-item { width: 50%; box-sizing: border-box; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-space-3; }
-.home__professional-item:active { opacity: .72; }
-.home__professional-icon { width: 64rpx; height: 64rpx; flex: 0 0 64rpx; border-radius: $jzb-radius; background: $jzb-primary-lightest; display: flex; align-items: center; justify-content: center; }
+.home__professional-item { width: 50%; box-sizing: border-box; display: flex; align-items: center; gap: $jzb-space-3; min-height: 112rpx; padding: $jzb-space-3; border-bottom: 1rpx solid $jzb-border-light; }
+.home__professional-item:active { opacity: .72; background: $jzb-bg-hover; }
+.home__professional-item:nth-last-child(-n + 2) { border-bottom: none; }
+.home__professional-icon { width: 60rpx; height: 60rpx; flex: 0 0 60rpx; border-radius: $jzb-radius; background: $jzb-primary-lightest; display: flex; align-items: center; justify-content: center; }
 .home__professional-copy { flex: 1; min-width: 0; }
-.home__professional-label { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
-.home__professional-desc { display: block; margin-top: $jzb-space-1; overflow: hidden; color: $jzb-text-3; font-size: $jzb-font-xs; text-overflow: ellipsis; white-space: nowrap; }
+.home__professional-label { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; line-height: 1.35; }
+.home__professional-desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.4; }
 
 /* 材料计划：企业负责人首页直达材料计划工作台 */
 .home__material { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; }

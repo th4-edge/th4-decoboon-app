@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { packApi } from '@/domains/pack/api'
 import type { CatalogItem, CatalogPricingMode } from '@/domains/catalog/model'
@@ -8,6 +8,7 @@ import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
+import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PackageSteps from '../components/PackageSteps/PackageSteps.vue'
@@ -139,38 +140,52 @@ async function saveBasic() {
 }
 
 // 步骤②：分区管理
-function modalInput(title: string, placeholder: string, defaultValue = ''): Promise<string | null> {
-  return new Promise((resolve) => {
-    uni.showModal({
-      title, content: '', editable: true, placeholderText: placeholder,
-      success: (result) => resolve(result.confirm ? ((result as any).content || '').trim() : null),
-      fail: () => resolve(null)
-    })
-  })
+const sectionDialog = reactive({
+  visible: false,
+  mode: 'add' as 'add' | 'rename',
+  section: null as PackageSection | null,
+  value: ''
+})
+const sectionSaving = ref(false)
+
+function addSection() {
+  sectionDialog.mode = 'add'
+  sectionDialog.section = null
+  sectionDialog.value = ''
+  sectionDialog.visible = true
 }
 
-async function addSection() {
-  const result = await modalInput('新增套餐分区', '例如：全屋基础、厨房、主材区')
-  if (!result) return
-  try {
-    await packApi.saveSection({ name: result, maxDeleteNum: 1, priority: sections.value.length })
-    await reload()
-    activeSectionId.value = sections.value[sections.value.length - 1]?.id || activeSectionId.value
-    toast('分区已新增', 'success')
-  } catch (error) {
-    toastError(error, '分区新增失败')
+function renameSection(section: PackageSection) {
+  sectionDialog.mode = 'rename'
+  sectionDialog.section = section
+  sectionDialog.value = section.name
+  sectionDialog.visible = true
+}
+
+async function saveSectionDialog() {
+  const value = sectionDialog.value.trim()
+  if (!value || sectionSaving.value) return
+  if (sectionDialog.mode === 'rename' && sectionDialog.section?.name === value) {
+    sectionDialog.visible = false
+    return
   }
-}
-
-async function renameSection(section: PackageSection) {
-  const result = await modalInput('重命名分区', '输入新的分区名称', section.name)
-  if (!result || result === section.name) return
+  sectionSaving.value = true
   try {
-    await packApi.saveSection({ groupId: section.id, name: result, maxDeleteNum: section.maxDeleteNum, priority: section.priority })
-    await reload()
-    toast('分区已重命名', 'success')
+    if (sectionDialog.mode === 'add') {
+      await packApi.saveSection({ name: value, maxDeleteNum: 1, priority: sections.value.length })
+      await reload()
+      activeSectionId.value = sections.value[sections.value.length - 1]?.id || activeSectionId.value
+      toast('分区已新增', 'success')
+    } else if (sectionDialog.section) {
+      await packApi.saveSection({ groupId: sectionDialog.section.id, name: value, maxDeleteNum: sectionDialog.section.maxDeleteNum, priority: sectionDialog.section.priority })
+      await reload()
+      toast('分区已重命名', 'success')
+    }
+    sectionDialog.visible = false
   } catch (error) {
-    toastError(error, '分区重命名失败')
+    toastError(error, sectionDialog.mode === 'add' ? '分区新增失败' : '分区重命名失败')
+  } finally {
+    sectionSaving.value = false
   }
 }
 
@@ -442,6 +457,20 @@ const primaryText = computed(() => {
       :standard-area="Number(area) || 100"
       @close="editSheetVisible = false"
       @save="updateLine"
+    />
+
+    <JzInputDialog
+      :visible="sectionDialog.visible"
+      :title="sectionDialog.mode === 'add' ? '新增套餐分区' : '重命名套餐分区'"
+      label="分区名称"
+      description="建议按客户讲解顺序设置，名称应便于现场快速识别。"
+      placeholder="例如：全屋基础、厨房、卫生间、主材区"
+      :model-value="sectionDialog.value"
+      :loading="sectionSaving"
+      confirm-text="保存分区"
+      @update:model-value="sectionDialog.value = $event"
+      @update:visible="sectionDialog.visible = $event"
+      @confirm="saveSectionDialog"
     />
   </view>
 </template>

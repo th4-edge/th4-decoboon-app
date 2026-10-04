@@ -17,6 +17,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { toastError } from '@/composables/toast'
 
 const filter = ref<'all' | 'risk' | 'settle'>('all')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -28,21 +29,33 @@ const filtered = computed(() => items.value.filter((item) => {
   if (filter.value === 'settle') return item.settlement?.status === 'draft' || item.settlement?.status === 'confirmed' || (!item.settlement && item.project.status === 'finished')
   return true
 }))
-const totals = computed(() => items.value.reduce((acc, item) => {
-  acc.contract += item.contractAmount; acc.received += item.receivedAmount; acc.payable += item.payableAmount; acc.outstanding += item.outstandingAmount
-  return acc
-}, { contract: 0, received: 0, payable: 0, outstanding: 0 }))
+const totals = ref({ contract: 0, received: 0, payable: 0, outstanding: 0 })
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onShow(() => { if (isLoggedIn()) void refreshAll() })
+onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
+
+async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
+async function loadTotals() {
+  try {
+    const report = await financeApi.summary()
+    totals.value = {
+      contract: report.contractAmount,
+      received: report.receivedAmount,
+      payable: report.payableAmount,
+      outstanding: report.outstandingAmount
+    }
+  } catch (error) {
+    toastError(error, '项目财务汇总加载失败')
+  }
+}
 
 function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId=${id}` }) }
 </script>
 
 <template>
   <view class="fin-page">
-    <JzPageHeader title="项目账本" subtitle="按项目核算合同、回款、成本与利润" right-icon="refresh" @right="refresh" />
+    <JzPageHeader title="项目账本" subtitle="按项目核算合同、回款、成本与利润" right-icon="refresh" @right="refreshAll" />
 
     <view class="fin-hero">
       <text class="fin-hero__label">在建项目合同规模</text>
@@ -63,7 +76,7 @@ function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId
     </scroll-view>
 
     <view class="fin-body">
-      <PageState v-if="loadError && !items.length" state="error" title="项目账本加载失败" :subtitle="loadError" @retry="refresh" />
+      <PageState v-if="loadError && !items.length" state="error" title="项目账本加载失败" :subtitle="loadError" @retry="refreshAll" />
       <JzSkeleton v-else-if="loading && !filtered.length" :rows="4" />
       <view v-for="item in filtered" :key="item.project.id" class="fin-card" @tap="open(item.project.id)">
         <view class="fin-card__top">

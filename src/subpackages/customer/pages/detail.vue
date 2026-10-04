@@ -353,13 +353,8 @@ function edit() { uni.navigateTo({ url: `${P.customerEdit}?id=${id.value}` }) }
 function scheduleMeasure() {
   // 约定量房必须关联房屋：先有房屋档案（含详细地址）才能安排量房
   if (!properties.value.length) {
-    uni.showModal({
-      title: '请先建立房屋档案',
-      content: '约定量房需要关联具体房屋与详细地址，是否现在新增？',
-      confirmText: '新增房屋',
-      cancelText: '暂不新增',
-      success: (res) => { if (res.confirm) addProperty() }
-    })
+    void confirm('请先建立房屋档案', '约定量房需要关联具体房屋与详细地址，是否现在新增？', '新增房屋')
+      .then((ok) => { if (ok) addProperty() })
     return
   }
   uni.navigateTo({ url: `${P.customerMeasure}?id=${id.value}&propertyId=${activeProperty.value?.id || ''}` })

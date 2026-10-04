@@ -73,9 +73,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'customer', label: '客户经营', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'design', label: '方案设计', icon: 'edit', path: P.managerDesigners, capability: 'act:assignDesigner' },
     { key: 'quotes', label: '报价谈单', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
-    { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'edit:project' },
-    { key: 'workbench', label: '履约驾驶舱', icon: 'chart', path: P.managerWorkbench, capability: 'view:workbench' },
-    { key: 'finance', label: '财务总览', icon: 'wallet', path: P.financeHome, capability: 'view:finance' }
+    { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'edit:project' }
   ],
   storeManager: [
     { key: 'customers', label: '门店客户', icon: 'users', path: P.customerList, capability: 'view:customers' },

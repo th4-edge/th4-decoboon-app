@@ -16,23 +16,19 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { toastError } from '@/composables/toast'
 
 type Filter = 'all' | PayableType
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
-  (current, size) => financeApi.payables({ projectId: projectId.value || undefined, current, size }).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
+  (current, size) => financeApi.payables({ projectId: projectId.value || undefined, type: filter.value === 'all' ? undefined : filter.value, current, size }).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
 )
 const filter = ref<Filter>('all')
 const initialType = ref<PayableType | ''>('')
 const editable = computed(() => can(session.role, 'edit:finance'))
 const title = computed(() => initialType.value === 'salary' ? '工人工资' : '应付账款')
-const filtered = computed(() => filter.value === 'all' ? items.value : items.value.filter((item) => item.type === filter.value))
-const totals = computed(() => filtered.value.reduce((acc, item) => {
-  acc.total += item.amount; acc.paid += item.paidAmount; acc.outstanding += item.outstandingAmount
-  if (item.status === 'overdue' || item.urgent) acc.risk += item.outstandingAmount
-  return acc
-}, { total: 0, paid: 0, outstanding: 0, risk: 0 }))
+const totals = ref({ total: 0, paid: 0, outstanding: 0, risk: 0 })
 
 onLoad((query) => {
   projectId.value = query?.projectId || ''
@@ -40,8 +36,32 @@ onLoad((query) => {
   if (t && PAYABLE_TYPE_META[t]) { initialType.value = t; filter.value = t }
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
 })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onShow(() => { if (isLoggedIn()) void refreshAll() })
+onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
+
+async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
+async function loadTotals() {
+  try {
+    const report = await financeApi.payableReport({
+      projectId: projectId.value || undefined,
+      type: filter.value === 'all' ? undefined : filter.value
+    })
+    totals.value = {
+      total: report.totalAmount,
+      paid: report.paidAmount,
+      outstanding: report.outstandingAmount,
+      risk: report.urgentAmount
+    }
+  } catch (error) {
+    toastError(error, '应付汇总加载失败')
+  }
+}
+
+function selectFilter(value: Filter) {
+  if (filter.value === value) return
+  filter.value = value
+  void refreshAll()
+}
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&payableType=${initialType.value || 'material'}${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function edit(item: Payable) { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&id=${item.id}` }) }
@@ -65,15 +85,15 @@ function progress(item: Payable) { return Math.min(100, Math.round(item.paidAmou
 
     <scroll-view scroll-x class="fin-filters" :show-scrollbar="false">
       <view class="fin-filter-row">
-        <view class="fin-filter" :class="{ 'fin-filter--on': filter === 'all' }" @tap="filter = 'all'">全部</view>
-        <view v-for="(meta, key) in PAYABLE_TYPE_META" :key="key" class="fin-filter" :class="{ 'fin-filter--on': filter === key }" @tap="filter = key">{{ meta.short }}</view>
+        <view class="fin-filter" :class="{ 'fin-filter--on': filter === 'all' }" @tap="selectFilter('all')">全部</view>
+        <view v-for="(meta, key) in PAYABLE_TYPE_META" :key="key" class="fin-filter" :class="{ 'fin-filter--on': filter === key }" @tap="selectFilter(key)">{{ meta.short }}</view>
       </view>
     </scroll-view>
 
     <view class="fin-body">
-      <PageState v-if="loadError && !items.length" state="error" title="应付账款加载失败" :subtitle="loadError" @retry="refresh" />
-      <JzSkeleton v-else-if="loading && !filtered.length" :rows="4" />
-      <view v-for="item in filtered" :key="item.id" class="fin-card" @tap="edit(item)">
+      <PageState v-if="loadError && !items.length" state="error" title="应付账款加载失败" :subtitle="loadError" @retry="refreshAll" />
+      <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
+      <view v-for="item in items" :key="item.id" class="fin-card" @tap="edit(item)">
         <view class="fin-card__top">
           <view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.project?.name || '企业通用费用' }} · {{ item.payeeEmployee?.name || item.payeeName || '未指定收款方' }}</text></view>
           <text class="fin-card__amount">{{ money(item.amount) }}</text>
@@ -92,8 +112,8 @@ function progress(item: Payable) { return Math.min(100, Math.round(item.paidAmou
           <text v-else class="jz-caption">{{ item.sourceNo || item.materialPlan?.name || '已结清' }}</text>
         </view>
       </view>
-      <ListFooter v-if="!loadError && (filtered?.length || items.length)" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
-      <view v-if="!filtered.length" class="fin-empty"><JzEmpty :text="`暂无${title}记录`" sub="建立应付后按账期安排付款，付款会自动生成资金流水" /></view>
+      <ListFooter v-if="!loadError && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
+      <view v-if="!items.length" class="fin-empty"><JzEmpty :text="`暂无${title}记录`" sub="建立应付后按账期安排付款，付款会自动生成资金流水" /></view>
     </view>
   </view>
 </template>

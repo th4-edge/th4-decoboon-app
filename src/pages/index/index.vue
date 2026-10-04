@@ -522,6 +522,7 @@ const professionalWorkbenches: Array<{ key: string; label: string; subtitle: str
   { key: 'measure', label: '量房经营', subtitle: '预约、派单与逾期', icon: 'ruler', path: P.customerMeasureWorkbench },
   { key: 'selection', label: '选材工作台', subtitle: '在建项目选材进度', icon: 'wrench', path: P.selectionBoard },
   { key: 'material', label: '材料计划', subtitle: '下单、在途与到场', icon: 'package', path: P.materialPlanWorkbench },
+  { key: 'workbench', label: '履约驾驶舱', subtitle: '项目履约、风险与节点协同', icon: 'chart', path: P.managerWorkbench },
   { key: 'change', label: '增减项经营', subtitle: '审批、确认与金额', icon: 'file-text', path: P.projectChangeWorkbench },
   { key: 'performance', label: '员工绩效业绩', subtitle: '转化、签约与交付验收', icon: 'chart', path: P.performanceAssessment }
 ]
@@ -728,18 +729,18 @@ const projectSectionTitle = computed(() => {
       </view>
 
       <!-- 快捷入口 -->
-      <view class="home__quicks jz-card">
+      <view class="home__quicks jz-card" :class="{ 'home__quicks--boss': role === 'boss' }">
         <view v-for="q in quicks" :key="q.label" class="home__quick" @tap="q.action()">
           <view class="home__quick-icon"><JzIcon :name="iconName(q.icon)" :size="38" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
           <text class="home__quick-label">{{ q.label }}</text>
         </view>
       </view>
 
-      <!-- 企业负责人：六项高频功能域之外的经营专业工作台 -->
+      <!-- 企业负责人：四项高频功能域之外的经营专业工作台 -->
       <view v-if="role === 'boss'" class="home__professional">
         <view class="home__professional-head">
           <text class="home__professional-title">经营专业工作台</text>
-          <text class="home__professional-sub">量房、选材、材料、增减项与员工绩效集中处理</text>
+          <text class="home__professional-sub">量房、选材、材料、履约、增减项与员工绩效集中处理</text>
         </view>
         <view class="home__professional-grid jz-card">
           <view v-for="item in professionalWorkbenches" :key="item.key" class="home__professional-item" @tap="go(item.path)">

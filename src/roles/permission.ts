@@ -69,7 +69,7 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'act:report', 'act:startStage', 'act:acceptRequest', 'act:quote', 'act:followCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure', 'act:assignDesigner',
     'act:convertCustomer', 'act:inviteMember', 'act:inviteCustomer', 'act:issue',
-    'act:material', 'view:notice', 'view:performance', 'view:measure-workbench'
+    'act:material', 'view:notice', 'view:performance', 'view:workbench', 'view:measure-workbench'
   ],
   storeManager: [
     'edit:doc-template',

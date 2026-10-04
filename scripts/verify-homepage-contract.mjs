@@ -7,6 +7,7 @@ const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
 const config = read('src/config/index.ts')
 const pages = read('src/pages.json')
 const catalog = read('src/roles/catalog.ts')
+const permissions = read('src/roles/permission.ts')
 const api = read('src/domains/statistic/api.ts')
 const home = read('src/pages/index/index.vue')
 const mine = read('src/pages/mine/index.vue')
@@ -28,16 +29,18 @@ expect(api.includes("post<RawRecord>('statistic/boss/workbench'"), '统计域未
 const actionSection = catalog.slice(catalog.indexOf('export const ROLE_ACTIONS'))
 const bossBlock = actionSection.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
 const bossActions = [...bossBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1])
-expect(bossActions.length === 6, '企业负责人首页功能域必须固定为六项')
+expect(bossActions.length === 4, '企业负责人首页功能域必须固定为四项')
 // 2026-09-21 用户确认：以代码文案为准（客户经营/方案设计/报价谈单），脚本同步
-expect(bossActions.join('|') === '客户经营|方案设计|报价谈单|合同签约|履约驾驶舱|财务总览',
+expect(bossActions.join('|') === '客户经营|方案设计|报价谈单|合同签约',
   '企业负责人首页功能域范围不符合产品设计')
+const bossPermissionBlock = permissions.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
+expect(bossPermissionBlock.includes("'view:workbench'"), '企业负责人缺少履约驾驶舱 capability')
 expect(home.includes('经营专业工作台') && home.includes('professionalWorkbenches'),
   '企业负责人首页缺少二级专业工作台区')
-for (const label of ['量房经营', '选材工作台', '材料计划', '增减项经营']) {
+for (const label of ['量房经营', '选材工作台', '材料计划', '履约驾驶舱', '增减项经营', '员工绩效业绩']) {
   expect(home.includes(`label: '${label}'`), `企业负责人首页缺少${label}入口`)
 }
-for (const path of ['P.customerMeasureWorkbench', 'P.selectionBoard', 'P.materialPlanWorkbench', 'P.projectChangeWorkbench']) {
+for (const path of ['P.customerMeasureWorkbench', 'P.selectionBoard', 'P.materialPlanWorkbench', 'P.managerWorkbench', 'P.projectChangeWorkbench', 'P.performanceAssessment']) {
   expect(home.includes(`path: ${path}`), `企业负责人首页专业工作台未接入 ${path}`)
 }
 expect(catalog.includes('boss: [TAB.home, TAB.customer, TAB.project, TAB.finance, TAB.mine]'),
@@ -85,4 +88,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('首页产品契约校验通过：四项指示灯、六项一级功能域、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')
+console.log('首页产品契约校验通过：四项指示灯、四项一级功能域、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')

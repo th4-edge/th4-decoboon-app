@@ -9,7 +9,7 @@ import type { FinanceSummary } from '@/domains/finance/model'
 import { DIRECTION_LABEL, PAYABLE_STATUS_META, RECEIVABLE_STATUS_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { toastError } from '@/composables/toast'
+import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -20,7 +20,6 @@ const summary = ref<FinanceSummary | null>(null)
 const loading = ref(false)
 const urgentTab = ref<'collect' | 'pay'>('collect')
 const editable = computed(() => can(session.role, 'edit:finance'))
-const netCash = computed(() => (summary.value?.monthIncome || 0) - (summary.value?.monthExpense || 0))
 
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
 onShow(() => { if (isLoggedIn()) refresh() })
@@ -45,20 +44,67 @@ const stats = computed(() => [
   { label: '待收工程款', value: summary.value?.outstandingAmount || 0, sub: `逾期 ${money(summary.value?.overdueAmount)}`, icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, color: TOKEN_COLOR.primary },
   { label: '本月回款', value: summary.value?.monthIncome || 0, sub: `回款率 ${summary.value?.collectionRate || 0}%`, icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.successSoft, color: TOKEN_COLOR.success },
   { label: '待付账款', value: summary.value?.unpaidAmount || 0, sub: `合同应付 ${money(summary.value?.payableAmount)}`, icon: 'wallet' as IconName, tone: TOKEN_COLOR.warningSoft, color: TOKEN_COLOR.warning },
-  { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(netCash.value)}`, icon: 'chart' as IconName, tone: TOKEN_COLOR.dangerSoft, color: TOKEN_COLOR.danger }
+  { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(summary.value?.monthNetCashFlowAmount)}`, icon: 'chart' as IconName, tone: TOKEN_COLOR.dangerSoft, color: TOKEN_COLOR.danger }
 ])
 
-const quick = computed(() => [
-  { label: '应收计划', icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, path: P.financeReceivables },
-  { label: '登记收款', icon: 'wallet' as IconName, tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt` },
-  { label: '应付账款', icon: 'clipboard' as IconName, tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
-  { label: '工人工资', icon: 'users' as IconName, tone: '#F3EFFA', path: `${P.financePayables}?type=salary` },
-  { label: '资金台账', icon: 'chart' as IconName, tone: '#E9F6F7', path: P.financeLedger },
-  { label: '供应商往来', icon: 'users' as IconName, tone: TOKEN_COLOR.warningSoft, path: P.financePartners },
-  { label: '项目账本', icon: 'briefcase' as IconName, tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
-  { label: '登记付款', icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.dangerSoft, path: `${P.financeEntry}?type=payment` },
-  { label: '手工记账', icon: 'edit' as IconName, tone: '#F1F4F7', path: `${P.financeEntry}?type=ledger` }
+interface FinanceQuickItem {
+  key: string
+  label: string
+  icon: IconName
+  tone: string
+  path: string
+  requiresEdit?: boolean
+}
+
+interface FinanceQuickGroup {
+  key: string
+  title: string
+  description: string
+  items: FinanceQuickItem[]
+}
+
+/** 财务快捷入口按业务闭环排序：先登记资金事实，再管理往来计划，最后进入核算与凭证。 */
+const quickGroups = computed<FinanceQuickGroup[]>(() => [
+  {
+    key: 'cash',
+    title: '资金收付',
+    description: '先登记真实收付款，系统自动核销并进入资金台账',
+    items: [
+      { key: 'receipt', label: '登记收款', icon: 'wallet', tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt`, requiresEdit: true },
+      { key: 'payment', label: '登记付款', icon: 'arrow-right', tone: TOKEN_COLOR.dangerSoft, path: `${P.financeEntry}?type=payment`, requiresEdit: true },
+      { key: 'manual', label: '手工记账', icon: 'edit', tone: '#F1F4F7', path: `${P.financeEntry}?type=ledger`, requiresEdit: true }
+    ]
+  },
+  {
+    key: 'counterparty',
+    title: '往来管理',
+    description: '按客户、供应商和工人管理待收待付，形成资金计划',
+    items: [
+      { key: 'receivables', label: '应收计划', icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, path: P.financeReceivables },
+      { key: 'payables', label: '应付账款', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
+      { key: 'salary', label: '工人工资', icon: 'users', tone: '#F3EFFA', path: `${P.financePayables}?type=salary` },
+      { key: 'partners', label: '供应商往来', icon: 'users', tone: TOKEN_COLOR.warningSoft, path: P.financePartners }
+    ]
+  },
+  {
+    key: 'accounting',
+    title: '账务核算',
+    description: '统一查看资金流水、项目盈利和收付凭证',
+    items: [
+      { key: 'ledger', label: '资金台账', icon: 'chart', tone: '#E9F6F7', path: P.financeLedger },
+      { key: 'projects', label: '项目账本', icon: 'briefcase', tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
+      { key: 'vouchers', label: '收付凭证', icon: 'doc', tone: '#F1F4F7', path: P.financeVouchers }
+    ]
+  }
 ])
+
+function openQuick(item: FinanceQuickItem) {
+  if (item.requiresEdit && !editable.value) {
+    toast('当前账号仅可查看财务数据')
+    return
+  }
+  go(item.path)
+}
 </script>
 
 <template>
@@ -127,10 +173,22 @@ const quick = computed(() => [
       <text v-if="!editable" class="fin-section__more">只读视图</text>
     </view>
     <view class="fin-body">
-      <view class="fin-quick">
-        <view v-for="item in quick" :key="item.label" class="fin-quick__item" @tap="item.path.startsWith(P.financeEntry) && !editable ? null : go(item.path)">
-          <view class="fin-quick__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="30" :color="TOKEN_COLOR.primary" /></view>
-          <text class="fin-quick__text">{{ item.label }}</text>
+      <view v-for="group in quickGroups" :key="group.key" class="fin-quick-group">
+        <view class="fin-quick-group__head">
+          <text class="fin-quick-group__title">{{ group.title }}</text>
+          <text class="fin-quick-group__desc">{{ group.description }}</text>
+        </view>
+        <view class="fin-quick">
+          <view
+            v-for="item in group.items"
+            :key="item.key"
+            class="fin-quick__item"
+            :class="{ 'fin-quick__item--disabled': item.requiresEdit && !editable }"
+            @tap="openQuick(item)"
+          >
+            <view class="fin-quick__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="30" :color="TOKEN_COLOR.primary" /></view>
+            <text class="fin-quick__text">{{ item.label }}</text>
+          </view>
         </view>
       </view>
     </view>

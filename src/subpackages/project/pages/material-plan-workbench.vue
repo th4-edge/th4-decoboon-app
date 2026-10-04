@@ -405,12 +405,12 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
                   v-if="canOrder && READY_STATUS.includes(item.status || '')"
                   class="jz-btn jz-btn--primary jz-btn--sm"
                   @tap="order(item)"
-                >去下单</button>
+                ><JzIcon name="package" :size="22" :color="TOKEN_COLOR.white" /><text>去下单</text></button>
                 <button
                   v-if="canConfirmArrival && (item.status === 'Ordered' || item.status === 'PartiallyArrived')"
                   class="jz-btn jz-btn--ghost jz-btn--sm"
                   @tap="confirmArrival(item)"
-                >到场确认</button>
+                ><JzIcon name="check-circle" :size="22" :color="TOKEN_COLOR.primary" /><text>登记到场</text></button>
               </view>
             </view>
           </view>

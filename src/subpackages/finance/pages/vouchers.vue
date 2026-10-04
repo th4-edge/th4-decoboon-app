@@ -113,14 +113,10 @@ const range = computed(() => {
   return { start: undefined as string | undefined, end: undefined as string | undefined }
 })
 
-const totals = computed(() => ({
-  count: items.value.length,
-  amount: items.value.reduce((sum, item) => sum + item.totalAmount, 0),
-  receipt: items.value.filter((item) => item.type === 'receipt').reduce((sum, item) => sum + item.totalAmount, 0),
-  payment: items.value.filter((item) => item.type === 'payment').reduce((sum, item) => sum + item.totalAmount, 0)
-}))
+const totals = ref({ count: 0, totalAmount: 0, receiptAmount: 0, paymentAmount: 0, monthlyAmounts: [] as Array<{ month: string; count: number; amount: number }> })
 
-/** 列表按月份分组：月份即天然的时间维度，组头带当月笔数与合计。 */
+/** 列表按月份分组；组头金额取服务端全量月度汇总。 */
+const monthAmounts = computed(() => new Map(totals.value.monthlyAmounts.map((item) => [item.month, item.amount])))
 const groups = computed(() => {
   const map = new Map<string, Voucher[]>()
   items.value.forEach((item) => {
@@ -133,7 +129,8 @@ const groups = computed(() => {
     key,
     label: monthLabel(key),
     items: list,
-    total: list.reduce((sum, item) => sum + item.totalAmount, 0)
+    total: monthAmounts.value.get(key) || 0,
+    totalCount: totals.value.monthlyAmounts.find((item) => item.month === key)?.count || list.length
   }))
 })
 
@@ -152,16 +149,21 @@ async function load() {
   const seq = ++requestSeq
   loadingList.value = true
   loadError.value = ''
+  const params = {
+    keyword: keyword.value.trim() || undefined,
+    type: typeFilter.value === 'all' ? undefined : (typeFilter.value === 'receipt' ? 'Receipt' : 'Payment'),
+    projectId: projectId.value || undefined,
+    startDate: range.value.start,
+    endDate: range.value.end
+  }
   try {
-    const list = await financeApi.vouchers({
-      keyword: keyword.value.trim() || undefined,
-      type: typeFilter.value === 'all' ? undefined : (typeFilter.value === 'receipt' ? 'Receipt' : 'Payment'),
-      projectId: projectId.value || undefined,
-      startDate: range.value.start,
-      endDate: range.value.end
-    })
+    const [list, report] = await Promise.all([
+      financeApi.vouchers(params),
+      financeApi.voucherReport(params)
+    ])
     if (seq !== requestSeq) return
     items.value = list
+    totals.value = report
   } catch (error) {
     if (seq !== requestSeq) return
     loadError.value = error instanceof Error ? error.message : '凭证加载失败'
@@ -445,12 +447,12 @@ void bootSheetSources()
         <view class="vc-summary">
           <view class="vc-summary__main">
             <text class="vc-summary__label">{{ hasFilter ? '筛选结果' : '全部凭证' }}</text>
-            <text class="vc-summary__value">{{ money(totals.amount) }}</text>
+            <text class="vc-summary__value">{{ money(totals.totalAmount) }}</text>
             <text class="vc-summary__sub">{{ totals.count }} 张凭证</text>
           </view>
           <view class="vc-summary__side">
-            <view><text class="vc-summary__side-label">收款</text><text class="vc-summary__side-value">{{ money(totals.receipt) }}</text></view>
-            <view><text class="vc-summary__side-label">付款</text><text class="vc-summary__side-value">{{ money(totals.payment) }}</text></view>
+            <view><text class="vc-summary__side-label">收款</text><text class="vc-summary__side-value">{{ money(totals.receiptAmount) }}</text></view>
+            <view><text class="vc-summary__side-label">付款</text><text class="vc-summary__side-value">{{ money(totals.paymentAmount) }}</text></view>
           </view>
         </view>
 
@@ -525,7 +527,7 @@ void bootSheetSources()
         <view v-for="group in groups" :key="group.key" class="vc-group">
           <view class="vc-group__head">
             <text class="vc-group__label">{{ group.label }}</text>
-            <text class="vc-group__meta">{{ group.items.length }} 张 · {{ money(group.total) }}</text>
+            <text class="vc-group__meta">{{ group.totalCount }} 张 · {{ money(group.total) }}</text>
           </view>
           <view v-for="item in group.items" :key="item.id" class="fin-card">
             <view class="fin-card__top">

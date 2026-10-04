@@ -4,10 +4,11 @@ import { onLoad } from '@dcloudio/uni-app'
 import { crmApi } from '@/domains/crm/api'
 import type { Customer, CustomerTag } from '@/domains/crm/model'
 import { session } from '@/domains/identity/session'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzInputDialog from '@/components/JzInputDialog.vue'
 
 const customerId = ref('')
 const customer = ref<Customer | null>(null)
@@ -15,6 +16,9 @@ const dictionary = ref<CustomerTag[]>([])
 const saving = ref(false)
 const newTagName = ref('')
 const newTagCategory = ref('intent')
+const renameVisible = ref(false)
+const renameValue = ref('')
+const renameTarget = ref<CustomerTag | null>(null)
 
 const categoryOptions = [
   { value: 'intent', label: '意向' }, { value: 'demand', label: '需求' },
@@ -89,51 +93,43 @@ async function unbind(tag: CustomerTag) {
 }
 
 function renameTag(tag: CustomerTag) {
-  uni.showModal({
-    title: '重命名标签',
-    editable: true,
-    placeholderText: '请输入新的标签名称',
-    content: tag.name,
-    success: async (res) => {
-      if (!res.confirm) return
-      const name = (res.content || '').trim()
-      if (!name) { toast('标签名称不能为空'); return }
-      saving.value = true
-      loading('正在保存…')
-      try {
-        await crmApi.tagUpdate({ tagId: tag.id, name })
-        dictionary.value = await crmApi.tagList()
-        toast('标签已重命名', 'success')
-      } catch (error) {
-        toastError(error, '标签重命名失败')
-      } finally {
-        hideLoading()
-        saving.value = false
-      }
-    }
-  })
+  renameTarget.value = tag
+  renameValue.value = tag.name
+  renameVisible.value = true
 }
 
-function disableTag(tag: CustomerTag) {
-  uni.showModal({
-    title: '停用标签',
-    content: `确认停用「${tag.name}」？停用后不可再选用，历史关联保留。`,
-    success: async (res) => {
-      if (!res.confirm) return
-      saving.value = true
-      loading('正在停用…')
-      try {
-        await crmApi.tagDelete(tag.id)
-        dictionary.value = await crmApi.tagList()
-        toast('标签已停用', 'success')
-      } catch (error) {
-        toastError(error, '标签停用失败')
-      } finally {
-        hideLoading()
-        saving.value = false
-      }
-    }
-  })
+async function saveTagRename() {
+  const name = renameValue.value.trim()
+  if (!name || !renameTarget.value || saving.value) return
+  saving.value = true
+  loading('正在保存…')
+  try {
+    await crmApi.tagUpdate({ tagId: renameTarget.value.id, name })
+    dictionary.value = await crmApi.tagList()
+    renameVisible.value = false
+    toast('标签已重命名', 'success')
+  } catch (error) {
+    toastError(error, '标签重命名失败')
+  } finally {
+    hideLoading()
+    saving.value = false
+  }
+}
+
+async function disableTag(tag: CustomerTag) {
+  if (!await confirmDanger('停用标签', `确认停用「${tag.name}」？停用后不可再选用，历史关联保留。`, '确认停用')) return
+  saving.value = true
+  loading('正在停用…')
+  try {
+    await crmApi.tagDelete(tag.id)
+    dictionary.value = await crmApi.tagList()
+    toast('标签已停用', 'success')
+  } catch (error) {
+    toastError(error, '标签停用失败')
+  } finally {
+    hideLoading()
+    saving.value = false
+  }
 }
 
 async function createTag() {
@@ -220,6 +216,19 @@ async function createTag() {
     </view>
 
     <view class="jz-tabbar-gap" />
+    <JzInputDialog
+      :visible="renameVisible"
+      title="重命名标签"
+      label="标签名称"
+      description="历史客户关联不会改变，只会更新标签显示名称。"
+      placeholder="请输入新的标签名称"
+      :model-value="renameValue"
+      :loading="saving"
+      confirm-text="保存名称"
+      @update:model-value="renameValue = $event"
+      @update:visible="renameVisible = $event"
+      @confirm="saveTagRename"
+    />
   </view>
 </template>
 

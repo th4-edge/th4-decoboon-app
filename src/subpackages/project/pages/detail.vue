@@ -349,8 +349,8 @@ function avatarOf(m: ProjectMember) {
     <!-- ① 进度概览 -->
     <view v-if="tab === 'overview'" class="pd__tab-body">
       <view v-if="!isOwner && (canOpenStage || canReport)" class="pd__quick-actions jz-card">
-        <button v-if="canOpenStage && hasManager && nextActionableStage" class="jz-btn jz-btn--primary jz-grow" @tap="startNextStage">开始「{{ nextActionableStage.name }}」</button>
-        <button v-else-if="canOpenStage && !hasManager" class="jz-btn jz-btn--neutral jz-grow" @tap="goMembers('assign')">先指定项目经理才能开工</button>
+        <button v-if="canOpenStage && hasManager && nextActionableStage" class="jz-btn jz-btn--primary jz-grow pd__action-btn" @tap="startNextStage"><JzIcon name="play" :size="27" :color="TOKEN_COLOR.white" /><text>开始「{{ nextActionableStage.name }}」</text></button>
+        <button v-else-if="canOpenStage && !hasManager" class="jz-btn jz-btn--neutral jz-grow pd__action-btn" @tap="goMembers('assign')"><JzIcon name="user-plus" :size="27" :color="TOKEN_COLOR.primary" /><text>先指定项目经理才能开工</text></button>
         <button v-if="canReport" class="jz-btn jz-btn--ghost jz-grow pd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报</text></button>
       </view>
 

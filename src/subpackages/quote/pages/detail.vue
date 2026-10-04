@@ -13,8 +13,10 @@ import { designApi } from '@/domains/design/api'
 import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, loading, hideLoading, toast, toastError } from '@/composables/toast'
+import { useInputDialog } from '@/composables/inputDialog'
 import { useShare } from '@/composables/share'
 import JzIcon from '@/components/JzIcon.vue'
+import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -29,6 +31,7 @@ const busy = ref(false)
 const pdfBusy = ref(false)
 const project = ref<Project | null>(null)
 const contract = ref<Contract | null>(null)
+const { dialog: inputDialog, open: openInputDialog, confirm: confirmInputDialog, cancel: cancelInputDialog } = useInputDialog()
 
 // 报价详情转发给业主/家人：标题带项目名，让对方知道打开的是哪一户的清单。
 useShare(() => ({
@@ -443,22 +446,27 @@ async function effectiveContract() {
 }
 async function createChange() {
   if (!contract.value || busy.value) return
-  const amountText = await new Promise<string | null>((resolve) => {
-    uni.showModal({
-      title: '发起合同变更', content: '', editable: true, placeholderText: '变更金额，增加填正数，减少填负数',
-      success: (res) => resolve(res.confirm ? ((res as any).content || '') : null), fail: () => resolve(null)
-    })
+  const amountText = await openInputDialog({
+    title: '发起合同变更',
+    label: '变更金额',
+    description: '增加填正数，减少填负数；系统会记录变更前后的合同金额。',
+    placeholder: '例如：5000 或 -3000',
+    type: 'digit',
+    confirmText: '下一步'
   })
   if (amountText === null) return
   const amount = Number(amountText)
   if (!Number.isFinite(amount) || amount === 0) { uni.showToast({ title: '请输入非 0 变更金额', icon: 'none' }); return }
-  const reason = await new Promise<string | null>((resolve) => {
-    uni.showModal({
-      title: '变更原因', content: '', editable: true, placeholderText: '如增项、减项、材料升级',
-      success: (res) => resolve(res.confirm ? ((res as any).content || '') : null), fail: () => resolve(null)
-    })
+  const reason = await openInputDialog({
+    title: '填写变更原因',
+    label: '变更原因',
+    description: '说明本次增项、减项或材料升级的业务原因，后续用于变更记录。',
+    placeholder: '如增项、减项、材料升级',
+    multiline: true,
+    maxlength: 500,
+    confirmText: '提交变更'
   })
-  if (!reason?.trim()) { uni.showToast({ title: '请填写变更原因', icon: 'none' }); return }
+  if (!reason) { uni.showToast({ title: '请填写变更原因', icon: 'none' }); return }
   busy.value = true
   try {
     await tradeApi.createContractChange(contract.value.id, amount, reason.trim())
@@ -781,6 +789,22 @@ async function confirmCustomerChange(change: ContractChange) {
   <PageState v-else-if="loadingQuote" state="loading" :rows="5" />
   <PageState v-else-if="loadError" state="error" title="报价加载失败" :subtitle="loadError" @retry="load" />
   <PageState v-else state="empty" title="报价不存在或无权访问" />
+  <JzInputDialog
+    :visible="inputDialog.visible"
+    :title="inputDialog.title"
+    :label="inputDialog.label"
+    :description="inputDialog.description"
+    :placeholder="inputDialog.placeholder"
+    :model-value="inputDialog.value"
+    :type="inputDialog.type"
+    :maxlength="inputDialog.maxlength"
+    :multiline="inputDialog.multiline"
+    :confirm-text="inputDialog.confirmText"
+    :cancel-text="inputDialog.cancelText"
+    @update:model-value="inputDialog.value = $event"
+    @confirm="confirmInputDialog"
+    @cancel="cancelInputDialog"
+  />
 </template>
 
 <style lang="scss" scoped>

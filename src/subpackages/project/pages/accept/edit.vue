@@ -13,6 +13,7 @@ import { projectApi } from '@/domains/project/api'
 import { acceptanceApi, acceptanceRoundApi } from '@/domains/acceptance/api'
 import { fileApi } from '@/domains/file/api'
 import JzIcon from '@/components/JzIcon.vue'
+import JzActionCard from '@/components/JzActionCard.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
@@ -301,9 +302,15 @@ async function submit() {
         </view>
       </view>
       <text v-if="waitingCustomer && !rejectOpen" class="ac__tip">业主确认后，验收结果将同步给项目经理与企业负责人</text>
-      <view v-else-if="acceptance.customerStatus === 'rejected' && canSubmit" class="ac__resubmit">
-        <button class="jz-btn jz-btn--plain jz-btn--block ac__resubmit-btn" @tap="resubmit"><text>整改完成，重新提交验收</text><JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.primary" /></button>
-      </view>
+      <JzActionCard
+        v-else-if="acceptance.customerStatus === 'rejected' && canSubmit"
+        tone="primary"
+        icon="refresh"
+        title="整改已完成，重新提交验收"
+        description="补充整改说明和整改后照片，重新提交给业主确认。"
+        action-label="重新提交"
+        @tap="resubmit"
+      />
     </view>
 
     <!-- ①.5 轮次时间线（append-only：历史结论保留，不覆盖） -->
@@ -431,8 +438,6 @@ async function submit() {
 .ac__done-label { width: 160rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .ac__done-val { flex: 1; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .ac__empty { text-align: center; color: $jzb-text-3; font-size: $jzb-font; padding: 30rpx 0; }
-.ac__resubmit-btn { display: flex; align-items: center; justify-content: center; }
-.ac__resubmit-btn text { margin-right: 6rpx; }
 .ac__round { margin-top: 22rpx; padding-top: 20rpx; border-top: 1rpx solid $jzb-border-light; }
 .ac__round-no { font-size: $jzb-font-sm; font-weight: 700; }
 .ac__person { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10rpx; text-align: right; }

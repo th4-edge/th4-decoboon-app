@@ -8,6 +8,7 @@ import type { Payment } from '@/domains/finance/model'
 import { ACCOUNT_LABEL, PAYABLE_TYPE_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
+import { toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -23,13 +24,26 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
   20
 )
 const editable = computed(() => can(session.role, 'edit:finance'))
-const total = computed(() => items.value.reduce((sum, item) => sum + item.amount, 0))
-const monthText = new Date().toISOString().slice(0, 7)
-const monthTotal = computed(() => items.value.filter((item) => item.paidAt.startsWith(monthText)).reduce((sum, item) => sum + item.amount, 0))
+const totals = ref({ total: 0, month: 0, count: 0 })
 
 onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onShow(() => { if (isLoggedIn()) void refreshAll() })
+onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
+
+async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
+async function loadTotals() {
+  try {
+    if (projectId.value) {
+      const report = await financeApi.projectReport(projectId.value)
+      totals.value = { total: report.paymentAmount, month: report.monthPaymentAmount, count: report.paymentCount }
+      return
+    }
+    const report = await financeApi.summary()
+    totals.value = { total: report.paymentAmount, month: report.monthPaymentAmount, count: report.paymentCount }
+  } catch (error) {
+    toastError(error, '付款汇总加载失败')
+  }
+}
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payment${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function openPayables() { uni.navigateTo({ url: P.financePayables }) }
@@ -42,16 +56,16 @@ function openProject(id?: string) { if (id) uni.navigateTo({ url: `${P.financePr
 
     <view class="fin-hero">
       <text class="fin-hero__label">累计业务付款</text>
-      <text class="fin-hero__value fin-amount">{{ money(total) }}</text>
+      <text class="fin-hero__value fin-amount">{{ money(totals.total) }}</text>
       <view class="fin-hero__grid">
-        <view class="fin-hero__item"><text class="fin-hero__item-label">本月付款</text><text class="fin-hero__item-value">{{ money(monthTotal) }}</text></view>
-        <view class="fin-hero__item"><text class="fin-hero__item-label">付款笔数</text><text class="fin-hero__item-value">{{ items.length }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">本月付款</text><text class="fin-hero__item-value">{{ money(totals.month) }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">付款笔数</text><text class="fin-hero__item-value">{{ totals.count }}</text></view>
       </view>
     </view>
 
     <view class="fin-section"><text class="fin-section__title">付款明细</text><text class="fin-section__more" @tap="openPayables">查看应付</text></view>
     <view class="fin-body">
-      <PageState v-if="loadError && !items.length" state="error" title="付款记录加载失败" :subtitle="loadError" @retry="refresh" />
+      <PageState v-if="loadError && !items.length" state="error" title="付款记录加载失败" :subtitle="loadError" @retry="refreshAll" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
       <view v-for="item in items" :key="item.id" class="fin-card" @tap="openProject(item.project?.id)">
         <view class="fin-card__top">

@@ -5,7 +5,7 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { catalogApi } from '@/domains/catalog/api'
 import type { CatalogImportBatch, CatalogImportRow } from '@/domains/catalog/model'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 
 const batchId = ref('')
@@ -80,14 +80,7 @@ async function load() {
 
 async function revoke() {
   if (!batch.value || !canRevoke.value) return
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '撤销本次导入',
-      content: `将删除本批新增的 {batch.value?.importedRows ?? 0} 条报价项目，且不可恢复。确认撤销？`,
-      success: (res) => resolve(Boolean(res.confirm)),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('撤销本次导入', `将删除本批新增的 ${batch.value?.importedRows ?? 0} 条报价项目，且不可恢复。确认撤销？`, '确认撤销')
   if (!confirmed) return
   revoking.value = true
   try {

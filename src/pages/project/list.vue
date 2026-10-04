@@ -11,6 +11,7 @@ import { projectApi } from '@/domains/project/api'
 import { visibleProjects } from '@/domains/project/scope'
 import { money } from '@/core/format'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzActionCard from '@/components/JzActionCard.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -358,8 +359,8 @@ function openChangeWorkbench() {
     <JzPageHeader
       :title="isBoss ? '项目经营' : '项目工地'"
       :subtitle="isBoss ? bossSubtitle : (isCustomer(role) ? '仅展示与您关联的工地' : `${scoped.length} 个在建/历史项目`)"
-      :right-text="canCreate() ? '合同签约' : ''"
-      :right-icon="canCreate() ? 'plus-square' : undefined"
+      :right-text="canCreate() && listCount ? '签约建项目' : ''"
+      :right-icon="canCreate() && listCount ? 'plus-square' : undefined"
       @right="createProject"
     />
 
@@ -429,13 +430,22 @@ function openChangeWorkbench() {
 
       <JzSkeleton v-if="!loadError && loading && !listCount" :rows="3" />
 
-      <view v-else-if="!loadError && !loading && !listCount" class="jz-card pl__empty">
-        <JzEmpty
-          :text="isBoss ? '还没有项目' : (filter === 'all' ? (isCustomer(role) ? '暂未关联工地' : '还没有项目') : '该状态下暂无项目')"
-          :sub="isBoss ? '点击右上角「合同签约」从已确认报价生成项目' : (isCustomer(role) ? '等待装修公司通过业主邀请码绑定' : '点击右上角「合同签约」从已确认报价生成项目')"
-        >
-          <button v-if="canCreate()" class="jz-btn jz-btn--plain jz-btn--sm pl__empty-btn" @tap="createProject">合同签约并生成项目</button>
-        </JzEmpty>
+      <view v-else-if="!loadError && !loading && !listCount" class="pl__empty-wrap">
+        <JzActionCard
+          v-if="canCreate()"
+          tone="primary"
+          icon="shield-check"
+          title="签约并生成第一个项目"
+          description="从已确认报价发起合同签约，系统会自动建立项目、工地、应收回款和后续履约主链。"
+          action-label="去签约"
+          @tap="createProject"
+        />
+        <view v-else class="jz-card pl__empty">
+          <JzEmpty
+            :text="isCustomer(role) ? '暂未关联工地' : '还没有项目'"
+            :sub="isCustomer(role) ? '等待装修公司通过业主邀请码绑定' : '暂无项目数据'"
+          />
+        </view>
       </view>
 
       <!-- 企业负责人：项目经营卡片 -->
@@ -573,8 +583,8 @@ function openChangeWorkbench() {
 .pl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
 .pl__filter-count { margin-left: 8rpx; font-size: $jzb-font-xs; opacity: .75; }
 .pl__body { padding: 4rpx $jzb-page-pad calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }
+.pl__empty-wrap { margin-top: 40rpx; }
 .pl__empty { margin-top: 40rpx; }
-.pl__empty-btn { margin-top: 24rpx; }
 .pl__error-bar { display: flex; align-items: center; gap: 12rpx; margin-bottom: 16rpx; padding: 22rpx 24rpx; color: $jzb-danger; font-size: $jzb-font-sm; }
 .pl__cards { padding-top: 4rpx; }
 .pl__card { margin-bottom: 22rpx; padding: 24rpx; transition: transform $jzb-duration-fast $jzb-ease-out; }

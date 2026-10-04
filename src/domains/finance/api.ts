@@ -1,14 +1,16 @@
 import { post, listOf, absoluteUrl } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { PageResult } from '@/domains/common/model'
+import type { PageData, PageResult } from '@/domains/common/model'
+import { toPageData } from '@/domains/common/model'
 import { normalizeProject } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
+  FinanceLedgerReport, FinancePayableReport, LedgerCategory, PartnerLedgerReport,
   Payable, PayableStatus, PayableType, Payment, Receipt, Receivable,
-  ReceivableStatus, ReceivableType, Settlement, SettlementStatus
+  ReceivableStatus, ReceivableType, Settlement, SettlementStatus, VoucherReport
 } from './model'
 
 type Raw = Record<string, any>
@@ -56,6 +58,19 @@ function normalizeReceivable(raw: Raw): Receivable {
     invoiceRequired: !!raw.invoiceRequired, invoiceNo: raw.invoiceNo, remark: raw.remark,
     createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined,
     createdAt: time(raw)
+  }
+}
+
+function normalizeLedgerCategory(raw: Raw): LedgerCategory {
+  return {
+    id: String(raw.id ?? raw.categoryId ?? ''),
+    name: raw.name ?? '',
+    direction: lower(raw.direction) === 'income' ? 'income' : 'expense',
+    code: raw.code == null ? undefined : String(raw.code),
+    builtIn: raw.builtIn === true,
+    sort: num(raw.sort),
+    active: raw.active !== false,
+    children: Array.isArray(raw.children) ? raw.children.map((item: Raw) => normalizeLedgerCategory(item)) : []
   }
 }
 function normalizeReceipt(raw: Raw): Receipt {
@@ -106,11 +121,15 @@ function normalizeLedger(raw: Raw): Ledger {
     id: String(raw.id ?? raw.ledgerId ?? ''),
     project: rawProject(raw),
     direction: lower(raw.direction) === 'expense' ? 'expense' : 'income',
-    category: raw.category ?? '', source: lower(raw.source) as Ledger['source'],
+    category: raw.category ?? '',
+    categoryNode: raw.categoryNode ? normalizeLedgerCategory(raw.categoryNode) : undefined,
+    source: lower(raw.source) as Ledger['source'],
     sourceId: raw.sourceId == null ? undefined : String(raw.sourceId),
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
     occurredAt: raw.occurredAt ?? '', counterparty: raw.counterparty, summary: raw.summary ?? '', remark: raw.remark,
-    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+    createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw),
+    originalLedgerId: raw.originalLedger?.ledgerId ? String(raw.originalLedger.ledgerId) : undefined,
+    correctionGroupId: raw.correctionGroupId == null ? undefined : String(raw.correctionGroupId)
   }
 }
 function normalizeSettlement(raw: Raw): Settlement {
@@ -145,7 +164,12 @@ function normalizeSummary(raw: Raw): FinanceSummary {
     payableAmount: num(raw.payableAmount), paidAmount: num(raw.paidAmount), unpaidAmount: num(raw.unpaidAmount),
     materialPayableAmount: num(raw.materialPayableAmount), salaryPayableAmount: num(raw.salaryPayableAmount),
     projectPayableAmount: num(raw.projectPayableAmount), otherPayableAmount: num(raw.otherPayableAmount),
-    monthIncome: num(raw.monthIncome), monthExpense: num(raw.monthExpense), cashBalance: num(raw.cashBalance),
+    monthIncome: num(raw.monthIncome), monthExpense: num(raw.monthExpense),
+    monthNetCashFlowAmount: num(raw.monthNetCashFlowAmount),
+    receiptCount: num(raw.receiptCount), paymentCount: num(raw.paymentCount),
+    receiptAmount: num(raw.receiptAmount), paymentAmount: num(raw.paymentAmount),
+    monthReceiptAmount: num(raw.monthReceiptAmount), monthPaymentAmount: num(raw.monthPaymentAmount),
+    urgentPayableAmount: num(raw.urgentPayableAmount), cashBalance: num(raw.cashBalance),
     estimatedCost: num(raw.estimatedCost), actualCost: num(raw.actualCost),
     profitAmount: raw.profitAmount == null ? undefined : num(raw.profitAmount),
     costComplete: raw.costComplete !== false,
@@ -165,6 +189,10 @@ function normalizeProjectReport(raw: Raw): FinanceProjectReport {
     receivableAmount: num(raw.receivableAmount),
     receivedAmount: num(raw.receivedAmount), outstandingAmount: num(raw.outstandingAmount), overdueAmount: num(raw.overdueAmount),
     payableAmount: num(raw.payableAmount), paidAmount: num(raw.paidAmount), unpaidAmount: num(raw.unpaidAmount),
+    receiptCount: num(raw.receiptCount), paymentCount: num(raw.paymentCount),
+    receiptAmount: num(raw.receiptAmount), paymentAmount: num(raw.paymentAmount),
+    monthReceiptAmount: num(raw.monthReceiptAmount), monthPaymentAmount: num(raw.monthPaymentAmount),
+    urgentPayableAmount: num(raw.urgentPayableAmount),
     materialAmount: num(raw.materialAmount), materialCost: num(raw.materialCost),
     salaryAmount: num(raw.salaryAmount), laborCost: num(raw.laborCost),
     projectPaymentAmount: num(raw.projectPaymentAmount), projectCost: num(raw.projectCost),
@@ -218,8 +246,17 @@ function normalizeVoucher(raw: Raw) {
 
 export const financeApi = {
   /** 供应商应付台账：按供应商聚合待付、逾期与最近到期日。 */
-  partnerLedger: (params: { partnerId?: string; overdueOnly?: boolean } = {}) =>
-    post<Raw[]>('finance/partner-ledger/report', params),
+  partnerLedger: async (params: { partnerId?: string; overdueOnly?: boolean } = {}): Promise<PartnerLedgerReport> => {
+    const raw = await post<Raw>('finance/partner-ledger/report', params)
+    return {
+      rows: Array.isArray(raw.rows) ? raw.rows : [],
+      partnerCount: num(raw.partnerCount),
+      payableAmount: num(raw.payableAmount),
+      paidAmount: num(raw.paidAmount),
+      outstandingAmount: num(raw.outstandingAmount),
+      overdueAmount: num(raw.overdueAmount)
+    }
+  },
 
   summary: async () => normalizeSummary(await post<Raw>('finance/summary/report', {})),
   projectPage: async (params: { projectId?: string; status?: string; keyword?: string; current?: number; size?: number } = {}) =>
@@ -255,10 +292,75 @@ export const financeApi = {
     paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
   createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
     normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
-  ledgers: async (params: { projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}) =>
-    paged(await post<PageResult<Raw> | Raw[]>('finance/ledger/page', { ...params, current: params.current ?? 1, size: params.size ?? 300 }), normalizeLedger),
-  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; category: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
+  ledgers: async (params: { ledgerId?: string; projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}): Promise<PageData<Ledger>> => {
+    const current = params.current ?? 1
+    const size = params.size ?? 20
+    const result = await post<PageResult<Raw> | Raw[]>('finance/ledger/page', {
+      ...params,
+      direction: params.direction ? LEDGER_DIRECTION_API[params.direction] : undefined,
+      current, size
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeLedger) }
+  },
+  ledgerReport: async (params: { projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; ledgerIds?: string[] } = {}): Promise<FinanceLedgerReport> => {
+    const raw = await post<Raw>('finance/ledger/report', {
+      ...params,
+      direction: params.direction ? LEDGER_DIRECTION_API[params.direction] : undefined
+    })
+    return {
+      count: num(raw.count), totalAmount: num(raw.totalAmount),
+      incomeAmount: num(raw.incomeAmount), expenseAmount: num(raw.expenseAmount),
+      netCashFlowAmount: num(raw.netCashFlowAmount)
+    }
+  },
+  payableReport: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; partnerId?: string; keyword?: string } = {}): Promise<FinancePayableReport> => {
+    const raw = await post<Raw>('finance/payable/report', {
+      ...params,
+      type: params.type ? PAYABLE_TYPE_API[params.type] : undefined,
+      status: params.status
+    })
+    return {
+      count: num(raw.count), totalAmount: num(raw.totalAmount), paidAmount: num(raw.paidAmount),
+      outstandingAmount: num(raw.outstandingAmount), urgentAmount: num(raw.urgentAmount)
+    }
+  },
+  voucherReport: async (params: { projectId?: string; status?: string; keyword?: string; type?: string; startDate?: string; endDate?: string } = {}): Promise<VoucherReport> => {
+    const raw = await post<Raw>('document/voucher/report', params)
+    return {
+      count: num(raw.count), totalAmount: num(raw.totalAmount),
+      receiptAmount: num(raw.receiptAmount), paymentAmount: num(raw.paymentAmount),
+      monthlyAmounts: (Array.isArray(raw.monthlyAmounts) ? raw.monthlyAmounts : []).map((item: Raw) => ({
+        month: item.month ?? '', count: num(item.count), amount: num(item.amount)
+      }))
+    }
+  },
+  ledgerInfo: async (ledgerId: string): Promise<Ledger> => {
+    const page = await financeApi.ledgers({ ledgerId, current: 1, size: 1 })
+    const item = page.list.find((row) => row.id === ledgerId)
+    if (!item) throw new Error('手工流水不存在或无权访问')
+    return item
+  },
+  ledgerCategories: async (): Promise<LedgerCategory[]> => {
+    const raw = await post<Raw[]>('finance/ledger-category/tree', {})
+    return Array.isArray(raw) ? raw.map((item) => normalizeLedgerCategory(item)) : []
+  },
+  saveLedgerCategory: async (input: { name: string; direction: LedgerDirection; parentId?: string }): Promise<LedgerCategory> =>
+    normalizeLedgerCategory(await post<Raw>('finance/ledger-category/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction] })),
+  updateLedgerCategory: async (input: { id: string; name: string; active: boolean }): Promise<LedgerCategory> =>
+    normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, active: input.active })),
+  deleteLedgerCategory: async (id: string): Promise<LedgerCategory> =>
+    normalizeLedgerCategory(await post<Raw>('finance/ledger-category/delete', { categoryId: id })),
+  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
     normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
+  updateLedger: async (input: { ledgerId: string; category: string; categoryId?: string; projectId?: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
+    normalizeLedger(await post<Raw>('finance/ledger/update', input)),
+  correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
+    normalizeLedger(await post<Raw>('finance/ledger/correct', {
+      ...input,
+      direction: LEDGER_DIRECTION_API[input.direction],
+      account: ACCOUNT_API[input.account]
+    })),
   settlements: async (params: { projectId?: string; status?: SettlementStatus } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/settlement/page', { current: 1, size: 200, ...params }), normalizeSettlement),
   saveSettlement: async (projectId: string, remark?: string) =>

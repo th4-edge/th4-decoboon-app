@@ -57,6 +57,8 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.financeProjects, anyOf: ['view:finance'] },
   { path: P.financeProject, anyOf: ['view:finance'] },
   { path: P.financeEntry, anyOf: ['edit:finance'] },
+  { path: P.financeProjectPicker, anyOf: ['edit:finance'] },
+  { path: P.financeLedgerCategoryPicker, anyOf: ['edit:finance'] },
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supplyPurchaseEdit, anyOf: ['view:supply'] },
   { path: P.supplyReceiptEdit, anyOf: ['view:supply'] }

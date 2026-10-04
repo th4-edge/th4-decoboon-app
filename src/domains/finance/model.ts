@@ -81,11 +81,23 @@ export interface Payment {
   createdAt?: string
 }
 
+export interface LedgerCategory {
+  id: string
+  name: string
+  direction: LedgerDirection
+  code?: string
+  builtIn: boolean
+  sort: number
+  active: boolean
+  children?: LedgerCategory[]
+}
+
 export interface Ledger {
   id: string
   project?: Project
   direction: LedgerDirection
   category: string
+  categoryNode?: LedgerCategory
   source: LedgerSource
   sourceId?: string
   amount: number
@@ -96,6 +108,8 @@ export interface Ledger {
   remark?: string
   createdBy?: Employee
   createdAt?: string
+  originalLedgerId?: string
+  correctionGroupId?: string
 }
 
 export interface Settlement {
@@ -150,6 +164,14 @@ export interface FinanceSummary {
   otherPayableAmount: number
   monthIncome: number
   monthExpense: number
+  monthNetCashFlowAmount: number
+  receiptCount: number
+  paymentCount: number
+  receiptAmount: number
+  paymentAmount: number
+  monthReceiptAmount: number
+  monthPaymentAmount: number
+  urgentPayableAmount: number
   cashBalance: number
   estimatedCost: number
   actualCost: number
@@ -173,6 +195,13 @@ export interface FinanceProjectReport {
   payableAmount: number
   paidAmount: number
   unpaidAmount: number
+  receiptCount: number
+  paymentCount: number
+  receiptAmount: number
+  paymentAmount: number
+  monthReceiptAmount: number
+  monthPaymentAmount: number
+  urgentPayableAmount: number
   contractRevenue: number
   materialAmount: number
   materialCost: number
@@ -198,6 +227,55 @@ export interface FinanceProjectReport {
   receivables: Receivable[]
   payables: Payable[]
   recentLedgers: Ledger[]
+}
+
+export interface FinanceLedgerReport {
+  count: number
+  totalAmount: number
+  incomeAmount: number
+  expenseAmount: number
+  netCashFlowAmount: number
+}
+
+export interface FinancePayableReport {
+  count: number
+  totalAmount: number
+  paidAmount: number
+  outstandingAmount: number
+  urgentAmount: number
+}
+
+export interface VoucherMonthAmount {
+  month: string
+  count: number
+  amount: number
+}
+
+export interface VoucherReport {
+  count: number
+  totalAmount: number
+  receiptAmount: number
+  paymentAmount: number
+  monthlyAmounts: VoucherMonthAmount[]
+}
+
+export interface PartnerLedger {
+  partner?: { id?: string; name?: string; settlementMode?: string; settlementDays?: number; cutoffDay?: number }
+  payableAmount?: number
+  paidAmount?: number
+  outstanding?: number
+  overdueAmount?: number
+  pendingCount?: number
+  nearestDueDate?: string
+}
+
+export interface PartnerLedgerReport {
+  rows: PartnerLedger[]
+  partnerCount: number
+  payableAmount: number
+  paidAmount: number
+  outstandingAmount: number
+  overdueAmount: number
 }
 
 export type VoucherStatus = 'active' | 'voided'

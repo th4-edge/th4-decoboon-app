@@ -8,6 +8,7 @@ import type { Receipt } from '@/domains/finance/model'
 import { ACCOUNT_LABEL } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
+import { toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -23,13 +24,26 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
   20
 )
 const editable = computed(() => can(session.role, 'edit:finance'))
-const total = computed(() => items.value.reduce((sum, item) => sum + item.amount, 0))
-const monthText = new Date().toISOString().slice(0, 7)
-const monthTotal = computed(() => items.value.filter((item) => item.receivedAt.startsWith(monthText)).reduce((sum, item) => sum + item.amount, 0))
+const totals = ref({ total: 0, month: 0, count: 0 })
 
 onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onShow(() => { if (isLoggedIn()) void refreshAll() })
+onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
+
+async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
+async function loadTotals() {
+  try {
+    if (projectId.value) {
+      const report = await financeApi.projectReport(projectId.value)
+      totals.value = { total: report.receiptAmount, month: report.monthReceiptAmount, count: report.receiptCount }
+      return
+    }
+    const report = await financeApi.summary()
+    totals.value = { total: report.receiptAmount, month: report.monthReceiptAmount, count: report.receiptCount }
+  } catch (error) {
+    toastError(error, '收款汇总加载失败')
+  }
+}
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=receipt${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function openProject(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId=${id}` }) }
@@ -42,16 +56,16 @@ function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
 
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">累计客户回款</text>
-      <text class="fin-hero__value fin-amount">{{ money(total) }}</text>
+      <text class="fin-hero__value fin-amount">{{ money(totals.total) }}</text>
       <view class="fin-hero__grid">
-        <view class="fin-hero__item"><text class="fin-hero__item-label">本月回款</text><text class="fin-hero__item-value">{{ money(monthTotal) }}</text></view>
-        <view class="fin-hero__item"><text class="fin-hero__item-label">收款笔数</text><text class="fin-hero__item-value">{{ items.length }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">本月回款</text><text class="fin-hero__item-value">{{ money(totals.month) }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">收款笔数</text><text class="fin-hero__item-value">{{ totals.count }}</text></view>
       </view>
     </view>
 
     <view class="fin-section"><text class="fin-section__title">回款明细</text><text class="fin-section__more" @tap="openReceivables">查看应收</text></view>
     <view class="fin-body">
-      <PageState v-if="loadError && !items.length" state="error" title="收款记录加载失败" :subtitle="loadError" @retry="refresh" />
+      <PageState v-if="loadError && !items.length" state="error" title="收款记录加载失败" :subtitle="loadError" @retry="refreshAll" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
       <view v-for="item in items" :key="item.id" class="fin-card" @tap="openProject(item.project.id)">
         <view class="fin-card__top">

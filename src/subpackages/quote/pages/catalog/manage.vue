@@ -8,7 +8,7 @@ import type { CatalogImportBatch, CatalogItem, CatalogPricingMode, CatalogType }
 import { catalogApi } from '@/domains/catalog/api'
 import { fileApi } from '@/domains/file/api'
 import { can } from '@/roles/permission'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -361,13 +361,8 @@ async function save() {
 
 function onToggle(item: CatalogItem, active: boolean) {
   if (!active) {
-    uni.showModal({
-      title: '停用确认',
-      content: `停用后「${item.name}」将不在报价选择中显示，确定停用吗？`,
-      confirmText: '停用',
-      confirmColor: '#E5484D',
-      success: (res) => { if (res.confirm) void doToggle(item, false) }
-    })
+    void confirmDanger('停用报价项目', `停用后「${item.name}」将不在报价选择中显示，确定停用吗？`, '确认停用')
+      .then((ok) => { if (ok) void doToggle(item, false) })
     return
   }
   void doToggle(item, true)
@@ -375,16 +370,7 @@ function onToggle(item: CatalogItem, active: boolean) {
 
 /** 删除报价项目：必须二次确认；失败时展示后端业务原因并建议停用。 */
 async function confirmDelete(item: CatalogItem) {
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '删除报价项目',
-      content: `确认删除「${item.name}」？已被设计分项、套餐、报价、项目或供应链引用的项目不能删除，可改为停用。`,
-      confirmText: '删除',
-      confirmColor: '#E5484D',
-      success: (res) => resolve(Boolean(res.confirm)),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('删除报价项目', `确认删除「${item.name}」？已被设计分项、套餐、报价、项目或供应链引用的项目不能删除，可改为停用。`, '确认删除')
   if (!confirmed) return
   loading('删除中…')
   try {

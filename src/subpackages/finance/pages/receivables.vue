@@ -8,6 +8,7 @@ import type { Receivable } from '@/domains/finance/model'
 import { RECEIVABLE_STATUS_META, RECEIVABLE_TYPE_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
+import { toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -31,15 +32,39 @@ const filtered = computed(() => items.value.filter((item) => {
   if (filter.value === 'received') return item.outstandingAmount <= 0
   return true
 }))
-const totals = computed(() => items.value.reduce((acc, item) => {
-  acc.total += item.amount; acc.received += item.receivedAmount; acc.outstanding += item.outstandingAmount
-  if (item.status === 'overdue') acc.overdue += item.outstandingAmount
-  return acc
-}, { total: 0, received: 0, outstanding: 0, overdue: 0 }))
+const totals = ref({ total: 0, received: 0, outstanding: 0, overdue: 0 })
 
 onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onShow(() => { if (isLoggedIn()) void refreshAll() })
+onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
+
+async function refreshAll() {
+  await Promise.all([refresh(), loadTotals()])
+}
+
+async function loadTotals() {
+  try {
+    if (projectId.value) {
+      const report = await financeApi.projectReport(projectId.value)
+      totals.value = {
+        total: report.receivableAmount,
+        received: report.receivedAmount,
+        outstanding: report.outstandingAmount,
+        overdue: report.overdueAmount
+      }
+      return
+    }
+    const report = await financeApi.summary()
+    totals.value = {
+      total: report.receivableAmount,
+      received: report.receivedAmount,
+      outstanding: report.outstandingAmount,
+      overdue: report.overdueAmount
+    }
+  } catch (error) {
+    toastError(error, '应收汇总加载失败')
+  }
+}
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=receivable${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function edit(item: Receivable) { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=receivable&id=${item.id}` }) }
@@ -74,7 +99,7 @@ function progress(item: Receivable) { return Math.min(100, Math.round(item.recei
     </scroll-view>
 
     <view class="fin-body">
-      <PageState v-if="loadError && !items.length" state="error" title="应收计划加载失败" :subtitle="loadError" @retry="refresh" />
+      <PageState v-if="loadError && !items.length" state="error" title="应收计划加载失败" :subtitle="loadError" @retry="refreshAll" />
       <JzSkeleton v-else-if="loading && !filtered.length" :rows="4" />
       <view v-for="item in filtered" :key="item.id" class="fin-card" @tap="edit(item)">
         <view class="fin-card__top">

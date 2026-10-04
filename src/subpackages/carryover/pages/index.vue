@@ -8,7 +8,7 @@ import type { CarryoverBatch, CarryoverProject } from '@/domains/carryover/model
 import { toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
-import JzEmpty from '@/components/JzEmpty.vue'
+import JzActionCard from '@/components/JzActionCard.vue'
 
 const batch = ref<CarryoverBatch | null>(null)
 const projects = ref<CarryoverProject[]>([])
@@ -105,7 +105,7 @@ function statusClass(status: CarryoverProject['status']) {
           <view class="carryover__date-value">{{ asOfDate }}</view>
         </picker>
       </view>
-      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch">建立承接任务</button>
+      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" color="#FFFFFF" /><text>建立承接任务，开始录入</text></button>
     </view>
 
     <template v-else>
@@ -114,11 +114,30 @@ function statusClass(status: CarryoverProject['status']) {
         <view><text class="carryover__num">{{ completedCount }}</text><text>已完成</text></view>
         <view><text class="carryover__num">{{ pendingCount }}</text><text>待处理</text></view>
       </view>
-      <view class="carryover__toolbar">
-        <text>接管日期 {{ batch?.asOfDate }}</text>
-        <button class="jz-btn jz-btn--primary jz-btn--small" @tap="addProject">录入项目</button>
+      <view class="carryover__action">
+        <JzActionCard
+          v-if="!loading && !projects.length"
+          tone="primary"
+          icon="briefcase"
+          title="录入第一个在跑项目"
+          description="补齐客户、地址、当前进度和未收金额，系统将生成承接台账。"
+          action-label="录入项目"
+          @tap="addProject"
+        />
+        <JzActionCard
+          v-else-if="!loading"
+          tone="subtle"
+          icon="plus"
+          :title="pendingCount ? '继续录入在跑项目' : '补充新的在跑项目'"
+          :description="pendingCount ? `还有 ${pendingCount} 个项目待补齐资料，录入后才能进入承接确认。` : '已有项目已全部处理，可继续录入其他在跑项目。'"
+          action-label="继续录入"
+          @tap="addProject"
+        />
       </view>
-      <JzEmpty v-if="!projects.length && !loading" text="还没有承接项目" sub="点击“录入项目”开始建立第一个在建项目" />
+      <view v-if="projects.length" class="carryover__list-head">
+        <text class="carryover__list-title">承接项目</text>
+        <text class="carryover__list-count">共 {{ projects.length }} 个</text>
+      </view>
       <view v-for="item in projects" :key="item.id" class="carryover__item jz-card" @tap="editProject(item)">
         <view class="carryover__item-head">
           <view class="jz-grow">
@@ -167,7 +186,10 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__date-value { color: $jzb-text-1; font-weight: 650; }
 .carryover__summary { display: grid; grid-template-columns: repeat(3, 1fr); margin: 24rpx 28rpx; padding: 28rpx; text-align: center; color: $jzb-text-3; font-size: 22rpx; }
 .carryover__num { display: block; color: $jzb-text-1; font-size: 42rpx; font-weight: 760; }
-.carryover__toolbar { display: flex; align-items: center; justify-content: space-between; margin: 0 28rpx 18rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.carryover__action { margin: 0 28rpx 18rpx; }
+.carryover__list-head { display: flex; align-items: center; justify-content: space-between; margin: 0 32rpx 14rpx; }
+.carryover__list-title { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.carryover__list-count { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .carryover__item { margin: 0 28rpx 20rpx; padding: 28rpx; border: 1rpx solid rgba(226,232,240,.9); box-shadow: 0 12rpx 30rpx rgba(15,23,42,.055); transition: transform .16s ease; }
 .carryover__item:active { transform: scale(.988); }
 .carryover__item-head { display: flex; align-items: flex-start; gap: 18rpx; }
