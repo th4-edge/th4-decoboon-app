@@ -68,7 +68,7 @@ async function initialize() {
   try {
     const result = await catalogApi.tree(activeType.value)
     tree.value = result
-    category.value = result.categories[0] || ''
+    category.value = ''
     brand.value = ''
     spec.value = ''
     keyword.value = ''
@@ -236,6 +236,7 @@ defineExpose({
 
     <view class="cp__body">
       <scroll-view scroll-y class="cp__categories">
+        <view class="cp__category" :class="{ 'cp__category--on': !category }" @tap="selectCategory('')">全部</view>
         <view v-for="value in tree?.categories || []" :key="value" class="cp__category" :class="{ 'cp__category--on': category === value }" @tap="selectCategory(value)">{{ value }}</view>
       </scroll-view>
       <scroll-view scroll-y class="cp__items" @scrolltolower="loadMore">
