@@ -45,6 +45,9 @@ const filtered = computed(() => {
   return items.value.filter(isDone)
 })
 
+/** 合同签约/生效角色矩阵（2026-10-06 用户确认）：企业负责人 + 店长。 */
+const canSign = computed(() => session.role === 'boss' || session.role === 'storeManager')
+
 const counts = computed(() => ({
   all: items.value.length,
   pending: items.value.filter((i) => !i.converted).length,
@@ -100,11 +103,11 @@ function goSign(item: SignWorkbenchItem) {
     openContract(item.contractId, item.projectId)
   } else if (item.converted && item.projectId) {
     openProject(item.projectId)
-  } else if (session.role === 'boss') {
+  } else if (canSign.value) {
     uni.navigateTo({ url: `${P.projectCreate}?customerId=${item.custId}&propertyId=${item.propertyId}&quoteId=${item.quoteId}` })
   } else {
     uni.navigateTo({ url: `${P.quoteDetail}?id=${item.quoteId}` })
-    uni.showToast({ title: '请联系企业负责人完成合同签约', icon: 'none' })
+    uni.showToast({ title: '请联系企业负责人或店长完成合同签约', icon: 'none' })
   }
 }
 
@@ -126,7 +129,7 @@ function riskColor(level: string): string {
 
 <template>
   <view class="wb">
-    <JzPageHeader :title="session.role === 'boss' ? '企业合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
+    <JzPageHeader :title="canSign ? '企业合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
 
     <!-- 签约与履约概览 -->
     <view class="wb__summary jz-card">
@@ -237,7 +240,7 @@ function riskColor(level: string): string {
           </text>
           <view class="wb__actions">
             <view class="wb__btn wb__btn--primary" @tap.stop="goSign(item)">
-              <text>{{ item.converted ? '查看合同' : session.role === 'boss' ? '去签约' : '查看报价' }}</text>
+              <text>{{ item.converted ? '查看合同' : canSign ? '去签约' : '查看报价' }}</text>
               <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.white" />
             </view>
           </view>
