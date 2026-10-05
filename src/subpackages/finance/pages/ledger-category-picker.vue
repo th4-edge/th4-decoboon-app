@@ -19,7 +19,7 @@ const direction = ref<LedgerDirection>('expense')
 const selectedId = ref('')
 const selectedName = ref('')
 const selectedPath = ref('')
-const selectedText = ref('')
+const legacyText = ref('')
 const selectedDeleted = ref(false)
 const keyword = ref('')
 const categories = ref<LedgerCategory[]>([])
@@ -54,7 +54,7 @@ const sheetTitle = computed(() => {
 })
 const sheetHint = computed(() => {
   if (sheetMode.value === 'edit') return '修改名称不会改动历史流水；历史记录仍保留原文本快照。'
-  return parentId.value ? '二级分类用于在报表中进一步细分。企业自定义分类仅当前企业可见。' : '一级分类用于日常快速归类，可继续添加二级分类。'
+  return parentId.value ? '新增在所选一级下的二级分类，保存后可直接用于记账。' : '一级分类用于分组；新增后建议继续补充二级分类。'
 })
 const sheetSubmitText = computed(() => sheetMode.value === 'edit' ? '保存修改' : '保存并选择')
 
@@ -103,8 +103,8 @@ const currentCategory = computed(() => {
       state: selectedDeleted.value ? 'deleted' : node ? 'active' : 'legacy'
     }
   }
-  if (selectedText.value) {
-    return { id: '', name: selectedText.value, path: '原录入文本', state: 'text' }
+  if (legacyText.value) {
+    return { id: '', name: legacyText.value, path: '原录入文本（待关联）', state: 'legacyText' }
   }
   return null
 })
@@ -115,7 +115,7 @@ onLoad((query) => {
   selectedId.value = decodeQuery(query?.selectedId)
   selectedName.value = decodeQuery(query?.selectedName)
   selectedPath.value = decodeQuery(query?.selectedPath)
-  selectedText.value = decodeQuery(query?.selectedText)
+  legacyText.value = decodeQuery(query?.legacyText)
   collapsedIds.value = []
   void load()
 })
@@ -147,6 +147,10 @@ function toggleCollapse(id: string) {
 }
 
 function choose(root: LedgerCategory, child?: LedgerCategory) {
+  if (!child && hasChildren(root)) {
+    if (isCollapsed(root.id)) toggleCollapse(root.id)
+    return
+  }
   const node = child || root
   setLedgerCategoryPickerResult({
     action: 'select',
@@ -262,9 +266,9 @@ async function removeCategory(item: LedgerCategory) {
         <text class="lc-current__clear" @tap.stop="clearCurrent">清除</text>
       </view>
 
-      <view v-if="currentCategory && currentCategory.state === 'text'" class="lc-notice lc-notice--legacy">
+      <view v-if="currentCategory && currentCategory.state === 'legacyText'" class="lc-notice lc-notice--legacy">
         <JzIcon name="info" :size="24" :color="TOKEN_COLOR.warning" />
-        <text>这是历史录入的文本分类，将继续原样回显；也可以改选标准分类进行结构化管理。</text>
+        <text>这是升级前录入的文本分类，现为「待关联」。请选择标准二级分类完成结构化关联，原文本仅作参考。</text>
       </view>
       <view v-else-if="currentCategory && currentCategory.state === 'deleted'" class="lc-notice lc-notice--muted">
         <JzIcon name="info" :size="24" :color="TOKEN_COLOR.text3" />
@@ -284,7 +288,7 @@ async function removeCategory(item: LedgerCategory) {
 
       <view class="lc-guide">
         <JzIcon name="info" :size="24" :color="TOKEN_COLOR.primary" />
-        <text>点击一级分类可整体归类，点击二级分类可精细归类{{ canManage ? '；自定义分类支持编辑和删除' : '' }}</text>
+        <text>点击一级分组展开二级，选择二级分类完成归类{{ canManage ? '；自定义分类支持新增、编辑和删除' : '' }}</text>
       </view>
 
       <PageState v-if="loadError && !categories.length" state="error" title="分类加载失败" :subtitle="loadError" @retry="load" />

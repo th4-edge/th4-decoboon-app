@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
+import { consumeLedgerCategoryPickerResult } from '@/domains/finance/ledger-category-picker'
 import type { FinanceLedgerReport, Ledger, LedgerDirection } from '@/domains/finance/model'
 import { ACCOUNT_LABEL, DIRECTION_LABEL } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -19,10 +20,15 @@ import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 type DirectionFilter = 'all' | LedgerDirection
+type CategoryFilter = 'all' | 'pending'
 type DateFilter = 'all' | 'today' | 'd3' | 'd7' | 'm1' | 'm3' | 'm6' | 'year'
 
 const projectId = ref('')
 const filter = ref<DirectionFilter>('all')
+const categoryFilter = ref<CategoryFilter>('all')
+const pendingCount = ref(0)
+const pendingRelinkLedgerId = ref('')
+const relinking = ref(false)
 const dateFilter = ref<DateFilter>('all')
 const summary = ref<FinanceLedgerReport>({
   count: 0, totalAmount: 0, incomeAmount: 0, expenseAmount: 0, netCashFlowAmount: 0
@@ -54,7 +60,7 @@ const selectedTotal = ref(0)
 const issuing = ref(false)
 
 onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) void refreshAll() })
+onShow(async () => { if (!isLoggedIn()) return; await handleRelinkReturn(); await refreshAll() })
 onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
 
 function queryFilters() {
@@ -62,13 +68,14 @@ function queryFilters() {
   return {
     projectId: projectId.value || undefined,
     direction: filter.value === 'all' ? undefined : filter.value,
+    uncategorized: categoryFilter.value === 'pending' ? true : undefined,
     startDate: range.start,
     endDate: range.end
   }
 }
 
 async function refreshAll() {
-  await Promise.all([refresh(), loadSummary()])
+  await Promise.all([refresh(), loadSummary(), loadPendingCount()])
 }
 
 async function loadSummary() {
@@ -86,6 +93,41 @@ function selectDirection(value: DirectionFilter) {
   if (filter.value === value) return
   filter.value = value
   void refreshAll()
+}
+
+function selectCategoryFilter(value: CategoryFilter) {
+  if (categoryFilter.value === value) return
+  categoryFilter.value = value
+  void refreshAll()
+}
+
+async function loadPendingCount() {
+  if (!editable.value) { pendingCount.value = 0; return }
+  try {
+    pendingCount.value = (await financeApi.ledgers({ uncategorized: true, current: 1, size: 1 })).total
+  } catch {
+    pendingCount.value = 0
+  }
+}
+
+async function handleRelinkReturn() {
+  const result = consumeLedgerCategoryPickerResult()
+  if (!result) return
+  const ledgerId = pendingRelinkLedgerId.value
+  pendingRelinkLedgerId.value = ''
+  if (result.action !== 'select' || !ledgerId) return
+  relinking.value = true
+  loading('补关联业务分类中')
+  try {
+    await financeApi.updateLedger({ ledgerId, categoryId: result.category.id, reason: '补关联历史业务分类' })
+    hideLoading()
+    toast('业务分类已关联', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '业务分类关联失败')
+  } finally {
+    relinking.value = false
+  }
 }
 
 function selectDate(value: DateFilter) {
@@ -124,7 +166,17 @@ function dateRange(value: DateFilter) {
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=ledger${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function canCorrect(item: Ledger) { return isBoss.value && item.source === 'manual' && !item.correctionGroupId }
+function canRelink(item: Ledger) {
+  return editable.value && item.source === 'manual' && !item.correctionGroupId && !item.categoryNode && !relinking.value
+}
 function edit(item: Ledger) { if (canCorrect(item)) uni.navigateTo({ url: `${P.financeEntry}?type=ledger&id=${item.id}` }) }
+function relink(item: Ledger) {
+  if (!canRelink(item)) return
+  pendingRelinkLedgerId.value = item.id
+  const params = [`direction=${item.direction}`]
+  if (item.category) params.push(`legacyText=${encodeURIComponent(item.category)}`)
+  uni.navigateTo({ url: `${P.financeLedgerCategoryPicker}?${params.join('&')}` })
+}
 function startSelect() { selecting.value = true; selected.value = []; selectedTotal.value = 0 }
 function cancelSelect() { selecting.value = false; selected.value = []; selectedTotal.value = 0 }
 function isSelected(item: Ledger) { return selected.value.includes(item.id) }
@@ -206,6 +258,15 @@ function openVouchers() {
       </view>
     </view>
 
+    <view v-if="editable && pendingCount > 0 && categoryFilter !== 'pending'" class="fin-pending" @tap="selectCategoryFilter('pending')">
+      <JzIcon name="info" :size="26" :color="TOKEN_COLOR.warning" />
+      <view class="fin-pending__copy">
+        <text class="fin-pending__title">有 {{ pendingCount }} 笔历史手工流水待关联业务分类</text>
+        <text class="fin-pending__sub">逐笔补关联后才能按标准分类汇总</text>
+      </view>
+      <text class="fin-pending__action">去处理</text>
+    </view>
+
     <scroll-view scroll-x class="fin-filters" :show-scrollbar="false">
       <view class="fin-filter-row">
         <view v-for="item in dateOptions" :key="item.value" class="fin-filter" :class="{ 'fin-filter--on': dateFilter === item.value }" @tap="selectDate(item.value)">{{ item.label }}</view>
@@ -216,6 +277,7 @@ function openVouchers() {
         <view class="fin-filter" :class="{ 'fin-filter--on': filter === 'all' }" @tap="selectDirection('all')">全部收支</view>
         <view class="fin-filter" :class="{ 'fin-filter--on': filter === 'income' }" @tap="selectDirection('income')">收入</view>
         <view class="fin-filter" :class="{ 'fin-filter--on': filter === 'expense' }" @tap="selectDirection('expense')">支出</view>
+        <view class="fin-filter" :class="{ 'fin-filter--on': categoryFilter === 'pending' }" @tap="selectCategoryFilter(categoryFilter === 'pending' ? 'all' : 'pending')">待关联{{ pendingCount ? ` ${pendingCount}` : '' }}</view>
       </view>
     </scroll-view>
 
@@ -236,12 +298,13 @@ function openVouchers() {
         </view>
         <view class="fin-card__facts">
           <view class="fin-fact"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ ACCOUNT_LABEL[item.account] }}</text></view>
-          <view class="fin-fact"><JzIcon name="chart" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.category }}</text></view>
+          <view class="fin-fact"><JzIcon name="chart" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.categoryNode?.name || item.category }}</text><text v-if="item.source === 'manual' && !item.categoryNode" class="fin-pending-tag">待关联</text></view>
           <view class="fin-fact"><JzIcon name="user" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.counterparty || item.createdBy?.name || '—' }}</text></view>
         </view>
         <view class="fin-card__foot">
           <text class="jz-caption">{{ DIRECTION_LABEL[item.direction] }} · {{ item.source === 'receipt' ? '收款核销' : item.source === 'payment' ? '付款核销' : item.source === 'adjustment' ? '调整冲销' : '手工记账' }}</text>
           <text v-if="item.remark" class="jz-caption">{{ item.remark }}</text>
+          <view v-if="canRelink(item)" class="fin-card__link" @tap.stop="relink(item)"><JzIcon name="check" :size="22" :color="TOKEN_COLOR.primary" /><text>补关联</text></view>
           <view v-if="canCorrect(item)" class="fin-card__link" @tap.stop="edit(item)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /><text>更正</text></view>
         </view>
       </view>
@@ -296,4 +359,11 @@ function openVouchers() {
   background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary-deep 100%); border-radius: 999rpx; font-size: $jzb-font-sm;
 }
 .fin-selectbar__btn[disabled] { opacity: .5; }
+
+.fin-pending { display: flex; align-items: center; gap: 14rpx; margin: 0 $jzb-page-pad 8rpx; padding: 20rpx 22rpx; color: $jzb-warning; background: $jzb-warning-soft; border: 1rpx solid rgba(224, 154, 44, .22); border-radius: $jzb-radius-sm; }
+.fin-pending__copy { flex: 1; min-width: 0; }
+.fin-pending__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.fin-pending__sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fin-pending__action { flex: none; color: $jzb-warning; font-size: $jzb-font-xs; font-weight: 700; }
+.fin-pending-tag { flex: none; margin-left: 8rpx; padding: 1rpx 10rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-pill; font-size: 19rpx; }
 </style>

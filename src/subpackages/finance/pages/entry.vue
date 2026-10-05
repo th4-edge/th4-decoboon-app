@@ -305,11 +305,6 @@ function clearCategory() {
   form.category = ''
 }
 
-function onCategoryInput() {
-  selectedCategory.value = null
-  form.categoryId = ''
-}
-
 function openCategoryPicker() {
   const params = [`direction=${form.direction}`]
   if (form.categoryId) {
@@ -317,7 +312,7 @@ function openCategoryPicker() {
     if (selectedCategory.value?.name) params.push(`selectedName=${encodeURIComponent(selectedCategory.value.name)}`)
     if (selectedCategory.value?.path) params.push(`selectedPath=${encodeURIComponent(selectedCategory.value.path)}`)
   } else if (form.category.trim()) {
-    params.push(`selectedText=${encodeURIComponent(form.category.trim())}`)
+    params.push(`legacyText=${encodeURIComponent(form.category.trim())}`)
   }
   uni.navigateTo({ url: `${P.financeLedgerCategoryPicker}?${params.join('&')}` })
 }
@@ -337,7 +332,7 @@ async function submit() {
   if (['receivable', 'receipt'].includes(type.value) && !form.projectId) { toast('请选择项目'); return }
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
   if (type.value === 'payment' && !form.payableId) { toast('请选择应付单'); return }
-  if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类和摘要'); return }
+  if (type.value === 'ledger' && (!form.categoryId || !form.summary.trim())) { toast('请选择业务分类并填写摘要'); return }
   if (type.value === 'ledger' && editId.value && !editReason.value.trim()) { toast('请填写更正原因'); return }
   submitting.value = true; loading('保存中...')
   try {
@@ -356,8 +351,7 @@ async function submit() {
       const payload = {
         projectId: form.projectId || '0',
         direction: form.direction,
-        category: form.category.trim(),
-        categoryId: form.categoryId || '0',
+        categoryId: form.categoryId,
         amount,
         account: form.account,
         occurredAt: form.date,
@@ -372,7 +366,7 @@ async function submit() {
           await financeApi.updateLedger({ ...payload, ledgerId: editId.value, reason: editReason.value.trim() })
         }
       } else {
-        await financeApi.saveLedger({ ...payload, projectId: form.projectId || undefined, categoryId: form.categoryId || undefined })
+        await financeApi.saveLedger({ ...payload, projectId: form.projectId || undefined })
       }
     }
     hideLoading(); toast('保存成功', 'success'); setTimeout(() => uni.navigateBack(), 500)
@@ -444,14 +438,20 @@ async function submit() {
 
       <template v-else>
         <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field fe-category-field">
+        <view class="fin-field fin-field--tap fe-category-field" @tap="openCategoryPicker">
           <text class="fin-field__label">业务分类</text>
-          <input v-model="form.category" maxlength="128" placeholder="输入或选择业务分类" @input="onCategoryInput" />
-          <view class="fe-category-pick" @tap.stop="openCategoryPicker"><JzIcon name="clipboard" :size="24" :color="TOKEN_COLOR.primary" /><text>选择</text></view>
+          <view class="fin-field__value" :class="{ 'fin-field__placeholder': !selectedCategory }">
+            {{ selectedCategory?.path || (form.category ? '待关联：' + form.category : '请选择二级业务分类') }}
+          </view>
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
         <view v-if="selectedCategory" class="fe-category-path">
           <JzIcon name="folder" :size="22" :color="TOKEN_COLOR.primary" />
           <text>已选：{{ selectedCategory.path }}</text>
+        </view>
+        <view v-else-if="form.category && type === 'ledger' && editId" class="fe-category-path">
+          <JzIcon name="info" :size="22" :color="TOKEN_COLOR.warning" />
+          <text>原分类：{{ form.category }}（待关联，请选择标准二级分类）</text>
         </view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
@@ -464,7 +464,7 @@ async function submit() {
       <view class="fin-field fe-remark"><text class="fin-field__label">备注</text><textarea v-model="form.remark" maxlength="500" auto-height placeholder="可选，记录凭证、批次或补充说明" /></view>
     </view>
 
-    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">仅企业负责人可更正手工记账。分类、摘要等元数据修改会留痕；金额、方向、日期或账户变化将自动冲正重记。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
+    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">企业负责人、财务可补关联业务分类；其他元数据更正仅企业负责人可操作，且全程留痕。金额、方向、日期或账户变化将自动冲正重记。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
 
     <view class="fin-form-actions">
       <view v-if="submitHint" class="fe-submit-note">
@@ -488,7 +488,6 @@ async function submit() {
 .fe-unit { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fin-field--tap { cursor: pointer; }
 .fe-category-field { gap: 8rpx; }
-.fe-category-pick { flex: none; display: flex; align-items: center; gap: 4rpx; padding: 12rpx 0 12rpx 12rpx; color: $jzb-primary; font-size: $jzb-font-xs; }
 .fe-category-path { display: flex; align-items: center; gap: 8rpx; margin: -1rpx 0 0; padding: 14rpx 0 18rpx 142rpx; color: $jzb-text-3; border-top: 1rpx solid $jzb-border-light; font-size: $jzb-font-xs; }
 .fe-project { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12rpx; }
 .fe-project__main { flex: 1; min-width: 0; text-align: right; }

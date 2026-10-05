@@ -292,7 +292,7 @@ export const financeApi = {
     paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
   createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
     normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
-  ledgers: async (params: { ledgerId?: string; projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}): Promise<PageData<Ledger>> => {
+  ledgers: async (params: { ledgerId?: string; projectId?: string; direction?: LedgerDirection; categoryId?: string; category?: string; uncategorized?: boolean; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}): Promise<PageData<Ledger>> => {
     const current = params.current ?? 1
     const size = params.size ?? 20
     const result = await post<PageResult<Raw> | Raw[]>('finance/ledger/page', {
@@ -303,7 +303,7 @@ export const financeApi = {
     const page = toPageData(result, current, size)
     return { ...page, list: page.list.map(normalizeLedger) }
   },
-  ledgerReport: async (params: { projectId?: string; direction?: LedgerDirection; category?: string; keyword?: string; startDate?: string; endDate?: string; ledgerIds?: string[] } = {}): Promise<FinanceLedgerReport> => {
+  ledgerReport: async (params: { projectId?: string; direction?: LedgerDirection; categoryId?: string; category?: string; uncategorized?: boolean; keyword?: string; startDate?: string; endDate?: string; ledgerIds?: string[] } = {}): Promise<FinanceLedgerReport> => {
     const raw = await post<Raw>('finance/ledger/report', {
       ...params,
       direction: params.direction ? LEDGER_DIRECTION_API[params.direction] : undefined
@@ -351,11 +351,11 @@ export const financeApi = {
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, active: input.active })),
   deleteLedgerCategory: async (id: string): Promise<LedgerCategory> =>
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/delete', { categoryId: id })),
-  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
+  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; categoryId: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
     normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
-  updateLedger: async (input: { ledgerId: string; category: string; categoryId?: string; projectId?: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
+  updateLedger: async (input: { ledgerId: string; categoryId?: string; projectId?: string; counterparty?: string; summary?: string; remark?: string; reason: string }): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/update', input)),
-  correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
+  correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; categoryId: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/correct', {
       ...input,
       direction: LEDGER_DIRECTION_API[input.direction],
