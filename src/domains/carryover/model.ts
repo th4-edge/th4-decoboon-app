@@ -11,6 +11,7 @@ export type CarryoverPlanAction = 'stageCreate' | 'stageUpdate' | 'stageReorder'
 export interface CarryoverBatch {
   id?: string
   asOfDate?: string
+  bookkeepingSurveyNote?: string
   status: CarryoverBatchStatus
   scopeConfirmedAt?: string
   completedAt?: string
@@ -59,6 +60,7 @@ export interface CarryoverProject {
   costMissingNote?: string
   legacyId?: string
   legacyProjectNo?: string
+  legacyAccountNote?: string
   validationBlockers?: string[]
   carryoverReady?: boolean
   appliedAt?: string
@@ -109,6 +111,7 @@ export interface CarryoverProjectInput {
   costMissingNote?: string
   legacyId?: string
   legacyProjectNo?: string
+  legacyAccountNote?: string
 }
 
 

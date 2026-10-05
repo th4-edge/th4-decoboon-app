@@ -16,6 +16,7 @@ const projects = ref<CarryoverProject[]>([])
 const loading = ref(false)
 const openingCount = ref(0)
 const asOfDate = ref(new Date().toISOString().slice(0, 10))
+const bookkeepingNote = ref('')
 
 const isBoss = computed(() => session.role === 'boss')
 const hasBatch = computed(() => !!batch.value?.id)
@@ -42,6 +43,7 @@ async function load() {
     batch.value = info.id ? info : null
     projects.value = info.id ? (await carryoverApi.page()).list : []
     if (info.asOfDate) asOfDate.value = info.asOfDate
+    bookkeepingNote.value = info.bookkeepingSurveyNote || ''
     try {
       openingCount.value = (await financeApi.openingBalances()).length
     } catch {
@@ -57,7 +59,7 @@ async function load() {
 async function startBatch() {
   if (!asOfDate.value) { toast('请选择接管日期'); return }
   try {
-    batch.value = await carryoverApi.batchSave(asOfDate.value)
+    batch.value = await carryoverApi.batchSave(asOfDate.value, bookkeepingNote.value.trim() || undefined)
     toast('业务承接任务已建立', 'success')
     await load()
   } catch (error) {
@@ -117,6 +119,10 @@ function statusClass(status: CarryoverProject['status']) {
           <view class="carryover__date-value">{{ asOfDate }}</view>
         </picker>
       </view>
+      <view class="carryover__note">
+        <text class="carryover__note-label">账本摸底说明（选填）</text>
+        <textarea v-model="bookkeepingNote" maxlength="2000" auto-height placeholder="例如：原账用Excel+代账公司，内账按项目、外账按科目，资金账户3个" />
+      </view>
       <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" color="#FFFFFF" /><text>建立承接任务，开始录入</text></button>
     </view>
 
@@ -125,6 +131,10 @@ function statusClass(status: CarryoverProject['status']) {
         <view><text class="carryover__num">{{ projects.length }}</text><text>项目总数</text></view>
         <view><text class="carryover__num">{{ completedCount }}</text><text>已完成</text></view>
         <view><text class="carryover__num">{{ pendingCount }}</text><text>待处理</text></view>
+      </view>
+      <view v-if="bookkeepingNote" class="carryover__survey jz-card">
+        <text class="carryover__survey-title">账本摸底说明</text>
+        <text class="carryover__survey-note">{{ bookkeepingNote }}</text>
       </view>
       <view class="carryover__opening jz-card" @tap="openOpeningBalance">
         <view class="carryover__opening-main">
@@ -235,4 +245,11 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__opening-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .carryover__opening-desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .carryover__opening-action { flex: none; color: $jzb-primary-deep; font-size: $jzb-font-xs; font-weight: 700; }
+
+.carryover__note { margin: 16rpx 0 18rpx; padding: 18rpx; background: $jzb-bg-page; border-radius: $jzb-radius-sm; }
+.carryover__note-label { display: block; margin-bottom: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.carryover__note textarea { width: 100%; min-height: 80rpx; color: $jzb-text-1; font-size: $jzb-font-sm; }
+.carryover__survey { margin-bottom: 18rpx; padding: 22rpx; }
+.carryover__survey-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.carryover__survey-note { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 </style>

@@ -50,6 +50,7 @@ const costStatus = ref<CarryoverCostStatus>('unknown')
 const costMissingNote = ref('')
 const legacyId = ref('')
 const legacyProjectNo = ref('')
+const legacyAccountNote = ref('')
 const saving = ref(false)
 const financialHelpVisible = ref(false)
 const status = ref<CarryoverProjectStatus>('draft')
@@ -145,6 +146,7 @@ async function load() {
     costTotal.value = item.costTotal == null ? '' : `${item.costTotal}`
     costStatus.value = item.costStatus
     costMissingNote.value = item.costMissingNote || ''
+    legacyAccountNote.value = item.legacyAccountNote || ''
     legacyId.value = item.legacyId || ''
     legacyProjectNo.value = item.legacyProjectNo || ''
     attachments.value = await carryoverApi.attachmentPage(id.value)
@@ -193,7 +195,8 @@ function payload(): CarryoverProjectInput {
     costStatus: costStatus.value,
     costMissingNote: costMissingNote.value.trim() || undefined,
     legacyId: legacyId.value.trim() || undefined,
-    legacyProjectNo: legacyProjectNo.value.trim() || undefined
+    legacyProjectNo: legacyProjectNo.value.trim() || undefined,
+    legacyAccountNote: legacyAccountNote.value.trim() || undefined
   }
 }
 
@@ -439,6 +442,7 @@ async function submitCarryover() {
       <text class="co-edit__title">5. 来源追溯</text>
       <view class="co-edit__row"><text>原系统项目号</text><input v-model="legacyProjectNo" maxlength="64" placeholder="选填" /></view>
       <view class="co-edit__row"><text>原系统 ID</text><input v-model="legacyId" maxlength="128" placeholder="选填" /></view>
+      <view class="co-edit__row co-edit__row--col"><text>原账口径备注</text><textarea v-model="legacyAccountNote" maxlength="1000" placeholder="例如：应收对应原账“应收账款-工程款”，应付对应“应付账款-材料商A”；不影响金额计算" /></view>
     </view>
 
     <view v-if="id" class="co-edit__section jz-card">

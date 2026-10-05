@@ -77,6 +77,7 @@ function normalizeBatch(raw: Raw): CarryoverBatch {
   return {
     id: raw.batchId == null ? undefined : String(raw.batchId),
     asOfDate: raw.asOfDate,
+    bookkeepingSurveyNote: raw.bookkeepingSurveyNote,
     status: BATCH_STATUS[enumValue(raw.status)] || 'active',
     scopeConfirmedAt: time(raw.scopeConfirmedAt),
     completedAt: time(raw.completedAt),
@@ -126,6 +127,7 @@ function normalizeProject(raw: Raw): CarryoverProject {
     costMissingNote: raw.costMissingNote,
     legacyId: raw.legacyId,
     legacyProjectNo: raw.legacyProjectNo,
+    legacyAccountNote: raw.legacyAccountNote,
     validationBlockers: Array.isArray(raw.validationBlockers) ? raw.validationBlockers.map(String) : [],
     carryoverReady: raw.carryoverReady === true,
     appliedAt: time(raw.appliedAt),
@@ -192,8 +194,8 @@ function normalizeAdjustment(raw: Raw): CarryoverAdjustment {
 
 export const carryoverApi = {
   batchInfo: async (): Promise<CarryoverBatch> => normalizeBatch(await post<Raw>('carryover/batch/info', {})),
-  batchSave: async (asOfDate: string): Promise<CarryoverBatch> =>
-    normalizeBatch(await post<Raw>('carryover/batch/save', { asOfDate })),
+  batchSave: async (asOfDate: string, bookkeepingSurveyNote?: string): Promise<CarryoverBatch> =>
+    normalizeBatch(await post<Raw>('carryover/batch/save', { asOfDate, bookkeepingSurveyNote })),
   page: async (): Promise<PageData<CarryoverProject>> => {
     const result = await post<PageResult<Raw> | Raw[]>('carryover/project/page', { current: 1, size: 200 })
     const page = toPageData(result, 1, 200)
