@@ -25,7 +25,10 @@ import type {
   CarryoverReconciliationItem,
   CarryoverReconciliationReport,
   CarryoverReconciliationStatus,
-  CarryoverReconciliationTheme
+  CarryoverReconciliationTheme,
+  CarryoverChecklistItem,
+  CarryoverReconciliationAttachment,
+  CarryoverReconciliationExport
 } from './model'
 
 type Raw = Record<string, any>
@@ -233,9 +236,29 @@ function normalizeReconciliationReport(raw: Raw): CarryoverReconciliationReport 
     remark: raw.remark,
     unclassifiedCount: num(raw.unclassifiedCount) ?? 0,
     pendingCount: num(raw.pendingCount) ?? 0,
+    complete: raw.complete === true,
+    blockers: Array.isArray(raw.blockers) ? raw.blockers.map(String) : [],
+    checklist: Array.isArray(raw.checklist) ? raw.checklist.map((item: Raw): CarryoverChecklistItem => ({
+      key: String(item.key ?? ''),
+      label: String(item.label ?? ''),
+      required: item.required !== false,
+      completed: item.completed === true,
+      exception: item.exception
+    })) : [],
     items: Array.isArray(raw.items) ? raw.items.map(normalizeReconciliationItem) : []
   }
 }
+
+function normalizeReconciliationAttachment(raw: Raw): CarryoverReconciliationAttachment {
+  return {
+    id: String(raw.attachmentId ?? raw.id ?? ''),
+    category: raw.category,
+    fileUrl: raw.fileUrl ?? '',
+    originalName: raw.originalName,
+    createdAt: time(raw.createTime)
+  }
+}
+
 
 function normalizePaymentPlan(raw: Raw): CarryoverPaymentPlan {
   return {
@@ -295,6 +318,25 @@ export const carryoverApi = {
     normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/save', { batchId, periodStart, periodEnd, remark })),
   reconciliationReport: async (reconciliationId: string): Promise<CarryoverReconciliationReport> =>
     normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/report', { reconciliationId })),
+  reconciliationUpdate: async (reconciliationId: string, status: CarryoverReconciliationStatus, remark?: string): Promise<CarryoverReconciliationReport> =>
+    normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/update', {
+      reconciliationId,
+      status: ({ draft: 'Draft', pending: 'Pending', diffHandling: 'DiffHandling', confirmed: 'Confirmed', closed: 'Closed' } as Record<CarryoverReconciliationStatus, string>)[status],
+      remark
+    })),
+  reconciliationExport: async (reconciliationId: string): Promise<CarryoverReconciliationExport> => {
+    const raw = await post<Raw>('carryover/reconciliation/build', { reconciliationId })
+    return { fileName: raw.fileName ?? '', contentType: raw.contentType ?? '', content: raw.content ?? '' }
+  },
+  reconciliationAttachments: async (reconciliationId: string): Promise<CarryoverReconciliationAttachment[]> => {
+    const result = await post<PageResult<Raw> | Raw[]>('carryover/reconciliation/attachment/page', { reconciliationId, current: 1, size: 100 })
+    const page = toPageData(result, 1, 100)
+    return page.list.map(normalizeReconciliationAttachment)
+  },
+  reconciliationAttachmentSave: async (reconciliationId: string, input: { category?: string; fileUrl: string; originalName?: string }): Promise<CarryoverReconciliationAttachment> =>
+    normalizeReconciliationAttachment(await post<Raw>('carryover/reconciliation/attachment/save', { reconciliationId, ...input })),
+  reconciliationAttachmentDelete: async (attachmentId: string): Promise<CarryoverReconciliationAttachment> =>
+    normalizeReconciliationAttachment(await post<Raw>('carryover/reconciliation/attachment/delete', { attachmentId })),
   reconciliationItemSave: async (itemId: string, input: {
     originalAmount?: number
     originalSource?: string

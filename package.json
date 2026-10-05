@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {

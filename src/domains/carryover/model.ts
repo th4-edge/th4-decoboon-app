@@ -136,6 +136,28 @@ export interface CarryoverReconciliationItem {
   dueDate?: string
 }
 
+export interface CarryoverChecklistItem {
+  key: string
+  label: string
+  required: boolean
+  completed: boolean
+  exception?: string
+}
+
+export interface CarryoverReconciliationAttachment {
+  id: string
+  category?: string
+  fileUrl: string
+  originalName?: string
+  createdAt?: string
+}
+
+export interface CarryoverReconciliationExport {
+  fileName: string
+  contentType: string
+  content: string
+}
+
 export interface CarryoverReconciliationReport {
   reconciliationId?: string
   batchId?: string
@@ -146,6 +168,9 @@ export interface CarryoverReconciliationReport {
   remark?: string
   unclassifiedCount: number
   pendingCount: number
+  complete?: boolean
+  blockers?: string[]
+  checklist?: CarryoverChecklistItem[]
   items: CarryoverReconciliationItem[]
 }
 

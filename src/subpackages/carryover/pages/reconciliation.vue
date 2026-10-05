@@ -8,9 +8,12 @@ import type {
   CarryoverDifferenceType,
   CarryoverReconciliationItem,
   CarryoverReconciliationReport,
-  CarryoverReconciliationTheme
+  CarryoverReconciliationTheme,
+  CarryoverReconciliationAttachment,
+  CarryoverReconciliationStatus
 } from '@/domains/carryover/model'
-import { isLoggedIn } from '@/domains/identity/session'
+import { isLoggedIn, session } from '@/domains/identity/session'
+import { fileApi } from '@/domains/file/api'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
@@ -18,6 +21,8 @@ const batchId = ref('')
 const report = ref<CarryoverReconciliationReport | null>(null)
 const busyItem = ref('')
 const loadingPage = ref(false)
+const attachments = ref<CarryoverReconciliationAttachment[]>([])
+const actionBusy = ref(false)
 
 const THEME_LABEL: Record<CarryoverReconciliationTheme, string> = {
   receivable: '项目未收',
@@ -41,6 +46,11 @@ const diffStatuses: Array<{ label: string; value: CarryoverDifferenceStatus }> =
 ]
 
 const items = computed(() => report.value?.items || [])
+const isBoss = computed(() => session.role === 'boss')
+const canSubmit = computed(() => !!report.value && report.value.complete === true
+  && report.value.status !== 'confirmed' && report.value.status !== 'closed')
+const canConfirm = computed(() => isBoss.value && report.value?.status === 'pending')
+const canClose = computed(() => isBoss.value && report.value?.status === 'confirmed')
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -53,6 +63,7 @@ async function load() {
   loadingPage.value = true
   try {
     report.value = await carryoverApi.reconciliationSave(batchId.value)
+    await loadAttachments()
   } catch (error) {
     toastError(error, '双轨对账加载失败')
   } finally {
@@ -76,6 +87,100 @@ function onType(item: CarryoverReconciliationItem, event: any) {
 function onStatus(item: CarryoverReconciliationItem, event: any) {
   const option = diffStatuses[Number(event.detail.value)]
   item.differenceStatus = option?.value || 'pending'
+}
+
+async function loadAttachments() {
+  if (!report.value?.reconciliationId) return
+  try {
+    attachments.value = await carryoverApi.reconciliationAttachments(report.value.reconciliationId)
+  } catch {
+    attachments.value = []
+  }
+}
+
+function uploadAttachment() {
+  const reconciliationId = report.value?.reconciliationId
+  if (!reconciliationId) return
+  uni.chooseImage({
+    count: 9,
+    success: async (res) => {
+      actionBusy.value = true
+      loading('上传对账附件中')
+      try {
+        for (const path of res.tempFilePaths || []) {
+          const uploaded = await fileApi.upload('Carryover', path)
+          await carryoverApi.reconciliationAttachmentSave(reconciliationId, {
+            category: 'Reconciliation',
+            fileUrl: uploaded.path,
+            originalName: uploaded.name || '对账附件'
+          })
+        }
+        await loadAttachments()
+        hideLoading()
+        toast('附件已上传', 'success')
+      } catch (error) {
+        hideLoading()
+        toastError(error, '附件上传失败')
+      } finally {
+        actionBusy.value = false
+      }
+    }
+  })
+}
+
+async function removeAttachment(item: CarryoverReconciliationAttachment) {
+  try {
+    await carryoverApi.reconciliationAttachmentDelete(item.id)
+    await loadAttachments()
+    toast('附件已删除')
+  } catch (error) {
+    toastError(error, '附件删除失败')
+  }
+}
+
+async function changeStatus(status: CarryoverReconciliationStatus) {
+  if (!report.value?.reconciliationId || actionBusy.value) return
+  const label = status === 'pending' ? '提交待确认' : status === 'confirmed' ? 'BOSS 确认' : '关闭对账'
+  const ok = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: label,
+      content: status === 'closed' ? '关闭后如需调整，只能新建调整期，不修改本次对账结果。' : '确认执行该操作？',
+      success: (res) => resolve(!!res.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!ok) return
+  actionBusy.value = true
+  loading(`${label}中`)
+  try {
+    report.value = await carryoverApi.reconciliationUpdate(report.value.reconciliationId, status)
+    hideLoading()
+    toast('对账状态已更新', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '对账状态更新失败')
+  } finally {
+    actionBusy.value = false
+  }
+}
+
+async function exportReconciliation() {
+  if (!report.value?.reconciliationId) return
+  actionBusy.value = true
+  loading('生成对账表中')
+  try {
+    const exported = await carryoverApi.reconciliationExport(report.value.reconciliationId)
+    hideLoading()
+    uni.setClipboardData({
+      data: exported.content,
+      success: () => toast('对账表 CSV 已复制，可粘贴到 Excel', 'success')
+    })
+  } catch (error) {
+    hideLoading()
+    toastError(error, '对账表导出失败')
+  } finally {
+    actionBusy.value = false
+  }
 }
 
 async function saveItem(item: CarryoverReconciliationItem) {
@@ -117,6 +222,35 @@ async function saveItem(item: CarryoverReconciliationItem) {
         <view><text class="rc-summary__num">{{ items.length }}</text><text>主题</text></view>
         <view><text class="rc-summary__num rc-summary__num--warn">{{ report?.unclassifiedCount || 0 }}</text><text>未分类</text></view>
         <view><text class="rc-summary__num rc-summary__num--warn">{{ report?.pendingCount || 0 }}</text><text>待处理</text></view>
+      </view>
+      <view class="rc-complete jz-card" :class="{ 'rc-complete--done': report?.complete }">
+        <view class="rc-complete__head">
+          <text class="rc-complete__title">{{ report?.complete ? '对账已完成，可提交确认' : '对账未完成' }}</text>
+          <text class="rc-complete__status">{{ report?.status === 'closed' ? '已关闭' : report?.status === 'confirmed' ? '已确认' : report?.status === 'pending' ? '待确认' : '进行中' }}</text>
+        </view>
+        <view v-if="report?.blockers?.length" class="rc-complete__blockers">
+          <text v-for="item in report.blockers" :key="item">· {{ item }}</text>
+        </view>
+        <view v-else class="rc-complete__ok">四个主题均已确认，差异已分类处理。</view>
+        <view class="rc-actions">
+          <button v-if="canSubmit" class="jz-btn jz-btn--ghost" :disabled="actionBusy" @tap="changeStatus('pending')">提交待确认</button>
+          <button v-if="canConfirm" class="jz-btn jz-btn--primary" :disabled="actionBusy" @tap="changeStatus('confirmed')">BOSS 确认</button>
+          <button v-if="canClose" class="jz-btn jz-btn--primary" :disabled="actionBusy" @tap="changeStatus('closed')">关闭对账</button>
+          <button class="jz-btn jz-btn--ghost" :disabled="actionBusy" @tap="exportReconciliation">导出对账表</button>
+        </view>
+      </view>
+
+
+      <view class="rc-attachments jz-card">
+        <view class="rc-attachments__head">
+          <text class="rc-attachments__title">原账附件</text>
+          <text class="rc-attachments__add" @tap="uploadAttachment">上传附件</text>
+        </view>
+        <view v-for="item in attachments" :key="item.id" class="rc-attachments__item">
+          <text class="jz-grow">{{ item.originalName || item.category || '对账附件' }}</text>
+          <text class="rc-attachments__delete" @tap="removeAttachment(item)">删除</text>
+        </view>
+        <view v-if="!attachments.length" class="rc-attachments__empty">可上传原账截图、银行流水、成本表等</view>
       </view>
 
       <view v-for="item in items" :key="item.id" class="rc-item jz-card">
@@ -171,4 +305,21 @@ async function saveItem(item: CarryoverReconciliationItem) {
 .rc-row__value { flex: 1; color: $jzb-text-1; font-size: $jzb-font; }
 .rc-row__value--diff { color: $jzb-danger; font-weight: 700; }
 .rc-item__save { margin-top: 18rpx; }
+
+.rc-complete { margin-bottom: 18rpx; padding: 22rpx; }
+.rc-complete--done { border: 1rpx solid rgba(22, 163, 148, .3); }
+.rc-complete__head { display: flex; align-items: center; justify-content: space-between; }
+.rc-complete__title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.rc-complete__status { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.rc-complete__blockers { display: flex; flex-direction: column; gap: 6rpx; margin-top: 12rpx; color: $jzb-warning; font-size: $jzb-font-xs; line-height: 1.5; }
+.rc-complete__ok { margin-top: 10rpx; color: $jzb-primary-deep; font-size: $jzb-font-xs; }
+.rc-actions { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 18rpx; }
+.rc-actions button { flex: 1; min-width: 200rpx; }
+.rc-attachments { margin-bottom: 18rpx; padding: 22rpx; }
+.rc-attachments__head { display: flex; align-items: center; justify-content: space-between; }
+.rc-attachments__title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.rc-attachments__add { color: $jzb-primary-deep; font-size: $jzb-font-xs; }
+.rc-attachments__item { display: flex; align-items: center; gap: 12rpx; min-height: 64rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.rc-attachments__delete { color: $jzb-danger; font-size: $jzb-font-xs; }
+.rc-attachments__empty { margin-top: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 </style>

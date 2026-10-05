@@ -7,7 +7,7 @@ export const runtime = {
   /** 身份令牌存储键。 */
   tokenKey: 'jzb_token',
   appName: '装得清',
-  version: '1.0.17',
+  version: '1.0.18',
   agreementVersion: import.meta.env.VITE_AGREEMENT_VERSION,
   privacyVersion: import.meta.env.VITE_PRIVACY_VERSION,
   legalReviewed: import.meta.env.VITE_LEGAL_REVIEWED === 'true',
