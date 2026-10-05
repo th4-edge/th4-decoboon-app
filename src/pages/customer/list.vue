@@ -8,6 +8,7 @@ import { can, isCustomer } from '@/roles/permission'
 import type { Customer, CustomerMetricCard, CustomerOwnerGroup, CustomerOverviewReport, CustomerStage, CustomerStageCount } from '@/domains/crm/model'
 import { CUSTOMER_SOURCE_META, CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { crmApi } from '@/domains/crm/api'
+import { diffDays } from '@/core/format'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -92,9 +93,23 @@ const filters = computed(() => isMarketer.value
     ? [{ key: 'assign' as const, label: '待指派设计' }, ...ALL_FILTERS]
     : ALL_FILTERS)
 
+/**
+ * iOS(Safari/JSC) 只认 `YYYY/MM/DD` 或带 `T` 的 ISO 时间串，
+ * 直接 `new Date('YYYY-MM-DD HH:mm:ss')` 会得到 Invalid Date，导致跟进/逾期判断失真（ECD-iOS-DATE）。
+ */
+function parseDateMs(value?: string): number {
+  if (!value) return Number.NaN
+  const normalized = value.slice(0, 19).replace(/-/g, '/')
+  const ms = new Date(normalized).getTime()
+  if (Number.isFinite(ms)) return ms
+  return new Date(value.replace(' ', 'T')).getTime()
+}
+
 function ageDays(c: Customer) {
   if (!c.createdAt) return 0
-  return Math.max(0, Math.floor((Date.now() - new Date(c.createdAt).getTime()) / 86400000))
+  const ms = parseDateMs(c.createdAt)
+  if (!Number.isFinite(ms)) return 0
+  return Math.max(0, Math.floor((Date.now() - ms) / 86400000))
 }
 
 function followMeta(c: Customer) {
@@ -103,9 +118,7 @@ function followMeta(c: Customer) {
       ? { label: '待安排', tone: 'muted', rank: 4 }
       : { label: '待首联', tone: 'danger', rank: 0 }
   }
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const due = new Date(c.nextFollowAt); due.setHours(0, 0, 0, 0)
-  const days = Math.round((due.getTime() - today.getTime()) / 86400000)
+  const days = diffDays(c.nextFollowAt)
   if (days < 0) return { label: `逾期 ${Math.abs(days)} 天`, tone: 'danger', rank: -1 }
   if (days === 0) return { label: '今日跟进', tone: 'warning', rank: 0 }
   if (days <= 3) return { label: `${days} 天后`, tone: 'primary', rank: days }

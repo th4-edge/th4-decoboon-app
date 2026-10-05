@@ -7,7 +7,7 @@ import { statisticApi } from '@/domains/statistic/api'
 import type { PmReport } from '@/domains/statistic/model'
 import { PROJECT_STATUS_META } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
-import { money } from '@/core/format'
+import { diffDays, money } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -70,9 +70,7 @@ function openStage(id: string) { open(`${P.stageDetail}?id=${id}`) }
 
 function taskDue(task: PmReport['urgentTasks'][number]) {
   if (!task.plannedEnd) return '未排期'
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const due = new Date(task.plannedEnd); due.setHours(0, 0, 0, 0)
-  const days = Math.round((due.getTime() - today.getTime()) / 86400000)
+  const days = diffDays(task.plannedEnd)
   if (days < 0) return `逾期 ${Math.abs(days)} 天`
   if (days === 0) return '今日到期'
   return `${days} 天后到期`
@@ -80,9 +78,7 @@ function taskDue(task: PmReport['urgentTasks'][number]) {
 
 function materialDue(requiredAt?: string) {
   if (!requiredAt) return '未排到场日期'
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const due = new Date(requiredAt); due.setHours(0, 0, 0, 0)
-  const days = Math.round((due.getTime() - today.getTime()) / 86400000)
+  const days = diffDays(requiredAt)
   if (days < 0) return `已延迟 ${Math.abs(days)} 天`
   if (days === 0) return '今日需到场'
   return `${days} 天后到场`
