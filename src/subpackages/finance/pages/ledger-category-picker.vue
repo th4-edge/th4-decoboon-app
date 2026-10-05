@@ -53,7 +53,7 @@ const sheetTitle = computed(() => {
   return parentId.value ? '新增二级分类' : '新增一级分类'
 })
 const sheetHint = computed(() => {
-  if (sheetMode.value === 'edit') return '修改名称不会改动历史流水；历史记录仍保留原文本快照。'
+  if (sheetMode.value === 'edit') return '修改名称不会改动历史流水；标准二级分类的修改仅当前企业生效，不影响其他企业。'
   return parentId.value ? '新增在所选一级下的二级分类，保存后可直接用于记账。' : '一级分类用于分组；新增后建议继续补充二级分类。'
 })
 const sheetSubmitText = computed(() => sheetMode.value === 'edit' ? '保存修改' : '保存并选择')
@@ -178,8 +178,8 @@ function openCreate(parent?: LedgerCategory) {
   sheet.value = true
 }
 
-function openEdit(item: LedgerCategory) {
-  if (!canManage.value || item.builtIn) return
+function openEdit(item: LedgerCategory, child = false) {
+  if (!canManage.value || (!child && item.builtIn)) return
   sheetMode.value = 'edit'
   editingId.value = item.id
   parentId.value = ''
@@ -222,9 +222,13 @@ async function saveCategory() {
   }
 }
 
-async function removeCategory(item: LedgerCategory) {
-  if (!canManage.value || item.builtIn) return
-  const impact = hasChildren(item) ? '该一级分类及其二级分类将停止使用；' : ''
+async function removeCategory(item: LedgerCategory, child = false) {
+  if (!canManage.value || (!child && item.builtIn)) return
+  const impact = hasChildren(item)
+    ? '该一级分类及其二级分类将停止使用；'
+    : child && item.builtIn
+      ? '该标准二级分类将按企业停用；'
+      : ''
   const ok = await confirmDanger('删除业务分类', `${impact}已录入流水不会删除，历史记录继续显示；新记账将不能再选择该分类。`, '确认删除')
   if (!ok) return
   loading('删除分类中')
@@ -337,9 +341,9 @@ async function removeCategory(item: LedgerCategory) {
                   <text v-if="selectedId === child.id" class="lc-badge lc-badge--active">已选</text>
                 </view>
               </view>
-              <view v-if="canManage && !child.builtIn" class="lc-child__actions">
-                <view class="lc-icon-btn lc-icon-btn--small" @tap.stop="openEdit(child)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /></view>
-                <view class="lc-icon-btn lc-icon-btn--small lc-icon-btn--danger" @tap.stop="removeCategory(child)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /></view>
+              <view v-if="canManage" class="lc-child__actions">
+                <view class="lc-icon-btn lc-icon-btn--small" @tap.stop="openEdit(child, true)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /></view>
+                <view class="lc-icon-btn lc-icon-btn--small lc-icon-btn--danger" @tap.stop="removeCategory(child, true)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /></view>
               </view>
               <JzIcon v-else-if="selectedId === child.id" name="check" :size="26" :color="TOKEN_COLOR.primary" />
             </view>
