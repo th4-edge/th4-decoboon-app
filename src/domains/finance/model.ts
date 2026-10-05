@@ -9,6 +9,7 @@ export type PayableStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'closed
 export type FundAccount = 'companyBank' | 'cash' | 'wechat' | 'alipay' | 'other'
 export type LedgerDirection = 'income' | 'expense'
 export type LedgerSource = 'receipt' | 'payment' | 'manual' | 'adjustment'
+export type LedgerManualPurpose = 'projectIncidentalCost' | 'companyExpense' | 'otherIncome' | 'capitalTransfer' | 'other'
 export type SettlementStatus = 'draft' | 'confirmed' | 'closed' | 'retentionPending' | 'retentionReleased'
 
 export interface Receivable {
@@ -98,6 +99,7 @@ export interface Ledger {
   direction: LedgerDirection
   category: string
   categoryNode?: LedgerCategory
+  purpose?: LedgerManualPurpose
   source: LedgerSource
   sourceId?: string
   amount: number
@@ -135,6 +137,8 @@ export interface Settlement {
   totalCost: number
   estimatedCost: number
   actualCost: number
+  manualIncomeAmount?: number
+  manualCostAmount?: number
   profitAmount?: number
   costComplete: boolean
   costIncompleteCount: number
@@ -175,6 +179,8 @@ export interface FinanceSummary {
   cashBalance: number
   estimatedCost: number
   actualCost: number
+  manualIncomeAmount?: number
+  manualCostAmount?: number
   profitAmount?: number
   costComplete: boolean
   costIncompleteProjectCount: number
@@ -214,6 +220,8 @@ export interface FinanceProjectReport {
   totalCost: number
   estimatedCost: number
   actualCost: number
+  manualIncomeAmount?: number
+  manualCostAmount?: number
   profitAmount?: number
   costComplete: boolean
   costIncompleteCount: number

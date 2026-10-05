@@ -1,5 +1,5 @@
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
-import type { FundAccount, LedgerDirection, PayableStatus, PayableType, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
+import type { FundAccount, LedgerDirection, LedgerManualPurpose, PayableStatus, PayableType, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
 
 export const RECEIVABLE_TYPE_META: Record<ReceivableType, { label: string; color: string }> = {
   first: { label: '首期款', color: TOKEN_COLOR.primaryBase },
@@ -53,4 +53,12 @@ export const SETTLEMENT_STATUS_META: Record<SettlementStatus, { label: string; c
 export const DIRECTION_LABEL: Record<LedgerDirection, string> = {
   income: '收入',
   expense: '支出'
+}
+
+export const LEDGER_PURPOSE_META: Record<LedgerManualPurpose, { label: string; hint: string }> = {
+  projectIncidentalCost: { label: '项目零星成本', hint: '关联项目的计划外直接支出，计入项目实际成本' },
+  companyExpense: { label: '企业费用', hint: '房租、办公、推广、税费等企业运营费用' },
+  otherIncome: { label: '其他收入', hint: '设计费、材料销售、服务费等非工程款收入' },
+  capitalTransfer: { label: '资金往来', hint: '借款、还款、押金、备用金、股东往来' },
+  other: { label: '其他', hint: '无法归入以上用途的其他账务' }
 }

@@ -8,7 +8,7 @@ import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
-  FinanceLedgerReport, FinancePayableReport, LedgerCategory, PartnerLedgerReport,
+  FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, PartnerLedgerReport,
   Payable, PayableStatus, PayableType, Payment, Receipt, Receivable,
   ReceivableStatus, ReceivableType, Settlement, SettlementStatus, VoucherReport
 } from './model'
@@ -23,6 +23,14 @@ const PAYABLE_STATUS_UI: Record<string, PayableStatus> = { pending: 'pending', p
 const ACCOUNT_API: Record<FundAccount, string> = { companyBank: 'CompanyBank', cash: 'Cash', wechat: 'Wechat', alipay: 'Alipay', other: 'Other' }
 const ACCOUNT_UI: Record<string, FundAccount> = { companybank: 'companyBank', cash: 'cash', wechat: 'wechat', alipay: 'alipay', other: 'other' }
 const LEDGER_DIRECTION_API: Record<LedgerDirection, string> = { income: 'Income', expense: 'Expense' }
+const LEDGER_PURPOSE_API: Record<LedgerManualPurpose, string> = {
+  projectIncidentalCost: 'ProjectIncidentalCost', companyExpense: 'CompanyExpense',
+  otherIncome: 'OtherIncome', capitalTransfer: 'CapitalTransfer', other: 'Other'
+}
+const LEDGER_PURPOSE_UI: Record<string, LedgerManualPurpose> = {
+  projectincidentalcost: 'projectIncidentalCost', companyexpense: 'companyExpense',
+  otherincome: 'otherIncome', capitaltransfer: 'capitalTransfer', other: 'other'
+}
 const SETTLEMENT_STATUS_API: Record<SettlementStatus, string> = {
   draft: 'Draft', confirmed: 'Confirmed', closed: 'Closed',
   retentionPending: 'RetentionPending', retentionReleased: 'RetentionReleased'
@@ -123,6 +131,7 @@ function normalizeLedger(raw: Raw): Ledger {
     direction: lower(raw.direction) === 'expense' ? 'expense' : 'income',
     category: raw.category ?? '',
     categoryNode: raw.categoryNode ? normalizeLedgerCategory(raw.categoryNode) : undefined,
+    purpose: raw.purpose ? (LEDGER_PURPOSE_UI[lower(raw.purpose)] || 'other') : undefined,
     source: lower(raw.source) as Ledger['source'],
     sourceId: raw.sourceId == null ? undefined : String(raw.sourceId),
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
@@ -351,15 +360,16 @@ export const financeApi = {
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, active: input.active })),
   deleteLedgerCategory: async (id: string): Promise<LedgerCategory> =>
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/delete', { categoryId: id })),
-  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; categoryId: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
-    normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
-  updateLedger: async (input: { ledgerId: string; categoryId?: string; projectId?: string; counterparty?: string; summary?: string; remark?: string; reason: string }): Promise<Ledger> =>
-    normalizeLedger(await post<Raw>('finance/ledger/update', input)),
+  saveLedger: async (input: { projectId?: string; direction: LedgerDirection; purpose: LedgerManualPurpose; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
+    normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, purpose: LEDGER_PURPOSE_API[input.purpose], direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
+  updateLedger: async (input: { ledgerId: string; purpose?: LedgerManualPurpose; category?: string; categoryId?: string; projectId?: string; counterparty?: string; summary?: string; remark?: string; reason: string }): Promise<Ledger> =>
+    normalizeLedger(await post<Raw>('finance/ledger/update', { ...input, purpose: input.purpose ? LEDGER_PURPOSE_API[input.purpose] : undefined })),
   deleteLedger: async (ledgerId: string, reason: string): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/delete', { ledgerId, reason })),
-  correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; categoryId: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
+  correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; purpose: LedgerManualPurpose; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/correct', {
       ...input,
+      purpose: LEDGER_PURPOSE_API[input.purpose],
       direction: LEDGER_DIRECTION_API[input.direction],
       account: ACCOUNT_API[input.account]
     })),

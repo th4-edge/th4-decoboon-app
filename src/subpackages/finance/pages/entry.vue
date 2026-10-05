@@ -9,16 +9,12 @@ import {
   consumeFinanceProjectPickerResult,
   type FinanceProjectSelection
 } from '@/domains/finance/project-picker'
-import {
-  consumeLedgerCategoryPickerResult,
-  type LedgerCategorySelection
-} from '@/domains/finance/ledger-category-picker'
 import { laborApi } from '@/domains/labor/api'
 import type { Worker } from '@/domains/labor/model'
 import type {
-  FundAccount, Ledger, LedgerDirection, Payable, PayableType, Receivable
+  FundAccount, Ledger, LedgerDirection, LedgerManualPurpose, Payable, PayableType, Receivable
 } from '@/domains/finance/model'
-import { ACCOUNT_LABEL, PAYABLE_TYPE_META } from '@/domains/finance/meta'
+import { ACCOUNT_LABEL, LEDGER_PURPOSE_META, PAYABLE_TYPE_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -32,7 +28,6 @@ const today = () => new Date().toISOString().slice(0, 10)
 const type = ref<EntryType>('receivable')
 const editId = ref('')
 const selectedProject = ref<FinanceProjectSelection | null>(null)
-const selectedCategory = ref<LedgerCategorySelection | null>(null)
 const originalLedger = ref<Ledger | null>(null)
 const editReason = ref('')
 const receivables = ref<Receivable[]>([])
@@ -61,7 +56,7 @@ const form = reactive({
   sourceNo: '',
   direction: 'income' as LedgerDirection,
   category: '',
-  categoryId: '',
+  purpose: 'other' as LedgerManualPurpose,
   counterparty: '',
   summary: '',
   remark: ''
@@ -107,6 +102,9 @@ const accountOptions = Object.entries(ACCOUNT_LABEL).map(([value, label]) => ({ 
 const accountIndex = computed(() => Math.max(accountOptions.findIndex((item) => item.value === form.account), 0))
 const directionOptions = [{ label: '收入', value: 'income' }, { label: '支出', value: 'expense' }]
 const directionIndex = computed(() => Math.max(directionOptions.findIndex((item) => item.value === form.direction), 0))
+const purposeOptions = (Object.entries(LEDGER_PURPOSE_META) as Array<[LedgerManualPurpose, { label: string; hint: string }]>)
+  .map(([value, meta]) => ({ value, label: meta.label, hint: meta.hint }))
+const purposeIndex = computed(() => Math.max(purposeOptions.findIndex((item) => item.value === form.purpose), 0))
 
 const submitLabel = computed(() => {
   if (submitting.value) return '处理中…'
@@ -151,11 +149,6 @@ onShow(() => {
   if (projectResult) {
     if (projectResult.action === 'clear') setProject(null)
     else setProject(projectResult.project)
-  }
-  const categoryResult = consumeLedgerCategoryPickerResult()
-  if (categoryResult) {
-    if (categoryResult.action === 'clear') clearCategory()
-    else setCategory(categoryResult.category)
   }
 })
 
@@ -212,14 +205,8 @@ async function hydrate(id: string) {
       form.projectId = item.project?.id || ''
       setProject(projectSelection(item.project))
       form.direction = item.direction
-      form.categoryId = item.categoryNode?.id || ''
+      form.purpose = item.purpose || 'other'
       form.category = item.category
-      selectedCategory.value = item.categoryNode ? {
-        id: item.categoryNode.id,
-        name: item.categoryNode.name,
-        path: item.categoryNode.name,
-        direction: item.categoryNode.direction
-      } : null
       form.amount = String(item.amount)
       form.account = item.account
       form.date = item.occurredAt
@@ -247,7 +234,9 @@ function onWorker(event: any) { form.workerId = workerOptions.value[Number(event
 function onAccount(event: any) { form.account = accountOptions[Number(event.detail.value)]?.value as FundAccount || 'companyBank' }
 function onDirection(event: any) {
   form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income'
-  if (type.value === 'ledger') clearCategory()
+}
+function onPurpose(event: any) {
+  form.purpose = purposeOptions[Number(event.detail.value)]?.value || 'other'
 }
 function onInvoiceSwitch(event: any) { form.invoiceRequired = !!event.detail.value }
 function onUrgentSwitch(event: any) { form.urgent = !!event.detail.value }
@@ -294,29 +283,6 @@ function clearProject() {
   setProject(null)
 }
 
-function setCategory(category: LedgerCategorySelection | null) {
-  selectedCategory.value = category
-  form.categoryId = category?.id || ''
-  if (category) form.category = category.name
-}
-
-function clearCategory() {
-  setCategory(null)
-  form.category = ''
-}
-
-function openCategoryPicker() {
-  const params = [`direction=${form.direction}`]
-  if (form.categoryId) {
-    params.push(`selectedId=${encodeURIComponent(form.categoryId)}`)
-    if (selectedCategory.value?.name) params.push(`selectedName=${encodeURIComponent(selectedCategory.value.name)}`)
-    if (selectedCategory.value?.path) params.push(`selectedPath=${encodeURIComponent(selectedCategory.value.path)}`)
-  } else if (form.category.trim()) {
-    params.push(`legacyText=${encodeURIComponent(form.category.trim())}`)
-  }
-  uni.navigateTo({ url: `${P.financeLedgerCategoryPicker}?${params.join('&')}` })
-}
-
 function ledgerFinanciallyChanged() {
   const original = originalLedger.value
   if (!original) return false
@@ -332,7 +298,8 @@ async function submit() {
   if (['receivable', 'receipt'].includes(type.value) && !form.projectId) { toast('请选择项目'); return }
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
   if (type.value === 'payment' && !form.payableId) { toast('请选择应付单'); return }
-  if (type.value === 'ledger' && (!form.categoryId || !form.summary.trim())) { toast('请选择业务分类并填写摘要'); return }
+  if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类说明和摘要'); return }
+  if (type.value === 'ledger' && form.purpose === 'projectIncidentalCost' && !form.projectId) { toast('项目零星成本必须关联项目'); return }
   if (type.value === 'ledger' && editId.value && !editReason.value.trim()) { toast('请填写更正原因'); return }
   submitting.value = true; loading('保存中...')
   try {
@@ -351,7 +318,8 @@ async function submit() {
       const payload = {
         projectId: form.projectId || '0',
         direction: form.direction,
-        categoryId: form.categoryId,
+        purpose: form.purpose,
+        category: form.category.trim(),
         amount,
         account: form.account,
         occurredAt: form.date,
@@ -438,21 +406,10 @@ async function submit() {
 
       <template v-else>
         <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field fin-field--tap fe-category-field" @tap="openCategoryPicker">
-          <text class="fin-field__label">业务分类</text>
-          <view class="fin-field__value" :class="{ 'fin-field__placeholder': !selectedCategory }">
-            {{ selectedCategory?.path || (form.category ? '待关联：' + form.category : '请选择二级业务分类') }}
-          </view>
-          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
-        </view>
-        <view v-if="selectedCategory" class="fe-category-path">
-          <JzIcon name="folder" :size="22" :color="TOKEN_COLOR.primary" />
-          <text>已选：{{ selectedCategory.path }}</text>
-        </view>
-        <view v-else-if="form.category && type === 'ledger' && editId" class="fe-category-path">
-          <JzIcon name="info" :size="22" :color="TOKEN_COLOR.warning" />
-          <text>原分类：{{ form.category }}（待关联，请选择标准二级分类）</text>
-        </view>
+        <view class="fin-field"><text class="fin-field__label">账务用途</text><picker :range="purposeOptions" range-key="label" :value="purposeIndex" @change="onPurpose"><view class="fin-field__value">{{ selectLabel(purposeOptions, purposeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fe-purpose-hint">{{ purposeOptions[purposeIndex]?.hint }}</view>
+        <view class="fin-field"><text class="fin-field__label">分类说明</text><input v-model="form.category" maxlength="128" placeholder="如 银行手续费、临时保洁、股东借款" /></view>
+        <view v-if="form.purpose === 'projectIncidentalCost' && !form.projectId" class="fe-purpose-warn">项目零星成本必须关联项目</view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">发生日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
@@ -464,7 +421,7 @@ async function submit() {
       <view class="fin-field fe-remark"><text class="fin-field__label">备注</text><textarea v-model="form.remark" maxlength="500" auto-height placeholder="可选，记录凭证、批次或补充说明" /></view>
     </view>
 
-    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">企业负责人、财务可补关联业务分类；其他元数据更正仅企业负责人可操作，且全程留痕。金额、方向、日期或账户变化将自动冲正重记。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
+    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">企业负责人、财务可更正分类与账务用途；其他元数据更正仅企业负责人可操作，且全程留痕。金额、方向、日期或账户变化将自动冲正重记。</text><text v-else-if="type === 'ledger'">手工记账只登记非计划内其他账务；工程款、材料款、工资、项目款请走应收/应付闭环。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
 
     <view class="fin-form-actions">
       <view v-if="submitHint" class="fe-submit-note">
@@ -488,6 +445,8 @@ async function submit() {
 .fe-unit { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fin-field--tap { cursor: pointer; }
 .fe-category-field { gap: 8rpx; }
+.fe-purpose-hint { margin: -2rpx 0 0 142rpx; padding: 0 0 16rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.5; }
+.fe-purpose-warn { margin: -2rpx 0 0 142rpx; padding: 0 0 16rpx; color: $jzb-danger; font-size: 21rpx; }
 .fe-category-path { display: flex; align-items: center; gap: 8rpx; margin: -1rpx 0 0; padding: 14rpx 0 18rpx 142rpx; color: $jzb-text-3; border-top: 1rpx solid $jzb-border-light; font-size: $jzb-font-xs; }
 .fe-project { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12rpx; }
 .fe-project__main { flex: 1; min-width: 0; text-align: right; }
