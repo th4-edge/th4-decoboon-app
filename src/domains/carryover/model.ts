@@ -115,6 +115,29 @@ export interface CarryoverProjectInput {
 }
 
 
+export type CarryoverPaymentDirection = 'receivable' | 'payable'
+
+export interface CarryoverPaymentPlan {
+  id?: string
+  direction: CarryoverPaymentDirection
+  amount: number
+  plannedDate?: string
+  counterparty?: string
+  remark?: string
+  sort?: number
+}
+
+export interface CarryoverPaymentPlanReport {
+  itemId?: string
+  receivableOutstanding: number
+  payableOutstanding: number
+  plannedReceivable: number
+  plannedPayable: number
+  unplannedReceivable: number
+  unplannedPayable: number
+  plans: CarryoverPaymentPlan[]
+}
+
 export type CarryoverAttachmentCategory = 'contract' | 'quote' | 'site' | 'finance' | 'other'
 export type CarryoverAdjustmentType = 'receivable' | 'payable' | 'cost' | 'other'
 

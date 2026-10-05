@@ -16,7 +16,10 @@ import type {
   CarryoverAdjustmentType,
   CarryoverPlanStatus,
   CarryoverPlanAction,
-  CarryoverPlanChange
+  CarryoverPlanChange,
+  CarryoverPaymentDirection,
+  CarryoverPaymentPlan,
+  CarryoverPaymentPlanReport
 } from './model'
 
 type Raw = Record<string, any>
@@ -48,6 +51,9 @@ const ADJUSTMENT_TYPE: Record<string, CarryoverAdjustmentType> = {
 }
 const PLAN_STATUS: Record<string, CarryoverPlanStatus> = {
   NotStarted: 'notStarted', Draft: 'draft', Confirmed: 'confirmed', Locked: 'locked'
+}
+const PAYMENT_DIRECTION: Record<string, CarryoverPaymentDirection> = {
+  Receivable: 'receivable', Payable: 'payable'
 }
 const PLAN_ACTION: Record<string, CarryoverPlanAction> = {
   StageCreate: 'stageCreate', StageUpdate: 'stageUpdate', StageReorder: 'stageReorder',
@@ -180,6 +186,31 @@ function normalizePlanChange(raw: Raw): CarryoverPlanChange {
     createdAt: time(raw.createTime)
   }
 }
+function normalizePaymentPlan(raw: Raw): CarryoverPaymentPlan {
+  return {
+    id: raw.planId == null ? undefined : String(raw.planId),
+    direction: PAYMENT_DIRECTION[enumValue(raw.direction)] || 'receivable',
+    amount: num(raw.amount) ?? 0,
+    plannedDate: raw.plannedDate,
+    counterparty: raw.counterparty,
+    remark: raw.remark,
+    sort: num(raw.sort)
+  }
+}
+
+function normalizePaymentPlanReport(raw: Raw): CarryoverPaymentPlanReport {
+  return {
+    itemId: raw.itemId == null ? undefined : String(raw.itemId),
+    receivableOutstanding: num(raw.receivableOutstanding) ?? 0,
+    payableOutstanding: num(raw.payableOutstanding) ?? 0,
+    plannedReceivable: num(raw.plannedReceivable) ?? 0,
+    plannedPayable: num(raw.plannedPayable) ?? 0,
+    unplannedReceivable: num(raw.unplannedReceivable) ?? 0,
+    unplannedPayable: num(raw.unplannedPayable) ?? 0,
+    plans: Array.isArray(raw.plans) ? raw.plans.map(normalizePaymentPlan) : []
+  }
+}
+
 function normalizeAdjustment(raw: Raw): CarryoverAdjustment {
   return {
     id: String(raw.adjustmentId ?? raw.id ?? ''),
@@ -208,6 +239,13 @@ export const carryoverApi = {
       ...input,
       projectStatus: input.projectStatus ? PROJECT_STATUS_API[input.projectStatus] : undefined,
       costStatus: COST_STATUS_API[input.costStatus]
+    })),
+  paymentPlanReport: async (itemId: string): Promise<CarryoverPaymentPlanReport> =>
+    normalizePaymentPlanReport(await post<Raw>('carryover/payment-plan/report', { itemId })),
+  savePaymentPlan: async (itemId: string, plans: CarryoverPaymentPlan[]): Promise<CarryoverPaymentPlanReport> =>
+    normalizePaymentPlanReport(await post<Raw>('carryover/payment-plan/save', {
+      itemId,
+      plans: plans.map(plan => ({ ...plan, direction: plan.direction === 'receivable' ? 'Receivable' : 'Payable' }))
     })),
   build: async (itemId: string): Promise<CarryoverProject> =>
     normalizeProject(await post<Raw>('carryover/project/build', { itemId })),

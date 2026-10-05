@@ -1043,6 +1043,14 @@
             "backgroundColor": "#F4F7F8"
           }
         }
+        ,
+        {
+          "path": "pages/payment-plan",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     }
   ],

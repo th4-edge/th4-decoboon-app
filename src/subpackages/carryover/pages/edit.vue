@@ -217,6 +217,11 @@ function validateBasics() {
   return ''
 }
 
+function openPaymentPlan() {
+  if (!id.value) { toast('请先保存项目草稿'); return }
+  uni.navigateTo({ url: `${P.carryoverPaymentPlan}?itemId=${id.value}` })
+}
+
 async function chooseAttachment() {
   if (!id.value) { toast('请先保存项目草稿'); return }
   uni.chooseImage({
@@ -438,6 +443,14 @@ async function submitCarryover() {
       </view>
     </view>
 
+    <view v-if="id" class="co-edit__finance-link jz-card" @tap="openPaymentPlan">
+      <view class="jz-grow">
+        <text class="co-edit__finance-link-title">剩余收付款计划</text>
+        <text class="co-edit__finance-link-desc">把期初应收/应付拆成未来时间计划；合计不得超过期初余额</text>
+      </view>
+      <text class="co-edit__finance-link-action">去制定</text>
+    </view>
+
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">5. 来源追溯</text>
       <view class="co-edit__row"><text>原系统项目号</text><input v-model="legacyProjectNo" maxlength="64" placeholder="选填" /></view>
@@ -535,4 +548,9 @@ async function submitCarryover() {
 .co-edit__cost-option--on .co-edit__cost-radio { border: 8rpx solid $jzb-primary; }
 .co-edit__cost-label { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .co-edit__cost-desc { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.5; }
+
+.co-edit__finance-link { display: flex; align-items: center; margin: 0 0 18rpx; padding: 22rpx; }
+.co-edit__finance-link-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.co-edit__finance-link-desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.co-edit__finance-link-action { flex: none; color: $jzb-primary-deep; font-size: $jzb-font-xs; font-weight: 700; }
 </style>
