@@ -10,7 +10,7 @@ import { ACCOUNT_LABEL, DIRECTION_LABEL } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { usePagedList } from '@/composables/usePagedList'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { hideLoading, loading, promptText, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
@@ -166,10 +166,27 @@ function dateRange(value: DateFilter) {
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=ledger${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function canCorrect(item: Ledger) { return isBoss.value && item.source === 'manual' && !item.correctionGroupId }
+function canDelete(item: Ledger) { return isBoss.value && item.source === 'manual' && !item.correctionGroupId }
 function canRelink(item: Ledger) {
   return editable.value && item.source === 'manual' && !item.correctionGroupId && !item.categoryNode && !relinking.value
 }
 function edit(item: Ledger) { if (canCorrect(item)) uni.navigateTo({ url: `${P.financeEntry}?type=ledger&id=${item.id}` }) }
+async function remove(item: Ledger) {
+  if (!canDelete(item)) return
+  const reason = await promptText('删除手工记账', '请填写删除原因', '删除后该笔不再进入台账和资金汇总，原记录与凭证档案保留用于审计。')
+  if (!reason) return
+  loading('删除中')
+  try {
+    await financeApi.deleteLedger(item.id, reason)
+    hideLoading()
+    toast('手工记账已删除', 'success')
+    await refreshAll()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '删除失败')
+  }
+}
+
 function relink(item: Ledger) {
   if (!canRelink(item)) return
   pendingRelinkLedgerId.value = item.id
@@ -305,6 +322,7 @@ function openVouchers() {
           <text class="jz-caption">{{ DIRECTION_LABEL[item.direction] }} · {{ item.source === 'receipt' ? '收款核销' : item.source === 'payment' ? '付款核销' : item.source === 'adjustment' ? '调整冲销' : '手工记账' }}</text>
           <text v-if="item.remark" class="jz-caption">{{ item.remark }}</text>
           <view v-if="canRelink(item)" class="fin-card__link" @tap.stop="relink(item)"><JzIcon name="check" :size="22" :color="TOKEN_COLOR.primary" /><text>补关联</text></view>
+          <view v-if="canDelete(item)" class="fin-card__link fin-card__link--danger" @tap.stop="remove(item)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /><text>删除</text></view>
           <view v-if="canCorrect(item)" class="fin-card__link" @tap.stop="edit(item)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /><text>更正</text></view>
         </view>
       </view>
@@ -366,4 +384,6 @@ function openVouchers() {
 .fin-pending__sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .fin-pending__action { flex: none; color: $jzb-warning; font-size: $jzb-font-xs; font-weight: 700; }
 .fin-pending-tag { flex: none; margin-left: 8rpx; padding: 1rpx 10rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-pill; font-size: 19rpx; }
+
+.fin-card__link--danger { color: $jzb-danger; }
 </style>

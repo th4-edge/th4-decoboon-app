@@ -65,6 +65,23 @@ export function confirmAction(options: ConfirmActionOptions): Promise<boolean> {
 export function confirmDanger(title: string, content = '', okText = '确认删除'): Promise<boolean> {
   return confirmAction({ title, content, confirmText: okText, tone: 'danger' })
 }
+/** 带文本输入的确认框，用于删除等需要填写原因的动作。 */
+export function promptText(title: string, placeholder = '', content = ''): Promise<string | null> {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title,
+      content,
+      editable: true,
+      placeholderText: placeholder,
+      confirmText: '确认',
+      cancelText: '取消',
+      confirmColor: TOKEN_COLOR.danger,
+      success: (r: { confirm?: boolean; content?: string }) => resolve(r.confirm ? String(r.content || '').trim() : null),
+      fail: () => resolve(null)
+    } as never)
+  })
+}
+
 export function loading(title = '处理中...') {
   uni.showLoading({ title, mask: true })
 }

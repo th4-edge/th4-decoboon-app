@@ -355,6 +355,8 @@ export const financeApi = {
     normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
   updateLedger: async (input: { ledgerId: string; categoryId?: string; projectId?: string; counterparty?: string; summary?: string; remark?: string; reason: string }): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/update', input)),
+  deleteLedger: async (ledgerId: string, reason: string): Promise<Ledger> =>
+    normalizeLedger(await post<Raw>('finance/ledger/delete', { ledgerId, reason })),
   correctLedger: async (input: { ledgerId: string; projectId?: string; direction: LedgerDirection; categoryId: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string; reason: string }): Promise<Ledger> =>
     normalizeLedger(await post<Raw>('finance/ledger/correct', {
       ...input,
