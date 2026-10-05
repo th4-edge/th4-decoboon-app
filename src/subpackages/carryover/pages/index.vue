@@ -67,6 +67,11 @@ async function startBatch() {
   }
 }
 
+function openReconciliation() {
+  if (!batch.value?.id) { toast('请先建立承接任务'); return }
+  uni.navigateTo({ url: `${P.carryoverReconciliation}?batchId=${batch.value.id}` })
+}
+
 function openOpeningBalance() {
   if (!batch.value?.id) { toast('请先建立承接任务'); return }
   uni.navigateTo({ url: `${P.carryoverOpeningBalance}?asOfDate=${encodeURIComponent(asOfDate.value)}` })
@@ -142,6 +147,14 @@ function statusClass(status: CarryoverProject['status']) {
           <text class="carryover__opening-desc">{{ openingCount ? `已登记 ${openingCount} 个账户` : '尚未登记接管日账户余额' }} · 不计入收入/支出</text>
         </view>
         <text class="carryover__opening-action">{{ openingCount ? '查看/更正' : '去登记' }}</text>
+      </view>
+
+      <view class="carryover__opening jz-card" @tap="openReconciliation">
+        <view class="carryover__opening-main">
+          <text class="carryover__opening-title">首月双轨对账</text>
+          <text class="carryover__opening-desc">只对四个主题：项目未收、项目未付、资金余额、项目成本</text>
+        </view>
+        <text class="carryover__opening-action">去对账</text>
       </view>
       <view class="carryover__action">
         <JzActionCard

@@ -1051,6 +1051,14 @@
             "backgroundColor": "#F4F7F8"
           }
         }
+        ,
+        {
+          "path": "pages/reconciliation",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     }
   ],

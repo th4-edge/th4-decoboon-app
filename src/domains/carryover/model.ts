@@ -115,6 +115,40 @@ export interface CarryoverProjectInput {
 }
 
 
+export type CarryoverReconciliationTheme = 'receivable' | 'payable' | 'cash' | 'cost'
+export type CarryoverReconciliationStatus = 'draft' | 'pending' | 'diffHandling' | 'confirmed' | 'closed'
+export type CarryoverDifferenceType = 'time' | 'entity' | 'tax' | 'scope' | 'missingData'
+export type CarryoverDifferenceStatus = 'pending' | 'handling' | 'resolved' | 'accepted'
+
+export interface CarryoverReconciliationItem {
+  id?: string
+  theme: CarryoverReconciliationTheme
+  originalAmount?: number
+  originalSource?: string
+  originalConfirmed?: boolean
+  systemAmount: number
+  difference?: number
+  differenceType?: CarryoverDifferenceType
+  differenceStatus: CarryoverDifferenceStatus
+  reason?: string
+  action?: string
+  owner?: Employee
+  dueDate?: string
+}
+
+export interface CarryoverReconciliationReport {
+  reconciliationId?: string
+  batchId?: string
+  asOfDate?: string
+  periodStart?: string
+  periodEnd?: string
+  status: CarryoverReconciliationStatus
+  remark?: string
+  unclassifiedCount: number
+  pendingCount: number
+  items: CarryoverReconciliationItem[]
+}
+
 export type CarryoverPaymentDirection = 'receivable' | 'payable'
 
 export interface CarryoverPaymentPlan {

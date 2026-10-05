@@ -19,7 +19,13 @@ import type {
   CarryoverPlanChange,
   CarryoverPaymentDirection,
   CarryoverPaymentPlan,
-  CarryoverPaymentPlanReport
+  CarryoverPaymentPlanReport,
+  CarryoverDifferenceStatus,
+  CarryoverDifferenceType,
+  CarryoverReconciliationItem,
+  CarryoverReconciliationReport,
+  CarryoverReconciliationStatus,
+  CarryoverReconciliationTheme
 } from './model'
 
 type Raw = Record<string, any>
@@ -54,6 +60,18 @@ const PLAN_STATUS: Record<string, CarryoverPlanStatus> = {
 }
 const PAYMENT_DIRECTION: Record<string, CarryoverPaymentDirection> = {
   Receivable: 'receivable', Payable: 'payable'
+}
+const RECON_STATUS: Record<string, CarryoverReconciliationStatus> = {
+  Draft: 'draft', Pending: 'pending', DiffHandling: 'diffHandling', Confirmed: 'confirmed', Closed: 'closed'
+}
+const RECON_THEME: Record<string, CarryoverReconciliationTheme> = {
+  Receivable: 'receivable', Payable: 'payable', Cash: 'cash', Cost: 'cost'
+}
+const DIFF_TYPE: Record<string, CarryoverDifferenceType> = {
+  Time: 'time', Entity: 'entity', Tax: 'tax', Scope: 'scope', MissingData: 'missingData'
+}
+const DIFF_STATUS: Record<string, CarryoverDifferenceStatus> = {
+  Pending: 'pending', Handling: 'handling', Resolved: 'resolved', Accepted: 'accepted'
 }
 const PLAN_ACTION: Record<string, CarryoverPlanAction> = {
   StageCreate: 'stageCreate', StageUpdate: 'stageUpdate', StageReorder: 'stageReorder',
@@ -186,6 +204,39 @@ function normalizePlanChange(raw: Raw): CarryoverPlanChange {
     createdAt: time(raw.createTime)
   }
 }
+function normalizeReconciliationItem(raw: Raw): CarryoverReconciliationItem {
+  return {
+    id: raw.itemId == null ? undefined : String(raw.itemId),
+    theme: RECON_THEME[enumValue(raw.theme)] || 'receivable',
+    originalAmount: num(raw.originalAmount),
+    originalSource: raw.originalSource,
+    originalConfirmed: raw.originalConfirmed === true,
+    systemAmount: num(raw.systemAmount) ?? 0,
+    difference: num(raw.difference),
+    differenceType: raw.differenceType ? DIFF_TYPE[enumValue(raw.differenceType)] : undefined,
+    differenceStatus: DIFF_STATUS[enumValue(raw.differenceStatus)] || 'pending',
+    reason: raw.reason,
+    action: raw.action,
+    owner: raw.owner ? normalizeEmployee(raw.owner) : undefined,
+    dueDate: raw.dueDate
+  }
+}
+
+function normalizeReconciliationReport(raw: Raw): CarryoverReconciliationReport {
+  return {
+    reconciliationId: raw.reconciliationId == null ? undefined : String(raw.reconciliationId),
+    batchId: raw.batchId == null ? undefined : String(raw.batchId),
+    asOfDate: raw.asOfDate,
+    periodStart: raw.periodStart,
+    periodEnd: raw.periodEnd,
+    status: RECON_STATUS[enumValue(raw.status)] || 'draft',
+    remark: raw.remark,
+    unclassifiedCount: num(raw.unclassifiedCount) ?? 0,
+    pendingCount: num(raw.pendingCount) ?? 0,
+    items: Array.isArray(raw.items) ? raw.items.map(normalizeReconciliationItem) : []
+  }
+}
+
 function normalizePaymentPlan(raw: Raw): CarryoverPaymentPlan {
   return {
     id: raw.planId == null ? undefined : String(raw.planId),
@@ -239,6 +290,26 @@ export const carryoverApi = {
       ...input,
       projectStatus: input.projectStatus ? PROJECT_STATUS_API[input.projectStatus] : undefined,
       costStatus: COST_STATUS_API[input.costStatus]
+    })),
+  reconciliationSave: async (batchId: string, periodStart?: string, periodEnd?: string, remark?: string): Promise<CarryoverReconciliationReport> =>
+    normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/save', { batchId, periodStart, periodEnd, remark })),
+  reconciliationReport: async (reconciliationId: string): Promise<CarryoverReconciliationReport> =>
+    normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/report', { reconciliationId })),
+  reconciliationItemSave: async (itemId: string, input: {
+    originalAmount?: number
+    originalSource?: string
+    originalConfirmed?: boolean
+    differenceType?: CarryoverDifferenceType
+    differenceStatus?: CarryoverDifferenceStatus
+    reason?: string
+    action?: string
+    dueDate?: string
+  }): Promise<CarryoverReconciliationReport> =>
+    normalizeReconciliationReport(await post<Raw>('carryover/reconciliation/item/save', {
+      itemId,
+      ...input,
+      differenceType: input.differenceType ? ({ time: 'Time', entity: 'Entity', tax: 'Tax', scope: 'Scope', missingData: 'MissingData' } as Record<CarryoverDifferenceType, string>)[input.differenceType] : undefined,
+      differenceStatus: input.differenceStatus ? ({ pending: 'Pending', handling: 'Handling', resolved: 'Resolved', accepted: 'Accepted' } as Record<CarryoverDifferenceStatus, string>)[input.differenceStatus] : undefined
     })),
   paymentPlanReport: async (itemId: string): Promise<CarryoverPaymentPlanReport> =>
     normalizePaymentPlanReport(await post<Raw>('carryover/payment-plan/report', { itemId })),
