@@ -8,7 +8,7 @@ import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
-  FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, PartnerLedgerReport,
+  FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, OpeningBalance, PartnerLedgerReport,
   Payable, PayableStatus, PayableType, Payment, Receipt, Receivable,
   ReceivableStatus, ReceivableType, Settlement, SettlementStatus, VoucherReport
 } from './model'
@@ -141,6 +141,17 @@ function normalizeLedger(raw: Raw): Ledger {
     correctionGroupId: raw.correctionGroupId == null ? undefined : String(raw.correctionGroupId)
   }
 }
+function normalizeOpeningBalance(raw: Raw): OpeningBalance {
+  return {
+    id: String(raw.id ?? raw.openingId ?? ''),
+    account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    amount: num(raw.amount),
+    asOfDate: raw.asOfDate ?? '',
+    remark: raw.remark,
+    createdAt: time(raw)
+  }
+}
+
 function normalizeSettlement(raw: Raw): Settlement {
   const status = lower(raw.status)
   return {
@@ -360,6 +371,16 @@ export const financeApi = {
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, active: input.active })),
   deleteLedgerCategory: async (id: string): Promise<LedgerCategory> =>
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/delete', { categoryId: id })),
+  openingBalances: async (): Promise<OpeningBalance[]> => {
+    const result = await post<PageResult<Raw> | Raw[]>('finance/opening-balance/page', { current: 1, size: 100 })
+    const page = toPageData(result, 1, 100)
+    return page.list.map(normalizeOpeningBalance)
+  },
+  saveOpeningBalance: async (input: { account: FundAccount; amount: number; asOfDate: string; remark?: string }): Promise<OpeningBalance> =>
+    normalizeOpeningBalance(await post<Raw>('finance/opening-balance/save', {
+      ...input,
+      account: ACCOUNT_API[input.account]
+    })),
   saveLedger: async (input: { projectId?: string; direction: LedgerDirection; purpose: LedgerManualPurpose; category: string; categoryId?: string; amount: number; account: FundAccount; occurredAt: string; counterparty?: string; summary: string; remark?: string }) =>
     normalizeLedger(await post<Raw>('finance/ledger/save', { ...input, purpose: LEDGER_PURPOSE_API[input.purpose], direction: LEDGER_DIRECTION_API[input.direction], account: ACCOUNT_API[input.account] })),
   updateLedger: async (input: { ledgerId: string; purpose?: LedgerManualPurpose; category?: string; categoryId?: string; projectId?: string; counterparty?: string; summary?: string; remark?: string; reason: string }): Promise<Ledger> =>

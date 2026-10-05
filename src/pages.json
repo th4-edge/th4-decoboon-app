@@ -1035,6 +1035,14 @@
             "backgroundColor": "#F4F7F8"
           }
         }
+        ,
+        {
+          "path": "pages/opening-balance",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     }
   ],

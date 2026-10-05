@@ -93,6 +93,15 @@ export interface LedgerCategory {
   children?: LedgerCategory[]
 }
 
+export interface OpeningBalance {
+  id: string
+  account: FundAccount
+  amount: number
+  asOfDate: string
+  remark?: string
+  createdAt?: string
+}
+
 export interface Ledger {
   id: string
   project?: Project

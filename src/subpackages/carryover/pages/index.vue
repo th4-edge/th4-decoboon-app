@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { carryoverApi } from '@/domains/carryover/api'
+import { financeApi } from '@/domains/finance/api'
 import type { CarryoverBatch, CarryoverProject } from '@/domains/carryover/model'
 import { toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
@@ -13,6 +14,7 @@ import JzActionCard from '@/components/JzActionCard.vue'
 const batch = ref<CarryoverBatch | null>(null)
 const projects = ref<CarryoverProject[]>([])
 const loading = ref(false)
+const openingCount = ref(0)
 const asOfDate = ref(new Date().toISOString().slice(0, 10))
 
 const isBoss = computed(() => session.role === 'boss')
@@ -40,6 +42,11 @@ async function load() {
     batch.value = info.id ? info : null
     projects.value = info.id ? (await carryoverApi.page()).list : []
     if (info.asOfDate) asOfDate.value = info.asOfDate
+    try {
+      openingCount.value = (await financeApi.openingBalances()).length
+    } catch {
+      openingCount.value = 0
+    }
   } catch (error) {
     toastError(error, '承接状态加载失败')
   } finally {
@@ -56,6 +63,11 @@ async function startBatch() {
   } catch (error) {
     toastError(error, '建立承接任务失败')
   }
+}
+
+function openOpeningBalance() {
+  if (!batch.value?.id) { toast('请先建立承接任务'); return }
+  uni.navigateTo({ url: `${P.carryoverOpeningBalance}?asOfDate=${encodeURIComponent(asOfDate.value)}` })
 }
 
 function addProject() {
@@ -113,6 +125,13 @@ function statusClass(status: CarryoverProject['status']) {
         <view><text class="carryover__num">{{ projects.length }}</text><text>项目总数</text></view>
         <view><text class="carryover__num">{{ completedCount }}</text><text>已完成</text></view>
         <view><text class="carryover__num">{{ pendingCount }}</text><text>待处理</text></view>
+      </view>
+      <view class="carryover__opening jz-card" @tap="openOpeningBalance">
+        <view class="carryover__opening-main">
+          <text class="carryover__opening-title">期初资金余额</text>
+          <text class="carryover__opening-desc">{{ openingCount ? `已登记 ${openingCount} 个账户` : '尚未登记接管日账户余额' }} · 不计入收入/支出</text>
+        </view>
+        <text class="carryover__opening-action">{{ openingCount ? '查看/更正' : '去登记' }}</text>
       </view>
       <view class="carryover__action">
         <JzActionCard
@@ -210,4 +229,10 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__plan-link { margin-left: auto; font-weight: 700; }
 .carryover__blockers { margin-top: 18rpx; padding: 16rpx 18rpx; color: $jzb-warning; background: #FFF9EE; border-radius: $jzb-radius-sm; font-size: 22rpx; line-height: 1.5; }
 .carryover__blockers--ready { color: $jzb-primary-dark; background: $jzb-primary-lightest; }
+
+.carryover__opening { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18rpx; padding: 22rpx; }
+.carryover__opening-main { flex: 1; min-width: 0; }
+.carryover__opening-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.carryover__opening-desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.carryover__opening-action { flex: none; color: $jzb-primary-deep; font-size: $jzb-font-xs; font-weight: 700; }
 </style>

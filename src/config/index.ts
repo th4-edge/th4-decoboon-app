@@ -7,7 +7,7 @@ export const runtime = {
   /** 身份令牌存储键。 */
   tokenKey: 'jzb_token',
   appName: '装得清',
-  version: '1.0.13',
+  version: '1.0.14',
   agreementVersion: import.meta.env.VITE_AGREEMENT_VERSION,
   privacyVersion: import.meta.env.VITE_PRIVACY_VERSION,
   legalReviewed: import.meta.env.VITE_LEGAL_REVIEWED === 'true',
@@ -40,6 +40,7 @@ export const P = {
   carryoverHome: '/subpackages/carryover/pages/index',
   carryoverEdit: '/subpackages/carryover/pages/edit',
   carryoverPlan: '/subpackages/carryover/pages/plan',
+  carryoverOpeningBalance: '/subpackages/carryover/pages/opening-balance',
   accountPassword: '/subpackages/account/pages/password',
   helpCenter: '/subpackages/account/pages/help',
   customerList: '/pages/customer/list',
