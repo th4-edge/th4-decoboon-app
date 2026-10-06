@@ -1,34 +1,62 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { payrollApi } from '@/domains/payroll/api'
+import { consumePayrollEmployeePickerResult } from '@/domains/payroll/employee-picker'
 import type { Employee } from '@/domains/identity/model'
 import { isLoggedIn } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
+import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 const summaryId = ref('')
-const employees = ref<Employee[]>([])
-const selectedIndex = ref(0)
-const form = reactive({ month: localMonth(), scheduledDays: '22', normalDays: '22', personalLeaveDays: '0', sickLeaveDays: '0', absenceDays: '0', externalDays: '0', annualLeaveDays: '0', compLeaveDays: '0', remark: '' })
+const selectedEmployee = ref<Employee | null>(null)
+const scheduledDays = ref<number | null>(null)
+const form = reactive({ month: localMonth(), normalDays: '0', personalLeaveDays: '0', sickLeaveDays: '0', absenceDays: '0', externalDays: '0', annualLeaveDays: '0', compLeaveDays: '0', remark: '' })
 const saving = ref(false)
 function localMonth(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
-function numberFields() { return { scheduledDays:Number(form.scheduledDays),normalDays:Number(form.normalDays),personalLeaveDays:Number(form.personalLeaveDays),sickLeaveDays:Number(form.sickLeaveDays),absenceDays:Number(form.absenceDays),externalDays:Number(form.externalDays),annualLeaveDays:Number(form.annualLeaveDays),compLeaveDays:Number(form.compLeaveDays) } }
+function numberFields() { return { normalDays:Number(form.normalDays),personalLeaveDays:Number(form.personalLeaveDays),sickLeaveDays:Number(form.sickLeaveDays),absenceDays:Number(form.absenceDays),externalDays:Number(form.externalDays),annualLeaveDays:Number(form.annualLeaveDays),compLeaveDays:Number(form.compLeaveDays) } }
 
 onLoad(async (query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   summaryId.value = query?.summaryId || ''
-  employees.value = await payrollApi.employeePage()
   if (summaryId.value) {
     const item = await payrollApi.attendanceInfo(summaryId.value)
-    selectedIndex.value = Math.max(0, employees.value.findIndex((e) => e.id === item.employee.id))
+    selectedEmployee.value = item.employee
+    scheduledDays.value = item.scheduledDays
     form.month = item.payrollMonth
-    Object.assign(form, { scheduledDays:String(item.scheduledDays), normalDays:String(item.normalDays), personalLeaveDays:String(item.personalLeaveDays), sickLeaveDays:String(item.sickLeaveDays), absenceDays:String(item.absenceDays), externalDays:String(item.externalDays), annualLeaveDays:String(item.annualLeaveDays), compLeaveDays:String(item.compLeaveDays), remark:item.remark || '' })
+    Object.assign(form, { normalDays:String(item.normalDays), personalLeaveDays:String(item.personalLeaveDays), sickLeaveDays:String(item.sickLeaveDays), absenceDays:String(item.absenceDays), externalDays:String(item.externalDays), annualLeaveDays:String(item.annualLeaveDays), compLeaveDays:String(item.compLeaveDays), remark:item.remark || '' })
   }
 })
+
+onShow(() => {
+  if (!isLoggedIn()) return
+  const result = consumePayrollEmployeePickerResult()
+  if (!result) return
+  if (result.action === 'clear') selectedEmployee.value = null
+  else selectedEmployee.value = result.value
+})
+
+function chooseEmployee() {
+  if (summaryId.value) return
+  const params: string[] = []
+  if (selectedEmployee.value?.id) {
+    params.push(`selectedId=${encodeURIComponent(selectedEmployee.value.id)}`)
+    params.push(`selectedName=${encodeURIComponent(selectedEmployee.value.name)}`)
+  }
+  uni.navigateTo({ url: `${P.payrollEmployeePicker}${params.length ? `?${params.join('&')}` : ''}` })
+}
+
+function clearEmployee() {
+  if (!summaryId.value) {
+    selectedEmployee.value = null
+    scheduledDays.value = null
+  }
+}
+
 async function submit() {
-  const employee = employees.value[selectedIndex.value]
+  const employee = selectedEmployee.value
   if (!employee || !form.month || saving.value) { toast('请选择员工和工资月份'); return }
   saving.value = true
   try {
@@ -41,16 +69,57 @@ async function submit() {
 </script>
 
 <template>
-  <view class="pay-page"><JzPageHeader :title="summaryId ? '编辑月度考勤' : '录入月度考勤'" subtitle="异常考勤确认后进入工资单" />
+  <view class="pay-page">
+    <JzPageHeader :title="summaryId ? '编辑月度考勤' : '录入月度考勤'" subtitle="应出勤天数由员工薪酬方案带出，异常考勤确认后进入工资单" />
     <view class="pay-body">
-      <label class="pay-label">员工</label><picker :disabled="!!summaryId" :range="employees.map((item) => item.name)" @change="selectedIndex = Number($event.detail.value)"><view class="pay-input">{{ employees[selectedIndex]?.name || '请选择员工' }}</view></picker>
-      <label class="pay-label">工资月份</label><picker mode="date" fields="month" :value="form.month" :disabled="!!summaryId" @change="form.month = $event.detail.value"><view class="pay-input">{{ form.month }}</view></picker>
-      <view class="pay-grid"><view><label class="pay-label">应出勤天数</label><input v-model="form.scheduledDays" class="pay-input" type="number" /></view><view><label class="pay-label">正常出勤</label><input v-model="form.normalDays" class="pay-input" type="number" /></view><view><label class="pay-label">事假</label><input v-model="form.personalLeaveDays" class="pay-input" type="number" /></view><view><label class="pay-label">病假</label><input v-model="form.sickLeaveDays" class="pay-input" type="number" /></view><view><label class="pay-label">旷工</label><input v-model="form.absenceDays" class="pay-input" type="number" /></view><view><label class="pay-label">外勤</label><input v-model="form.externalDays" class="pay-input" type="number" /></view><view><label class="pay-label">年假</label><input v-model="form.annualLeaveDays" class="pay-input" type="number" /></view><view><label class="pay-label">调休</label><input v-model="form.compLeaveDays" class="pay-input" type="number" /></view></view>
+      <JzEmployeeSelectField
+        :employee="selectedEmployee"
+        :disabled="!!summaryId"
+        label="考勤员工"
+        placeholder="请选择员工"
+        @select="chooseEmployee"
+        @clear="clearEmployee"
+      />
+
+      <label class="pay-label">工资月份</label>
+      <picker mode="date" fields="month" :value="form.month" :disabled="!!summaryId" @change="form.month = $event.detail.value"><view class="pay-input">{{ form.month }}</view></picker>
+
+      <view class="pay-scheme-days">
+        <view class="pay-scheme-days__main">
+          <text class="pay-scheme-days__label">月应出勤天数</text>
+          <text class="pay-scheme-days__value">{{ scheduledDays ? `${scheduledDays} 天` : '按薪酬方案读取' }}</text>
+        </view>
+        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤快照' : '保存时从员工当前生效薪酬方案读取，不在考勤页默认 22 天' }}</text>
+      </view>
+
+      <view class="pay-grid">
+        <view><label class="pay-label">正常出勤</label><input v-model="form.normalDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">事假</label><input v-model="form.personalLeaveDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">病假</label><input v-model="form.sickLeaveDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">旷工</label><input v-model="form.absenceDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">外勤</label><input v-model="form.externalDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">年假</label><input v-model="form.annualLeaveDays" class="pay-input" type="number" /></view>
+        <view><label class="pay-label">调休</label><input v-model="form.compLeaveDays" class="pay-input" type="number" /></view>
+      </view>
+
       <label class="pay-label">备注</label><textarea v-model="form.remark" class="pay-textarea" maxlength="300" placeholder="可选" />
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="saving" @tap="submit">保存考勤</button>
     </view>
   </view>
 </template>
 <style lang="scss" scoped>
-.pay-page{min-height:100vh;background:$jzb-bg-page}.pay-body{padding:24rpx $jzb-page-pad 48rpx}.pay-label{display:block;margin:20rpx 0 10rpx;color:$jzb-text-2;font-size:26rpx}.pay-input,.pay-textarea{box-sizing:border-box;width:100%;padding:22rpx;border:1rpx solid $jzb-border-light;border-radius:16rpx;background:#fff}.pay-textarea{min-height:150rpx}.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20rpx}.jz-btn{margin-top:36rpx}
+.pay-page { min-height: 100vh; background: $jzb-bg-page; }
+.pay-body { padding: 24rpx $jzb-page-pad 48rpx; }
+.pay-label { display: block; margin: 20rpx 0 10rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.pay-input,
+.pay-textarea { box-sizing: border-box; width: 100%; padding: 22rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
+.pay-textarea { min-height: 150rpx; }
+.pay-scheme-days { margin-top: 24rpx; padding: 24rpx; border: 1rpx solid rgba(22, 163, 148, .2); border-radius: $jzb-radius-md; background: $jzb-primary-lightest; }
+.pay-scheme-days__main { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
+.pay-scheme-days__label { color: $jzb-text-2; font-size: $jzb-font-sm; }
+.pay-scheme-days__value { color: $jzb-primary-deep; font-size: $jzb-font-md; font-weight: 750; }
+.pay-scheme-days__tip { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; }
+.pay-grid view { min-width: 0; }
+.jz-btn { margin-top: 36rpx; }
 </style>

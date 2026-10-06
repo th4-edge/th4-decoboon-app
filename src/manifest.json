@@ -2,8 +2,8 @@
   "name": "装得清",
   "appid": "",
   "description": "装得清——家装装企经营算清系统。以报价为中枢，连接线索、客户、房屋、量房、报价、合同、项目、材料与财务，让中小装企签单即算清利润，变更可追溯，经营看得清。",
-  "versionName": "1.0.25",
-  "versionCode": "125",
+  "versionName": "1.0.26",
+  "versionCode": "126",
   "transformPx": false,
   "app-plus": {
     "usingComponents": true,
@@ -37,8 +37,8 @@
     "optimization": {
       "subPackages": true
     },
-    "versionName": "1.0.25",
-    "versionCode": "125"
+    "versionName": "1.0.26",
+    "versionCode": "126"
   },
   "mp-alipay": {
     "usingComponents": true

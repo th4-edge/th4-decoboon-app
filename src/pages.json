@@ -975,6 +975,15 @@
             "navigationBarTitleText": "提成计提",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/employee-picker",
+          "style": {
+            "navigationBarTitleText": "选择员工",
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },

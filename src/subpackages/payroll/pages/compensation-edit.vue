@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { payrollApi } from '@/domains/payroll/api'
+import { consumePayrollEmployeePickerResult } from '@/domains/payroll/employee-picker'
 import type { Employee } from '@/domains/identity/model'
 import { isLoggedIn } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
+import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
+import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 const schemeId = ref('')
-const employees = ref<Employee[]>([])
-const selectedIndex = ref(0)
-const form = reactive({ baseSalary: '', effectiveFrom: localDate(), effectiveTo: '', remark: '' })
+const selectedEmployee = ref<Employee | null>(null)
+const form = reactive({ baseSalary: '', scheduledDays: '', effectiveFrom: localDate(), effectiveTo: '', remark: '' })
 const saving = ref(false)
 const currentDate = () => localDate()
 function localDate(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
@@ -19,26 +21,52 @@ function localDate(): string { const d = new Date(); return `${d.getFullYear()}-
 onLoad(async (query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   schemeId.value = query?.schemeId || ''
-  employees.value = await payrollApi.employeePage()
   if (schemeId.value) {
     const item = await payrollApi.compensationInfo(schemeId.value)
-    selectedIndex.value = Math.max(0, employees.value.findIndex((e) => e.id === item.employee.id))
-    form.baseSalary = String(item.baseSalary)
+    selectedEmployee.value = item.employee
+    form.baseSalary = item.baseSalary.toFixed(2)
+    form.scheduledDays = String(item.scheduledDays || '')
     form.effectiveFrom = item.effectiveFrom
     form.effectiveTo = item.effectiveTo || ''
     form.remark = item.remark || ''
   }
 })
 
+onShow(() => {
+  if (!isLoggedIn()) return
+  const result = consumePayrollEmployeePickerResult()
+  if (!result) return
+  if (result.action === 'clear') selectedEmployee.value = null
+  else selectedEmployee.value = result.value
+})
+
+function chooseEmployee() {
+  if (schemeId.value) return
+  const params: string[] = []
+  if (selectedEmployee.value?.id) {
+    params.push(`selectedId=${encodeURIComponent(selectedEmployee.value.id)}`)
+    params.push(`selectedName=${encodeURIComponent(selectedEmployee.value.name)}`)
+  }
+  uni.navigateTo({ url: `${P.payrollEmployeePicker}${params.length ? `?${params.join('&')}` : ''}` })
+}
+
+function clearEmployee() {
+  if (!schemeId.value) selectedEmployee.value = null
+}
+
 async function submit() {
-  const employee = employees.value[selectedIndex.value]
-  if (!employee || !form.baseSalary || !form.effectiveFrom || saving.value) { toast('请选择员工并填写固定工资和生效日期'); return }
+  const employee = selectedEmployee.value
+  const scheduledDays = Number(form.scheduledDays)
+  if (!employee || !form.baseSalary || !Number.isInteger(scheduledDays) || scheduledDays < 1 || scheduledDays > 31 || !form.effectiveFrom || saving.value) {
+    toast('请选择员工，并填写固定工资、1 至 31 天的月应出勤天数和生效日期')
+    return
+  }
   saving.value = true
   try {
     if (schemeId.value) {
-      await payrollApi.updateCompensation({ schemeId: schemeId.value, baseSalary: Number(form.baseSalary), effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo || undefined, remark: form.remark })
+      await payrollApi.updateCompensation({ schemeId: schemeId.value, baseSalary: Number(form.baseSalary), scheduledDays, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo || undefined, remark: form.remark })
     } else {
-      await payrollApi.saveCompensation({ empId: employee.id, baseSalary: Number(form.baseSalary), effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo || undefined, remark: form.remark })
+      await payrollApi.saveCompensation({ empId: employee.id, baseSalary: Number(form.baseSalary), scheduledDays, effectiveFrom: form.effectiveFrom, effectiveTo: form.effectiveTo || undefined, remark: form.remark })
     }
     toast('薪酬方案已保存', 'success')
     setTimeout(() => uni.navigateBack(), 500)
@@ -48,19 +76,53 @@ async function submit() {
 </script>
 
 <template>
-  <view class="pay-page"><JzPageHeader :title="schemeId ? '编辑薪酬方案' : '新增薪酬方案'" subtitle="固定工资按自然月生效" />
+  <view class="pay-page">
+    <JzPageHeader :title="schemeId ? '编辑薪酬方案' : '新增薪酬方案'" subtitle="固定工资按自然月生效，应出勤天数由本方案统一配置" />
     <view class="pay-body">
-      <label class="pay-label">员工</label>
-      <picker :disabled="!!schemeId" :range="employees.map((item) => `${item.name} · ${item.title || item.role}`)" @change="selectedIndex = Number($event.detail.value)"><view class="pay-input">{{ employees[selectedIndex] ? `${employees[selectedIndex].name} · ${employees[selectedIndex].title || employees[selectedIndex].role}` : '请选择员工' }}</view></picker>
-      <label class="pay-label">月固定工资</label><input v-model="form.baseSalary" class="pay-input" type="digit" placeholder="0.00" />
-      <label class="pay-label">生效日期</label><picker mode="date" :value="form.effectiveFrom" @change="form.effectiveFrom = $event.detail.value"><view class="pay-input">{{ form.effectiveFrom }}</view></picker>
-      <label class="pay-label">失效日期（可空）</label><picker mode="date" :value="form.effectiveTo || currentDate()" @change="form.effectiveTo = $event.detail.value"><view class="pay-input">{{ form.effectiveTo || '长期有效' }}</view></picker>
-      <label class="pay-label">备注</label><textarea v-model="form.remark" class="pay-textarea" maxlength="300" placeholder="可选" />
+      <JzEmployeeSelectField
+        :employee="selectedEmployee"
+        :disabled="!!schemeId"
+        label="发薪员工"
+        placeholder="请选择员工"
+        @select="chooseEmployee"
+        @clear="clearEmployee"
+      />
+
+      <label class="pay-label">月固定工资</label>
+      <JzMoneyInput v-model="form.baseSalary" placeholder="请输入月固定工资" />
+
+      <label class="pay-label">月应出勤天数</label>
+      <view class="pay-days-field">
+        <input v-model="form.scheduledDays" type="number" maxlength="2" placeholder="按企业实际考勤制度填写" />
+        <text>天</text>
+      </view>
+      <text class="pay-field-tip">考勤录入时，应出勤天数将按本方案读取，不再默认 22 天。</text>
+
+      <label class="pay-label">生效日期</label>
+      <picker mode="date" :value="form.effectiveFrom" @change="form.effectiveFrom = $event.detail.value"><view class="pay-input">{{ form.effectiveFrom }}</view></picker>
+
+      <label class="pay-label">失效日期（可空）</label>
+      <picker mode="date" :value="form.effectiveTo || currentDate()" @change="form.effectiveTo = $event.detail.value"><view class="pay-input">{{ form.effectiveTo || '长期有效' }}</view></picker>
+
+      <label class="pay-label">备注</label>
+      <textarea v-model="form.remark" class="pay-textarea" maxlength="300" placeholder="可选" />
+
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="saving" @tap="submit">保存薪酬方案</button>
     </view>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.pay-page { min-height:100vh; background:$jzb-bg-page; }.pay-body { padding:24rpx $jzb-page-pad 48rpx; }.pay-label { display:block; margin:24rpx 0 10rpx; color:$jzb-text-2; font-size:26rpx; }.pay-input,.pay-textarea { box-sizing:border-box; width:100%; padding:24rpx; border:1rpx solid $jzb-border-light; border-radius:16rpx; background:#fff; color:$jzb-text-1; }.pay-textarea { min-height:160rpx; }.jz-btn { margin-top:36rpx; }
+.pay-page { min-height: 100vh; background: $jzb-bg-page; }
+.pay-body { padding: 24rpx $jzb-page-pad 48rpx; }
+.pay-label { display: block; margin: 24rpx 0 10rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
+.pay-input,
+.pay-textarea,
+.pay-days-field { box-sizing: border-box; width: 100%; padding: 24rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
+.pay-textarea { min-height: 160rpx; }
+.pay-days-field { min-height: $jzb-control-height; display: flex; align-items: center; gap: 12rpx; }
+.pay-days-field input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-lg; font-variant-numeric: tabular-nums; text-align: right; }
+.pay-days-field text { flex: none; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.pay-field-tip { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.jz-btn { margin-top: 36rpx; }
 </style>

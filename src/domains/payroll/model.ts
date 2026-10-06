@@ -15,6 +15,7 @@ export interface CompensationScheme {
   id: string
   employee: Employee
   baseSalary: number
+  scheduledDays: number
   effectiveFrom: string
   effectiveTo?: string
   status: CompensationStatus

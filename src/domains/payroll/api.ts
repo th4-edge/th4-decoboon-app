@@ -21,6 +21,7 @@ function normalizeCompensation(raw: Raw): CompensationScheme {
     id: String(raw.id ?? raw.schemeId ?? ''),
     employee: employee(raw.employee),
     baseSalary: num(raw.baseSalary),
+    scheduledDays: num(raw.scheduledDays),
     effectiveFrom: raw.effectiveFrom ?? '',
     effectiveTo: raw.effectiveTo,
     status: enumKey(raw.status) as CompensationScheme['status'],
@@ -202,12 +203,17 @@ const page = async <T>(uri: string, params: Raw, normalize: (raw: Raw) => T, cur
 export const payrollApi = {
   workbench: async (period?: string) => normalizeWorkbench(await post<Raw>('payroll/workbench/report', { period })),
   employeePage: async () => page('payroll/employee/page', {}, employee, 1, 200),
+  employeePickerPage: async (params: Raw = {}, current = 1, size = 20) => {
+    const result = await post<PageResult<Raw> | Raw[]>('payroll/employee/page', { ...params, current, size })
+    const resultPage = toPageData(result, current, size)
+    return { ...resultPage, list: resultPage.list.map(employee) }
+  },
 
   compensationPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/compensation/page', params, normalizeCompensation, current, size),
   compensationInfo: async (schemeId: string) => normalizeCompensation(await post<Raw>('payroll/compensation/info', { schemeId })),
-  saveCompensation: async (input: { empId: string; baseSalary: number; effectiveFrom: string; effectiveTo?: string; remark?: string }) =>
+  saveCompensation: async (input: { empId: string; baseSalary: number; scheduledDays: number; effectiveFrom: string; effectiveTo?: string; remark?: string }) =>
     normalizeCompensation(await post<Raw>('payroll/compensation/save', input)),
-  updateCompensation: async (input: { schemeId: string; baseSalary?: number; effectiveFrom?: string; effectiveTo?: string; remark?: string }) =>
+  updateCompensation: async (input: { schemeId: string; baseSalary?: number; scheduledDays?: number; effectiveFrom?: string; effectiveTo?: string; remark?: string }) =>
     normalizeCompensation(await post<Raw>('payroll/compensation/update', input)),
 
   attendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', params, normalizeAttendance, current, size),

@@ -69,6 +69,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.payrollCompensationEdit, anyOf: ['edit:payroll'] },
   { path: P.payrollAttendanceEdit, anyOf: ['edit:attendance'] },
   { path: P.payrollCommissionEdit, anyOf: ['edit:payroll'] },
+  { path: P.payrollEmployeePicker, anyOf: ['edit:payroll', 'edit:attendance'] },
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supplyPurchaseEdit, anyOf: ['view:supply'] },
   { path: P.supplyReceiptEdit, anyOf: ['view:supply'] }

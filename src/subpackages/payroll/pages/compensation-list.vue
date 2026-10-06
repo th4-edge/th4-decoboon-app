@@ -29,7 +29,7 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 function open(item: CompensationScheme) {
   if (editable.value) uni.navigateTo({ url: `${P.payrollCompensationEdit}?schemeId=${item.id}` })
-  else uni.showModal({ title: item.employee.name, content: `固定工资 ${money(item.baseSalary)}\n生效期 ${item.effectiveFrom} 至 ${item.effectiveTo || '长期'}`, showCancel: false, confirmText: '知道了' })
+  else uni.showModal({ title: item.employee.name, content: `固定工资 ${money(item.baseSalary)}\n月应出勤 ${item.scheduledDays} 天\n生效期 ${item.effectiveFrom} 至 ${item.effectiveTo || '长期'}`, showCancel: false, confirmText: '知道了' })
 }
 function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensationEdit }) }
 </script>
@@ -42,7 +42,7 @@ function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensation
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
       <view v-for="item in items" :key="item.id" class="comp-card jz-card" @tap="open(item)">
         <view class="comp-card__top"><text class="comp-card__name">{{ item.employee.name }}</text><JzTag :text="COMPENSATION_STATUS_META[item.status].label" :color="COMPENSATION_STATUS_META[item.status].color" /></view>
-        <view class="comp-card__facts"><text>月固定工资 {{ money(item.baseSalary) }}</text><text>生效 {{ item.effectiveFrom }}</text></view>
+        <view class="comp-card__facts"><text>月固定工资 {{ money(item.baseSalary) }}</text><text>月应出勤 {{ item.scheduledDays }} 天</text><text>生效 {{ item.effectiveFrom }}</text></view>
       </view>
       <ListFooter v-if="items.length" :loading="loadingMore" :has-more="hasMore" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="暂无薪酬方案" sub="先为员工建立固定工资方案" />

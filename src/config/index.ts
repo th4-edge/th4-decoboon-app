@@ -165,6 +165,7 @@ export const P = {
   payrollAdjustmentList: '/subpackages/payroll/pages/adjustment-list',
   payrollCommissionList: '/subpackages/payroll/pages/commission-list',
   payrollCommissionEdit: '/subpackages/payroll/pages/commission-edit',
+  payrollEmployeePicker: '/subpackages/payroll/pages/employee-picker',
   laborWorkers: '/subpackages/labor/pages/workers',
   laborWorkerEdit: '/subpackages/labor/pages/worker-edit',
   supply: '/subpackages/supply/pages/index'
