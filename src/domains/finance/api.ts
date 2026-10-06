@@ -193,6 +193,7 @@ function normalizeSummary(raw: Raw): FinanceSummary {
     receiptAmount: num(raw.receiptAmount), paymentAmount: num(raw.paymentAmount),
     monthReceiptAmount: num(raw.monthReceiptAmount), monthPaymentAmount: num(raw.monthPaymentAmount),
     urgentPayableAmount: num(raw.urgentPayableAmount), cashBalance: num(raw.cashBalance),
+    openingBalanceAmount: num(raw.openingBalanceAmount), openingBalanceCaptured: raw.openingBalanceCaptured === true,
     estimatedCost: num(raw.estimatedCost), actualCost: num(raw.actualCost),
     profitAmount: raw.profitAmount == null ? undefined : num(raw.profitAmount),
     costComplete: raw.costComplete !== false,
@@ -200,6 +201,8 @@ function normalizeSummary(raw: Raw): FinanceSummary {
     costIncompleteItemCount: num(raw.costIncompleteItemCount),
     collectionRate: num(raw.collectionRate),
     urgentReceivables: (raw.urgentReceivables || []).map((item: Raw) => normalizeReceivable(item)),
+    overdueReceivables: (raw.overdueReceivables || []).map((item: Raw) => normalizeReceivable(item)),
+    dueSoonReceivables: (raw.dueSoonReceivables || []).map((item: Raw) => normalizeReceivable(item)),
     urgentPayables: (raw.urgentPayables || []).map((item: Raw) => normalizePayable(item)),
     recentLedgers: (raw.recentLedgers || []).map((item: Raw) => normalizeLedger(item))
   }

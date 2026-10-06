@@ -188,6 +188,8 @@ export interface FinanceSummary {
   monthPaymentAmount: number
   urgentPayableAmount: number
   cashBalance: number
+  openingBalanceAmount: number
+  openingBalanceCaptured: boolean
   estimatedCost: number
   actualCost: number
   manualIncomeAmount?: number
@@ -198,6 +200,8 @@ export interface FinanceSummary {
   costIncompleteItemCount: number
   collectionRate: number
   urgentReceivables: Receivable[]
+  overdueReceivables: Receivable[]
+  dueSoonReceivables: Receivable[]
   urgentPayables: Payable[]
   recentLedgers: Ledger[]
 }

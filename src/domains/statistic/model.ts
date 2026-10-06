@@ -284,6 +284,9 @@ export interface DashboardMetric {
   previousYearValue: number
   monthOverMonthRate: number
   yearOverYearRate: number
+  targetSet: boolean
+  monthOverMonthComparable: boolean
+  yearOverYearComparable: boolean
   complete: boolean
   warning?: string
 }

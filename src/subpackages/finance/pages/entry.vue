@@ -19,6 +19,7 @@ import type {
 } from '@/domains/finance/model'
 import {
   ACCOUNT_LABEL,
+  LEDGER_PURPOSE_DIRECTIONS,
   LEDGER_PURPOSE_META,
   PAYABLE_STATUS_META,
   PAYABLE_TYPE_META,
@@ -117,9 +118,11 @@ const accountOptions = Object.entries(ACCOUNT_LABEL).map(([value, label]) => ({ 
 const accountIndex = computed(() => Math.max(accountOptions.findIndex((item) => item.value === form.account), 0))
 const directionOptions = [{ label: '收入', value: 'income' }, { label: '支出', value: 'expense' }]
 const directionIndex = computed(() => Math.max(directionOptions.findIndex((item) => item.value === form.direction), 0))
-const purposeOptions = (Object.entries(LEDGER_PURPOSE_META) as Array<[LedgerManualPurpose, { label: string; hint: string }]>)
-  .map(([value, meta]) => ({ value, label: meta.label, hint: meta.hint }))
-const purposeIndex = computed(() => Math.max(purposeOptions.findIndex((item) => item.value === form.purpose), 0))
+// 历史坑：FIX-031 账务用途曾把全部枚举固定展示，选择支出时仍出现“其他收入”。用途必须随收支方向过滤。
+const purposeOptions = computed(() => (Object.entries(LEDGER_PURPOSE_META) as Array<[LedgerManualPurpose, { label: string; hint: string }]>)
+  .filter(([value]) => LEDGER_PURPOSE_DIRECTIONS[value].includes(form.direction))
+  .map(([value, meta]) => ({ value, label: meta.label, hint: meta.hint })))
+const purposeIndex = computed(() => Math.max(purposeOptions.value.findIndex((item) => item.value === form.purpose), 0))
 
 const submitLabel = computed(() => {
   if (submitting.value) return '处理中…'
@@ -285,6 +288,8 @@ async function hydrate(id: string) {
       setProject(projectSelection(item.project))
       form.direction = item.direction
       form.purpose = item.purpose || 'other'
+      // FIX-031 历史记录可能存在方向与用途不匹配，先归一到合法用途，避免 picker 显示与提交值不一致。
+      normalizePurposeForDirection()
       form.category = item.category
       form.amount = String(item.amount)
       form.account = item.account
@@ -461,9 +466,13 @@ function onWorker(event: any) { form.workerId = workerOptions.value[Number(event
 function onAccount(event: any) { form.account = accountOptions[Number(event.detail.value)]?.value as FundAccount || 'companyBank' }
 function onDirection(event: any) {
   form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income'
+  normalizePurposeForDirection()
+}
+function normalizePurposeForDirection() {
+  if (!LEDGER_PURPOSE_DIRECTIONS[form.purpose].includes(form.direction)) form.purpose = 'other'
 }
 function onPurpose(event: any) {
-  form.purpose = purposeOptions[Number(event.detail.value)]?.value || 'other'
+  form.purpose = purposeOptions.value[Number(event.detail.value)]?.value || 'other'
 }
 function onInvoiceSwitch(event: any) { form.invoiceRequired = !!event.detail.value }
 function onUrgentSwitch(event: any) { form.urgent = !!event.detail.value }
@@ -545,7 +554,10 @@ async function submit() {
     toast('付款金额不能超过待付余额'); return
   }
   if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类说明和摘要'); return }
-  if (type.value === 'ledger' && form.purpose === 'projectIncidentalCost' && !form.projectId) { toast('项目零星成本必须关联项目'); return }
+  if (type.value === 'ledger') {
+    normalizePurposeForDirection()
+    if (form.purpose === 'projectIncidentalCost' && !form.projectId) { toast('项目零星成本必须关联项目'); return }
+  }
   if (type.value === 'ledger' && editId.value && !editReason.value.trim()) { toast('请填写更正原因'); return }
   if (!submitIntentId) submitIntentId = newSubmitIntentId()
   submitting.value = true; loading('保存中...')

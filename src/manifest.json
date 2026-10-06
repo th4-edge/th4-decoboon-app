@@ -36,7 +36,9 @@
     "lazyCodeLoading": "requiredComponents",
     "optimization": {
       "subPackages": true
-    }
+    },
+    "versionName": "1.0.21",
+    "versionCode": "121"
   },
   "mp-alipay": {
     "usingComponents": true

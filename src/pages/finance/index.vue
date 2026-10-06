@@ -18,7 +18,7 @@ import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
 const summary = ref<FinanceSummary | null>(null)
 const loading = ref(false)
-const urgentTab = ref<'collect' | 'pay'>('collect')
+const urgentTab = ref<'overdue' | 'dueSoon' | 'pay'>('overdue')
 const editable = computed(() => can(session.role, 'edit:finance'))
 
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
@@ -42,7 +42,7 @@ function openProject(id: string) { go(`${P.financeProject}?projectId=${id}`) }
 
 const stats = computed(() => [
   { label: '待收工程款', value: summary.value?.outstandingAmount || 0, sub: `逾期 ${money(summary.value?.overdueAmount)}`, icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, color: TOKEN_COLOR.primary },
-  { label: '本月回款', value: summary.value?.monthIncome || 0, sub: `回款率 ${summary.value?.collectionRate || 0}%`, icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.successSoft, color: TOKEN_COLOR.success },
+  { label: '本月回款', value: summary.value?.monthReceiptAmount || 0, sub: `累计收款 ${money(summary.value?.receiptAmount)}`, icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.successSoft, color: TOKEN_COLOR.success },
   { label: '待付账款', value: summary.value?.unpaidAmount || 0, sub: `合同应付 ${money(summary.value?.payableAmount)}`, icon: 'wallet' as IconName, tone: TOKEN_COLOR.warningSoft, color: TOKEN_COLOR.warning },
   { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(summary.value?.monthNetCashFlowAmount)}`, icon: 'chart' as IconName, tone: TOKEN_COLOR.dangerSoft, color: TOKEN_COLOR.danger }
 ])
@@ -114,6 +114,7 @@ function openQuick(item: FinanceQuickItem) {
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">当前账面现金余额</text>
       <text class="fin-hero__value fin-amount">{{ money(summary?.cashBalance) }}</text>
+      <text v-if="summary && !summary.openingBalanceCaptured" class="fin-hero__notice">期初未承接，余额为过程参考</text>
       <view class="fin-hero__grid">
         <view class="fin-hero__item">
           <text class="fin-hero__item-label">项目合同额</text>
@@ -196,13 +197,14 @@ function openQuick(item: FinanceQuickItem) {
     <view class="fin-section">
       <text class="fin-section__title">风险待办</text>
       <view class="fin-urgent-tabs">
-        <view class="fin-urgent-tab" :class="{ 'fin-urgent-tab--on': urgentTab === 'collect' }" @tap="urgentTab = 'collect'">催收</view>
+        <view class="fin-urgent-tab" :class="{ 'fin-urgent-tab--on': urgentTab === 'overdue' }" @tap="urgentTab = 'overdue'">逾期催收</view>
+        <view class="fin-urgent-tab" :class="{ 'fin-urgent-tab--on': urgentTab === 'dueSoon' }" @tap="urgentTab = 'dueSoon'">临期应收</view>
         <view class="fin-urgent-tab" :class="{ 'fin-urgent-tab--on': urgentTab === 'pay' }" @tap="urgentTab = 'pay'">待付</view>
       </view>
     </view>
     <view class="fin-body">
-      <template v-if="urgentTab === 'collect'">
-        <view v-for="item in summary?.urgentReceivables || []" :key="item.id" class="fin-card" @tap="go(`${P.financeReceivables}?projectId=${item.project.id}`)">
+      <template v-if="urgentTab === 'overdue'">
+        <view v-for="item in summary?.overdueReceivables || []" :key="item.id" class="fin-card" @tap="go(`${P.financeReceivables}?projectId=${item.project.id}`)">
           <view class="fin-card__top">
             <view class="fin-card__title">{{ item.project.name }}<text class="fin-card__sub">{{ item.name }} · {{ item.dueDate || '未设账期' }}</text></view>
             <JzMoney class="fin-card__amount fin-card__amount--income" :value="item.outstandingAmount" />
@@ -212,7 +214,20 @@ function openQuick(item: FinanceQuickItem) {
             <text>{{ RECEIVABLE_STATUS_META[item.status].label }}</text>
           </view>
         </view>
-        <view v-if="!(summary?.urgentReceivables || []).length" class="fin-empty"><JzEmpty text="暂无待收风险" sub="所有应收节点都在正常账期内" /></view>
+        <view v-if="!(summary?.overdueReceivables || []).length" class="fin-empty"><JzEmpty text="暂无逾期应收" sub="当前没有逾期未收节点" /></view>
+      </template>
+      <template v-else-if="urgentTab === 'dueSoon'">
+        <view v-for="item in summary?.dueSoonReceivables || []" :key="item.id" class="fin-card" @tap="go(`${P.financeReceivables}?projectId=${item.project.id}`)">
+          <view class="fin-card__top">
+            <view class="fin-card__title">{{ item.project.name }}<text class="fin-card__sub">{{ item.name }} · {{ item.dueDate || '未设账期' }}</text></view>
+            <JzMoney class="fin-card__amount fin-card__amount--income" :value="item.outstandingAmount" />
+          </view>
+          <view class="fin-card__facts">
+            <text>{{ item.stageName || '合同节点' }}</text>
+            <text>{{ RECEIVABLE_STATUS_META[item.status].label }}</text>
+          </view>
+        </view>
+        <view v-if="!(summary?.dueSoonReceivables || []).length" class="fin-empty"><JzEmpty text="暂无临期应收" sub="未来 7 天没有到期应收" /></view>
       </template>
       <template v-else>
         <view v-for="item in summary?.urgentPayables || []" :key="item.id" class="fin-card" @tap="go(`${P.financePayables}?projectId=${item.project?.id || ''}`)">
@@ -254,4 +269,5 @@ function openQuick(item: FinanceQuickItem) {
 
 <style lang="scss" scoped>
 @import '@/styles/finance.scss';
+.fin-hero__notice { display: block; margin-top: 8rpx; font-size: 22rpx; color: rgba(255, 255, 255, 0.78); }
 </style>

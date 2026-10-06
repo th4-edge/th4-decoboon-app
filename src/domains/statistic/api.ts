@@ -191,6 +191,9 @@ function normalizeMetric(raw: RawRecord = {}): DashboardMetric {
     previousYearValue: Number(raw.previousYearValue ?? 0),
     monthOverMonthRate: Number(raw.monthOverMonthRate ?? 0),
     yearOverYearRate: Number(raw.yearOverYearRate ?? 0),
+    targetSet: raw.targetSet !== false,
+    monthOverMonthComparable: raw.monthOverMonthComparable !== false,
+    yearOverYearComparable: raw.yearOverYearComparable !== false,
     complete: raw.complete !== false,
     warning: raw.warning ? String(raw.warning) : undefined
   }

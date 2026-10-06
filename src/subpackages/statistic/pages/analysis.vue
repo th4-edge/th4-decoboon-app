@@ -107,10 +107,10 @@ function metricCard(label: string, metric: BossDashboard['signedAmount'] | undef
     incomplete,
     reason: metric?.warning || '成本未完整，暂不展示可靠经营结果。',
     value: incomplete ? '' : (isMoney ? money(metric?.value ?? 0) : `${metric?.value ?? 0}`),
-    target: incomplete ? (metric?.warning || '补齐成本后展示可靠毛利') : (isMoney ? `目标 ${money(metric?.target ?? 0)}` : `目标 ${metric?.target ?? 0} 个`),
-    achievement: incomplete ? '暂不计算达成率' : `达成 ${metric?.achievementRate ?? 0}%`,
-    month: incomplete ? '成本口径待补齐' : `环比 ${signed(metric?.monthOverMonthRate ?? 0)}%`,
-    year: incomplete ? '暂不参与同比' : `同比 ${signed(metric?.yearOverYearRate ?? 0)}%`
+    target: incomplete ? (metric?.warning || '补齐成本后展示可靠毛利') : metric?.targetSet === false ? '未设目标' : (isMoney ? `目标 ${money(metric?.target ?? 0)}` : `目标 ${metric?.target ?? 0} 个`),
+    achievement: incomplete ? '暂不计算达成率' : metric?.targetSet === false ? '未设目标' : `达成 ${metric?.achievementRate ?? 0}%`,
+    month: incomplete ? '成本口径待补齐' : metric?.monthOverMonthComparable === false ? '暂无基期' : `环比 ${signed(metric?.monthOverMonthRate ?? 0)}%`,
+    year: incomplete ? '暂不参与同比' : metric?.yearOverYearComparable === false ? '暂无基期' : `同比 ${signed(metric?.yearOverYearRate ?? 0)}%`
   }
 }
 

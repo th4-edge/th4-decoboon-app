@@ -62,3 +62,12 @@ export const LEDGER_PURPOSE_META: Record<LedgerManualPurpose, { label: string; h
   capitalTransfer: { label: '资金往来', hint: '借款、还款、押金、备用金、股东往来' },
   other: { label: '其他', hint: '无法归入以上用途的其他账务' }
 }
+
+/** 手工记账方向与用途的允许关系：项目零星成本/企业费用仅支出，其他收入仅收入，资金往来和其他收支通用。 */
+export const LEDGER_PURPOSE_DIRECTIONS: Record<LedgerManualPurpose, LedgerDirection[]> = {
+  projectIncidentalCost: ['expense'],
+  companyExpense: ['expense'],
+  otherIncome: ['income'],
+  capitalTransfer: ['income', 'expense'],
+  other: ['income', 'expense']
+}
