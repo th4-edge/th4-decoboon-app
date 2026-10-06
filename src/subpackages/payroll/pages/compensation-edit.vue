@@ -9,6 +9,7 @@ import { isLoggedIn } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
 import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
+import JzNumberInput from '@/components/JzNumberInput/JzNumberInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 const schemeId = ref('')
@@ -92,10 +93,7 @@ async function submit() {
       <JzMoneyInput v-model="form.baseSalary" placeholder="请输入月固定工资" />
 
       <label class="pay-label">月应出勤天数</label>
-      <view class="pay-days-field">
-        <input v-model="form.scheduledDays" type="number" maxlength="2" placeholder="按企业实际考勤制度填写" />
-        <text>天</text>
-      </view>
+      <JzNumberInput v-model="form.scheduledDays" :precision="0" :min="1" :max="31" suffix="天" placeholder="按企业实际考勤制度填写" />
       <text class="pay-field-tip">考勤录入时，应出勤天数将按本方案读取，不再默认 22 天。</text>
 
       <label class="pay-label">生效日期</label>
@@ -117,12 +115,8 @@ async function submit() {
 .pay-body { padding: 24rpx $jzb-page-pad 48rpx; }
 .pay-label { display: block; margin: 24rpx 0 10rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pay-input,
-.pay-textarea,
-.pay-days-field { box-sizing: border-box; width: 100%; padding: 24rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
+.pay-textarea { box-sizing: border-box; width: 100%; padding: 24rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
 .pay-textarea { min-height: 160rpx; }
-.pay-days-field { min-height: $jzb-control-height; display: flex; align-items: center; gap: 12rpx; }
-.pay-days-field input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-lg; font-variant-numeric: tabular-nums; text-align: right; }
-.pay-days-field text { flex: none; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .pay-field-tip { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 .jz-btn { margin-top: 36rpx; }
 </style>

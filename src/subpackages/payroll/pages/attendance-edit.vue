@@ -8,6 +8,7 @@ import type { Employee } from '@/domains/identity/model'
 import { isLoggedIn } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
 import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
+import JzNumberInput from '@/components/JzNumberInput/JzNumberInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 const summaryId = ref('')
@@ -93,13 +94,13 @@ async function submit() {
       </view>
 
       <view class="pay-grid">
-        <view><label class="pay-label">正常出勤</label><view class="pay-days-input"><input v-model="form.normalDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">事假</label><view class="pay-days-input"><input v-model="form.personalLeaveDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">病假</label><view class="pay-days-input"><input v-model="form.sickLeaveDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">旷工</label><view class="pay-days-input"><input v-model="form.absenceDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">外勤</label><view class="pay-days-input"><input v-model="form.externalDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">年假</label><view class="pay-days-input"><input v-model="form.annualLeaveDays" type="number" /><text>天</text></view></view>
-        <view><label class="pay-label">调休</label><view class="pay-days-input"><input v-model="form.compLeaveDays" type="number" /><text>天</text></view></view>
+        <view><label class="pay-label">正常出勤</label><JzNumberInput v-model="form.normalDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">事假</label><JzNumberInput v-model="form.personalLeaveDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">病假</label><JzNumberInput v-model="form.sickLeaveDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">旷工</label><JzNumberInput v-model="form.absenceDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">外勤</label><JzNumberInput v-model="form.externalDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">年假</label><JzNumberInput v-model="form.annualLeaveDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
+        <view><label class="pay-label">调休</label><JzNumberInput v-model="form.compLeaveDays" :precision="0" :min="0" :max="31" suffix="天" compact /></view>
       </view>
 
       <label class="pay-label">备注</label><textarea v-model="form.remark" class="pay-textarea" maxlength="300" placeholder="可选" />
@@ -112,12 +113,8 @@ async function submit() {
 .pay-body { padding: 24rpx $jzb-page-pad 48rpx; }
 .pay-label { display: block; margin: 20rpx 0 10rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pay-input,
-.pay-textarea,
-.pay-days-input { box-sizing: border-box; width: 100%; padding: 22rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
+.pay-textarea { box-sizing: border-box; width: 100%; padding: 22rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
 .pay-textarea { min-height: 150rpx; }
-.pay-days-input { min-height: 82rpx; display: flex; align-items: center; gap: 8rpx; padding: 0 20rpx; }
-.pay-days-input input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-md; font-variant-numeric: tabular-nums; text-align: right; }
-.pay-days-input text { flex: none; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pay-scheme-days { margin-top: 24rpx; padding: 24rpx; border: 1rpx solid rgba(22, 163, 148, .2); border-radius: $jzb-radius-md; background: $jzb-primary-lightest; }
 .pay-scheme-days__main { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
 .pay-scheme-days__label { color: $jzb-text-2; font-size: $jzb-font-sm; }

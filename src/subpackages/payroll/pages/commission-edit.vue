@@ -11,6 +11,7 @@ import { toast, toastError } from '@/composables/toast'
 import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
+import JzNumberInput from '@/components/JzNumberInput/JzNumberInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
@@ -101,10 +102,7 @@ async function submit() {
       <JzMoneyInput v-model="form.contractAmount" placeholder="请输入主合同签约额" />
 
       <label class="pay-label">手工比例</label>
-      <view class="pay-rate-field">
-        <input v-model="form.manualRate" type="digit" placeholder="2.00" />
-        <text>%</text>
-      </view>
+      <JzNumberInput v-model="form.manualRate" :precision="2" :min="0" :max="100" suffix="%" placeholder="2.00" />
 
       <label class="pay-label">提成金额（留空自动计算）</label>
       <JzMoneyInput v-model="form.commissionAmount" :placeholder="estimated" />
@@ -130,9 +128,6 @@ async function submit() {
 .pay-project-card__hint { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .pay-project-card__hint { color: $jzb-text-4; }
 .pay-project-card__clear { width: 52rpx; height: 52rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: $jzb-bg-page; }
-.pay-rate-field { box-sizing: border-box; min-height: $jzb-control-height; display: flex; align-items: center; gap: 12rpx; padding: 0 24rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; }
-.pay-rate-field input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-lg; text-align: right; }
-.pay-rate-field text { flex: none; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .pay-textarea { box-sizing: border-box; width: 100%; min-height: 150rpx; padding: 22rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; }
 .pay-preview { display: flex; justify-content: space-between; margin-top: 24rpx; padding: 24rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary; font-weight: 700; }
 .jz-btn { margin-top: 36rpx; }
