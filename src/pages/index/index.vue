@@ -89,15 +89,29 @@ const unreadCount = ref(0)
 const materialPlanSummary = ref({ projects: 0, readyToOrder: 0, inTransit: 0, delayed: 0 })
 const carryoverBatch = ref<CarryoverBatch | null>(null)
 
+/** BOSS 首页内存缓存：只驻留当前 App 会话，不写入本地存储。 */
+let bossHomeCache: {
+  at: number
+  workbench: BossWorkbench
+  alertReport: BusinessAlertReport
+  materialPlanSummary: { projects: number; readyToOrder: number; inTransit: number; delayed: number }
+  carryoverBatch: CarryoverBatch | null
+  unreadCount: number
+} | null = null
+
 onLoad(() => {
   if (isLoggedIn() && session.sessionType === 'user' && !session.emp) uni.reLaunch({ url: P.companyJoin })
 })
 onShow(() => {
   if (!isLoggedIn()) return
   if (session.sessionType === 'user' && !session.emp) { uni.reLaunch({ url: P.companyJoin }); return }
-  refresh()
-  void onboardingRef.value?.reload()
-  void successProgramRef.value?.reload()
+  const background = role.value === 'boss' && !!bossHomeCache
+  if (background) applyBossCache()
+  // 主经营数据优先返回，入驻/成功计划在后台分阶段加载，避免阻塞首屏。
+  void refresh(background).finally(() => {
+    void onboardingRef.value?.reload()
+    void successProgramRef.value?.reload()
+  })
 })
 onPullDownRefresh(() => {
   if (!loggedIn.value) { uni.stopPullDownRefresh(); return }
@@ -296,9 +310,19 @@ const statCards = computed((): StatCard[] => {
   ]
 })
 
-async function refresh() {
+function applyBossCache() {
+  if (!bossHomeCache) return
+  bossWorkbench.value = bossHomeCache.workbench
+  alertReport.value = bossHomeCache.alertReport
+  materialPlanSummary.value = bossHomeCache.materialPlanSummary
+  carryoverBatch.value = bossHomeCache.carryoverBatch
+  unreadCount.value = bossHomeCache.unreadCount
+  bossWorkbenchLoading.value = false
+}
+
+async function refresh(background = false) {
   if (role.value === 'boss') {
-    bossWorkbenchLoading.value = true
+    if (!background && !bossHomeCache) bossWorkbenchLoading.value = true
     try {
       const [workbench, unread, materialBenches, carryover] = await Promise.all([
         statisticApi.bossWorkbench(), collabApi.unread(role.value),
@@ -309,20 +333,31 @@ async function refresh() {
       carryoverBatch.value = carryover?.id ? carryover : null
       bossWorkbench.value = workbench
       alertReport.value = workbench.alertReport
-      materialPlanSummary.value = {
+      const materialSummary = {
         projects: materialBenches.length,
         readyToOrder: materialBenches.reduce((sum, item) => sum + item.readyToOrder, 0),
         inTransit: materialBenches.reduce((sum, item) => sum + item.pendingArrival, 0),
         delayed: materialBenches.reduce((sum, item) => sum + item.delayed, 0)
+      }
+      materialPlanSummary.value = materialSummary
+      bossHomeCache = {
+        at: Date.now(),
+        workbench,
+        alertReport: workbench.alertReport,
+        materialPlanSummary: materialSummary,
+        carryoverBatch: carryover?.id ? carryover : null,
+        unreadCount: Number(unread || 0)
       }
       projects.value = []
       reports.value = []
       unreadCount.value = Number(unread || 0)
       acceptances.value = []
     } catch (error) {
-      bossWorkbench.value = null
-      alertReport.value = null
-      carryoverBatch.value = null
+      if (!bossHomeCache) {
+        bossWorkbench.value = null
+        alertReport.value = null
+        carryoverBatch.value = null
+      }
       toastError(error, '经营状态暂不可确认')
     } finally {
       bossWorkbenchLoading.value = false

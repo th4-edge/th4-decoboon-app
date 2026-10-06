@@ -21,16 +21,34 @@ import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 
 const summary = ref<FinanceSummary | null>(null)
 const metricDefinitions = ref<MetricDefinition[]>([])
+
+/** 财务工作台内存缓存：只驻留当前 App 会话，不写入本地存储。 */
+let financeCache: { at: number; summary: FinanceSummary; metricDefinitions: MetricDefinition[] } | null = null
 const loading = ref(false)
 const urgentTab = ref<'overdue' | 'dueSoon' | 'pay'>('overdue')
 const editable = computed(() => can(session.role, 'edit:finance'))
 
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
-onShow(() => { if (isLoggedIn()) refresh() })
+onShow(() => {
+  if (!isLoggedIn()) return
+  if (financeCache) applyFinanceCache()
+  void refresh(!!financeCache)
+})
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
-async function refresh() {
-  loading.value = true
+function applyFinanceCache() {
+  if (!financeCache) return
+  summary.value = financeCache.summary
+  metricDefinitions.value = financeCache.metricDefinitions
+  loading.value = false
+}
+
+async function refresh(background = false) {
+  if (financeCache) {
+    applyFinanceCache()
+  } else if (!background) {
+    loading.value = true
+  }
   try {
     const [s, d] = await Promise.all([
       financeApi.summary(),
@@ -38,7 +56,12 @@ async function refresh() {
     ])
     summary.value = s
     metricDefinitions.value = d
+    financeCache = { at: Date.now(), summary: s, metricDefinitions: d }
   } catch (error) {
+    if (!financeCache) {
+      summary.value = null
+      metricDefinitions.value = []
+    }
     toastError(error, '财务工作台加载失败')
   } finally {
     loading.value = false
