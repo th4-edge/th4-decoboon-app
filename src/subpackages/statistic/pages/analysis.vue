@@ -7,18 +7,20 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { financeApi } from '@/domains/finance/api'
 import type { FinanceProjectReport } from '@/domains/finance/model'
 import { statisticApi } from '@/domains/statistic/api'
-import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTarget } from '@/domains/statistic/model'
+import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTarget, MetricDefinition } from '@/domains/statistic/model'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 const month = ref(currentMonth())
 const dashboard = ref<BossDashboard | null>(null)
+const metricDefinitions = ref<MetricDefinition[]>([])
 const alertReport = ref<BusinessAlertReport | null>(null)
 const projectReports = ref<FinanceProjectReport[]>([])
 const loading = ref(false)
@@ -74,12 +76,14 @@ async function load() {
   loadError.value = ''
   try {
     const apiMonth = `${month.value}-01`
-    const [d, a, projects] = await Promise.all([
+    const [d, a, projects, dict] = await Promise.all([
       statisticApi.bossDashboard(apiMonth, storeId.value || undefined),
       statisticApi.alerts(),
-      financeApi.projectPage({ size: 200 })
+      financeApi.projectPage({ size: 200 }),
+      statisticApi.metricDictionary(['signedAmount', 'monthReceiptAmount', 'receivedAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate'])
     ])
     dashboard.value = d
+    metricDefinitions.value = dict
     alertReport.value = a
     projectReports.value = projects
     targetForm.value = {
@@ -241,6 +245,10 @@ function currentMonth() {
         </view>
       </view>
 
+      <view class="ana-glossary">
+        <JzMetricGlossary :metrics="metricDefinitions" title="经营指标怎么算？" subtitle="签约额、回款额、项目毛利、在建项目的口径" />
+      </view>
+
       <view class="jz-section">
         <text class="jz-section__title">经营预警</text>
         <text class="jz-section__more" @tap="openAssessment">查看绩效</text>
@@ -299,6 +307,7 @@ function currentMonth() {
 .ana-field__unit { flex-shrink: 0; margin-left: 8rpx; color: $jzb-text-4; font-size: $jzb-font-xs; }
 .ana-target__actions { display: flex; justify-content: flex-end; gap: 16rpx; margin-top: 24rpx; }
 .ana-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-top: 20rpx; }
+.ana-glossary { margin-top: 20rpx; }
 .ana-metric { padding: 24rpx; }
 .ana-metric__head { display: flex; align-items: center; gap: 12rpx; }
 .ana-metric__icon { display: flex; align-items: center; justify-content: center; width: 56rpx; height: 56rpx; border-radius: 18rpx; }

@@ -5,6 +5,8 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
 import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
+import { statisticApi } from '@/domains/statistic/api'
+import type { MetricDefinition } from '@/domains/statistic/model'
 import type { FinanceSummary } from '@/domains/finance/model'
 import { DIRECTION_LABEL, PAYABLE_STATUS_META, RECEIVABLE_STATUS_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -15,8 +17,10 @@ import JzTabBar from '@/components/JzTabBar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 
 const summary = ref<FinanceSummary | null>(null)
+const metricDefinitions = ref<MetricDefinition[]>([])
 const loading = ref(false)
 const urgentTab = ref<'overdue' | 'dueSoon' | 'pay'>('overdue')
 const editable = computed(() => can(session.role, 'edit:finance'))
@@ -28,7 +32,12 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 async function refresh() {
   loading.value = true
   try {
-    summary.value = await financeApi.summary()
+    const [s, d] = await Promise.all([
+      financeApi.summary(),
+      statisticApi.metricDictionary(['receiptAmount', 'monthReceiptAmount', 'monthIncome', 'receivedAmount', 'outstandingAmount', 'overdueAmount', 'payableAmount', 'unpaidAmount', 'monthExpense', 'monthNetCashFlowAmount', 'cashBalance', 'openingBalanceAmount'])
+    ])
+    summary.value = s
+    metricDefinitions.value = d
   } catch (error) {
     toastError(error, '财务工作台加载失败')
   } finally {
@@ -140,6 +149,10 @@ function openQuick(item: FinanceQuickItem) {
         <text class="fin-stat__label">{{ item.label }}</text>
         <text class="fin-stat__value fin-amount">{{ money(item.value) }}</text>
       </view>
+    </view>
+
+    <view class="fin-body">
+      <JzMetricGlossary :metrics="metricDefinitions" title="财务数字怎么算？" subtitle="累计收款、资金收入、已收金额、现金流和账户余额的口径" />
     </view>
 
     <view class="fin-section">

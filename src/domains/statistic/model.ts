@@ -276,6 +276,24 @@ export interface StoreManagerReport {
 }
 
 
+export interface MetricDefinition {
+  key: string
+  name: string
+  userLabel: string
+  category: string
+  definition: string
+  formula: string
+  source: string
+  timeScope: string
+  dataScope: string
+  includes: string
+  excludes: string
+  missingValue: string
+  example: string
+  updatedAt: string
+  status: string
+}
+
 export interface DashboardMetric {
   value: number | null
   target: number

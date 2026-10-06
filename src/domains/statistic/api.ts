@@ -1,6 +1,6 @@
 import { post } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus } from './model'
+import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus, MetricDefinition } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeQuote } from '../trade/api'
@@ -341,9 +341,31 @@ function normalizeSuccessProgram(raw: RawRecord): SuccessProgramReport {
   }
 }
 
+function normalizeMetricDefinition(raw: RawRecord = {}): MetricDefinition {
+  return {
+    key: String(raw.key ?? ''),
+    name: String(raw.name ?? ''),
+    userLabel: String(raw.userLabel ?? ''),
+    category: String(raw.category ?? ''),
+    definition: String(raw.definition ?? ''),
+    formula: String(raw.formula ?? ''),
+    source: String(raw.source ?? ''),
+    timeScope: String(raw.timeScope ?? ''),
+    dataScope: String(raw.dataScope ?? ''),
+    includes: String(raw.includes ?? ''),
+    excludes: String(raw.excludes ?? ''),
+    missingValue: String(raw.missingValue ?? ''),
+    example: String(raw.example ?? ''),
+    updatedAt: String(raw.updatedAt ?? ''),
+    status: String(raw.status ?? '')
+  }
+}
+
 export const statisticApi = {
   successProgram: async (): Promise<SuccessProgramReport> =>
     normalizeSuccessProgram(await post<RawRecord>('statistic/success/report', {})),
+  metricDictionary: async (keys?: string[]): Promise<MetricDefinition[]> =>
+    (await post<RawRecord[]>('statistic/metric/dictionary', { keys })).map((item) => normalizeMetricDefinition(item)),
   bossWorkbench: async (month?: string, eventLimit = 6): Promise<BossWorkbench> => {
     const raw = await post<RawRecord>('statistic/boss/workbench', { month, eventLimit })
     return {

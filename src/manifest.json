@@ -37,8 +37,8 @@
     "optimization": {
       "subPackages": true
     },
-    "versionName": "1.0.21",
-    "versionCode": "121"
+    "versionName": "1.0.22",
+    "versionCode": "122"
   },
   "mp-alipay": {
     "usingComponents": true
