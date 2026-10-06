@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { P } from '@/config'
 import { payrollApi } from '@/domains/payroll/api'
 import type { AttendanceSummary } from '@/domains/payroll/model'
 import { ATTENDANCE_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn } from '@/domains/identity/session'
+import { session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -16,6 +18,8 @@ import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 
 const month = ref(new Date().toISOString().slice(0, 7))
+const deletingId = ref('')
+const editable = computed(() => can(session.role, 'edit:attendance'))
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.attendancePage({ month: month.value }, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
@@ -48,6 +52,34 @@ function openEdit(item: AttendanceSummary) {
   uni.navigateTo({ url: `${P.payrollAttendanceEdit}?summaryId=${item.id}` })
 }
 function add() { uni.navigateTo({ url: P.payrollAttendanceEdit }) }
+
+async function remove(item: AttendanceSummary) {
+  if (!editable.value || deletingId.value || item.status === 'inPayroll') return
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '删除月度考勤',
+      content: `确认删除 ${item.employee.name} ${item.payrollMonth} 的考勤？已进入工资单的考勤不可删除。`,
+      confirmText: '删除',
+      confirmColor: '#E5484D',
+      success: (result) => resolve(result.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  deletingId.value = item.id
+  showLoading('删除中')
+  try {
+    await payrollApi.deleteAttendance(item.id)
+    hideLoading()
+    toast('月度考勤已删除', 'success')
+    await refresh()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '月度考勤删除失败')
+  } finally {
+    deletingId.value = ''
+  }
+}
 </script>
 
 <template>
@@ -68,7 +100,10 @@ function add() { uni.navigateTo({ url: P.payrollAttendanceEdit }) }
           <text>病假 {{ item.sickLeaveDays }} 天</text>
           <text>旷工 {{ item.absenceDays }} 天</text>
         </view>
-        <button v-if="item.status !== 'confirmed' && item.status !== 'inPayroll'" class="att-card__action" @tap.stop="confirm(item)">确认考勤</button>
+        <view class="att-card__actions">
+          <button v-if="item.status !== 'confirmed' && item.status !== 'inPayroll'" class="att-card__action" @tap.stop="confirm(item)">确认考勤</button>
+          <text v-if="editable && item.status !== 'inPayroll'" class="att-card__delete" @tap.stop="remove(item)">{{ deletingId === item.id ? '删除中' : '删除' }}</text>
+        </view>
       </view>
       <ListFooter v-if="items.length" :loading="loadingMore" :has-more="hasMore" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="本月暂无考勤" sub="先录入异常考勤，再确认后生成工资单" />
@@ -87,4 +122,7 @@ function add() { uni.navigateTo({ url: P.payrollAttendanceEdit }) }
 .att-card__name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .att-card__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 20rpx; color: $jzb-text-3; font-size: 22rpx; }
 .att-card__action { margin-top: 24rpx; height: 72rpx; line-height: 72rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary; font-size: $jzb-font-sm; }
+.att-card__actions { display: flex; align-items: center; gap: 28rpx; margin-top: 20rpx; }
+.att-card__actions .att-card__action { flex: 1; margin-top: 0; }
+.att-card__delete { flex: none; padding: 18rpx 0; color: $jzb-danger; font-size: $jzb-font-sm; }
 </style>

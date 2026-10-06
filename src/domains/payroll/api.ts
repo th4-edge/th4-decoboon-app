@@ -215,11 +215,15 @@ export const payrollApi = {
     normalizeCompensation(await post<Raw>('payroll/compensation/save', input)),
   updateCompensation: async (input: { schemeId: string; baseSalary?: number; scheduledDays?: number; effectiveFrom?: string; effectiveTo?: string; remark?: string }) =>
     normalizeCompensation(await post<Raw>('payroll/compensation/update', input)),
+  deleteCompensation: async (schemeId: string) =>
+    post<Raw>('payroll/compensation/delete', { schemeId }),
 
   attendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', params, normalizeAttendance, current, size),
   attendanceInfo: async (summaryId: string) => normalizeAttendance(await post<Raw>('attendance/summary/info', { summaryId })),
   saveAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/save', input)),
   updateAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/update', input)),
+  deleteAttendance: async (summaryId: string) =>
+    post<Raw>('attendance/summary/delete', { summaryId }),
 
   sheetPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/sheet/page', params, normalizeSheet, current, size),
   sheetInfo: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/info', { sheetId })),

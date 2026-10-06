@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { money } from '@/core/format'
@@ -9,6 +9,7 @@ import { COMPENSATION_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { session } from '@/domains/identity/session'
+import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -22,6 +23,7 @@ const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = u
   20
 )
 const editable = computed(() => can(session.role, 'edit:payroll'))
+const deletingId = ref('')
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => { if (isLoggedIn()) void refresh() })
@@ -32,6 +34,34 @@ function open(item: CompensationScheme) {
   else uni.showModal({ title: item.employee.name, content: `固定工资 ${money(item.baseSalary)}\n月应出勤 ${item.scheduledDays} 天\n生效期 ${item.effectiveFrom} 至 ${item.effectiveTo || '长期'}`, showCancel: false, confirmText: '知道了' })
 }
 function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensationEdit }) }
+
+async function remove(item: CompensationScheme) {
+  if (!editable.value || deletingId.value) return
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '删除薪酬方案',
+      content: `确认删除 ${item.employee.name} 的薪酬方案？仅未形成考勤、提成或工资事实的方案可删除。`,
+      confirmText: '删除',
+      confirmColor: '#E5484D',
+      success: (result) => resolve(result.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  deletingId.value = item.id
+  showLoading('删除中')
+  try {
+    await payrollApi.deleteCompensation(item.id)
+    hideLoading()
+    toast('薪酬方案已删除', 'success')
+    await refresh()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '薪酬方案删除失败')
+  } finally {
+    deletingId.value = ''
+  }
+}
 </script>
 
 <template>
@@ -43,6 +73,7 @@ function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensation
       <view v-for="item in items" :key="item.id" class="comp-card jz-card" @tap="open(item)">
         <view class="comp-card__top"><text class="comp-card__name">{{ item.employee.name }}</text><JzTag :text="COMPENSATION_STATUS_META[item.status].label" :color="COMPENSATION_STATUS_META[item.status].color" /></view>
         <view class="comp-card__facts"><text>月固定工资 {{ money(item.baseSalary) }}</text><text>月应出勤 {{ item.scheduledDays }} 天</text><text>生效 {{ item.effectiveFrom }}</text></view>
+        <view v-if="editable" class="comp-card__actions"><text class="comp-card__delete" @tap.stop="remove(item)">{{ deletingId === item.id ? '删除中' : '删除方案' }}</text></view>
       </view>
       <ListFooter v-if="items.length" :loading="loadingMore" :has-more="hasMore" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="暂无薪酬方案" sub="先为员工建立固定工资方案" />
@@ -57,4 +88,6 @@ function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensation
 .comp-card__top { display: flex; justify-content: space-between; align-items: center; }
 .comp-card__name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .comp-card__facts { display: flex; flex-direction: column; gap: 10rpx; margin-top: 20rpx; color: $jzb-text-3; font-size: 22rpx; }
+.comp-card__actions { display: flex; justify-content: flex-end; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
+.comp-card__delete { color: $jzb-danger; font-size: $jzb-font-sm; }
 </style>
