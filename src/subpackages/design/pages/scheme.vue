@@ -719,7 +719,7 @@ function handleMoreAction(index: number) {
     </view>
     <view v-else class="ds__section ds__section--split">
       <view class="ds__section-head"><view><text class="ds__section-title jz-clamp-1">{{ currentTabMeta.label }}</text><text class="ds__section-sub">{{ currentTabMeta.count }} 个分项 · 合计 {{ money(totalItemAmountByTab) }}</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openItem()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增分项</text></button></view>
-      <view v-if="spaces.length" class="ds__split">
+      <view v-if="spaces.length || items.length" class="ds__split">
         <!-- 左侧：区域列表 -->
         <scroll-view scroll-y class="ds__space-side">
           <view v-for="sum in spaceSummaries" :key="sum.spaceId" class="ds__space-side-item" :class="{ 'ds__space-side-item--on': activeSpaceId === sum.spaceId }" @tap="activeSpaceId = sum.spaceId">

@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -22,7 +22,7 @@
     "check:action": "node scripts/verify-action-contract.mjs",
     "check:finance-ia": "node scripts/verify-finance-ia-contract.mjs",
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
-    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
+    "verify:mp-weixin": "node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:dev-api && node scripts/verify-money-format.mjs && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
     "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
     "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs",
     "record:site": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json",
@@ -31,7 +31,8 @@
     "record:owner:dry": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-owner-journey.json --no-record",
     "check:navigation": "node scripts/verify-navigation-contract.mjs",
     "check:finance-pickers": "node scripts/verify-finance-entry-picker-contract.mjs",
-    "check:finance-payment-worker": "node scripts/verify-finance-worker-backfill-contract.mjs"
+    "check:finance-payment-worker": "node scripts/verify-finance-worker-backfill-contract.mjs",
+    "check:design-items": "node scripts/verify-design-items-contract.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",
