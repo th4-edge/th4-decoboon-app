@@ -11,6 +11,141 @@
 
 ***
 
+## FIX-030 · 付款页成本口径文案纠偏
+
+* 日期：2026-10-06
+* 报告角色：财务 / 企业负责人
+* 影响模块：财务付款登记 / 付款记录
+* 严重度：P1 经营口径误导
+
+### 现象
+
+付款登记和付款记录使用“付款形成项目成本/成本流水”文案，暗示付款才产生成本、未付款就没有成本。
+
+### 根因
+
+旧文案没有区分资金流与项目成本归集口径。当前业务事实为：材料采购下单即形成应付，实际成本按到货确认；退货冲减应付与成本；付款只核销应付并写资金台账，不改变成本总额。
+
+### 修复方案
+
+* 付款登记副标题改为“付款核销应付并写入资金台账；项目成本按应付/到货口径归集”；
+* 付款记录副标题改为“付款自动核销应付并生成资金流水；成本按应付/到货口径归集”；
+* 不改任何金额、成本、核销或台账计算逻辑。
+
+### 验证
+
+* `npm run verify:mp-weixin`：通过；
+* 微信开发者工具真实页面：付款登记、付款记录截图见 `recordings/req-biz-20261006-003-005/20261006-121322/`；
+* 全端误导文案搜索：无“付款形成项目成本”类残留。
+
+***
+
+## FIX-029 · 工资付款工人选填与付款记录补录路径
+
+* 日期：2026-10-06
+* 报告角色：财务 / 项目经理
+* 影响模块：工资付款 / 付款记录 / 工人档案 / 工资凭证
+* 严重度：P1 工资付款被阻断
+
+### 现象
+
+工资应付未关联工人时，财务付款被前端强制阻断，项目经理不在线时无法先登记付款和形成台账事实。
+
+### 根因
+
+App 提交前强制 `workerId`，且付款记录没有“工人待补录”和关联工人的路径；后端 `Payment.worker` 已允许为空，但缺少只更新 worker 的补录 Provider。
+
+### 修复方案
+
+* 工资付款发放工人改为选填；未选时提示“身份证号/工种/银行账号栏位将留空，可稍后补录”，允许提交；
+* 付款记录对工资付款无工人时显示“工人待补录”，财务/BOSS 可打开底部工人选择面板补录；
+* 新增 `finance/payment/update`：只允许对工资付款设置 `Payment.worker`；同一工人重复补录幂等，已关联其他工人时拒绝替换；
+* 已生成单张工资凭证时，使用原凭证号和原对象键重渲染 PDF，金额、来源明细、核销和台账不变；合并凭证暂不自动重打，返回明确错误；
+* 已按授权新增 `db_voucher_revision` 迁移，记录补录前/后工人、操作人、时间和说明；本地 dev 已执行迁移并登记账本。
+
+### 业务观察者审查
+
+* 行业对标：工资发放不能因档案缺失阻断资金动作，档案补齐后再完善凭证符合现场财务流程；
+* 闭环检查：付款 → 台账 → 补录 → 工资凭证重打保持同一 Payment/凭证号，金额事实不变；
+* 权限与数据隔离：补录仅 BOSS/财务；工人档案仍由项目经理维护，企业范围校验；
+* 降级与空态：无工人时提示留空；合并凭证拒绝自动重打，避免覆盖其他付款对象；
+* 结论：通过。审计前后值已落 `db_voucher_revision`，合并凭证仍保留人工处理边界。
+
+### 代码改动
+
+* App：`entry.vue`、`payments.vue`、`domains/finance/api.ts`、`domains/finance/model.ts`、`domains/labor/api.ts`
+* 后端：`finance/service/payments/update/**`、`finance/service/payments/page/support/Page.java`、`document/context/VoucherContext.java`、`document/model/VoucherRevision.java`、`document/repository/VoucherRevisionRepository.java`
+* 迁移：`docs/design/migrations/79-凭证补录修订轨迹.sql`、`docs/design/migrations/README.md`、`scripts/build-release.sh`
+* 测试：`PaymentWorkerBackfillTest`，并同步 `ProviderSecurityAcceptanceTest` 新增 Provider 基线
+* 契约：`scripts/verify-finance-worker-backfill-contract.mjs`
+
+### 验证
+
+* App `npm run verify:mp-weixin`：通过；
+* 后端 `mvn -q test`：通过（476 tests，0 failures，0 errors）；
+* `VoucherBuildAcceptanceTest`：H2 集成验证“工资付款无工人生成凭证 → finance/payment/update 补录 → 原凭证号/原对象键重渲染”，付款金额、账户、日期、应付已付与台账金额不变；
+* `mvn -q -Dtest=PaymentWorkerBackfillTest,ProviderSecurityAcceptanceTest,VoucherBuildAcceptanceTest test`：通过；
+* 本地 dev MySQL：已备份并执行 79 迁移，`db_schema_migration` 登记 SUCCESS；
+* 本地 dev 8092 smoke（DDL 后重启）：`POST /api/finance/payment/update` 返回 `tokenIsUndefined`，证明新 Provider 已注册且未认证请求被拒绝；
+* 微信开发者工具真实页面确认付款页成本文案；工资缺档场景因本地无 Salary 应付夹具，未做真实提交验证。
+
+## FIX-028 · 登记收款/付款的应收节点、应付单选择器空白修复
+
+* 日期：2026-10-06
+* 报告角色：财务 / 企业负责人（本地测试）
+* 影响模块：财务收付登记
+* 严重度：P1 主流程走不通（未选项目或没有待收/待付时出现空白选择浮层）
+
+### 现象
+
+1. 财务从财务工作台进入“登记收款”，未选项目时点击“应收节点”，弹出空的系统原生 picker；
+2. 项目没有待收节点或应收全部收清时，也会出现空白 picker；
+3. “登记付款”的“应付单”使用同构原生 picker，存在同类空白和字段不足问题。
+
+### 根因
+
+1. `entry.vue` 的应收/应付字段直接绑定原生 `picker`，选项来自首屏数组；未选项目时数组为空，字段仍可点击；
+2. 首屏选项只保留 `outstandingAmount > 0`，项目全部收清/付清时列表必然为空；
+3. 原生 picker 无法承载项目上下文、汇总、搜索、筛选、分组、错误重试和已结清只读态。
+
+### 修复方案
+
+1. 新增 `receivable-picker.vue`、`payable-picker.vue`，按现有项目选择页的页面结构实现项目上下文、汇总条、搜索、筛选、分组、卡片、骨架屏、错误重试、加载更多和底部确认；
+2. 新增 `receivable-picker.ts`、`payable-picker.ts` 一次性结果总线，返回完整领域实体，读取即消费，避免重复进入串数据；
+3. `entry.vue` 改为“选择卡 + 摘要卡 + 内联空态”：未选项目先提示并打开项目选择页；项目无应收/应付或全部结清时不打开空 picker，直接给出口；
+4. 选择后自动填充待收/待付余额，允许改小做部分收付；提交前校验不得超过待收/待付余额；
+5. 已收清/已付清默认隐藏，打开“显示已结清”后只读展示，点击提示不可核销；
+6. 保留应收计划 → 收款、应付账款/工人工资 → 安排付款的 `projectId + receivableId / payableId` 预选兼容。
+
+### 代码改动
+
+* 新增：`src/subpackages/finance/pages/receivable-picker.vue`、`src/subpackages/finance/pages/payable-picker.vue`
+* 新增：`src/domains/finance/receivable-picker.ts`、`src/domains/finance/payable-picker.ts`
+* 修改：`src/subpackages/finance/pages/entry.vue`、`src/domains/finance/api.ts`、`src/config/index.ts`、`src/pages.json`、`src/roles/guard.ts`
+* 回归契约：`scripts/verify-finance-entry-picker-contract.mjs`、`package.json`
+
+### 业务观察者审查
+
+* 行业对标：装企财务登记必须先锁定项目/核销对象，再带出待收/待付余额；选择对象时直接显示账期、逾期、来源和发票信息，符合财务人员核对习惯；
+* 闭环检查：入口既有应收计划、应付账款、工人工资和财务工作台入口均保留；选择只回填表单，不提交收付款，不改变金额和核销事实；
+* 权限与数据隔离：选择页仍走后端既有数据范围和 `edit:finance` 守卫，选择结果只包含当前后端可见实体，不扩大跨企业/跨项目范围；
+* 降级与空态：无项目、无应收、全部收清、无应付、全部结清、筛选无结果、接口错误均有无空白出口；已选对象不会因刷新失败被静默覆盖；
+* 结论：通过。搜索、筛选、重置已补做端到端验证；分页因演示数据不足一页，仍由契约脚本和构建覆盖。
+
+### 验证
+
+* `npm run verify:mp-weixin`：通过（含 `type-check`、微信小程序构建、分包守卫、新增财务选择器契约）；
+* 微信开发者工具真实小程序自动化：16 个主链路证据点，路径见下方证据目录；只做浏览和选择，未提交任何收付款；
+* 搜索/筛选补充验证：8090 稳定后真实页面验证“逾期筛选”“尾款搜索”“重置筛选”“材料应付搜索”，证据目录 `recordings/req-biz-20261006-002-search-filter/20261006-133132/`；
+* 证据目录：`/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/recordings/req-biz-20261006-002/20261006-115859/`，含 `run.json`、16 张 `frames/*.png` 和由真实页面帧生成的过程视频；
+* 用户自测清单：
+  1. 财务 → 登记收款，未选项目点“应收节点” → 提示先选项目并进入项目选择，不出现空白浮层；
+  2. 选择有应收项目 → 打开应收选择页 → 搜索/筛选/选择节点 → 返回表单，摘要与待收金额正确；
+  3. 应收计划点“收款” → 节点已预选；
+  4. 选择有应付项目 → 打开应付选择页 → 选择应付单 → 返回表单，项目/收款方/待付金额正确；
+  5. 应付账款/工人工资点“安排付款” → 应付单已预选；
+  6. 无应收、全部收清、无应付、全部结清、筛选无结果和接口错误均有明确出口或重试。
+
 ## FIX-027・全角色审计缺陷：PM 手工任务、深链权限与 TeamLeader 空态
 
 * 日期：2026-10-04

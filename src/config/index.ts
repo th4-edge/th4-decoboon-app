@@ -7,7 +7,7 @@ export const runtime = {
   /** 身份令牌存储键。 */
   tokenKey: 'jzb_token',
   appName: '装得清',
-  version: '1.0.18',
+  version: '1.0.19',
   agreementVersion: import.meta.env.VITE_AGREEMENT_VERSION,
   privacyVersion: import.meta.env.VITE_PRIVACY_VERSION,
   legalReviewed: import.meta.env.VITE_LEGAL_REVIEWED === 'true',
@@ -143,6 +143,8 @@ export const P = {
   financeProject: '/subpackages/finance/pages/project',
   financeEntry: '/subpackages/finance/pages/entry',
   financeProjectPicker: '/subpackages/finance/pages/project-picker',
+  financeReceivablePicker: '/subpackages/finance/pages/receivable-picker',
+  financePayablePicker: '/subpackages/finance/pages/payable-picker',
   financeLedgerCategoryPicker: '/subpackages/finance/pages/ledger-category-picker',
   financeVouchers: '/subpackages/finance/pages/vouchers',
   financeVoucherTemplate: '/subpackages/finance/pages/voucher-template',

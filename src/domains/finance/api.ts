@@ -6,6 +6,7 @@ import { normalizeProject } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
+import { normalizeWorker } from '@/domains/labor/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
   FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, OpeningBalance, PartnerLedgerReport,
@@ -118,7 +119,9 @@ function normalizePayment(raw: Raw): Payment {
     project: rawProject(raw),
     payable: raw.payable ? normalizePayable(raw.payable) : undefined,
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
-    paidAt: raw.paidAt ?? '', payeeName: raw.payeeName, transactionNo: raw.transactionNo,
+    paidAt: raw.paidAt ?? '', payeeName: raw.payeeName,
+    worker: raw.worker ? normalizeWorker(raw.worker) : undefined,
+    transactionNo: raw.transactionNo,
     voucherUrl: raw.voucherUrl, remark: raw.remark,
     createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
   }
@@ -282,10 +285,11 @@ export const financeApi = {
   projectPage: async (params: { projectId?: string; status?: string; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/project/page', { current: 1, size: 100, ...params }), normalizeProjectReport),
   projectReport: async (projectId: string) => normalizeProjectReport(await post<Raw>('finance/project/report', { projectId })),
-  receivables: async (params: { projectId?: string; type?: ReceivableType; status?: ReceivableStatus; current?: number; size?: number } = {}) =>
+  receivables: async (params: { projectId?: string; type?: ReceivableType; status?: ReceivableStatus; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/receivable/page', {
       current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId,
-      type: params.type ? RECEIVABLE_TYPE_API[params.type] : undefined, status: params.status
+      type: params.type ? RECEIVABLE_TYPE_API[params.type] : undefined, status: params.status,
+      keyword: params.keyword
     }), normalizeReceivable),
   saveReceivable: async (input: { projectId: string; name: string; stageName?: string; type: ReceivableType; amount: number; dueDate: string; invoiceRequired?: boolean; invoiceNo?: string; remark?: string }) =>
     normalizeReceivable(await post<Raw>('finance/receivable/save', { ...input, type: RECEIVABLE_TYPE_API[input.type] })),
@@ -297,12 +301,13 @@ export const financeApi = {
     })),
   receipts: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceipt),
-  createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string }) =>
+  createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizeReceipt(await post<Raw>('finance/receipt/save', { ...input, account: ACCOUNT_API[input.account] })),
-  payables: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; current?: number; size?: number } = {}) =>
+  payables: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/payable/page', {
       current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, urgent: params.urgent,
-      type: params.type ? PAYABLE_TYPE_API[params.type] : undefined, status: params.status
+      type: params.type ? PAYABLE_TYPE_API[params.type] : undefined, status: params.status,
+      keyword: params.keyword
     }), normalizePayable),
   savePayable: async (input: { projectId?: string; materialPlanId?: string; name: string; type: PayableType; payeeEmployeeId?: string; payeeName?: string; period?: string; amount: number; dueDate: string; urgent?: boolean; sourceNo?: string; remark?: string }) =>
     normalizePayable(await post<Raw>('finance/payable/save', { ...input, type: PAYABLE_TYPE_API[input.type] })),
@@ -310,8 +315,11 @@ export const financeApi = {
     normalizePayable(await post<Raw>('finance/payable/update', { payableId: input.id, name: input.name, amount: input.amount, dueDate: input.dueDate, urgent: input.urgent, period: input.period, remark: input.remark })),
   payments: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
-  createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string }) =>
+  createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
+  /** 工资付款补录工人：后端只更新 Payment.worker，并按方案 A 同号重渲染已有单张工资凭证。 */
+  updatePaymentWorker: async (paymentId: string, workerId: string): Promise<Payment> =>
+    normalizePayment(await post<Raw>('finance/payment/update', { paymentId, workerId })),
   ledgers: async (params: { ledgerId?: string; projectId?: string; direction?: LedgerDirection; categoryId?: string; category?: string; uncategorized?: boolean; keyword?: string; startDate?: string; endDate?: string; current?: number; size?: number } = {}): Promise<PageData<Ledger>> => {
     const current = params.current ?? 1
     const size = params.size ?? 20

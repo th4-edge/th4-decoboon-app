@@ -1,6 +1,7 @@
 import type { Customer } from '../crm/model'
 import type { Employee } from '@/domains/identity/model'
 import type { Project } from '../project/model'
+import type { Worker } from '../labor/model'
 
 export type ReceivableType = 'first' | 'progress' | 'final' | 'retention' | 'other'
 export type ReceivableStatus = 'pending' | 'partial' | 'received' | 'overdue' | 'closed'
@@ -75,6 +76,7 @@ export interface Payment {
   account: FundAccount
   paidAt: string
   payeeName?: string
+  worker?: Worker
   transactionNo?: string
   voucherUrl?: string
   remark?: string

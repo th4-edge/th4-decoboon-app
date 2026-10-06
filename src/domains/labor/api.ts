@@ -9,7 +9,7 @@ const STATUS_UI: Record<string, WorkerStatus> = { active: 'active', disabled: 'd
 
 function lower(raw: unknown) { return String(raw ?? '').toLowerCase() }
 
-function normalizeWorker(raw: Raw): Worker {
+export function normalizeWorker(raw: Raw): Worker {
   return {
     id: String(raw.id ?? raw.workerId ?? ''),
     name: raw.name ?? '',

@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
+import { dueText, money } from '@/core/format'
 import { projectApi } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { financeApi } from '@/domains/finance/api'
@@ -9,12 +10,21 @@ import {
   consumeFinanceProjectPickerResult,
   type FinanceProjectSelection
 } from '@/domains/finance/project-picker'
+import { consumeFinanceReceivablePickerResult } from '@/domains/finance/receivable-picker'
+import { consumeFinancePayablePickerResult } from '@/domains/finance/payable-picker'
 import { laborApi } from '@/domains/labor/api'
 import type { Worker } from '@/domains/labor/model'
 import type {
   FundAccount, Ledger, LedgerDirection, LedgerManualPurpose, Payable, PayableType, Receivable
 } from '@/domains/finance/model'
-import { ACCOUNT_LABEL, LEDGER_PURPOSE_META, PAYABLE_TYPE_META } from '@/domains/finance/meta'
+import {
+  ACCOUNT_LABEL,
+  LEDGER_PURPOSE_META,
+  PAYABLE_STATUS_META,
+  PAYABLE_TYPE_META,
+  RECEIVABLE_STATUS_META,
+  RECEIVABLE_TYPE_META
+} from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -24,16 +34,30 @@ import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 type EntryType = 'receivable' | 'receipt' | 'payable' | 'payment' | 'ledger'
+type ReceivableState = 'unknown' | 'ready' | 'empty' | 'settled'
+type PayableState = 'unknown' | 'ready' | 'empty' | 'settled'
 const today = () => new Date().toISOString().slice(0, 10)
+/** 提交意图 ID：同一次提交的失败重试复用，成功后清空。 */
+let submitIntentId = ''
+const newSubmitIntentId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
 const type = ref<EntryType>('receivable')
 const editId = ref('')
 const selectedProject = ref<FinanceProjectSelection | null>(null)
 const originalLedger = ref<Ledger | null>(null)
 const editReason = ref('')
-const receivables = ref<Receivable[]>([])
-const payables = ref<Payable[]>([])
+const selectedReceivable = ref<Receivable | null>(null)
+const selectedPayable = ref<Payable | null>(null)
+const receivableState = ref<ReceivableState>('unknown')
+const payableState = ref<PayableState>('unknown')
+const receivableChecking = ref(false)
+const payableChecking = ref(false)
+const receivableInlineError = ref('')
+const payableInlineError = ref('')
 const workers = ref<Worker[]>([])
 const submitting = ref(false)
+let pendingReceivableAfterProject = false
+let receivableLoadVersion = 0
+let payableLoadVersion = 0
 
 const form = reactive({
   projectId: '',
@@ -73,18 +97,9 @@ const subtitle = computed(() => ({
   receivable: '按合同节点安排首期款、进度款与尾款',
   receipt: '收款将自动核销应收并写入资金台账',
   payable: '材料款、项目款、工资与费用形成统一付款义务',
-  payment: '付款将自动核销应付并形成项目成本',
+  payment: '付款核销应付并写入资金台账；项目成本按应付/到货口径归集',
   ledger: editId.value ? '元数据更正留痕；金额、方向、日期或账户变化将冲正重记' : '企业通用或项目直接收支，生成不可变资金流水'
 }[type.value]))
-const receivableOptions = computed(() => receivables.value
-  .filter((item) => item.outstandingAmount > 0)
-  .map((item) => ({ label: `${item.name} · 待收¥${item.outstandingAmount}`, value: item.id })))
-const receivableIndex = computed(() => Math.max(receivableOptions.value.findIndex((item) => item.value === form.receivableId), 0))
-const payableOptions = computed(() => payables.value
-  .filter((item) => item.outstandingAmount > 0)
-  .map((item) => ({ label: `${item.name} · 待付¥${item.outstandingAmount}`, value: item.id })))
-const payableIndex = computed(() => Math.max(payableOptions.value.findIndex((item) => item.value === form.payableId), 0))
-const selectedPayable = computed(() => payables.value.find((item) => item.id === form.payableId))
 /** 工资类应付付款时才需要选择个人工人，用于生成个人工资凭证。 */
 const isSalaryPayment = computed(() => type.value === 'payment' && selectedPayable.value?.type === 'salary')
 const workerOptions = computed(() => workers.value
@@ -144,12 +159,45 @@ onLoad((query) => {
   void boot()
 })
 
-onShow(() => {
+onShow(async () => {
   const projectResult = consumeFinanceProjectPickerResult()
+  const receivableResult = consumeFinanceReceivablePickerResult()
+  const payableResult = consumeFinancePayablePickerResult()
+  let contextLoaded = false
+  if (!projectResult) pendingReceivableAfterProject = false
+
   if (projectResult) {
+    const shouldOpenReceivable = pendingReceivableAfterProject && type.value === 'receipt'
+    pendingReceivableAfterProject = false
     if (projectResult.action === 'clear') setProject(null)
     else setProject(projectResult.project)
+    if (type.value === 'receipt' && form.projectId) {
+      await loadReceivableContext()
+      contextLoaded = true
+      if (shouldOpenReceivable) {
+        if (receivableState.value === 'ready') openReceivablePicker()
+        else if (receivableState.value === 'empty') toast('该项目还没有应收节点，请先新增')
+        else if (receivableState.value === 'settled') toast('该项目应收已全部收清')
+      }
+    }
+    if (type.value === 'payment') {
+      await loadPayableContext()
+      contextLoaded = true
+    }
   }
+
+  if (receivableResult && type.value === 'receipt') {
+    if (receivableResult.action === 'clear') clearReceivableSelection()
+    else setSelectedReceivable(receivableResult.receivable)
+  }
+  if (payableResult && type.value === 'payment') {
+    if (payableResult.action === 'clear') clearPayableSelection()
+    else setSelectedPayable(payableResult.payable)
+  }
+
+  if (booting.value || contextLoaded) return
+  if (type.value === 'receipt' && form.projectId) void loadReceivableContext()
+  if (type.value === 'payment') void loadPayableContext()
 })
 
 async function boot() {
@@ -167,36 +215,67 @@ async function boot() {
   }
 }
 
+async function fetchAllReceivables(projectId?: string): Promise<Receivable[]> {
+  const size = 200
+  const rows: Receivable[] = []
+  for (let current = 1; current <= 5; current += 1) {
+    const page = await financeApi.receivables({ projectId, current, size })
+    rows.push(...page)
+    if (page.length < size) break
+  }
+  return rows
+}
+
+async function fetchAllPayables(projectId?: string): Promise<Payable[]> {
+  const size = 200
+  const rows: Payable[] = []
+  for (let current = 1; current <= 5; current += 1) {
+    const page = await financeApi.payables({ projectId, current, size })
+    rows.push(...page)
+    if (page.length < size) break
+  }
+  return rows
+}
+
 async function hydrate(id: string) {
   if (type.value === 'receivable') {
-    const list = await financeApi.receivables()
+    const list = await fetchAllReceivables()
     const item = id ? list.find((row) => row.id === id) : undefined
     if (item) {
-      form.projectId = item.project.id; setProject(projectSelection(item.project)); form.name = item.name; form.stageName = item.stageName || ''
-      form.receivableType = item.type; form.amount = String(item.amount); form.date = item.dueDate
-      form.invoiceRequired = item.invoiceRequired; form.invoiceNo = item.invoiceNo || ''; form.remark = item.remark || ''
-    } else if (form.projectId) await loadReceivables()
+      form.projectId = item.project.id
+      setProject(projectSelection(item.project))
+      form.name = item.name
+      form.stageName = item.stageName || ''
+      form.receivableType = item.type
+      form.amount = String(item.amount)
+      form.date = item.dueDate
+      form.invoiceRequired = item.invoiceRequired
+      form.invoiceNo = item.invoiceNo || ''
+      form.remark = item.remark || ''
+    } else if (form.projectId) {
+      await loadReceivableContext()
+    }
   } else if (type.value === 'receipt') {
-    if (form.projectId) await loadReceivables()
-    const target = receivables.value.find((item) => item.id === form.receivableId)
-    if (target) form.amount = String(target.outstandingAmount)
+    if (form.projectId) await loadReceivableContext()
     form.date = today()
   } else if (type.value === 'payable') {
-    const list = await financeApi.payables()
+    const list = await fetchAllPayables()
     const item = id ? list.find((row) => row.id === id) : undefined
     if (item) {
-      form.projectId = item.project?.id || ''; setProject(projectSelection(item.project)); form.name = item.name; form.payableType = item.type
-      form.payeeName = item.payeeEmployee?.name || item.payeeName || ''; form.period = item.period || ''
-      form.amount = String(item.amount); form.date = item.dueDate; form.urgent = item.urgent
-      form.sourceNo = item.sourceNo || ''; form.remark = item.remark || ''
+      form.projectId = item.project?.id || ''
+      setProject(projectSelection(item.project))
+      form.name = item.name
+      form.payableType = item.type
+      form.payeeName = item.payeeEmployee?.name || item.payeeName || ''
+      form.period = item.period || ''
+      form.amount = String(item.amount)
+      form.date = item.dueDate
+      form.urgent = item.urgent
+      form.sourceNo = item.sourceNo || ''
+      form.remark = item.remark || ''
     }
   } else if (type.value === 'payment') {
-    payables.value = await financeApi.payables()
-    const target = payables.value.find((item) => item.id === form.payableId)
-    if (target) {
-      form.projectId = target.project?.id || ''; setProject(projectSelection(target.project)); form.payeeName = target.payeeEmployee?.name || target.payeeName || ''
-      form.amount = String(target.outstandingAmount)
-    }
+    await loadPayableContext()
     form.date = today()
   } else if (type.value === 'ledger') {
     if (id) {
@@ -221,13 +300,161 @@ async function hydrate(id: string) {
   }
 }
 
-async function loadReceivables() {
-  if (!form.projectId) { receivables.value = []; return }
-  receivables.value = await financeApi.receivables({ projectId: form.projectId })
-  if (!receivables.value.some((item) => item.id === form.receivableId)) form.receivableId = ''
+async function loadReceivableContext() {
+  const version = ++receivableLoadVersion
+  if (!form.projectId) {
+    receivableState.value = 'unknown'
+    receivableInlineError.value = ''
+    selectedReceivable.value = null
+    form.receivableId = ''
+    return
+  }
+  receivableChecking.value = true
+  receivableInlineError.value = ''
+  try {
+    const list = await fetchAllReceivables(form.projectId)
+    if (version !== receivableLoadVersion) return
+    const pending = list.filter((item) => item.outstandingAmount > 0)
+    receivableState.value = !list.length ? 'empty' : pending.length ? 'ready' : 'settled'
+    if (form.receivableId) {
+      const target = list.find((item) => item.id === form.receivableId && item.outstandingAmount > 0)
+      if (target) {
+        selectedReceivable.value = target
+        if (!form.amount) form.amount = String(target.outstandingAmount)
+      } else {
+        selectedReceivable.value = null
+        form.receivableId = ''
+      }
+    }
+  } catch (error) {
+    if (version !== receivableLoadVersion) return
+    receivableInlineError.value = error instanceof Error ? error.message : '应收节点读取失败'
+  } finally {
+    if (version === receivableLoadVersion) receivableChecking.value = false
+  }
 }
-function onReceivable(event: any) { form.receivableId = receivableOptions.value[Number(event.detail.value)]?.value || ''; const target = receivables.value.find((item) => item.id === form.receivableId); if (target) form.amount = String(target.outstandingAmount) }
-function onPayable(event: any) { form.payableId = payableOptions.value[Number(event.detail.value)]?.value || ''; const target = payables.value.find((item) => item.id === form.payableId); if (target) { form.payeeName = target.payeeEmployee?.name || target.payeeName || ''; form.amount = String(target.outstandingAmount) } }
+
+async function loadPayableContext() {
+  const version = ++payableLoadVersion
+  payableChecking.value = true
+  payableInlineError.value = ''
+  try {
+    const list = await fetchAllPayables(form.projectId || undefined)
+    if (version !== payableLoadVersion) return
+    const pending = list.filter((item) => item.outstandingAmount > 0)
+    payableState.value = !list.length ? 'empty' : pending.length ? 'ready' : 'settled'
+    if (form.payableId) {
+      const target = list.find((item) => item.id === form.payableId && item.outstandingAmount > 0)
+      if (target) {
+        selectedPayable.value = target
+        if (target.project?.id) {
+          form.projectId = target.project.id
+          selectedProject.value = projectSelection(target.project)
+        }
+        if (!form.amount) form.amount = String(target.outstandingAmount)
+        if (!form.payeeName) form.payeeName = target.payeeEmployee?.name || target.payeeName || ''
+      } else {
+        selectedPayable.value = null
+        form.payableId = ''
+      }
+    }
+  } catch (error) {
+    if (version !== payableLoadVersion) return
+    payableInlineError.value = error instanceof Error ? error.message : '应付单读取失败'
+  } finally {
+    if (version === payableLoadVersion) payableChecking.value = false
+  }
+}
+
+function setSelectedReceivable(item: Receivable) {
+  selectedReceivable.value = item
+  form.receivableId = item.id
+  if (!form.projectId || form.projectId !== item.project.id) {
+    form.projectId = item.project.id
+    selectedProject.value = projectSelection(item.project)
+  }
+  form.amount = String(item.outstandingAmount)
+}
+
+function clearReceivableSelection() {
+  selectedReceivable.value = null
+  form.receivableId = ''
+  if (type.value === 'receipt') form.amount = ''
+}
+
+function setSelectedPayable(item: Payable) {
+  selectedPayable.value = item
+  form.payableId = item.id
+  form.payeeName = item.payeeEmployee?.name || item.payeeName || ''
+  form.amount = String(item.outstandingAmount)
+  if (item.project?.id) {
+    form.projectId = item.project.id
+    selectedProject.value = projectSelection(item.project)
+  } else {
+    form.projectId = ''
+    selectedProject.value = null
+  }
+}
+
+function clearPayableSelection() {
+  selectedPayable.value = null
+  form.payableId = ''
+  form.payeeName = ''
+  if (type.value === 'payment') form.amount = ''
+}
+
+function openReceivablePicker() {
+  if (!form.projectId) {
+    pendingReceivableAfterProject = true
+    toast('请先选择项目')
+    openProjectPicker()
+    return
+  }
+  if (receivableState.value === 'empty') { toast('该项目还没有应收节点，请先新增'); return }
+  if (receivableState.value === 'settled') { toast('该项目应收已全部收清'); return }
+  const params = [`projectId=${encodeURIComponent(form.projectId)}`]
+  if (form.receivableId) params.push(`selectedId=${encodeURIComponent(form.receivableId)}`)
+  if (selectedProject.value?.name) params.push(`projectName=${encodeURIComponent(selectedProject.value.name)}`)
+  if (selectedProject.value?.no) params.push(`projectNo=${encodeURIComponent(selectedProject.value.no)}`)
+  if (selectedProject.value?.customerName) params.push(`customerName=${encodeURIComponent(selectedProject.value.customerName)}`)
+  uni.navigateTo({ url: `${P.financeReceivablePicker}?${params.join('&')}` })
+}
+
+function openPayablePicker() {
+  if (payableState.value === 'empty') { toast('当前没有待付应付单，请先新增'); return }
+  if (payableState.value === 'settled') { toast('应付账款已全部结清'); return }
+  const params: string[] = []
+  if (form.projectId) params.push(`projectId=${encodeURIComponent(form.projectId)}`)
+  if (form.payableId) params.push(`selectedId=${encodeURIComponent(form.payableId)}`)
+  if (selectedProject.value?.name) params.push(`projectName=${encodeURIComponent(selectedProject.value.name)}`)
+  if (selectedProject.value?.no) params.push(`projectNo=${encodeURIComponent(selectedProject.value.no)}`)
+  if (selectedProject.value?.customerName) params.push(`customerName=${encodeURIComponent(selectedProject.value.customerName)}`)
+  uni.navigateTo({ url: `${P.financePayablePicker}${params.length ? `?${params.join('&')}` : ''}` })
+}
+
+function goCreateReceivable() {
+  if (!form.projectId) return
+  uni.navigateTo({ url: `${P.financeEntry}?type=receivable&projectId=${encodeURIComponent(form.projectId)}` })
+}
+
+function goReceivables() {
+  const suffix = form.projectId ? `?projectId=${encodeURIComponent(form.projectId)}` : ''
+  uni.navigateTo({ url: `${P.financeReceivables}${suffix}` })
+}
+
+function goCreatePayable() {
+  const params = ['type=payable', `payableType=${form.payableType}`]
+  if (form.projectId) params.push(`projectId=${encodeURIComponent(form.projectId)}`)
+  uni.navigateTo({ url: `${P.financeEntry}?${params.join('&')}` })
+}
+
+function goPayables() {
+  const params: string[] = []
+  if (form.projectId) params.push(`projectId=${encodeURIComponent(form.projectId)}`)
+  if (form.payableType === 'salary') params.push('type=salary')
+  uni.navigateTo({ url: `${P.financePayables}${params.length ? `?${params.join('&')}` : ''}` })
+}
+
 function onReceivableType(event: any) { form.receivableType = receivableTypeOptions[Number(event.detail.value)]?.value as Receivable['type'] || 'other' }
 function onPayableType(event: any) { form.payableType = payableTypeOptions[Number(event.detail.value)]?.value as PayableType || 'other' }
 function onWorker(event: any) { form.workerId = workerOptions.value[Number(event.detail.value)]?.value || '' }
@@ -253,11 +480,24 @@ function projectSelection(project?: Project | null): FinanceProjectSelection | n
 }
 
 function setProject(project: FinanceProjectSelection | null) {
+  const changed = form.projectId !== (project?.id || '')
   form.projectId = project?.id || ''
   selectedProject.value = project
-  form.receivableId = ''
-  form.payableId = ''
-  if (type.value === 'receipt') void loadReceivables()
+  if (type.value === 'receipt') {
+    form.receivableId = ''
+    form.payableId = ''
+    selectedReceivable.value = null
+    receivableState.value = 'unknown'
+    receivableInlineError.value = ''
+    if (changed) form.amount = ''
+  }
+  if (type.value === 'payment' && changed) {
+    form.payableId = ''
+    selectedPayable.value = null
+    payableState.value = 'unknown'
+    payableInlineError.value = ''
+    form.amount = ''
+  }
 }
 
 async function loadProjectSelection() {
@@ -297,23 +537,29 @@ async function submit() {
   if (!amount || amount <= 0) { toast('请输入正确金额'); return }
   if (['receivable', 'receipt'].includes(type.value) && !form.projectId) { toast('请选择项目'); return }
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
+  if (type.value === 'receipt' && selectedReceivable.value && amount > selectedReceivable.value.outstandingAmount) {
+    toast('收款金额不能超过待收余额'); return
+  }
   if (type.value === 'payment' && !form.payableId) { toast('请选择应付单'); return }
+  if (type.value === 'payment' && selectedPayable.value && amount > selectedPayable.value.outstandingAmount) {
+    toast('付款金额不能超过待付余额'); return
+  }
   if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类说明和摘要'); return }
   if (type.value === 'ledger' && form.purpose === 'projectIncidentalCost' && !form.projectId) { toast('项目零星成本必须关联项目'); return }
   if (type.value === 'ledger' && editId.value && !editReason.value.trim()) { toast('请填写更正原因'); return }
+  if (!submitIntentId) submitIntentId = newSubmitIntentId()
   submitting.value = true; loading('保存中...')
   try {
     if (type.value === 'receivable') {
       if (editId.value) await financeApi.updateReceivable({ id: editId.value, name: form.name, stageName: form.stageName, type: form.receivableType, amount, dueDate: form.date, invoiceRequired: form.invoiceRequired, invoiceNo: form.invoiceNo, remark: form.remark })
       else await financeApi.saveReceivable({ projectId: form.projectId, name: form.name, stageName: form.stageName, type: form.receivableType, amount, dueDate: form.date, invoiceRequired: form.invoiceRequired, invoiceNo: form.invoiceNo, remark: form.remark })
     } else if (type.value === 'receipt') {
-      await financeApi.createReceipt({ projectId: form.projectId, receivableId: form.receivableId, amount, account: form.account, receivedAt: form.date, payerName: form.payerName, remark: form.remark })
+      await financeApi.createReceipt({ projectId: form.projectId, receivableId: form.receivableId, amount, account: form.account, receivedAt: form.date, payerName: form.payerName, remark: form.remark, idempotencyKey: submitIntentId })
     } else if (type.value === 'payable') {
       if (editId.value) await financeApi.updatePayable({ id: editId.value, name: form.name, amount, dueDate: form.date, urgent: form.urgent, period: form.period, remark: form.remark })
       else await financeApi.savePayable({ projectId: form.projectId || undefined, name: form.name, type: form.payableType, payeeName: form.payeeName, period: form.period, amount, dueDate: form.date, urgent: form.urgent, sourceNo: form.sourceNo, remark: form.remark })
     } else if (type.value === 'payment') {
-      if (isSalaryPayment.value && !form.workerId) { toast('工资付款请选择发放工人'); return }
-      await financeApi.createPayment({ payableId: form.payableId, amount, account: form.account, paidAt: form.date, payeeName: form.payeeName, workerId: isSalaryPayment.value ? form.workerId : undefined, remark: form.remark })
+      await financeApi.createPayment({ payableId: form.payableId, amount, account: form.account, paidAt: form.date, payeeName: form.payeeName, workerId: isSalaryPayment.value ? form.workerId : undefined, remark: form.remark, idempotencyKey: submitIntentId })
     } else {
       const payload = {
         projectId: form.projectId || '0',
@@ -337,6 +583,7 @@ async function submit() {
         await financeApi.saveLedger({ ...payload, projectId: form.projectId || undefined })
       }
     }
+    submitIntentId = ''
     hideLoading(); toast('保存成功', 'success'); setTimeout(() => uni.navigateBack(), 500)
   } catch (error) {
     hideLoading(); toastError(error, '保存失败')
@@ -377,7 +624,59 @@ async function submit() {
       </template>
 
       <template v-else-if="type === 'receipt'">
-        <view class="fin-field"><text class="fin-field__label">应收节点</text><picker :range="receivableOptions" range-key="label" :value="receivableIndex" @change="onReceivable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.receivableId }">{{ form.receivableId ? selectLabel(receivableOptions, receivableIndex) : (form.projectId ? '请选择待收节点' : '请先选择项目') }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field fin-field--tap" @tap="openReceivablePicker">
+          <text class="fin-field__label">应收节点</text>
+          <view class="fe-entity">
+            <view class="fe-entity__main">
+              <text class="fe-entity__name" :class="{ 'fin-field__placeholder': !selectedReceivable }">{{ selectedReceivable?.name || (form.projectId ? '请选择待收节点' : '请先选择项目') }}</text>
+              <text v-if="selectedReceivable" class="fe-entity__meta">{{ RECEIVABLE_TYPE_META[selectedReceivable.type].label }} · 待收 {{ money(selectedReceivable.outstandingAmount) }}</text>
+            </view>
+            <view v-if="selectedReceivable" class="fe-entity__clear" @tap.stop="clearReceivableSelection"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.text3" /></view>
+            <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+          </view>
+        </view>
+
+        <view v-if="receivableChecking" class="fe-inline-hint">正在读取该项目应收节点...</view>
+        <view v-else-if="receivableInlineError" class="fe-inline-state fe-inline-state--error">
+          <text class="fe-inline-state__title">应收节点暂不可确认</text>
+          <text class="fe-inline-state__sub">{{ receivableInlineError }}</text>
+          <view class="fe-inline-state__actions"><view class="fe-inline-btn" @tap="loadReceivableContext">重试</view></view>
+        </view>
+        <view v-else-if="form.projectId && receivableState === 'empty'" class="fe-inline-state">
+          <text class="fe-inline-state__title">该项目还没有应收节点</text>
+          <text class="fe-inline-state__sub">先在应收计划建立合同节点，再回来登记收款</text>
+          <view class="fe-inline-state__actions">
+            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreateReceivable">去新增应收节点</view>
+            <view class="fe-inline-btn" @tap="goReceivables">查看应收计划</view>
+          </view>
+        </view>
+        <view v-else-if="form.projectId && receivableState === 'settled'" class="fe-inline-state fe-inline-state--success">
+          <text class="fe-inline-state__title">该项目应收已全部收清</text>
+          <text class="fe-inline-state__sub">已收清节点不会进入本次核销范围，可查看应收计划确认明细</text>
+          <view class="fe-inline-state__actions"><view class="fe-inline-btn" @tap="goReceivables">查看应收计划</view></view>
+        </view>
+
+        <view v-if="selectedReceivable" class="fe-summary">
+          <view class="fe-summary__head">
+            <view class="fe-summary__title-wrap">
+              <text class="fe-summary__title">{{ selectedReceivable.name }}</text>
+              <view class="fe-summary__tags">
+                <text class="fe-summary__tag" :style="{ color: RECEIVABLE_TYPE_META[selectedReceivable.type].color }">{{ RECEIVABLE_TYPE_META[selectedReceivable.type].label }}</text>
+                <text class="fe-summary__tag" :style="{ color: RECEIVABLE_STATUS_META[selectedReceivable.status].color }">{{ RECEIVABLE_STATUS_META[selectedReceivable.status].label }}</text>
+              </view>
+            </view>
+            <view class="fe-summary__clear" @tap.stop="clearReceivableSelection">清除</view>
+          </view>
+          <view class="fe-summary__amount"><text class="fe-summary__amount-label">待收余额</text><text class="fe-summary__amount-value">{{ money(selectedReceivable.outstandingAmount) }}</text></view>
+          <view class="fe-summary__facts">
+            <text>应收 {{ money(selectedReceivable.amount) }}</text>
+            <text>已收 {{ money(selectedReceivable.receivedAmount) }}</text>
+            <text :class="{ 'fe-summary__danger': selectedReceivable.status === 'overdue' || dueText(selectedReceivable.dueDate).includes('逾期') }">{{ selectedReceivable.dueDate || '未设置' }} · {{ dueText(selectedReceivable.dueDate) }}</text>
+            <text v-if="selectedReceivable.stageName">施工节点 {{ selectedReceivable.stageName }}</text>
+            <text>{{ selectedReceivable.invoiceRequired ? (selectedReceivable.invoiceNo ? `需开票 · ${selectedReceivable.invoiceNo}` : '需开票') : '无需开票' }}</text>
+          </view>
+        </view>
+
         <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">收款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">收款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
@@ -396,11 +695,67 @@ async function submit() {
       </template>
 
       <template v-else-if="type === 'payment'">
-        <view class="fin-field"><text class="fin-field__label">应付单</text><picker :range="payableOptions" range-key="label" :value="payableIndex" @change="onPayable"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.payableId }">{{ form.payableId ? selectLabel(payableOptions, payableIndex) : '请选择待付账款' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field fin-field--tap" @tap="openPayablePicker">
+          <text class="fin-field__label">应付单</text>
+          <view class="fe-entity">
+            <view class="fe-entity__main">
+              <text class="fe-entity__name" :class="{ 'fin-field__placeholder': !selectedPayable }">{{ selectedPayable?.name || '请选择待付账款' }}</text>
+              <text v-if="selectedPayable" class="fe-entity__meta">{{ PAYABLE_TYPE_META[selectedPayable.type].label }} · 待付 {{ money(selectedPayable.outstandingAmount) }}</text>
+            </view>
+            <view v-if="selectedPayable" class="fe-entity__clear" @tap.stop="clearPayableSelection"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.text3" /></view>
+            <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+          </view>
+        </view>
+
+        <view v-if="payableChecking" class="fe-inline-hint">正在读取待付应付单...</view>
+        <view v-else-if="payableInlineError" class="fe-inline-state fe-inline-state--error">
+          <text class="fe-inline-state__title">应付单暂不可确认</text>
+          <text class="fe-inline-state__sub">{{ payableInlineError }}</text>
+          <view class="fe-inline-state__actions"><view class="fe-inline-btn" @tap="loadPayableContext">重试</view></view>
+        </view>
+        <view v-else-if="payableState === 'empty'" class="fe-inline-state">
+          <text class="fe-inline-state__title">当前没有待付应付单</text>
+          <text class="fe-inline-state__sub">先建立材料款、项目款、工资或费用应付，再安排付款</text>
+          <view class="fe-inline-state__actions">
+            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreatePayable">去新增应付</view>
+            <view class="fe-inline-btn" @tap="goPayables">查看应付账款</view>
+          </view>
+        </view>
+        <view v-else-if="payableState === 'settled'" class="fe-inline-state fe-inline-state--success">
+          <text class="fe-inline-state__title">应付账款已全部结清</text>
+          <text class="fe-inline-state__sub">已付清应付单不会进入本次核销范围，可查看应付账款确认明细</text>
+          <view class="fe-inline-state__actions"><view class="fe-inline-btn" @tap="goPayables">查看应付账款</view></view>
+        </view>
+
+        <view v-if="selectedPayable" class="fe-summary">
+          <view class="fe-summary__head">
+            <view class="fe-summary__title-wrap">
+              <text class="fe-summary__title">{{ selectedPayable.name }}</text>
+              <view class="fe-summary__tags">
+                <text class="fe-summary__tag" :style="{ color: PAYABLE_TYPE_META[selectedPayable.type].color }">{{ PAYABLE_TYPE_META[selectedPayable.type].label }}</text>
+                <text class="fe-summary__tag" :style="{ color: PAYABLE_STATUS_META[selectedPayable.status].color }">{{ PAYABLE_STATUS_META[selectedPayable.status].label }}</text>
+                <text v-if="selectedPayable.urgent" class="fe-summary__tag fe-summary__tag--danger">加急</text>
+              </view>
+            </view>
+            <view class="fe-summary__clear" @tap.stop="clearPayableSelection">清除</view>
+          </view>
+          <view class="fe-summary__amount"><text class="fe-summary__amount-label">待付余额</text><text class="fe-summary__amount-value">{{ money(selectedPayable.outstandingAmount) }}</text></view>
+          <view class="fe-summary__facts">
+            <text>应付 {{ money(selectedPayable.amount) }}</text>
+            <text>已付 {{ money(selectedPayable.paidAmount) }}</text>
+            <text :class="{ 'fe-summary__danger': selectedPayable.status === 'overdue' || dueText(selectedPayable.dueDate).includes('逾期') }">{{ selectedPayable.dueDate || '未设置' }} · {{ dueText(selectedPayable.dueDate) }}</text>
+            <text>收款方 {{ selectedPayable.payeeEmployee?.name || selectedPayable.payeeName || '未指定' }}</text>
+            <text>项目 {{ selectedPayable.project?.name || '企业通用费用' }}</text>
+            <text v-if="selectedPayable.period">工资周期 {{ selectedPayable.period }}</text>
+            <text v-if="selectedPayable.sourceNo">来源单号 {{ selectedPayable.sourceNo }}</text>
+          </view>
+        </view>
+
         <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">付款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">付款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><picker :range="workerOptions" range-key="label" :value="workerIndex" @change="onWorker"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.workerId }">{{ form.workerId ? selectLabel(workerOptions, workerIndex) : '请选择工人（用于工资凭证）' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><picker :range="workerOptions" range-key="label" :value="workerIndex" @change="onWorker"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.workerId }">{{ form.workerId ? selectLabel(workerOptions, workerIndex) : '选填：请选择工人（用于工资凭证）' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view v-if="isSalaryPayment && !form.workerId" class="fe-inline-hint fe-inline-hint--worker">未选择工人，工资凭证的身份证号/工种/银行账号栏位将留空，可稍后补录。</view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" placeholder="默认应付收款方" /></view>
       </template>
 
@@ -443,6 +798,34 @@ async function submit() {
 .fe-head__title { display: block; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .fe-head__sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fe-unit { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.fe-entity { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10rpx; }
+.fe-entity__main { flex: 1; min-width: 0; text-align: right; }
+.fe-entity__name { display: block; color: $jzb-text-1; font-size: $jzb-font; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fe-entity__meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fe-entity__clear { flex: none; display: flex; align-items: center; justify-content: center; width: 48rpx; height: 48rpx; border-radius: 50%; background: $jzb-bg-page; }
+.fe-inline-hint { margin: -2rpx 0 16rpx 142rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fe-inline-hint--worker { margin-top: -4rpx; padding: 12rpx 16rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-sm; line-height: 1.5; }
+.fe-inline-state { margin: -2rpx 0 20rpx 142rpx; padding: 18rpx; background: $jzb-bg-page; border-radius: $jzb-radius-sm; }
+.fe-inline-state--error { background: $jzb-danger-soft; }
+.fe-inline-state--success { background: $jzb-success-soft; }
+.fe-inline-state__title { display: block; color: $jzb-text-1; font-size: $jzb-font-xs; font-weight: 650; }
+.fe-inline-state__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.5; }
+.fe-inline-state__actions { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 14rpx; }
+.fe-inline-btn { min-height: 56rpx; display: inline-flex; align-items: center; justify-content: center; padding: 0 18rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
+.fe-inline-btn--primary { color: $jzb-text-inverse; background: $jzb-gradient; }
+.fe-summary { margin: 0 0 18rpx; padding: 20rpx; background: $jzb-primary-lightest; border: 1rpx solid rgba(22, 163, 148, .2); border-radius: $jzb-radius-sm; }
+.fe-summary__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
+.fe-summary__title-wrap { flex: 1; min-width: 0; }
+.fe-summary__title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fe-summary__tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; }
+.fe-summary__tag { padding: 2rpx 10rpx; background: $jzb-bg-card; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.fe-summary__tag--danger { color: $jzb-danger; background: $jzb-danger-soft; }
+.fe-summary__clear { flex: none; color: $jzb-danger; font-size: $jzb-font-xs; }
+.fe-summary__amount { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid rgba(22, 163, 148, .14); }
+.fe-summary__amount-label { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fe-summary__amount-value { color: $jzb-text-1; font-size: 34rpx; font-weight: 750; }
+.fe-summary__facts { display: flex; flex-wrap: wrap; gap: 10rpx 20rpx; margin-top: 14rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.45; }
+.fe-summary__danger { color: $jzb-danger; }
 .fin-field--tap { cursor: pointer; }
 .fe-category-field { gap: 8rpx; }
 .fe-purpose-hint { margin: -2rpx 0 0 142rpx; padding: 0 0 16rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.5; }
