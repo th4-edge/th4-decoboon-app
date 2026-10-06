@@ -300,15 +300,15 @@ async function refresh() {
   if (role.value === 'boss') {
     bossWorkbenchLoading.value = true
     try {
-      const [workbench, alerts, unread, materialBenches, carryover] = await Promise.all([
-        statisticApi.bossWorkbench(), statisticApi.alerts(), collabApi.unread(role.value),
+      const [workbench, unread, materialBenches, carryover] = await Promise.all([
+        statisticApi.bossWorkbench(), collabApi.unread(role.value),
         // 材料计划工作台指标：待下单 / 在途 / 逾期（服务端按数据范围聚合）
         materialPlanWorkbenchApi.list().catch(() => []),
         carryoverApi.batchInfo().catch(() => null)
       ])
       carryoverBatch.value = carryover?.id ? carryover : null
       bossWorkbench.value = workbench
-      alertReport.value = alerts
+      alertReport.value = workbench.alertReport
       materialPlanSummary.value = {
         projects: materialBenches.length,
         readyToOrder: materialBenches.reduce((sum, item) => sum + item.readyToOrder, 0),

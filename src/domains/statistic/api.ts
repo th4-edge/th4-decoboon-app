@@ -215,6 +215,20 @@ function normalizeBusinessAlert(raw: RawRecord): BusinessAlert {
   }
 }
 
+function normalizeAlertReport(raw: RawRecord = {}, fallbackAsOf = ''): BusinessAlertReport {
+  return {
+    asOf: raw.asOf ?? fallbackAsOf,
+    totalCount: Number(raw.totalCount ?? 0),
+    highCount: Number(raw.highCount ?? 0),
+    mediumCount: Number(raw.mediumCount ?? 0),
+    lowCount: Number(raw.lowCount ?? 0),
+    overdueReceivables: (raw.overdueReceivables || []).map(normalizeBusinessAlert),
+    suspensionRisks: (raw.suspensionRisks || []).map(normalizeBusinessAlert),
+    materialOverIssues: (raw.materialOverIssues || []).map(normalizeBusinessAlert),
+    changeAnomalies: (raw.changeAnomalies || []).map(normalizeBusinessAlert)
+  }
+}
+
 function normalizeIndicator(raw: RawRecord): WorkbenchIndicator {
   const value = raw.value === null || raw.value === undefined || raw.value === ''
     ? null : Number(raw.value)
@@ -373,7 +387,8 @@ export const statisticApi = {
       month: raw.month ?? month ?? '',
       indicators: (raw.indicators || []).map(normalizeIndicator),
       attentionProjects: (raw.attentionProjects || []).map(normalizeWorkbenchProject),
-      businessEvents: (raw.businessEvents || []).map(normalizeBusinessEvent)
+      businessEvents: (raw.businessEvents || []).map(normalizeBusinessEvent),
+      alertReport: normalizeAlertReport(raw.alertReport || {}, raw.asOf ?? '')
     }
   },
   bossDashboard: async (month?: string, storeId?: string): Promise<BossDashboard> => {
@@ -388,17 +403,7 @@ export const statisticApi = {
   },
   alerts: async (asOf?: string): Promise<BusinessAlertReport> => {
     const raw = await post<RawRecord>('statistic/alert/report', asOf ? { asOf } : {})
-    return {
-      asOf: raw.asOf ?? asOf ?? '',
-      totalCount: Number(raw.totalCount ?? 0),
-      highCount: Number(raw.highCount ?? 0),
-      mediumCount: Number(raw.mediumCount ?? 0),
-      lowCount: Number(raw.lowCount ?? 0),
-      overdueReceivables: (raw.overdueReceivables || []).map(normalizeBusinessAlert),
-      suspensionRisks: (raw.suspensionRisks || []).map(normalizeBusinessAlert),
-      materialOverIssues: (raw.materialOverIssues || []).map(normalizeBusinessAlert),
-      changeAnomalies: (raw.changeAnomalies || []).map(normalizeBusinessAlert)
-    }
+    return normalizeAlertReport(raw, asOf ?? '')
   },
   performance: async (month?: string, role?: EmployeePerformance['role'], storeId?: string): Promise<PerformanceReport> => {
     const raw = await post<RawRecord>('statistic/performance/report', { month, role, storeId: storeId || undefined })

@@ -409,6 +409,7 @@ export interface BossWorkbench {
   indicators: WorkbenchIndicator[]
   attentionProjects: WorkbenchProject[]
   businessEvents: BusinessEvent[]
+  alertReport: BusinessAlertReport
 }
 
 export interface EmployeePerformance {
