@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
+import pkg from './package.json'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -23,6 +24,10 @@ export default defineConfig(({ mode }) => {
   if (missing.length) throw new Error(`缺少发布合规配置: ${missing.join(', ')}`)
 
   return {
+    // 发布版本唯一真源：package.json#version，避免「我的-关于装得清」等处版本与发版号漂移。
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version)
+    },
     plugins: [uni()],
     server: {
       port: 8080,

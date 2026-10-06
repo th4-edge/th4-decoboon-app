@@ -29,10 +29,25 @@ expect(api.includes("post<RawRecord>('statistic/boss/workbench'"), '统计域未
 const actionSection = catalog.slice(catalog.indexOf('export const ROLE_ACTIONS'))
 const bossBlock = actionSection.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
 const bossActions = [...bossBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1])
-expect(bossActions.length === 4, '企业负责人首页功能域必须固定为四项')
-// 2026-09-21 用户确认：以代码文案为准（客户经营/方案设计/报价谈单），脚本同步
-expect(bossActions.join('|') === '客户经营|方案设计|报价谈单|合同签约',
-  '企业负责人首页功能域范围不符合产品设计')
+const requiredBossActions = [
+  '客户经营',
+  '设计工作台',
+  '报价谈单',
+  '合同签约',
+  '项目工地',
+  '履约驾驶舱',
+  '工人档案',
+  '材料计划',
+  '财务工作台',
+  '员工薪酬'
+]
+for (const label of requiredBossActions) {
+  expect(bossActions.includes(label), `企业负责人首页缺少内部岗位入口：${label}`)
+}
+expect(bossActions.length >= requiredBossActions.length,
+  '企业负责人首页功能域未覆盖全部内部岗位能力')
+expect(!bossBlock.includes('acceptConfirm') && !bossBlock.includes('业主确认'),
+  '企业负责人首页不得把外部主体确认纳入内部能力超集')
 const bossPermissionBlock = permissions.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
 expect(bossPermissionBlock.includes("'view:workbench'"), '企业负责人缺少履约驾驶舱 capability')
 expect(home.includes('经营专业工作台') && home.includes('professionalWorkbenches'),
@@ -88,4 +103,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('首页产品契约校验通过：四项指示灯、四项一级功能域、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')
+console.log('首页产品契约校验通过：四项指示灯、BOSS 内部能力超集入口、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')

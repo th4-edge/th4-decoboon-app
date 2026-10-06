@@ -47,6 +47,18 @@ export interface Receipt {
   createdAt?: string
 }
 
+export interface ReceiptRefund {
+  id: string
+  project: Project
+  receipt: Receipt
+  customer?: Customer
+  amount: number
+  account: FundAccount
+  refundAt: string
+  reason?: string
+  createdAt?: string
+}
+
 export interface Payable {
   id: string
   project?: Project

@@ -54,11 +54,13 @@ expect(payable.includes('PageState') && payable.includes('JzSkeleton'), '应付�
 expect(receivable.includes('ListFooter') && payable.includes('ListFooter'), '选择页缺少分页加载更多')
 expect(receivable.includes('onPullDownRefresh') && payable.includes('onPullDownRefresh'), '选择页缺少下拉刷新')
 
+const pickerChannel = read('src/domains/common/picker.ts')
+expect(pickerChannel.includes('uni.removeStorageSync'), '统一选择通道未读取即消费')
 for (const file of ['src/domains/finance/receivable-picker.ts', 'src/domains/finance/payable-picker.ts']) {
   expect(exists(file), `缺少一次性结果总线：${file}`)
   if (exists(file)) {
     const source = read(file)
-    expect(source.includes('uni.removeStorageSync'), `${file} 未读取即消费`)
+    expect(source.includes('createPickerChannel'), `${file} 未复用统一选择通道`)
   }
 }
 

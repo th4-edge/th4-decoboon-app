@@ -1,0 +1,614 @@
+{
+  "schema_version": "1.0",
+  "packet_id": "PKT-20261007-PAYROLL-001",
+  "mode": "feature_iteration",
+  "status": "iterating",
+  "decision_owner": "user",
+  "scope": {
+    "goal": "在 App 新增员工工资、月度考勤、提成计提与回款自动释放、工资单、工资条和员工发放闭环，同时保持工人工资链路独立",
+    "in_scope": [
+      "员工薪酬方案",
+      "月度考勤申报与确认",
+      "工资单与工资条",
+      "签约计提与回款比例自动释放",
+      "员工工资与提成应付",
+      "员工发放与资金台账",
+      "项目或企业成本唯一归属",
+      "员工薪酬独立权限"
+    ],
+    "out_of_scope": [
+      "完整HR",
+      "打卡与加班费",
+      "个税社保申报",
+      "公司经营利润",
+      "自动阶梯提成与自动多人分摊",
+      "银行代发",
+      "工人工资链路改造"
+    ],
+    "fact_sources": [
+      "DEC-017",
+      "BR-015",
+      "ANS-BIZ-20261006-002",
+      "EV-065",
+      "DEC-016",
+      "MET-002",
+      "PRODUCT-FIN-20261007-01"
+    ]
+  },
+  "tenant_profiles": [
+    {
+      "id": "T-PAY-SINGLE",
+      "type": "single_store_growth",
+      "scale": "15人，1店，在施5个项目",
+      "focus": "月末工资、店长考勤确认、BOSS确认与员工工资条"
+    },
+    {
+      "id": "T-PAY-MULTI",
+      "type": "multi_store_growth",
+      "scale": "26人，3店，在施12个项目",
+      "focus": "跨店工资可见性、项目归属和企业费用隔离"
+    },
+    {
+      "id": "T-PAY-LEAN",
+      "type": "lean_team",
+      "scale": "6人，角色兼任，在施2个项目",
+      "focus": "财务+BOSS兼任、异常补录和发放失败恢复"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "SCN-PAY-001",
+      "user": "财务、店长、BOSS",
+      "trigger": "月末结算固定工资",
+      "precondition": "员工已配置薪酬方案，当月考勤已申报",
+      "action": "店长确认考勤，财务生成并提交工资单，BOSS确认",
+      "system_next": "生成员工工资应付并计成本，财务发放后写资金台账",
+      "exception": "考勤未确认时禁止确认工资单；发放失败保留应付，重试不重复写流水"
+    },
+    {
+      "id": "SCN-PAY-002",
+      "user": "设计师、财务、BOSS",
+      "trigger": "主合同签约并发生客户回款",
+      "precondition": "提成基数、手工比例和项目归属已确认",
+      "action": "签约时计提，回款后按累计有效回款比例自动释放",
+      "system_next": "形成提成应付、项目成本、员工发放和工资条明细",
+      "exception": "退款或跨期导致负向调整时进入下期，不反改已发放历史"
+    },
+    {
+      "id": "SCN-PAY-003",
+      "user": "店长",
+      "trigger": "查看本店员工工资",
+      "precondition": "企业启用员工薪酬且店长拥有本店工资配置权限",
+      "action": "查看本店员工应发、扣款和实发构成",
+      "system_next": "仅返回本店数据，敏感字段脱敏并记录访问留痕",
+      "exception": "跨店、跨企业、查看BOSS或财务工资时拒绝且不泄露存在性"
+    },
+    {
+      "id": "SCN-PAY-004",
+      "user": "普通员工",
+      "trigger": "工资条发布或提成状态变化",
+      "precondition": "员工属于当前企业且工资周期已发布",
+      "action": "查看本人工资条、提成和考勤",
+      "system_next": "只展示本人应发、扣款、实发和提成释放/发放状态",
+      "exception": "访问同事工资条或跨企业数据时拒绝"
+    }
+  ],
+  "permission_cases": [
+    {
+      "id": "PERM-PAY-001",
+      "role": "Boss",
+      "scope": "Company",
+      "action": "read_write_confirm_pay",
+      "object": "PayrollSheet",
+      "expected": "allow"
+    },
+    {
+      "id": "PERM-PAY-002",
+      "role": "Finance",
+      "scope": "Company",
+      "action": "read_write_pay",
+      "object": "PayrollSheet",
+      "expected": "allow"
+    },
+    {
+      "id": "PERM-PAY-003",
+      "role": "StoreManager",
+      "scope": "OwnStore",
+      "action": "read",
+      "object": "EmployeePayrollItem",
+      "expected": "allow"
+    },
+    {
+      "id": "PERM-PAY-004",
+      "role": "StoreManager",
+      "scope": "OtherStore",
+      "action": "read",
+      "object": "EmployeePayrollItem",
+      "expected": "deny"
+    },
+    {
+      "id": "PERM-PAY-005",
+      "role": "Employee",
+      "scope": "Self",
+      "action": "read",
+      "object": "Payslip",
+      "expected": "allow"
+    },
+    {
+      "id": "PERM-PAY-006",
+      "role": "Employee",
+      "scope": "Peer",
+      "action": "read",
+      "object": "Payslip",
+      "expected": "deny"
+    },
+    {
+      "id": "PERM-PAY-007",
+      "role": "Tenant-B-Employee",
+      "scope": "cross_tenant",
+      "action": "read",
+      "object": "Tenant-A-PayrollSheet",
+      "expected": "deny"
+    },
+    {
+      "id": "PERM-PAY-008",
+      "role": "Worker",
+      "scope": "WorkerPayroll",
+      "action": "read",
+      "object": "EmployeePayslip",
+      "expected": "deny"
+    }
+  ],
+  "money_cases": [
+    {
+      "id": "MONEY-PAY-001",
+      "source": "员工薪酬方案与月度考勤汇总",
+      "formula_or_snapshot": "日薪=月固定工资÷当月应出勤天数；应发=固定工资折算+提成+奖金+补贴；实发=应发−扣款",
+      "missing_value_policy": "考勤、归属或应计项缺失时工资单不可确认，不得按0计算",
+      "cross_page_expectation": "工资单、应付、发放流水和工资条金额一致"
+    },
+    {
+      "id": "MONEY-PAY-002",
+      "source": "主合同签约额、手工提成比例与有效回款",
+      "formula_or_snapshot": "累计应释放=min(提成金额,提成金额×累计有效回款÷主合同签约额)；本次释放=max(0,累计应释放−已释放)",
+      "missing_value_policy": "主合同签约额或比例缺失时提成不可计提；不得按0计算",
+      "cross_page_expectation": "提成详情、工资单、应付和资金台账可追溯同一释放事实"
+    },
+    {
+      "id": "MONEY-PAY-003",
+      "source": "工资项和提成项的项目/企业归属",
+      "formula_or_snapshot": "项目归属进入项目成本，企业归属进入企业费用；一项只能一个归属",
+      "missing_value_policy": "归属不完整时阻断确认，禁止重复计成本",
+      "cross_page_expectation": "项目账本、企业费用、工资单和应付口径一致"
+    },
+    {
+      "id": "MONEY-PAY-004",
+      "source": "员工发放与资金台账",
+      "formula_or_snapshot": "确认工资单/提成时生成应付并计成本，发放时核销应付并写Ledger",
+      "missing_value_policy": "发放失败保留未清应付；重试不得重复写流水",
+      "cross_page_expectation": "工资单、应付、发放记录和资金台账一致"
+    }
+  ],
+  "ux_cases": [
+    {
+      "id": "UX-PAY-001",
+      "platform": "App/微信小程序",
+      "viewport": "390 logical px",
+      "role": "Boss",
+      "path": "财务Tab-员工薪酬-工资单详情-确认",
+      "expected": "首屏显示待确认工资单、金额、项目和下一动作"
+    },
+    {
+      "id": "UX-PAY-002",
+      "platform": "App/微信小程序",
+      "viewport": "390 logical px",
+      "role": "Finance",
+      "path": "财务Tab-员工薪酬-工资单生成-提成释放-发起发放",
+      "expected": "财务可连续完成核算、提成查看和发放"
+    },
+    {
+      "id": "UX-PAY-003",
+      "platform": "App/微信小程序",
+      "viewport": "390 logical px",
+      "role": "StoreManager",
+      "path": "我的-本店薪酬-考勤确认-员工工资构成",
+      "expected": "只看本店，敏感字段不展示且状态可恢复"
+    },
+    {
+      "id": "UX-PAY-004",
+      "platform": "App/微信小程序",
+      "viewport": "390 logical px",
+      "role": "Employee",
+      "path": "我的-我的工资/提成/考勤",
+      "expected": "仅本人数据，金额、周期和状态清晰"
+    },
+    {
+      "id": "UX-PAY-005",
+      "platform": "App/微信小程序",
+      "viewport": "390 logical px",
+      "role": "Employee",
+      "path": "我的-我的工资/提成/考勤-发放前/发放后",
+      "expected": "发放前列表无工资条；发放成功后仅本人可见且显示已发状态"
+    }
+  ],
+  "acceptance": {
+    "positive": [
+      "财务生成工资单，BOSS确认后生成应付并计成本，发放后写一次资金台账",
+      "提成签约计提后按累计有效回款比例自动释放，跨页面金额一致",
+      "店长只查看本店工资构成，员工只查看本人工资条、提成和考勤",
+      "同一员工跨项目拆多条项目工资项后工资条正确汇总",
+      "工资单确认但未发放时员工端不可见，实际发放成功后才发布工资条"
+    ],
+    "negative": [
+      "跨租户、跨店和同事工资读取失败",
+      "考勤未确认、归属缺失或成本缺失时工资单不可确认",
+      "重复确认工资单或重复发放不重复生成应付和流水",
+      "员工工资不得复用工人工资语义或工人凭证补录流程",
+      "退款导致回款下降时不反改已发放历史，下期生成负向调整",
+      "未实际发放的工资单或发放失败的工资条不得出现在员工端"
+    ],
+    "evidence": [
+      "角色和路由截图",
+      "Provider请求与响应样例",
+      "工资单/提成状态变化记录",
+      "应付、成本、Ledger和工资条对账结果",
+      "跨店/跨企业/同事越权负例",
+      "专用测试企业数据"
+    ],
+    "batch_policy": "与员工工资、提成、考勤、工资条和员工发放作为一个冻结里程碑集中验证"
+  },
+  "evidence_refs": [
+    "DEC-017",
+    "BR-015",
+    "ANS-BIZ-20261006-002",
+    "EV-065",
+    "DEC-016",
+    "MET-002",
+    "EV-069"
+  ],
+  "business_questions": [],
+  "affected_lanes": [
+    "product-planning",
+    "development",
+    "acceptance"
+  ],
+  "marketing_evidence_boundary": {
+    "allowed": [],
+    "not_allowed": [
+      "未实现或未验收的薪酬、考勤、提成和工资条能力",
+      "员工或客户真实工资数据",
+      "公司经营利润和税务口径"
+    ],
+    "conditions": [
+      "功能实现并验收后，由业务智能体另行签发对外口径"
+    ]
+  },
+  "page_contracts": [
+    {
+      "page": "payroll/workbench",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "payroll/workbench/report"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/compensation-list",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "payroll/compensation/page"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/compensation-edit",
+      "roles": [
+        "boss"
+      ],
+      "apis": [
+        "payroll/compensation/info",
+        "payroll/compensation/save",
+        "payroll/compensation/update"
+      ],
+      "capabilities": [
+        "edit:payroll"
+      ]
+    },
+    {
+      "page": "payroll/attendance-monthly",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "attendance/summary/page",
+        "attendance/summary/build",
+        "attendance/summary/update"
+      ],
+      "capabilities": [
+        "edit:attendance"
+      ]
+    },
+    {
+      "page": "payroll/attendance-store",
+      "roles": [
+        "storeManager"
+      ],
+      "apis": [
+        "attendance/summary/page",
+        "attendance/summary/update"
+      ],
+      "capabilities": [
+        "edit:attendance"
+      ]
+    },
+    {
+      "page": "payroll/sheet-list",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "payroll/sheet/page"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/sheet-detail",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "payroll/sheet/info",
+        "payroll/sheet/update"
+      ],
+      "capabilities": [
+        "view:payroll",
+        "confirm:payroll"
+      ]
+    },
+    {
+      "page": "payroll/sheet-build",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "attendance/summary/page",
+        "payroll/commission/page",
+        "payroll/sheet/build"
+      ],
+      "capabilities": [
+        "edit:payroll"
+      ]
+    },
+    {
+      "page": "payroll/commission-list",
+      "roles": [
+        "boss",
+        "finance",
+        "storeManager"
+      ],
+      "apis": [
+        "payroll/commission/page"
+      ],
+      "capabilities": [
+        "view:commission"
+      ]
+    },
+    {
+      "page": "payroll/commission-detail",
+      "roles": [
+        "boss",
+        "finance",
+        "storeManager"
+      ],
+      "apis": [
+        "payroll/commission/info",
+        "payroll/commission/release/page"
+      ],
+      "capabilities": [
+        "view:commission"
+      ]
+    },
+    {
+      "page": "payroll/payment-create",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "payroll/sheet/page",
+        "payroll/commission/page",
+        "finance/payment/employee/save"
+      ],
+      "capabilities": [
+        "pay:payroll"
+      ]
+    },
+    {
+      "page": "payroll/payment-detail",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "finance/payment/employee/info",
+        "finance/payment/employee/update"
+      ],
+      "capabilities": [
+        "pay:payroll"
+      ]
+    },
+    {
+      "page": "payroll/store-payroll-list",
+      "roles": [
+        "storeManager"
+      ],
+      "apis": [
+        "payroll/store-payroll/page"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/store-payroll-detail",
+      "roles": [
+        "storeManager"
+      ],
+      "apis": [
+        "payroll/store-payroll/info"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/my-payroll",
+      "roles": [
+        "boss",
+        "finance",
+        "storeManager",
+        "teamLeader",
+        "marketer",
+        "designer",
+        "pm"
+      ],
+      "apis": [
+        "payroll/payslip/my/page",
+        "payroll/commission/my/page",
+        "attendance/summary/my"
+      ],
+      "capabilities": [
+        "view:ownPayslip"
+      ],
+      "visibility": "only_after_successful_payment"
+    },
+    {
+      "page": "payroll/payslip-detail",
+      "roles": [
+        "boss",
+        "finance",
+        "storeManager",
+        "teamLeader",
+        "marketer",
+        "designer",
+        "pm"
+      ],
+      "apis": [
+        "payroll/payslip/info"
+      ],
+      "capabilities": [
+        "view:ownPayslip"
+      ],
+      "visibility": "only_after_successful_payment"
+    },
+    {
+      "page": "payroll/employee-picker",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "company/employee/page"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    },
+    {
+      "page": "payroll/project-picker",
+      "roles": [
+        "boss",
+        "finance"
+      ],
+      "apis": [
+        "project/project/page"
+      ],
+      "capabilities": [
+        "view:payroll"
+      ]
+    }
+  ],
+  "change_scope": {
+    "new_domain_files": [
+      "src/domains/payroll/model.ts",
+      "src/domains/payroll/api.ts",
+      "src/domains/payroll/meta.ts",
+      "src/styles/payroll.scss"
+    ],
+    "new_pages": [
+      "src/subpackages/payroll/pages/workbench.vue",
+      "src/subpackages/payroll/pages/compensation-list.vue",
+      "src/subpackages/payroll/pages/compensation-edit.vue",
+      "src/subpackages/payroll/pages/attendance-monthly.vue",
+      "src/subpackages/payroll/pages/attendance-store.vue",
+      "src/subpackages/payroll/pages/sheet-list.vue",
+      "src/subpackages/payroll/pages/sheet-detail.vue",
+      "src/subpackages/payroll/pages/sheet-build.vue",
+      "src/subpackages/payroll/pages/commission-list.vue",
+      "src/subpackages/payroll/pages/commission-detail.vue",
+      "src/subpackages/payroll/pages/payment-create.vue",
+      "src/subpackages/payroll/pages/payment-detail.vue",
+      "src/subpackages/payroll/pages/my-payroll.vue",
+      "src/subpackages/payroll/pages/payslip-detail.vue",
+      "src/subpackages/payroll/pages/employee-picker.vue",
+      "src/subpackages/payroll/pages/project-picker.vue",
+      "src/subpackages/payroll/pages/store-payroll-list.vue",
+      "src/subpackages/payroll/pages/store-payroll-detail.vue"
+    ],
+    "existing_files": [
+      "src/pages.json",
+      "src/config/index.ts",
+      "src/roles/permission.ts",
+      "src/roles/guard.ts",
+      "src/roles/catalog.ts",
+      "src/pages/finance/index.vue",
+      "src/pages/mine/index.vue",
+      "src/pages/index/index.vue",
+      "src/domains/finance/model.ts",
+      "src/domains/finance/api.ts",
+      "src/subpackages/finance/pages/payments.vue",
+      "src/subpackages/finance/pages/payables.vue",
+      "src/subpackages/finance/pages/project.vue",
+      "src/subpackages/finance/pages/ledger.vue",
+      "src/subpackages/company/pages/member-detail.vue",
+      "src/pages/dynamic/index.vue"
+    ]
+  },
+  "verification": {
+    "static": [
+      "TypeScript类型检查",
+      "uni-app小程序构建",
+      "路由与权限检查",
+      "关键金额组件快照"
+    ],
+    "runtime": [
+      "专用测试企业",
+      "BOSS/财务/店长/员工四角色",
+      "正向工资链",
+      "提成自动释放链",
+      "跨店跨企业负例",
+      "发放失败重试幂等"
+    ],
+    "acceptance_needed": [
+      "独立验收账号",
+      "独立测试企业",
+      "工资/提成/应付/成本/Ledger/工资条六方对账"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { templateApi, type DocumentTemplateInfo } from '@/domains/document/api'
+import { templateApi, type DocumentLayoutConfig, type DocumentTemplateInfo, type DocumentTemplateVersionInfo } from '@/domains/document/api'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -64,17 +64,41 @@ const ORG_FIELDS = [
   { key: 'showServiceHotline', label: '服务热线' }
 ]
 
+const LAYOUT_BLOCKS: Array<{ key: string; label: string }> = [
+  { key: 'company', label: '企业抬头' },
+  { key: 'title', label: '凭证标题' },
+  { key: 'meta', label: '凭证信息' },
+  { key: 'amount', label: '金额区' },
+  { key: 'detail', label: '明细表' },
+  { key: 'sign', label: '签字栏' },
+  { key: 'footer', label: '页脚说明' }
+]
+
+const DEFAULT_LAYOUT: DocumentLayoutConfig = {
+  pageSize: 'A4',
+  orientation: 'portrait',
+  marginMm: 12,
+  blocks: LAYOUT_BLOCKS.map((item, index) => ({ key: item.key, visible: true, sort: (index + 1) * 10 })),
+  signatures: ['制单', '审核', '领款/付款人'],
+  footer: '本凭证为款项收付单据打印稿，用于企业留档；不属于会计记账凭证，不替代会计做账。'
+}
+
 const templateType = ref<TemplateType>('Payment')
 const presetCode = ref('')
 const fields = reactive<Record<string, boolean>>({ ...DEFAULT_FIELDS })
 const style = reactive({ primaryColor: '#0E8A7D', fontSize: 12, rowSpacing: 2 })
+const layout = reactive<DocumentLayoutConfig>(JSON.parse(JSON.stringify(DEFAULT_LAYOUT)))
 const form = reactive({ name: '工资发放凭证' })
-const templates = ref<Record<string, { name: string; fieldConfig: Record<string, boolean>; styleConfig: typeof style }>>({})
+const templates = ref<Record<string, { name: string; fieldConfig: Record<string, boolean>; styleConfig: typeof style; layoutConfig: DocumentLayoutConfig }>>({})
 const presets = ref<DocumentTemplateInfo[]>([])
 const activePresetCode = ref('')
+const activeTemplateId = ref('')
+const versions = ref<DocumentTemplateVersionInfo[]>([])
+const versionLoading = ref(false)
 const booting = ref(false)
 const loadError = ref('')
 const saving = ref(false)
+const publishing = ref(false)
 const canSave = computed(() => can(session.role, 'edit:doc-template'))
 
 const typeOptions: Array<{ label: string; value: TemplateType }> = [
@@ -127,9 +151,22 @@ async function boot() {
   try {
     const [list, presetList] = await Promise.all([templateApi.templates(), templateApi.presets()])
     presets.value = presetList
-    list.forEach((item) => { templates.value[item.type] = { name: item.name, fieldConfig: item.fieldConfig, styleConfig: item.styleConfig } })
+    list.forEach((item) => {
+      templates.value[item.presetCode || item.type] = {
+        name: item.name,
+        fieldConfig: item.fieldConfig,
+        styleConfig: item.styleConfig,
+        layoutConfig: item.layoutConfig ?? JSON.parse(JSON.stringify(DEFAULT_LAYOUT))
+      }
+    })
+    const enterprise = presetCode.value ? templates.value[presetCode.value] : undefined
     const preset = presetList.find((item) => item.presetCode === presetCode.value)
-    if (preset) {
+    if (enterprise) {
+      const template = list.find((item) => item.presetCode === presetCode.value && item.templateId)
+      activeTemplateId.value = template?.templateId ?? ''
+      apply(templateType.value)
+      if (activeTemplateId.value) await loadVersions(activeTemplateId.value)
+    } else if (preset) {
       templateType.value = preset.type as TemplateType
       applyPreset(preset)
     } else {
@@ -144,7 +181,7 @@ async function boot() {
 }
 
 function apply(type: TemplateType) {
-  const target = templates.value[type]
+  const target = templates.value[presetCode.value || type]
   Object.keys(DEFAULT_FIELDS).forEach((key) => { fields[key] = DEFAULT_FIELDS[key] })
   if (target) {
     Object.entries(target.fieldConfig).forEach(([key, value]) => { fields[key] = value })
@@ -152,27 +189,89 @@ function apply(type: TemplateType) {
     style.primaryColor = target.styleConfig.primaryColor
     style.fontSize = target.styleConfig.fontSize
     style.rowSpacing = target.styleConfig.rowSpacing
+    Object.assign(layout, JSON.parse(JSON.stringify(target.layoutConfig ?? DEFAULT_LAYOUT)))
   } else {
     form.name = type === 'Receipt' ? '客户收款凭证' : '工资发放凭证'
+    Object.assign(layout, JSON.parse(JSON.stringify(DEFAULT_LAYOUT)))
   }
 }
 
 function switchType(type: TemplateType) {
   templateType.value = type
   activePresetCode.value = ''
+  activeTemplateId.value = ''
   presetCode.value = ''
+  versions.value = []
   apply(type)
 }
 
 /** 套用平台常用模板：只改表单，保存后才成为企业模板。 */
 function applyPreset(preset: DocumentTemplateInfo) {
   activePresetCode.value = preset.presetCode || ''
+  activeTemplateId.value = ''
+  versions.value = []
   form.name = preset.name
   Object.keys(DEFAULT_FIELDS).forEach((key) => { fields[key] = DEFAULT_FIELDS[key] })
   Object.entries(preset.fieldConfig).forEach(([key, value]) => { fields[key] = value })
   style.primaryColor = preset.styleConfig.primaryColor
   style.fontSize = preset.styleConfig.fontSize
   style.rowSpacing = preset.styleConfig.rowSpacing
+  Object.assign(layout, JSON.parse(JSON.stringify(preset.layoutConfig ?? DEFAULT_LAYOUT)))
+}
+
+function setPageSize(value: string) {
+  if (value === 'A3' || value === 'A4' || value === 'A5') layout.pageSize = value
+}
+
+function moveLayoutBlock(index: number, delta: number) {
+  const ordered = [...layout.blocks].sort((left, right) => left.sort - right.sort)
+  const target = index + delta
+  if (target < 0 || target >= ordered.length) return
+  const current = ordered[index]
+  ordered[index] = ordered[target]
+  ordered[target] = current
+  ordered.forEach((item, order) => { item.sort = (order + 1) * 10 })
+  layout.blocks = ordered
+}
+
+async function loadVersions(templateId: string) {
+  if (!templateId) { versions.value = []; return }
+  versionLoading.value = true
+  try {
+    versions.value = await templateApi.templateVersions(templateId)
+  } catch (error) {
+    toastError(error, '版本历史加载失败')
+  } finally {
+    versionLoading.value = false
+  }
+}
+
+async function publish() {
+  if (!activeTemplateId.value || !canSave.value || publishing.value) return
+  publishing.value = true
+  try {
+    const saved = await templateApi.publishTemplate(activeTemplateId.value)
+    await loadVersions(activeTemplateId.value)
+    toast(`已发布 V${saved.publishedVersion ?? saved.version}`)
+  } catch (error) {
+    toastError(error, '模板发布失败')
+  } finally {
+    publishing.value = false
+  }
+}
+
+async function disable() {
+  if (!activeTemplateId.value || !canSave.value || publishing.value) return
+  publishing.value = true
+  try {
+    await templateApi.disableTemplate(activeTemplateId.value)
+    await loadVersions(activeTemplateId.value)
+    toast('发布版本已停用')
+  } catch (error) {
+    toastError(error, '模板停用失败')
+  } finally {
+    publishing.value = false
+  }
 }
 
 async function save() {
@@ -184,11 +283,20 @@ async function save() {
     Object.keys(DEFAULT_FIELDS).forEach((key) => { payload[key] = fields[key] })
     const saved = await templateApi.saveTemplate({
       type: templateType.value,
+      presetCode: activePresetCode.value || presetCode.value || undefined,
       name: form.name.trim() || (templateType.value === 'Receipt' ? '客户收款凭证' : '工资发放凭证'),
       fieldConfig: payload,
-      styleConfig: { ...style }
+      styleConfig: { ...style },
+      layoutConfig: JSON.parse(JSON.stringify(layout))
     })
-    templates.value[templateType.value] = { name: saved.name, fieldConfig: saved.fieldConfig, styleConfig: saved.styleConfig }
+    templates.value[saved.presetCode || saved.type] = {
+      name: saved.name,
+      fieldConfig: saved.fieldConfig,
+      styleConfig: saved.styleConfig,
+      layoutConfig: saved.layoutConfig ?? JSON.parse(JSON.stringify(DEFAULT_LAYOUT))
+    }
+    activeTemplateId.value = saved.templateId ?? ''
+    await loadVersions(activeTemplateId.value)
     hideLoading()
     toast(`已保存为企业模板（版本 ${saved.version}）`)
     presetCode.value = ''
@@ -277,10 +385,59 @@ async function save() {
           </view>
         </view>
 
+        <view class="tpl-block">
+          <text class="tpl-block__title">版式设置</text>
+          <view class="tpl-row">
+            <text class="tpl-label">纸张</text>
+            <picker :range="['A3','A4','A5']" @change="setPageSize(['A3','A4','A5'][Number(($event as any).detail.value)])">
+              <view class="tpl-input">{{ layout.pageSize }}</view>
+            </picker>
+          </view>
+          <view class="tpl-row">
+            <text class="tpl-label">方向</text>
+            <view class="tpl-types">
+              <view class="tpl-type" :class="{ 'tpl-type--on': layout.orientation === 'portrait' }" @tap="layout.orientation = 'portrait'">纵向</view>
+              <view class="tpl-type" :class="{ 'tpl-type--on': layout.orientation === 'landscape' }" @tap="layout.orientation = 'landscape'">横向</view>
+            </view>
+          </view>
+          <view class="tpl-row">
+            <text class="tpl-label">页边距 {{ layout.marginMm }} mm</text>
+            <slider class="tpl-slider" :value="layout.marginMm" :min="8" :max="20" :step="1" activeColor="#0E8A7D" @change="layout.marginMm = Number(($event as any).detail.value)" />
+          </view>
+        </view>
+
+        <view class="tpl-block">
+          <text class="tpl-block__title">区块顺序与显隐</text>
+          <view v-for="(block, index) in [...layout.blocks].sort((a, b) => a.sort - b.sort)" :key="block.key" class="tpl-layout-row">
+            <view class="tpl-field" @tap="block.visible = !block.visible">
+              <view class="tpl-check" :class="{ 'tpl-check--on': block.visible }" />
+              <text>{{ LAYOUT_BLOCKS.find((item) => item.key === block.key)?.label ?? block.key }}</text>
+            </view>
+            <view class="tpl-layout-actions">
+              <text class="tpl-layout-btn" @tap="moveLayoutBlock(index, -1)">上移</text>
+              <text class="tpl-layout-btn" @tap="moveLayoutBlock(index, 1)">下移</text>
+            </view>
+          </view>
+        </view>
+
         <view v-if="canSave" class="tpl-actions">
           <button class="tpl-save" :disabled="saving" @tap="save">保存为企业模板</button>
+          <view v-if="activeTemplateId" class="tpl-version-actions">
+            <button class="tpl-secondary" :disabled="publishing" @tap="publish">发布当前版本</button>
+            <button class="tpl-secondary" :disabled="publishing" @tap="disable">停用发布版本</button>
+          </view>
         </view>
         <view v-else class="tpl-tip">仅企业负责人可保存模板；当前为只读预览</view>
+
+        <view v-if="activeTemplateId" class="tpl-block">
+          <text class="tpl-block__title">版本历史</text>
+          <view v-if="versionLoading" class="tpl-tip">版本加载中…</view>
+          <view v-else-if="!versions.length" class="tpl-tip">暂无版本记录</view>
+          <view v-for="version in versions" :key="version.versionId" class="tpl-version-row">
+            <text class="tpl-version-name">V{{ version.version }} · {{ version.name }}</text>
+            <text class="tpl-version-status">{{ version.status }}</text>
+          </view>
+        </view>
       </view>
 
       <view class="tpl-preview">
@@ -347,8 +504,17 @@ async function save() {
 .tpl-color { width: 44rpx; height: 44rpx; border-radius: 10rpx; border: 2rpx solid transparent; }
 .tpl-color--on { border-color: $jzb-text-1; }
 .tpl-actions { padding: 8rpx 0 24rpx; }
+.tpl-layout-row { display: flex; align-items: center; justify-content: space-between; padding: 10rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.tpl-layout-actions { display: flex; gap: 18rpx; }
+.tpl-layout-btn { color: $jzb-primary-deep; font-size: $jzb-font-sm; }
 .tpl-save { height: 84rpx; line-height: 84rpx; color: #fff; background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary-deep 100%); border-radius: 999rpx; font-size: $jzb-font-md; }
 .tpl-save[disabled] { opacity: .6; }
+.tpl-version-actions { display: flex; gap: 16rpx; margin-top: 16rpx; }
+.tpl-secondary { flex: 1; height: 72rpx; line-height: 72rpx; color: $jzb-primary-deep; background: $jzb-primary-lighter; border-radius: 999rpx; font-size: $jzb-font-sm; }
+.tpl-secondary[disabled] { opacity: .5; }
+.tpl-version-row { display: flex; justify-content: space-between; padding: 14rpx 0; border-bottom: 1rpx solid $jzb-border-light; font-size: $jzb-font-sm; }
+.tpl-version-name { color: $jzb-text-1; }
+.tpl-version-status { color: $jzb-text-3; }
 .tpl-tip { padding: 16rpx 0 24rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .tpl-paper-wrap { max-height: 70vh; }
 .tpl-paper { padding: 26rpx 30rpx; background: #fff; border-radius: 12rpx; box-shadow: $jzb-shadow-card; color: $jzb-text-1; }

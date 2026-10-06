@@ -52,7 +52,7 @@ function openPreset(preset: DocumentTemplateInfo) {
 
 /** 打开企业模板：编辑已有版本。 */
 function openMine(template: DocumentTemplateInfo) {
-  uni.navigateTo({ url: `${P.financeVoucherTemplate}?type=${template.type}` })
+  uni.navigateTo({ url: `${P.financeVoucherTemplate}?type=${template.type}&preset=${template.presetCode ?? ''}` })
 }
 
 function openBlank() {
@@ -101,10 +101,10 @@ function openBlank() {
 
       <view class="vt-section">
         <text class="vt-section__title">我的模板</text>
-        <view v-for="template in mine" :key="template.type" class="vt-card" @tap="openMine(template)">
+        <view v-for="template in mine" :key="template.templateId ?? template.presetCode ?? template.type" class="vt-card" @tap="openMine(template)">
           <view class="vt-card__main">
             <text class="vt-card__name">{{ template.name }}</text>
-            <text class="vt-card__note">{{ typeLabel[template.type] || template.type }} · 企业版本 V{{ template.version }}</text>
+            <text class="vt-card__note">{{ typeLabel[template.type] || template.type }} · V{{ template.version }} · {{ template.publishedVersion ? `已发布 V${template.publishedVersion}` : '未发布' }}</text>
           </view>
           <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>

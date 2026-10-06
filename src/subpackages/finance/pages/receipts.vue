@@ -24,9 +24,10 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
   20
 )
 const editable = computed(() => can(session.role, 'edit:finance'))
+const refundMode = ref(false)
 const totals = ref({ total: 0, month: 0, count: 0 })
 
-onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onLoad((query) => { projectId.value = query?.projectId || ''; refundMode.value = query?.refund === '1'; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => { if (isLoggedIn()) void refreshAll() })
 onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
 
@@ -46,13 +47,15 @@ async function loadTotals() {
 }
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=receipt${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
-function openProject(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId=${id}` }) }
+function openReceipt(id: string) {
+  uni.navigateTo({ url: refundMode.value ? `${P.financeRefundCreate}?receiptId=${id}` : `${P.financeProject}?projectId=${items.value.find((item) => item.id === id)?.project.id || ''}` })
+}
 function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
 </script>
 
 <template>
   <view class="fin-page">
-    <JzPageHeader title="收款记录" subtitle="收款自动核销应收并生成资金流水" :right-text="editable ? '登记收款' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <JzPageHeader :title="refundMode ? '选择原收款' : '收款记录'" :subtitle="refundMode ? '选择一笔收款登记退款' : '收款自动核销应收并生成资金流水'" :right-text="!refundMode && editable ? '登记收款' : ''" :right-icon="!refundMode && editable ? 'plus' : undefined" @right="add" />
 
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">累计客户回款</text>
@@ -67,7 +70,7 @@ function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
     <view class="fin-body">
       <PageState v-if="loadError && !items.length" state="error" title="收款记录加载失败" :subtitle="loadError" @retry="refreshAll" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
-      <view v-for="item in items" :key="item.id" class="fin-card" @tap="openProject(item.project.id)">
+      <view v-for="item in items" :key="item.id" class="fin-card" @tap="openReceipt(item.id)">
         <view class="fin-card__top">
           <view class="fin-card__title">{{ item.project.name }}<text class="fin-card__sub">{{ item.receivable?.name || '应收核销' }} · {{ item.receivedAt }}</text></view>
           <text class="fin-card__amount fin-card__amount--income">+{{ money(item.amount) }}</text>

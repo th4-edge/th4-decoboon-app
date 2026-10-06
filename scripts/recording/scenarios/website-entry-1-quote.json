@@ -1,0 +1,17 @@
+{
+  "id": "website-entry-1-quote",
+  "title": "官网短视频 · 入口-1 报价漏项",
+  "scopeNote": "对应 DEC-030 入口-1（T1/T2 · P1 · S1 报价→立项）",
+  "loginTokenEnv": "ZHUANGDEQING_RECORD_DEV_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    { "id": "Q01", "action": "reLaunch", "url": "/pages/customer/list", "waitMs": 2400, "frameDurationMs": 2400, "caption": "客户不是一个联系方式，是一段要走到成交的关系" },
+    { "id": "Q02", "action": "navigateTo", "url": "/subpackages/quote/pages/list", "waitMs": 2200, "frameDurationMs": 2200, "caption": "报价保留版本和快照，不再是一张孤立的表" },
+    { "id": "Q03", "action": "navigateTo", "url": "/subpackages/quote/pages/workbench", "waitMs": 2200, "frameDurationMs": 2200, "caption": "报价工作台：客户确认的那一版，才是签约依据" },
+    { "id": "Q04", "action": "navigateTo", "url": "/subpackages/quote/pages/detail?id=${quoteid}", "requiresVars": ["quoteid"], "optional": true, "waitMs": 2400, "frameDurationMs": 2400, "caption": "报价详情：漏项和价格看得见" },
+    { "id": "Q05", "action": "navigateTo", "url": "/subpackages/quote/pages/quote-confirm?id=${quoteid}", "requiresVars": ["quoteid"], "optional": true, "waitMs": 2200, "frameDurationMs": 2200, "caption": "客户确认后进入合同，再生成项目" }
+  ]
+}

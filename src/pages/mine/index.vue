@@ -2,7 +2,7 @@
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
-import { P, goTab } from '@/config'
+import { P, goTab, runtime } from '@/config'
 import { isLoggedIn, logout, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
 import { ROLE_META } from '@/roles/catalog'
@@ -86,6 +86,7 @@ const groups = computed(() => {
   if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
   if (role.value === 'boss') business.push(cell('file-text', '付款计划模板', '收款节点、比例与触发条件', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
   if (role.value === 'boss') business.push(cell('calendar', '施工计划模板', '施工阶段、工期与验收方式', () => uni.navigateTo({ url: P.constructionPlanTemplates })))
+  if (employee && can(role.value, 'view:ownPayslip')) business.push(cell('wallet', '我的工资条', '已发放工资条、提成与考勤', () => uni.navigateTo({ url: P.payrollMyPayroll })))
   if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应商协作', '项目采购、到货、采购价与月结', () => uni.navigateTo({ url: P.supply })))
   if (employee && can(role.value, 'view:worker')) business.push(cell('users', '工人档案', '工人信息、工种与工资到账账户', () => uni.navigateTo({ url: P.laborWorkers })))
   if (SELECTION_FOLLOW_ROLES.includes(role.value)) business.push(cell('package', role.value === 'boss' ? '选材工作台' : '主材选材跟进', '在建项目选材进度、卡点与下一步', () => uni.navigateTo({ url: P.selectionBoard })))
@@ -105,7 +106,7 @@ const groups = computed(() => {
   support.push(cell('bell', '消息通知', '', () => uni.navigateTo({ url: P.msgList })))
   support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', () => uni.navigateTo({ url: P.helpCenter })))
   support.push(cell('message', '联系客服', '微信在线客服 / 客服邮箱', () => uni.navigateTo({ url: P.about })))
-  support.push(cell('info', '关于装得清', 'v1.0.0', () => uni.navigateTo({ url: P.about })))
+  support.push(cell('info', '关于装得清', `v${runtime.version}`, () => uni.navigateTo({ url: P.about })))
 
   return [
     { key: 'account', title: '账号与企业', subtitle: '企业身份、账号安全和订阅权益', items: account },

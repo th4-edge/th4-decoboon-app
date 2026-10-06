@@ -10,7 +10,7 @@ import { normalizeWorker } from '@/domains/labor/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
   FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, OpeningBalance, PartnerLedgerReport,
-  Payable, PayableStatus, PayableType, Payment, Receipt, Receivable,
+  Payable, PayableStatus, PayableType, Payment, Receipt, ReceiptRefund, Receivable,
   ReceivableStatus, ReceivableType, Settlement, SettlementStatus, VoucherReport
 } from './model'
 
@@ -92,6 +92,19 @@ function normalizeReceipt(raw: Raw): Receipt {
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
     receivedAt: raw.receivedAt ?? '', payerName: raw.payerName, voucherUrl: raw.voucherUrl, remark: raw.remark,
     createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizeReceiptRefund(raw: Raw): ReceiptRefund {
+  return {
+    id: String(raw.id ?? raw.refundId ?? ''),
+    project: normalizeProject(raw.project || {}),
+    receipt: normalizeReceipt(raw.receipt || {}),
+    customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    amount: num(raw.amount),
+    account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
+    refundAt: raw.refundAt ?? '',
+    reason: raw.reason,
+    createdAt: time(raw)
   }
 }
 function normalizePayable(raw: Raw): Payable {
@@ -306,6 +319,10 @@ export const financeApi = {
     paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceipt),
   createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizeReceipt(await post<Raw>('finance/receipt/save', { ...input, account: ACCOUNT_API[input.account] })),
+  refunds: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
+    paged(await post<PageResult<Raw> | Raw[]>('finance/refund/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceiptRefund),
+  createRefund: async (input: { receiptId: string; amount: number; account: FundAccount; refundAt: string; reason?: string; idempotencyKey: string }) =>
+    normalizeReceiptRefund(await post<Raw>('finance/refund/save', { ...input, account: ACCOUNT_API[input.account] })),
   payables: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/payable/page', {
       current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, urgent: params.urgent,

@@ -1,0 +1,17 @@
+{
+  "id": "website-entry-2-change",
+  "title": "官网短视频 · 入口-2 变更不同步",
+  "scopeNote": "对应 DEC-030 入口-2（T2 · P2 · S2 变更→重算）",
+  "loginTokenEnv": "ZHUANGDEQING_RECORD_DEV_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    { "id": "C01", "action": "reLaunch", "url": "/pages/project/list", "waitMs": 2400, "frameDurationMs": 2400, "caption": "客户临时改一项，后面谁该跟着改" },
+    { "id": "C02", "action": "navigateTo", "url": "/subpackages/project/pages/change-workbench", "waitMs": 2200, "frameDurationMs": 2200, "caption": "变更工作台：改了什么、谁确认、后面哪些事要跟上" },
+    { "id": "C03", "action": "navigateTo", "url": "/subpackages/project/pages/change?projectId=${projectid}", "requiresVars": ["projectid"], "optional": true, "waitMs": 2200, "frameDurationMs": 2200, "caption": "变更列表：一项变更带来的任务、材料、应收变化" },
+    { "id": "C04", "action": "navigateTo", "url": "/subpackages/project/pages/change-detail?projectId=${projectid}&changeId=${changeid}", "requiresVars": ["projectid", "changeid"], "optional": true, "waitMs": 2400, "frameDurationMs": 2400, "caption": "变更详情：影响范围可见，已发生的部分不抹掉" },
+    { "id": "C05", "action": "navigateTo", "url": "/subpackages/project/pages/material-plan?projectId=${projectid}", "requiresVars": ["projectid"], "optional": true, "waitMs": 2200, "frameDurationMs": 2200, "caption": "材料计划跟着变更走，采购不再按老版本" }
+  ]
+}

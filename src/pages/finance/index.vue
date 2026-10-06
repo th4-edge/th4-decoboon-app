@@ -22,6 +22,15 @@ import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 const summary = ref<FinanceSummary | null>(null)
 const metricDefinitions = ref<MetricDefinition[]>([])
 
+/** 只解释老板最容易混的几笔钱，口径与后端指标字典一致。 */
+const glossaryDifferences = [
+  '累计收款：从开始使用系统到现在，客户实际交到公司账上的钱，包含已经结清归档的项目。',
+  '本月回款：只看本月客户实际交到公司账上的钱。',
+  '资金收入：本月实际进公司账的钱，除客户回款外，还包含手工登记的其他收入。',
+  '已收金额：只看现在还在管的项目，已经和应收计划对上、确认收回来的钱，不包含已归档项目。',
+  '现金流：本月实际收到的钱减去实际花出去的钱，不是利润。'
+]
+
 /** 财务工作台内存缓存：只驻留当前 App 会话，不写入本地存储。 */
 let financeCache: { at: number; summary: FinanceSummary; metricDefinitions: MetricDefinition[] } | null = null
 const loading = ref(false)
@@ -103,6 +112,7 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     description: '先登记真实收付款，系统自动核销并进入资金台账',
     items: [
       { key: 'receipt', label: '登记收款', icon: 'wallet', tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt`, requiresEdit: true },
+      { key: 'refund', label: '客户退款', icon: 'file-text', tone: TOKEN_COLOR.dangerSoft, path: P.financeRefunds },
       { key: 'payment', label: '登记付款', icon: 'arrow-right', tone: TOKEN_COLOR.dangerSoft, path: `${P.financeEntry}?type=payment`, requiresEdit: true },
       { key: 'manual', label: '手工记账', icon: 'edit', tone: '#F1F4F7', path: `${P.financeEntry}?type=ledger`, requiresEdit: true }
     ]
@@ -116,6 +126,15 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
       { key: 'payables', label: '应付账款', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
       { key: 'salary', label: '工人工资', icon: 'users', tone: '#F3EFFA', path: `${P.financePayables}?type=salary` },
       { key: 'partners', label: '供应商往来', icon: 'users', tone: TOKEN_COLOR.warningSoft, path: P.financePartners }
+    ]
+  },
+  {
+    key: 'payroll',
+    title: '员工薪酬',
+    description: '员工工资与提成独立核算，发放后进入工资条和资金台账',
+    items: [
+      { key: 'employeeSalary', label: '员工工资', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollSheetList },
+      { key: 'employeeCommission', label: '员工提成', icon: 'chart', tone: '#E9F6F7', path: P.payrollCommissionList }
     ]
   },
   {
@@ -175,7 +194,7 @@ function openQuick(item: FinanceQuickItem) {
     </view>
 
     <view class="fin-body">
-      <JzMetricGlossary :metrics="metricDefinitions" title="财务数字怎么算？" subtitle="累计收款、资金收入、已收金额、现金流和账户余额的口径" />
+      <JzMetricGlossary :metrics="metricDefinitions" :differences="glossaryDifferences" title="财务数字怎么算？" subtitle="累计收款、本月回款、资金收入、现金流、账户余额分别是什么意思" />
     </view>
 
     <view class="fin-section">

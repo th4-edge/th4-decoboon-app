@@ -154,7 +154,7 @@ function choose(root: LedgerCategory, child?: LedgerCategory) {
   const node = child || root
   setLedgerCategoryPickerResult({
     action: 'select',
-    category: {
+    value: {
       id: node.id,
       name: node.name,
       path: child ? `${root.name} / ${child.name}` : root.name,

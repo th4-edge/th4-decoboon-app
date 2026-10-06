@@ -69,3 +69,38 @@ npm run record:site:dry -- --reuse-session
 - 默认不执行签署、付款、验收确认、邀请、消息发送和删除等有副作用的动作。
 - 有副作用的场景必须单独定义、单独授权，并明确前置数据、正向/反向结果和回滚方式。
 - 视频发布前仍需执行业务事实、客户授权、隐私和宣传边界门禁。
+
+---
+
+## 官网场景入口短成片（DEC-030）
+
+按官网 4 个场景入口各出一支 15–30 秒短成片，替代单支总览。场景文件：
+
+| 入口 | 场景文件 | npm 脚本 | 对应官网入口 |
+| --- | --- | --- | --- |
+| 入口-1 报价漏项 | `scenarios/website-entry-1-quote.json` | `npm run record:entry1` | T1/T2 · P1 · S1 |
+| 入口-2 变更不同步 | `scenarios/website-entry-2-change.json` | `npm run record:entry2` | T2 · P2 · S2 |
+| 入口-3 工地失控 | `scenarios/website-entry-3-site.json` | `npm run record:entry3` | T2/T1 · P3 · S3 |
+| 入口-4 回款与利润 | `scenarios/website-entry-4-finance.json` | `npm run record:entry4` | T1/T3 · P4+P5 · S4 |
+
+`record:site`（`website-boss-overview.json`）保留为总览，已被 4 支入口场景取代为官网主用素材。
+
+### 可选变量
+
+通过环境变量注入（`MP_` 前缀会转成小写变量）。缺失的步骤会 `SKIPPED`，不会失败：
+
+```bash
+MP_PROJECTID="<测试项目ID>"   # 项目详情/相册/变更/材料/旅程
+MP_QUOTEID="<测试报价ID>"     # 入口-1 报价详情与确认
+MP_CHANGEID="<测试变更ID>"    # 入口-2 变更详情
+```
+
+### 批量出片示例
+
+```bash
+ZHUANGDEQING_RECORD_DEV_TOKEN="<测试BOSS devToken>" \
+MP_PROJECTID="<测试项目ID>" MP_QUOTEID="<测试报价ID>" MP_CHANGEID="<测试变更ID>" \
+npm run record:entry1 && npm run record:entry2 && npm run record:entry3 && npm run record:entry4
+```
+
+> 录制前置条件、脱敏要求与成片门禁见 `ANS-BIZ-20261007-016`（装得清业务智能体）。

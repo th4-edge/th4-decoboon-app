@@ -1,3 +1,5 @@
+import { createPickerChannel, type PickerResult } from '@/domains/common/picker'
+
 /** 手工记账分类选择结果，与项目选择器一样通过一次性存储回传。 */
 export const LEDGER_CATEGORY_PICKER_KEY = 'finance_ledger_category_picker_result'
 
@@ -8,27 +10,21 @@ export interface LedgerCategorySelection {
   direction: 'income' | 'expense'
 }
 
-export type LedgerCategoryPickerResult =
-  | { action: 'select'; category: LedgerCategorySelection }
-  | { action: 'clear' }
+export type LedgerCategoryPickerResult = PickerResult<LedgerCategorySelection>
+
+function isCategorySelection(value: unknown): value is LedgerCategorySelection {
+  if (!value || typeof value !== 'object') return false
+  const category = value as Partial<LedgerCategorySelection>
+  return Boolean(category.id && category.name
+    && (category.direction === 'income' || category.direction === 'expense'))
+}
+
+const channel = createPickerChannel<LedgerCategorySelection>(LEDGER_CATEGORY_PICKER_KEY, isCategorySelection)
 
 export function setLedgerCategoryPickerResult(result: LedgerCategoryPickerResult) {
-  uni.setStorageSync(LEDGER_CATEGORY_PICKER_KEY, JSON.stringify(result))
+  channel.set(result)
 }
 
 export function consumeLedgerCategoryPickerResult(): LedgerCategoryPickerResult | null {
-  const raw = uni.getStorageSync(LEDGER_CATEGORY_PICKER_KEY)
-  if (!raw) return null
-  uni.removeStorageSync(LEDGER_CATEGORY_PICKER_KEY)
-  try {
-    const result = JSON.parse(String(raw)) as LedgerCategoryPickerResult
-    if (result?.action === 'clear') return result
-    if (result?.action === 'select') {
-      const category = result.category
-      if (category?.id && category?.name && (category.direction === 'income' || category.direction === 'expense')) return result
-    }
-  } catch {
-    // 存储损坏时忽略，不覆盖当前分类
-  }
-  return null
+  return channel.consume()
 }

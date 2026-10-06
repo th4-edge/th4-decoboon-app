@@ -53,23 +53,27 @@ export type Capability =
   | 'view:performance'
   | 'view:workbench'
   | 'view:measure-workbench'
+  | 'view:payroll'
+  | 'edit:payroll'
+  | 'confirm:payroll'
+  | 'pay:payroll'
+  | 'edit:attendance'
+  | 'view:ownPayslip'
+  | 'view:commission'
 
-const MATRIX: Record<RoleKey, Capability[]> = {
+type InternalRoleKey = Exclude<RoleKey, 'customer'>
+
+/**
+ * 内部岗位能力矩阵。BOSS 在运行时取全部内部岗位能力的并集，
+ * 外部主体专属能力（如业主本人确认）不进入内部矩阵。
+ */
+const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
+  // 仅 BOSS 独有的经营治理能力；其余内部能力由下方矩阵自动并集获得。
   boss: [
-    'edit:doc-template',
-    'view:worker',
-    'edit:catalog',
-    'view:catalog',
-    'view:design', 'edit:design', 'act:talk',
-    'view:company', 'view:allProjects', 'view:myProjects', 'view:customers', 'view:team',
+    'view:company',
     'view:subscription',
-    'view:schedule', 'view:task', 'view:inspection', 'view:material', 'view:supply', 'view:finance',
-    'view:contract', 'view:quote', 'view:approval', 'edit:finance', 'edit:project', 'edit:quote', 'edit:plan', 'edit:task',
-    'view:cost',
-    'act:report', 'act:startStage', 'act:acceptRequest', 'act:quote', 'act:followCustomer',
-    'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure', 'act:assignDesigner',
-    'act:convertCustomer', 'act:inviteMember', 'act:inviteCustomer', 'act:issue',
-    'act:material', 'view:notice', 'view:performance', 'view:workbench', 'view:measure-workbench'
+    'view:allProjects',
+    'view:workbench'
   ],
   storeManager: [
     'edit:doc-template',
@@ -82,7 +86,8 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成
     'act:startStage',
     'act:quote', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
-    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
+    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench',
+    'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
   teamLeader: [
     'view:catalog',
@@ -90,13 +95,13 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:myProjects', 'view:customers', 'view:team', 'view:schedule', 'view:task',
     'view:quote', 'edit:quote', 'act:quote', 'act:assignDesigner', 'act:inviteMember',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
+    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'view:ownPayslip', 'view:commission'
   ],
   marketer: [
     'view:design', 'view:quote',
     'view:myProjects', 'view:customers',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench'
+    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'view:ownPayslip', 'view:commission'
   ],
   designer: [
     'view:worker',
@@ -105,7 +110,7 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
     'edit:project', 'edit:plan', 'act:report', 'act:followCustomer', 'act:convertCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance'
+    'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   pm: [
     'view:worker', 'edit:worker',
@@ -113,7 +118,7 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:material', 'view:supply', 'view:quote',
     'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest',
-    'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance'
+    'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   finance: [
     'edit:doc-template',
@@ -123,8 +128,20 @@ const MATRIX: Record<RoleKey, Capability[]> = {
     'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
     'view:approval', 'view:supply',
-    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice'
-  ],
+    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice', 'view:payroll', 'edit:payroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
+  ]
+}
+
+/** 仅外部主体可执行的能力，BOSS 内部岗位超集也必须排除。 */
+const EXTERNAL_ONLY_CAPABILITIES: readonly Capability[] = ['act:acceptConfirm']
+
+const INTERNAL_CAPABILITIES = [
+  ...new Set(Object.values(INTERNAL_MATRIX).flat())
+].filter((capability) => !EXTERNAL_ONLY_CAPABILITIES.includes(capability))
+
+const MATRIX: Record<RoleKey, Capability[]> = {
+  ...INTERNAL_MATRIX,
+  boss: INTERNAL_CAPABILITIES,
   customer: [
     'view:myProjects', 'view:contract', 'act:acceptConfirm', 'view:notice'
   ]

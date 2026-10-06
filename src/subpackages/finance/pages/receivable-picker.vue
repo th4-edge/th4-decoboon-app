@@ -253,7 +253,7 @@ function choose(item: Receivable) {
 
 function confirmSelection() {
   if (!selected.value) { toast('请选择应收节点'); return }
-  setFinanceReceivablePickerResult({ action: 'select', receivable: selected.value })
+  setFinanceReceivablePickerResult({ action: 'select', value: selected.value })
   uni.navigateBack()
 }
 

@@ -856,6 +856,125 @@
             "pageOrientation": "landscape",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/refunds",
+          "style": {
+            "navigationBarTitleText": "客户退款",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/refund-create",
+          "style": {
+            "navigationBarTitleText": "登记客户退款",
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      ]
+    },
+    {
+      "root": "subpackages/payroll",
+      "pages": [
+        {
+          "path": "pages/workbench",
+          "style": {
+            "navigationBarTitleText": "员工薪酬",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/compensation-list",
+          "style": {
+            "navigationBarTitleText": "薪酬方案",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/attendance-list",
+          "style": {
+            "navigationBarTitleText": "月度考勤",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/payment-create",
+          "style": {
+            "navigationBarTitleText": "员工发放",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/sheet-list",
+          "style": {
+            "navigationBarTitleText": "工资单",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/sheet-detail",
+          "style": {
+            "navigationBarTitleText": "工资单详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/my-payroll",
+          "style": {
+            "navigationBarTitleText": "我的工资条",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/store-payroll",
+          "style": {
+            "navigationBarTitleText": "本店薪酬",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/adjustment-list",
+          "style": {
+            "navigationBarTitleText": "提成负向调整",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/commission-list",
+          "style": {
+            "navigationBarTitleText": "员工提成",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/compensation-edit",
+          "style": {
+            "navigationBarTitleText": "薪酬方案",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/attendance-edit",
+          "style": {
+            "navigationBarTitleText": "录入月度考勤",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/commission-edit",
+          "style": {
+            "navigationBarTitleText": "提成计提",
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -1052,24 +1171,21 @@
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
-        }
-        ,
+        },
         {
           "path": "pages/opening-balance",
           "style": {
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
-        }
-        ,
+        },
         {
           "path": "pages/payment-plan",
           "style": {
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
-        }
-        ,
+        },
         {
           "path": "pages/reconciliation",
           "style": {

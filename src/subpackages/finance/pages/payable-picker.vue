@@ -264,7 +264,7 @@ function choose(item: Payable) {
 
 function confirmSelection() {
   if (!selected.value) { toast('请选择应付单'); return }
-  setFinancePayablePickerResult({ action: 'select', payable: selected.value })
+  setFinancePayablePickerResult({ action: 'select', value: selected.value })
   uni.navigateBack()
 }
 

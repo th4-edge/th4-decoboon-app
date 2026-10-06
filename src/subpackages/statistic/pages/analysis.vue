@@ -21,6 +21,15 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 const month = ref(currentMonth())
 const dashboard = ref<BossDashboard | null>(null)
 const metricDefinitions = ref<MetricDefinition[]>([])
+
+/** 只解释老板最容易混的几个经营数字，口径与后端指标字典一致。 */
+const glossaryDifferences = [
+  '签约额：这个月新签合同一共多少钱，看的是签约日期。',
+  '回款额（口径名：本月回款）：这个月客户实际交到公司的钱，不看合同上约定还没收的部分。',
+  '项目毛利：项目收入减去项目成本；成本资料不完整时，不显示这个数字。',
+  '在建项目：还在准备、施工或者等待验收的项目，不包含已经完工、结算和归档的项目。',
+  '环比是和上个月比，同比是和去年同月比；没有可比较的月份时显示「暂无基期」。'
+]
 const alertReport = ref<BusinessAlertReport | null>(null)
 const projectReports = ref<FinanceProjectReport[]>([])
 const loading = ref(false)
@@ -80,7 +89,7 @@ async function load() {
       statisticApi.bossDashboard(apiMonth, storeId.value || undefined),
       statisticApi.alerts(),
       financeApi.projectPage({ size: 200 }),
-      statisticApi.metricDictionary(['signedAmount', 'monthReceiptAmount', 'receivedAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate'])
+      statisticApi.metricDictionary(['signedAmount', 'monthReceiptAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate'])
     ])
     dashboard.value = d
     metricDefinitions.value = dict
@@ -246,7 +255,7 @@ function currentMonth() {
       </view>
 
       <view class="ana-glossary">
-        <JzMetricGlossary :metrics="metricDefinitions" title="经营指标怎么算？" subtitle="签约额、回款额、项目毛利、在建项目的口径" />
+        <JzMetricGlossary :metrics="metricDefinitions" :differences="glossaryDifferences" title="经营指标怎么算？" subtitle="签约额、回款额、项目毛利、在建项目分别是什么意思" />
       </view>
 
       <view class="jz-section">

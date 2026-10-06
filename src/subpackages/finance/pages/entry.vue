@@ -173,7 +173,7 @@ onShow(async () => {
     const shouldOpenReceivable = pendingReceivableAfterProject && type.value === 'receipt'
     pendingReceivableAfterProject = false
     if (projectResult.action === 'clear') setProject(null)
-    else setProject(projectResult.project)
+    else setProject(projectResult.value)
     if (type.value === 'receipt' && form.projectId) {
       await loadReceivableContext()
       contextLoaded = true
@@ -191,11 +191,11 @@ onShow(async () => {
 
   if (receivableResult && type.value === 'receipt') {
     if (receivableResult.action === 'clear') clearReceivableSelection()
-    else setSelectedReceivable(receivableResult.receivable)
+    else setSelectedReceivable(receivableResult.value)
   }
   if (payableResult && type.value === 'payment') {
     if (payableResult.action === 'clear') clearPayableSelection()
-    else setSelectedPayable(payableResult.payable)
+    else setSelectedPayable(payableResult.value)
   }
 
   if (booting.value || contextLoaded) return

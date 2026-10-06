@@ -1,0 +1,17 @@
+{
+  "id": "website-entry-3-site",
+  "title": "官网短视频 · 入口-3 工地失控",
+  "scopeNote": "对应 DEC-030 入口-3（T2/T1 · P3 · S3 施工留证 + 验收整改）",
+  "loginTokenEnv": "ZHUANGDEQING_RECORD_DEV_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    { "id": "S01", "action": "reLaunch", "url": "/pages/project/list", "waitMs": 2400, "frameDurationMs": 2400, "caption": "项目现在做到哪一步，不靠群里最后一句" },
+    { "id": "S02", "action": "navigateTo", "url": "/subpackages/project/pages/detail?id=${projectid}", "requiresVars": ["projectid"], "optional": true, "waitMs": 2600, "frameDurationMs": 2600, "caption": "项目详情：阶段、任务和现场" },
+    { "id": "S03", "action": "navigateTo", "url": "/subpackages/project/pages/album?id=${projectid}", "requiresVars": ["projectid"], "optional": true, "waitMs": 2200, "frameDurationMs": 2200, "caption": "工地相册：现场证据回到项目，不留在个人手机" },
+    { "id": "S04", "action": "navigateTo", "url": "/subpackages/project/pages/rectify-board", "waitMs": 2200, "frameDurationMs": 2200, "caption": "整改看板：问题、责任人和轮次都留痕" },
+    { "id": "S05", "action": "navigateTo", "url": "/subpackages/project/pages/journey?projectId=${projectid}", "requiresVars": ["projectid"], "optional": true, "waitMs": 2200, "frameDurationMs": 2200, "caption": "业主同频：进度和待确认看得见" }
+  ]
+}

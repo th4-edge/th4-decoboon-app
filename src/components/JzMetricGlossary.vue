@@ -3,9 +3,15 @@ import { ref } from 'vue'
 import type { MetricDefinition } from '@/domains/statistic/model'
 import JzIcon from '@/components/JzIcon.vue'
 
-withDefaults(defineProps<{ metrics: MetricDefinition[]; title?: string; subtitle?: string }>(), {
+withDefaults(defineProps<{
+  metrics: MetricDefinition[]
+  title?: string
+  subtitle?: string
+  differences?: string[]
+}>(), {
   title: '这些数字怎么算？',
-  subtitle: '查看每个指标的定义、公式、来源、包含与不包含'
+  subtitle: '看看每个数字是什么意思、怎么算、包含什么',
+  differences: () => []
 })
 
 const show = ref(false)
@@ -24,7 +30,7 @@ const show = ref(false)
     <view v-if="show" class="jz-glossary__mask" @tap="show = false">
       <view class="jz-glossary__sheet" @tap.stop>
         <view class="jz-glossary__head">
-          <text class="jz-glossary__title">指标口径说明</text>
+          <text class="jz-glossary__title">{{ title }}</text>
           <text class="jz-glossary__close" @tap="show = false">关闭</text>
         </view>
         <scroll-view scroll-y class="jz-glossary__scroll">
@@ -34,21 +40,19 @@ const show = ref(false)
               <text class="jz-glossary__metric-user">{{ item.userLabel }}</text>
             </view>
             <text class="jz-glossary__line">{{ item.definition }}</text>
-            <text class="jz-glossary__line">公式：{{ item.formula }}</text>
-            <text class="jz-glossary__line">来源：{{ item.source }}</text>
-            <text class="jz-glossary__line">时间：{{ item.timeScope }}</text>
-            <text class="jz-glossary__line">范围：{{ item.dataScope }}</text>
-            <text class="jz-glossary__line">包含：{{ item.includes }}</text>
-            <text class="jz-glossary__line">不包含：{{ item.excludes }}</text>
-            <text class="jz-glossary__line">缺失：{{ item.missingValue }}</text>
-            <text class="jz-glossary__line">示例：{{ item.example }}</text>
-            <text class="jz-glossary__line">更新：{{ item.updatedAt }}</text>
+            <text class="jz-glossary__line">怎么算：{{ item.formula }}</text>
+            <text class="jz-glossary__line">数字从哪来：{{ item.source }}</text>
+            <text class="jz-glossary__line">统计时间：{{ item.timeScope }}</text>
+            <text class="jz-glossary__line">看数范围：{{ item.dataScope }}</text>
+            <text class="jz-glossary__line">算哪些：{{ item.includes }}</text>
+            <text class="jz-glossary__line">不算哪些：{{ item.excludes }}</text>
+            <text class="jz-glossary__line">没数据时：{{ item.missingValue }}</text>
+            <text class="jz-glossary__line">举例：{{ item.example }}</text>
+            <text class="jz-glossary__line">更新时间：{{ item.updatedAt }}</text>
           </view>
-          <view class="jz-glossary__compare">
-            <text class="jz-glossary__compare-title">常见差异</text>
-            <text class="jz-glossary__line">累计收款 ≠ 资金收入：资金收入 = 累计收款 + 手工登记的其他收入。</text>
-            <text class="jz-glossary__line">累计收款 ≠ 已收金额：已收金额只算当前在管项目的应收核销，不含历史归档项目。</text>
-            <text class="jz-glossary__line">项目毛利 ≠ 现金流：毛利是收入 − 成本，现金流是实际资金进出。</text>
+          <view v-if="differences.length" class="jz-glossary__compare">
+            <text class="jz-glossary__compare-title">容易混的地方</text>
+            <text v-for="(line, index) in differences" :key="index" class="jz-glossary__line">{{ line }}</text>
           </view>
           <view class="jz-glossary__bottom" />
         </scroll-view>

@@ -214,7 +214,7 @@ function projectLocation(item: Project) {
 function chooseProject(item: Project) {
   setFinanceProjectPickerResult({
     action: 'select',
-    project: {
+    value: {
       id: item.id,
       name: item.name,
       no: item.no,

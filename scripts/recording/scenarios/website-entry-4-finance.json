@@ -1,0 +1,17 @@
+{
+  "id": "website-entry-4-finance",
+  "title": "官网短视频 · 入口-4 回款与利润",
+  "scopeNote": "对应 DEC-030 入口-4（T1/T3 · P4+P5 · S4 采购→应付 + 财务）",
+  "loginTokenEnv": "ZHUANGDEQING_RECORD_DEV_TOKEN",
+  "projectPath": "dist/dev/mp-weixin",
+  "autoPort": 9420,
+  "windowOwner": "微信开发者工具",
+  "recordMode": "both",
+  "steps": [
+    { "id": "F01", "action": "reLaunch", "url": "/pages/finance/index", "waitMs": 2600, "frameDurationMs": 2600, "caption": "财务总览：收款、成本和经营口径" },
+    { "id": "F02", "action": "navigateTo", "url": "/subpackages/finance/pages/receivables", "waitMs": 2200, "frameDurationMs": 2200, "caption": "应收：待收和逾期一眼可见" },
+    { "id": "F03", "action": "navigateTo", "url": "/subpackages/finance/pages/receipts", "waitMs": 2200, "frameDurationMs": 2200, "caption": "收款：每一笔都有来源" },
+    { "id": "F04", "action": "navigateTo", "url": "/subpackages/finance/pages/ledger", "waitMs": 2200, "frameDurationMs": 2200, "caption": "资金台账：收支有据可查" },
+    { "id": "F05", "action": "navigateTo", "url": "/subpackages/finance/pages/vouchers", "waitMs": 2200, "frameDurationMs": 2200, "caption": "凭证：收付款可打印留档，不做法定记账凭证" }
+  ]
+}
