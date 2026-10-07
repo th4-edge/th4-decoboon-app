@@ -22,6 +22,18 @@ function valueOf(raw: unknown): string {
   return ''
 }
 
+const UNIT_LABEL: Record<string, string> = {
+  Area: '㎡', Block: '块', Centimeter: '厘米', Count: '个', Grid: '格', Hole: '个',
+  House: '户', Item: '项', Metre: '米', Pcs: '件', Place: '处', Plate: '块',
+  Root: '根', Set: '套', Sheet: '张', Step: '步', Stick: '根'
+}
+
+/** 计量单位必须显示中文符号；valueOf 对枚举返回的是 value（Area），不能直接展示。 */
+function unitLabel(raw: unknown): string {
+  const key = valueOf(raw)
+  return UNIT_LABEL[key] || key
+}
+
 const PM_TASK_STATUS: Record<string, TaskStatus> = {
   Todo: 'todo', Doing: 'doing', Accepting: 'accepting', Done: 'done', Cancelled: 'done'
 }
@@ -69,7 +81,7 @@ function normalizePmTask(raw: RawRecord): Task {
     zone: typeof zone === 'string' ? { id: zone, name: zone, sort: 0 } : zone,
     craft: raw.craft,
     spec: raw.spec,
-    unit: valueOf(raw.unit),
+    unit: unitLabel(raw.unit),
     quantity: raw.quantity == null ? undefined : Number(raw.quantity),
     owner: raw.owner ? normalizeEmployee(raw.owner) : undefined,
     status: PM_TASK_STATUS[valueOf(raw.status)] || 'todo',
@@ -119,7 +131,7 @@ function normalizePmMaterial(raw: RawRecord): MaterialPlan {
     brand: raw.catalogItem?.brand ?? raw.selectedBrand ?? raw.brand,
     series: raw.catalogItem?.series ?? raw.series,
     quantity: Number(raw.quantity ?? 0),
-    unit: valueOf(raw.unit),
+    unit: unitLabel(raw.unit),
     requiredAt: raw.requiredAt,
     arrivedAt: raw.arrivedAt,
     status: PM_MATERIAL_STATUS[valueOf(raw.status)] || 'planned'
