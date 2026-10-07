@@ -85,7 +85,7 @@ async function save() {
       <view class="ce__row">
         <text class="ce__label">手机号 <text class="req">*</text></text>
         <view class="ce__phone">
-          <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" :disabled="phoneLocked" />
+          <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" :disabled="phoneLocked" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           <text v-if="phoneLocked" class="ce__phone-lock">首联跟进后不可修改</text>
         </view>
       </view>
@@ -111,11 +111,11 @@ async function save() {
       </view>
       <view class="ce__row">
         <text class="ce__label">面积(㎡)</text>
-        <input v-model="area" type="digit" placeholder="例：118" />
+        <input v-model="area" type="digit" placeholder="例：118" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </view>
       <view class="ce__row">
         <text class="ce__label">预算(万)</text>
-        <input v-model="budget" type="digit" placeholder="例：30" />
+        <input v-model="budget" type="digit" placeholder="例：30" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </view>
       <view class="ce__row ce__row--col">
         <text class="ce__label">备注</text>

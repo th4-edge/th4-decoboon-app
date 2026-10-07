@@ -72,7 +72,7 @@ function pickTeam(event: { detail: { value: string } }) {
     <view class="ci-body">
       <view class="jz-card ci-form">
         <view class="ci-field"><text>姓名</text><input v-model="inviteName" maxlength="15" placeholder="被邀请人姓名" /></view>
-        <view class="ci-field"><text>手机号</text><input v-model="telNo" type="number" maxlength="11" placeholder="微信授权时必须一致" /></view>
+        <view class="ci-field"><text>手机号</text><input v-model="telNo" type="number" maxlength="11" placeholder="微信授权时必须一致" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view class="ci-field"><text>归属门店</text><text class="ci-field__readonly">{{ storeLabel }}</text></view>
         <view class="ci-field">
           <text>岗位</text>

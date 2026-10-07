@@ -83,7 +83,7 @@ async function save() {
       <view v-if="canEdit" class="jz-card mc__form">
         <text class="mc__form-title">{{ editingId ? '编辑分类' : '新增分类' }}</text>
         <input v-model="name" class="mc__input" placeholder="分类名称，如 瓷砖 / 地板 / 木门" />
-        <input v-model="lossRate" class="mc__input" type="digit" placeholder="默认损耗率，如 8 表示 8%" />
+        <input v-model="lossRate" class="mc__input jz-numeric-input" type="digit" placeholder="默认损耗率，如 8 表示 8%" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
         <view class="mc__form-actions">
           <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="saving" @tap="save">保存</button>
           <button v-if="editingId" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="startCreate">取消编辑</button>

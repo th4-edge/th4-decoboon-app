@@ -139,9 +139,9 @@ async function submit() {
         <view v-for="line in lines" :key="line.planId" class="jz-card mbo__line">
           <text class="mbo__line-name jz-clamp-2">{{ line.name }}</text>
           <view class="mbo__line-inputs">
-            <input v-model="line.quantity" class="mbo__input" type="digit" placeholder="数量" />
+            <input v-model="line.quantity" class="mbo__input jz-numeric-input" type="digit" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <text class="mbo__unit">{{ line.unit }}</text>
-            <input v-model="line.unitPrice" class="mbo__input" type="digit" placeholder="采购单价" />
+            <input v-model="line.unitPrice" class="mbo__input jz-numeric-input" type="digit" placeholder="采购单价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           </view>
         </view>
       </view>

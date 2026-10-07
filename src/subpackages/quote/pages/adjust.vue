@@ -169,7 +169,7 @@ async function deductDifference(line: QuoteItem) {
           <view class="qa__picker"><text>{{ selectedCatalog?.name || '选择报价项目' }}</text><JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" /></view>
         </picker>
         <text class="qa__label">数量</text>
-        <input v-model="quantity" type="digit" class="qa__input" placeholder="1" />
+        <input v-model="quantity" type="digit" class="qa__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </template>
       <button class="jz-btn jz-btn--primary jz-btn--block" @tap="submit">保存并重新计算</button>
     </view>

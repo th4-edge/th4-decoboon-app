@@ -153,7 +153,7 @@ async function save() {
       </view>
       <view class="pe__field">
         <text class="pe__label">面积(㎡)</text>
-        <input v-model="area" class="pe__input" type="digit" placeholder="例：118" />
+        <input v-model="area" class="pe__input jz-numeric-input" type="digit" placeholder="例：118" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </view>
       <view class="pe__field" @tap="openLayoutPicker">
         <text class="pe__label">户型</text>

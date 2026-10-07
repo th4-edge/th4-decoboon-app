@@ -249,22 +249,22 @@ async function submit() {
       <view class="jz-card cc__block" v-if="mode === 'single'">
         <view class="jz-form-row" v-if="type === 'add' || type === 'remove'">
           <text class="jz-form-label">{{ type === 'add' ? '增加金额' : '减少金额' }}</text>
-          <input v-model="amount" class="cc__input" type="digit" placeholder="0.00" />
+          <input v-model="amount" class="cc__input jz-numeric-input" type="digit" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           <text class="cc__unit">元</text>
         </view>
         <view class="jz-form-row" v-if="type === 'quantity' || type === 'replace'">
           <text class="jz-form-label">新数量</text>
-          <input v-model="quantity" class="cc__input" type="digit" :placeholder="line ? String(line.quantity) : '0'" />
+          <input v-model="quantity" class="cc__input jz-numeric-input" type="digit" :placeholder="line ? String(line.quantity) : '0'" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           <text class="cc__unit">{{ line?.unit || '' }}</text>
         </view>
         <view class="jz-form-row" v-if="type === 'replace' || type === 'price'">
           <text class="jz-form-label">新单价</text>
-          <input v-model="newPrice" class="cc__input" type="digit" :placeholder="line ? money(unitPrice) : '0.00'" />
+          <input v-model="newPrice" class="cc__input jz-numeric-input" type="digit" :placeholder="line ? money(unitPrice) : '0.00'" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           <text class="cc__unit">元</text>
         </view>
         <view class="jz-form-row" v-if="canViewCost && (type === 'add' || type === 'remove')">
           <text class="jz-form-label">成本变化</text>
-          <input v-model="costDelta" class="cc__input" type="digit" placeholder="0.00" />
+          <input v-model="costDelta" class="cc__input jz-numeric-input" type="digit" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
           <text class="cc__unit">元</text>
         </view>
       </view>
@@ -281,8 +281,8 @@ async function submit() {
           </view>
           <input v-model="row.name" class="cc__input cc__input--full" placeholder="项目名称，如客厅背景墙造型" />
           <view class="cc__row-grid">
-            <input v-model="row.amount" class="cc__input" type="digit" placeholder="金额" />
-            <input v-if="canViewCost" v-model="row.cost" class="cc__input" type="digit" placeholder="成本" />
+            <input v-model="row.amount" class="cc__input jz-numeric-input" type="digit" placeholder="金额" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-if="canViewCost" v-model="row.cost" class="cc__input jz-numeric-input" type="digit" placeholder="成本" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <picker :range="ITEM_TYPES" range-key="label" @change="row.itemType = ITEM_TYPES[Number(($event.detail as any).value)].key">
               <view class="cc__pick">{{ ITEM_TYPES.find((i) => i.key === row.itemType)?.label || '类型' }}</view>
             </picker>

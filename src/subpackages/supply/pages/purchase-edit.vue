@@ -133,11 +133,11 @@ async function save() {
       </view>
       <view class="pe__field">
         <text class="pe__label">本次采购数量</text>
-        <input v-model="quantity" type="digit" class="pe__input" :placeholder="`默认 ${currentPlan?.quantity || 0}`" />
+        <input v-model="quantity" type="digit" class="pe__input jz-numeric-input" :placeholder="`默认 ${currentPlan?.quantity || 0}`" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </view>
       <view class="pe__field">
         <text class="pe__label">本次执行单价</text>
-        <input v-model="unitPrice" type="digit" class="pe__input" placeholder="按供应商本次价格填写" />
+        <input v-model="unitPrice" type="digit" class="pe__input jz-numeric-input" placeholder="按供应商本次价格填写" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </view>
       <view class="pe__field pe__field--col">
         <text class="pe__label">交付方式</text>

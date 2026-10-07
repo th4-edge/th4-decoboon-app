@@ -377,6 +377,10 @@ button { margin: 0; }
 .jz-form-label { width: 168rpx; flex-shrink: 0; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .jz-form-control { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
 .jz-form-input { min-height: 84rpx; padding: 0 22rpx; display: flex; align-items: center; color: $jzb-text-1; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font; }
+
+/* 数字/金额输入：值保持右对齐，占位提示从左侧开始，避免空态被挤到单位旁。 */
+.jz-numeric-input { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+.jz-number-placeholder { color: $jzb-text-4; text-align: left; }
 .jz-form-textarea { width: 100%; min-height: 176rpx; margin-top: 14rpx; padding: 20rpx 22rpx; box-sizing: border-box; color: $jzb-text-1; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font; line-height: 1.6; }
 
 .jz-chip-row { display: flex; flex-wrap: wrap; gap: 12rpx; }
