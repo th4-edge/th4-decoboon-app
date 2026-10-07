@@ -2,14 +2,16 @@
 import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { isLoggedIn } from '@/domains/identity/session'
+import { isLoggedIn, session } from '@/domains/identity/session'
 import type { Contract, Quote } from '@/domains/trade/model'
 import { tradeApi } from '@/domains/trade/api'
 import { planApi } from '@/domains/plan/api'
+import { can } from '@/roles/permission'
+import { consumeConstructionPlanPickerResult, consumePaymentPlanPickerResult } from '@/domains/plan/plan-template-picker'
 import type { ConstructionPlanTemplate, PaymentPlanTemplate } from '@/domains/plan/model'
 import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
-import { toast, toastError, loading, hideLoading } from '@/composables/toast'
+import { toast, toastError, loading, hideLoading, confirm } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -33,6 +35,10 @@ const constructionPlanCode = ref('')
 const loadingData = ref(false)
 const submitting = ref(false)
 
+const canPrepareContract = computed(() => can(session.role, 'act:contractPrepare'))
+const canConfirmContract = computed(() => can(session.role, 'act:contractConfirm'))
+const canCreateProject = computed(() => can(session.role, 'act:projectCreate'))
+const canEnterContract = computed(() => canPrepareContract.value || canConfirmContract.value)
 const selectedQuote = computed(() => quotes.value.find((item) => item.id === quoteId.value))
 const selectedPaymentPlan = computed(() => paymentPlans.value.find((item) => item.code === paymentPlanCode.value))
 const selectedConstructionPlan = computed(() => constructionPlans.value.find((item) => item.code === constructionPlanCode.value))
@@ -40,18 +46,40 @@ watch(selectedPaymentPlan, (plan) => {
   if (plan) paymentTerms.value = plan.nodes.map((node) => `${node.name}${(node.ratio * 100).toFixed(0)}%`).join(' / ')
 })
 const projectId = computed(() => contract.value?.projectId || '')
+const contractSigned = computed(() => !!contract.value && !['draft', 'pendingSign'].includes(contract.value.status))
+const signFieldsEditable = computed(() => !!contract.value && ['draft', 'pendingSign'].includes(contract.value.status) && canConfirmContract.value)
+const planFieldsEditable = computed(() => !contract.value ? canPrepareContract.value : signFieldsEditable.value)
+const effectiveFieldsEditable = computed(() => {
+  if (projectId.value) return false
+  if (!contract.value) return canPrepareContract.value
+  if (['draft', 'pendingSign'].includes(contract.value.status)) return canConfirmContract.value
+  return contract.value.status === 'signed' && canCreateProject.value
+})
 const contractStatusText = computed(() => {
   if (!contract.value) return '待生成'
   return CONTRACT_STATUS_META[contract.value.status] || contract.value.status
 })
 const actionText = computed(() => {
+  if (!canEnterContract.value) return '合同签约需设计师发起并由负责人确认'
   if (!selectedQuote.value) return '请先选择客户已确认报价'
-  if (!contract.value) return '生成合同基线'
+  if (!contract.value) return canPrepareContract.value ? '提交合同签约' : '生成合同基线'
   if (projectId.value) return '查看已生成项目'
   if (contract.value.status === 'terminated' || contract.value.status === 'closed') return '合同已关闭'
-  return '确认生效并生成唯一项目'
+  if (contract.value.status === 'draft' || contract.value.status === 'pendingSign') {
+    return canConfirmContract.value ? '调整并确认签约' : '已提交，等待负责人确认'
+  }
+  if (contract.value.status === 'signed') {
+    return canCreateProject.value ? '确认生效并生成项目' : '等待负责人确认生效'
+  }
+  return '合同状态暂不可推进'
 })
-const canSubmit = computed(() => !!selectedQuote.value && contract.value?.status !== 'terminated' && contract.value?.status !== 'closed')
+const canSubmit = computed(() => {
+  if (!canEnterContract.value || !selectedQuote.value) return false
+  if (projectId.value) return true
+  if (!contract.value) return canPrepareContract.value
+  if (['draft', 'pendingSign'].includes(contract.value.status)) return canConfirmContract.value
+  return contract.value.status === 'signed' && canCreateProject.value
+})
 
 const CONTRACT_STATUS_META: Record<ContractStatus, string> = {
   draft: '草稿', pendingSign: '待签约', signed: '已签约', effective: '已生效', changing: '变更中',
@@ -67,9 +95,45 @@ onLoad((query) => {
 })
 
 onShow(() => {
-  if (isLoggedIn()) void load()
+  if (!isLoggedIn()) {
+    uni.reLaunch({ url: P.login })
+    return
+  }
+  // 历史坑：FIX-037/038 深链可绕过 uni.addInterceptor，页面必须在 onShow 再校验一次。
+  // 无合同发起或确认能力时不渲染可操作页，退回报价详情并给出明确原因。
+  if (!canEnterContract.value) {
+    toast('只有设计师、店长或企业负责人可以进入合同流程')
+    setTimeout(() => {
+      const target = quoteId.value ? `${P.quoteDetail}?id=${quoteId.value}` : P.home
+      uni.redirectTo({ url: target, fail: () => uni.reLaunch({ url: target }) })
+    }, 350)
+    return
+  }
+  // 历史坑：必须先消费刚选择的计划，再回读已有合同，避免旧合同覆盖新选择。
+  applyPlanPickerResults()
+  void load()
 })
 
+function applyPlanPickerResults() {
+  const payment = consumePaymentPlanPickerResult()
+  if (payment) paymentPlanCode.value = payment.action === 'clear' ? '' : payment.value.code
+  const construction = consumeConstructionPlanPickerResult()
+  if (construction) constructionPlanCode.value = construction.action === 'clear' ? '' : construction.value.code
+}
+function openPaymentPlanPicker() {
+  if (!planFieldsEditable.value) {
+    toast(contract.value ? '合同已签约，不能再修改付款计划' : '当前角色不能修改付款计划')
+    return
+  }
+  uni.navigateTo({ url: `${P.paymentPlanPicker}?selectedCode=${encodeURIComponent(paymentPlanCode.value || '')}&selectedName=${encodeURIComponent(selectedPaymentPlan.value?.name || '')}` })
+}
+function openConstructionPlanPicker() {
+  if (!planFieldsEditable.value) {
+    toast(contract.value ? '合同已签约，不能再修改施工计划' : '当前角色不能修改施工计划')
+    return
+  }
+  uni.navigateTo({ url: `${P.constructionPlanPicker}?selectedCode=${encodeURIComponent(constructionPlanCode.value || '')}&selectedName=${encodeURIComponent(selectedConstructionPlan.value?.name || '')}` })
+}
 async function load() {
   loadingData.value = true
   try {
@@ -79,8 +143,7 @@ async function load() {
     ])
     paymentPlans.value = catalog.paymentPlans
     constructionPlans.value = catalog.constructionPlans
-    if (!paymentPlanCode.value) paymentPlanCode.value = paymentPlans.value[0]?.code || ''
-    if (!constructionPlanCode.value) constructionPlanCode.value = constructionPlans.value[0]?.code || ''
+
     quotes.value = customerId.value
       ? accepted.filter((item) => item.customer?.id === customerId.value)
       : accepted
@@ -101,9 +164,12 @@ async function selectQuote(quote: Quote) {
   quoteId.value = quote.id
   contract.value = await tradeApi.contractByQuote(quote.id).catch(() => null)
   finalSignedAmount.value = contract.value?.signedAmount ?? quote.amount
-  paymentPlanCode.value = contract.value?.paymentPlan?.sourceCode || paymentPlanCode.value
-  constructionPlanCode.value = contract.value?.constructionPlan?.sourceCode || constructionPlanCode.value
+  if (!paymentPlanCode.value) paymentPlanCode.value = contract.value?.paymentPlan?.sourceCode || ''
+  if (!constructionPlanCode.value) constructionPlanCode.value = contract.value?.constructionPlan?.sourceCode || ''
   if (contract.value?.signedAt) signedAt.value = contract.value.signedAt.slice(0, 10)
+  if (contract.value?.startDate) startDate.value = contract.value.startDate.slice(0, 10)
+  if (contract.value?.planEndDate) planEndDate.value = contract.value.planEndDate.slice(0, 10)
+  if (contract.value?.paymentTerms) paymentTerms.value = contract.value.paymentTerms
   if (quote.property?.id) propertyId.value = quote.property.id
 }
 
@@ -122,29 +188,37 @@ async function submit() {
     uni.navigateTo({ url: `${P.projectDetail}?id=${projectId.value}` })
     return
   }
-  if (!startDate.value || !planEndDate.value) {
-    toast('请选择计划开工和完工日期')
+
+  const needsPrepare = !contract.value
+  const needsConfirm = !!contract.value && ['draft', 'pendingSign'].includes(contract.value.status)
+  const needsProject = contract.value?.status === 'signed'
+  if (needsPrepare && !canPrepareContract.value) {
+    toast('等待设计师发起合同签约')
     return
   }
-  if (planEndDate.value < startDate.value) {
-    toast('计划完工日期不能早于开工日期')
+  if (needsConfirm && !canConfirmContract.value) {
+    toast('合同已提交，等待企业负责人或店长确认签约')
     return
   }
-  if (!finalSignedAmount.value || Number(finalSignedAmount.value) <= 0) {
-    toast('请填写大于 0 的最终签约价格')
+  if (needsProject && !canCreateProject.value) {
+    toast('合同已签约，等待企业负责人或店长确认生效')
     return
   }
-  if (!paymentPlanCode.value || !constructionPlanCode.value) {
-    toast('请选择付款计划和施工计划')
+  if (!needsPrepare && !needsConfirm && !needsProject) {
+    toast('当前合同状态暂不可推进')
     return
   }
+  if (needsPrepare && !validatePrepareInputs()) return
+  if (needsConfirm && !validateSigningInputs()) return
+  if (needsProject && !validateEffectiveInputs()) return
+
   submitting.value = true
-  loading(contract.value ? '合同生效并生成项目…' : '生成合同基线…')
+  let fallback = '合同操作失败'
   try {
     if (!contract.value) {
+      fallback = '合同发起失败'
+      loading('生成合同基线…')
       contract.value = await tradeApi.generateContract(quote.id, {
-        signedAt: signedAt.value || undefined,
-        signedAmount: Number(finalSignedAmount.value),
         startDate: startDate.value,
         planEndDate: planEndDate.value,
         paymentTerms: paymentTerms.value.trim() || undefined,
@@ -152,17 +226,33 @@ async function submit() {
         constructionPlanCode: constructionPlanCode.value
       })
       hideLoading()
-      toast('合同基线已生成，请确认签约生效', 'success')
+      toast('合同已提交，等待企业负责人或店长确认签约', 'success')
       return
     }
+
     if (contract.value.status === 'draft' || contract.value.status === 'pendingSign') {
+      fallback = '合同签约失败'
+      const ok = await confirm('确认签约', '确认该合同已完成签约？确认后进入已签约状态，再单独确认生效并生成项目。', '确认签约')
+      if (!ok) return
+      loading('确认合同签约…')
       contract.value = await tradeApi.updateContract(contract.value.id, 'signed', {
         signedAt: signedAt.value || undefined,
         signedAmount: Number(finalSignedAmount.value),
         paymentPlanCode: paymentPlanCode.value,
-        constructionPlanCode: constructionPlanCode.value
+        constructionPlanCode: constructionPlanCode.value,
+        startDate: startDate.value,
+        planEndDate: planEndDate.value,
+        paymentTerms: paymentTerms.value.trim() || undefined
       })
+      hideLoading()
+      toast('合同已签约，下一步确认生效并生成项目', 'success')
+      return
     }
+
+    fallback = '合同生效失败'
+    const ok = await confirm('确认合同生效', '合同生效后将创建唯一施工项目，并生成施工计划、材料预计划和应收计划。', '确认生效')
+    if (!ok) return
+    loading('确认合同生效并生成项目…')
     contract.value = await tradeApi.updateContract(contract.value.id, 'effective', {
       startDate: startDate.value,
       planEndDate: planEndDate.value,
@@ -172,10 +262,50 @@ async function submit() {
     toast('合同已生效，唯一项目和施工计划已生成', 'success')
   } catch (error) {
     hideLoading()
-    toastError(error, contract.value ? '合同生效失败' : '合同生成失败')
+    toastError(error, fallback)
   } finally {
     submitting.value = false
   }
+}
+
+function validatePrepareInputs() {
+  if (!selectedQuote.value) {
+    toast('请选择客户已确认报价')
+    return false
+  }
+  if (!paymentPlanCode.value || !constructionPlanCode.value) {
+    toast('请选择付款计划和施工计划')
+    return false
+  }
+  return true
+}
+
+function validateSigningInputs() {
+  if (!finalSignedAmount.value || Number(finalSignedAmount.value) <= 0) {
+    toast('请填写大于 0 的最终签约价格')
+    return false
+  }
+  if (!paymentPlanCode.value || !constructionPlanCode.value) {
+    toast('请选择付款计划和施工计划')
+    return false
+  }
+  if (!signedAt.value) {
+    toast('请选择签约日期')
+    return false
+  }
+  return validateEffectiveInputs()
+}
+
+function validateEffectiveInputs() {
+  if (!startDate.value || !planEndDate.value) {
+    toast('请选择计划开工和完工日期')
+    return false
+  }
+  if (planEndDate.value < startDate.value) {
+    toast('计划完工日期不能早于开工日期')
+    return false
+  }
+  return true
 }
 </script>
 
@@ -184,8 +314,8 @@ async function submit() {
     <view class="pc__notice jz-card">
       <view class="pc__notice-icon"><JzIcon name="shield-check" :size="38" :color="TOKEN_COLOR.purple" /></view>
       <view class="jz-grow">
-        <text class="pc__notice-title">报价确认 · 合同签约 · 唯一项目</text>
-        <text class="pc__notice-sub">一个房屋最多确认一份报价、生成一份合同和一个项目；合同生效后才进入施工履约。</text>
+        <text class="pc__notice-title">设计师发起 · 负责人确认 · 合同生效立项</text>
+        <text class="pc__notice-sub">设计师可发起并登记客户签约，企业负责人或店长复核调整后确认签约；合同生效才生成唯一项目。</text>
       </view>
     </view>
 
@@ -194,8 +324,8 @@ async function submit() {
         <text class="pc__step-no">01</text><text class="pc__step-name">确认报价</text>
       </view>
       <view class="pc__step-line" :class="{ 'pc__step-line--done': !!contract }" />
-      <view class="pc__step" :class="{ 'pc__step--done': !!contract }">
-        <text class="pc__step-no">02</text><text class="pc__step-name">合同签约</text>
+      <view class="pc__step" :class="{ 'pc__step--done': contractSigned }">
+        <text class="pc__step-no">02</text><text class="pc__step-name">确认签约</text>
       </view>
       <view class="pc__step-line" :class="{ 'pc__step-line--done': !!projectId }" />
       <view class="pc__step" :class="{ 'pc__step--done': !!projectId }">
@@ -208,7 +338,7 @@ async function submit() {
         <text class="pc__group">一、客户确认报价</text>
         <text class="pc__required">必选</text>
       </view>
-      <picker v-if="quotes.length" :range="quotes.map(item => `${item.customer?.name || '客户'} · ${money(item.amount)}`)" @change="pickQuote(Number($event.detail.value))">
+      <picker v-if="quotes.length" :disabled="!!contract || !canPrepareContract" :range="quotes.map(item => `${item.customer?.name || '客户'} · ${money(item.amount)}`)" @change="pickQuote(Number($event.detail.value))">
         <view class="pc__row">
           <text class="pc__label">客户报价</text>
           <view class="jz-grow pc__value" :class="{ 'pc__value--empty': !quoteId }">
@@ -245,30 +375,26 @@ async function submit() {
           v-model="finalSignedAmount"
           class="jz-grow pc__value jz-numeric-input"
           type="digit"
-          :disabled="Boolean(contract && contract.status !== 'draft' && contract.status !== 'pendingSign')"
+          :disabled="!signFieldsEditable"
           placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
         />
       </view>
-      <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
-      <view class="pc__row"><text class="pc__label">计划开工</text><picker mode="date" :value="startDate" @change="startDate = $event.detail.value"><view class="jz-grow pc__value">{{ startDate || '请选择' }}</view></picker></view>
-      <view class="pc__row"><text class="pc__label">计划完工</text><picker mode="date" :value="planEndDate" @change="planEndDate = $event.detail.value"><view class="jz-grow pc__value">{{ planEndDate || '请选择' }}</view></picker></view>
-      <view class="pc__row">
-        <text class="pc__label">付款计划</text>
-        <picker class="jz-grow" mode="selector" :range="paymentPlans" range-key="name" @change="paymentPlanCode = paymentPlans[Number($event.detail.value)]?.code || ''">
-          <view class="pc__value">{{ selectedPaymentPlan?.name || '请选择' }}</view>
-        </picker>
+      <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :disabled="!signFieldsEditable" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
+      <view class="pc__row"><text class="pc__label">计划开工</text><picker mode="date" :disabled="!effectiveFieldsEditable" :value="startDate" @change="startDate = $event.detail.value"><view class="jz-grow pc__value">{{ startDate || '请选择' }}</view></picker></view>
+      <view class="pc__row"><text class="pc__label">计划完工</text><picker mode="date" :disabled="!effectiveFieldsEditable" :value="planEndDate" @change="planEndDate = $event.detail.value"><view class="jz-grow pc__value">{{ planEndDate || '请选择' }}</view></picker></view>
+      <view class="pc__plan-block" :class="{ 'pc__plan-block--disabled': !planFieldsEditable }" @tap="openPaymentPlanPicker">
+        <view class="pc__plan-head"><text class="pc__label">付款计划</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <text class="pc__plan-name">{{ selectedPaymentPlan?.name || '选择付款计划模板' }}</text>
+        <text class="pc__plan-preview">{{ selectedPaymentPlan ? selectedPaymentPlan.nodes.map((node) => `${node.name} ${(node.ratio * 100).toFixed(0)}%`).join(' / ') : '按节点名称、比例、触发方式和默认模板选择' }}</text>
       </view>
-      <view v-if="selectedPaymentPlan" class="pc__plan-preview">{{ selectedPaymentPlan.nodes.map((node) => `${node.name} ${(node.ratio * 100).toFixed(0)}%`).join(' / ') }}</view>
-      <view class="pc__row">
-        <text class="pc__label">施工计划</text>
-        <picker class="jz-grow" mode="selector" :range="constructionPlans" range-key="name" @change="constructionPlanCode = constructionPlans[Number($event.detail.value)]?.code || ''">
-          <view class="pc__value">{{ selectedConstructionPlan?.name || '请选择' }}</view>
-        </picker>
+      <view class="pc__plan-block" :class="{ 'pc__plan-block--disabled': !planFieldsEditable }" @tap="openConstructionPlanPicker">
+        <view class="pc__plan-head"><text class="pc__label">施工计划</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <text class="pc__plan-name">{{ selectedConstructionPlan?.name || '选择施工计划模板' }}</text>
+        <text class="pc__plan-preview">{{ selectedConstructionPlan ? `${selectedConstructionPlan.totalDays}天 · ${selectedConstructionPlan.stages.map((stage) => stage.name).join(' → ')}` : '按总工期、阶段顺序和验收方式选择' }}</text>
       </view>
-      <view v-if="selectedConstructionPlan" class="pc__plan-preview">{{ selectedConstructionPlan.stages.map((stage) => stage.name).join(' → ') }}</view>
       <view class="pc__terms">
         <text class="pc__terms-label">付款说明（补充）</text>
-        <textarea v-model="paymentTerms" class="pc__terms-input" maxlength="128" auto-height placeholder="默认使用付款计划节点，可补充特殊约定" />
+        <textarea v-model="paymentTerms" class="pc__terms-input" :disabled="!effectiveFieldsEditable" maxlength="128" auto-height placeholder="默认使用付款计划节点，可补充特殊约定" />
       </view>
 
       <view class="pc__tip">
@@ -276,7 +402,12 @@ async function submit() {
       </view>
     </view>
 
-    <view class="jz-actionbar">
+    <view v-if="!canEnterContract" class="pc__permission jz-card">
+      <JzIcon name="lock" :size="34" :color="TOKEN_COLOR.warning" />
+      <text>合同签约由设计师发起，企业负责人或店长复核并确认。当前账号不能处理该合同流程。</text>
+    </view>
+
+    <view v-else class="jz-actionbar">
       <view class="jz-actionbar__inner">
         <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="!canSubmit" @tap="submit">{{ actionText }}</button>
       </view>
@@ -306,6 +437,10 @@ async function submit() {
 .pc__label { width: 170rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pc__value { padding: 0 8rpx; text-align: right; color: $jzb-text-1; font-size: $jzb-font; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pc__value--empty { color: $jzb-text-4; }
+.pc__plan-block { padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.pc__plan-block--disabled { opacity: .58; }
+.pc__plan-head { display: flex; align-items: center; justify-content: space-between; }
+.pc__plan-name { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .pc__plan-preview { margin: 0 0 16rpx 170rpx; padding: 16rpx 18rpx; color: $jzb-text-3; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .pc__arrow { margin-left: 8rpx; flex-shrink: 0; }
 .pc__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx 12rpx; margin-top: 18rpx; padding: 20rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius; font-size: $jzb-font-xs; }
@@ -322,4 +457,5 @@ async function submit() {
 .pc__loading, .pc__empty { display: flex; align-items: center; padding: 22rpx; margin-top: 16rpx; color: $jzb-text-2; background: $jzb-purple-soft; border-radius: $jzb-radius; font-size: $jzb-font-sm; }
 .pc__empty text { flex: 1; margin-left: 12rpx; }
 .pc__tip { margin-top: 26rpx; padding: 20rpx; color: $jzb-text-3; background: $jzb-bg-hover; border-radius: $jzb-radius; font-size: $jzb-font-xs; line-height: 1.7; }
+.pc__permission { display: flex; align-items: flex-start; gap: 14rpx; margin-top: 22rpx; padding: 24rpx; color: $jzb-text-2; background: $jzb-warning-soft; border-radius: $jzb-radius; font-size: $jzb-font-sm; line-height: 1.6; }
 </style>

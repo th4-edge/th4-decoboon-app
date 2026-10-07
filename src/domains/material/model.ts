@@ -9,12 +9,17 @@ export interface MaterialPlan {
   task?: Task
   catalogItemId?: string
   catalogItemType?: string
+  materialKey?: string
   name: string
   spec?: string
   brand?: string
   series?: string
   cost?: number
+  unitPrice?: number
   quantity: number
+  netQuantity?: number
+  lossRate?: number
+  lossQuantity?: number
   unit: string
   requiredAt?: string
   arrivedAt?: string
@@ -24,6 +29,19 @@ export interface MaterialPlan {
 
 export type DeliveryMode = 'direct' | 'warehouse'
 export type PurchaseStatus = 'draft' | 'submitted' | 'approved' | 'ordered' | 'partiallyReceived' | 'received' | 'rejected' | 'cancelled' | 'closed'
+
+export interface PurchaseOrderItemSummary {
+  id: string
+  materialPlanId?: string
+  materialName?: string
+  quantity: number
+  unit: string
+  unitPrice: number
+  amount: number
+  receivedQuantity: number
+  status: PurchaseStatus
+  priceSource?: string
+}
 
 export interface PurchaseOrder {
   id: string
@@ -49,6 +67,7 @@ export interface PurchaseOrder {
   orderedAt?: string
   remark?: string
   createdAt?: string
+  items?: PurchaseOrderItemSummary[]
 }
 
 export interface GoodsReceipt {
@@ -190,6 +209,7 @@ export interface MaterialPlanWorkbenchItem {
   selectionStatus?: string
   selectionStatusName?: string
   purchaseId?: string
+  purchaseItemId?: string
   purchaseNo?: string
   supplierName?: string
   delayed: boolean

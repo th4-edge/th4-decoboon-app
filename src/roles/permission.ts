@@ -38,6 +38,9 @@ export type Capability =
   | 'act:startStage'
   | 'act:acceptRequest'
   | 'act:quote'
+  | 'act:contractPrepare'
+  | 'act:contractConfirm'
+  | 'act:projectCreate'
   | 'act:acceptConfirm'
   | 'act:followCustomer'
   | 'act:recordWechat'
@@ -85,7 +88,8 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:schedule', 'view:task', 'edit:quote',
     // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成
     'act:startStage',
-    'act:quote', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
+    'act:quote', 'act:contractPrepare', 'act:contractConfirm', 'act:projectCreate',
+    'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
     'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench',
     'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
@@ -108,7 +112,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:catalog',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
-    'edit:project', 'edit:plan', 'act:report', 'act:followCustomer', 'act:convertCustomer',
+    'edit:project', 'edit:plan', 'act:report', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
     'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],

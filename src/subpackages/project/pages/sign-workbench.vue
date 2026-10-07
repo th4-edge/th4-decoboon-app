@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { workbenchApi } from '@/domains/workbench/api'
 import type { SignWorkbenchItem } from '@/domains/workbench/model'
 import { money } from '@/core/format'
@@ -45,8 +46,10 @@ const filtered = computed(() => {
   return items.value.filter(isDone)
 })
 
-/** 合同签约/生效角色矩阵（2026-10-06 用户确认）：企业负责人 + 店长。 */
-const canSign = computed(() => session.role === 'boss' || session.role === 'storeManager')
+/** FIX-038：设计师可发起/登记合同，店长和企业负责人可复核、确认签约和生效。 */
+const canPrepare = computed(() => can(session.role, 'act:contractPrepare'))
+const canConfirm = computed(() => can(session.role, 'act:contractConfirm'))
+const canEnterContract = computed(() => canPrepare.value || canConfirm.value)
 
 const counts = computed(() => ({
   all: items.value.length,
@@ -103,11 +106,11 @@ function goSign(item: SignWorkbenchItem) {
     openContract(item.contractId, item.projectId)
   } else if (item.converted && item.projectId) {
     openProject(item.projectId)
-  } else if (canSign.value) {
+  } else if (canEnterContract.value) {
     uni.navigateTo({ url: `${P.projectCreate}?customerId=${item.custId}&propertyId=${item.propertyId}&quoteId=${item.quoteId}` })
   } else {
     uni.navigateTo({ url: `${P.quoteDetail}?id=${item.quoteId}` })
-    uni.showToast({ title: '请联系企业负责人或店长完成合同签约', icon: 'none' })
+    uni.showToast({ title: '请联系设计师发起合同，或由企业负责人/店长确认', icon: 'none' })
   }
 }
 
@@ -129,7 +132,7 @@ function riskColor(level: string): string {
 
 <template>
   <view class="wb">
-    <JzPageHeader :title="canSign ? '企业合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
+    <JzPageHeader :title="canConfirm ? '企业合同确认' : canPrepare ? '我的合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
 
     <!-- 签约与履约概览 -->
     <view class="wb__summary jz-card">
@@ -240,7 +243,7 @@ function riskColor(level: string): string {
           </text>
           <view class="wb__actions">
             <view class="wb__btn wb__btn--primary" @tap.stop="goSign(item)">
-              <text>{{ item.converted ? '查看合同' : canSign ? '去签约' : '查看报价' }}</text>
+              <text>{{ item.converted ? '查看合同' : canConfirm ? '去确认' : canPrepare ? '去签约' : '查看报价' }}</text>
               <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.white" />
             </view>
           </view>

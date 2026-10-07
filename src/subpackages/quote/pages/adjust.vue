@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { catalogApi } from '@/domains/catalog/api'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import { P } from '@/config'
 import type { CatalogItem, CatalogType } from '@/domains/catalog/model'
 import type { Quote, QuoteItem } from '@/domains/trade/model'
 import { tradeApi } from '@/domains/trade/api'
+import { consumeQuoteLinePickerResult } from '@/domains/trade/quote-line-picker'
 import { money } from '@/core/format'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -17,12 +20,13 @@ const quote = ref<Quote | null>(null)
 const action = ref<AdjustAction>('add')
 const baseLineId = ref('')
 const catalogType = ref<CatalogType>('construction')
-const catalogItems = ref<CatalogItem[]>([])
 const catalogItemId = ref('')
+const selectedCatalog = ref<CatalogItem | null>(null)
+const catalogPickerVisible = ref(false)
 const quantity = ref('1')
 
 const baseLines = computed(() => (quote.value?.items || []).filter((line) => ['Base', 'base'].includes(String(line.role || '')) && line.included !== false))
-const selectedCatalog = computed(() => catalogItems.value.find((item) => item.id === catalogItemId.value))
+const baseLine = computed(() => (quote.value?.items || []).find((line) => line.id === baseLineId.value) || null)
 const actionOptions: { value: AdjustAction; label: string }[] = [
   { value: 'deduct', label: '扣减' }, { value: 'upgrade', label: '升级' },
   { value: 'replace', label: '替换' }, { value: 'add', label: '增项' }
@@ -43,8 +47,7 @@ onLoad((query) => {
 })
 
 async function initialize() {
-  await Promise.all([loadQuote(), loadCatalog()])
-  pickCatalog(0)
+  await loadQuote()
 }
 
 async function loadQuote() {
@@ -55,19 +58,31 @@ async function loadQuote() {
   }
 }
 
-async function loadCatalog() {
-  const page = await catalogApi.page({ type: catalogType.value, current: 1, size: 200 })
-  catalogItems.value = page.list
+onShow(() => {
+  const result = consumeQuoteLinePickerResult()
+  if (!result) return
+  baseLineId.value = result.action === 'clear' ? '' : result.value.id
+})
+
+function openBaseLinePicker() {
+  if (!quote.value) return
+  const query = [
+    `id=${encodeURIComponent(quote.value.id)}`,
+    baseLineId.value ? `selectedId=${encodeURIComponent(baseLineId.value)}` : '',
+    baseLine.value?.name ? `selectedName=${encodeURIComponent(baseLine.value.name)}` : ''
+  ].filter(Boolean).join('&')
+  uni.navigateTo({ url: `${P.quoteLinePicker}?${query}` })
 }
 
-async function switchCatalogType(value: CatalogType) {
-  catalogType.value = value
-  await loadCatalog()
-  pickCatalog(0)
+function openCatalogPicker() {
+  catalogPickerVisible.value = true
 }
 
-function pickCatalog(index: number) {
-  catalogItemId.value = catalogItems.value[index]?.id || ''
+function onCatalogSelect(item: CatalogItem) {
+  selectedCatalog.value = item
+  catalogItemId.value = item.id
+  catalogType.value = item.type || catalogType.value
+  catalogPickerVisible.value = false
 }
 
 async function submit() {
@@ -154,20 +169,26 @@ async function deductDifference(line: QuoteItem) {
 
       <template v-if="action !== 'add'">
         <text class="qa__label">基础套餐项目 <text class="req">*</text></text>
-        <picker :range="baseLines.map(item => `${item.name}（${money(item.amount || 0)}）`)" @change="baseLineId = baseLines[Number($event.detail.value)]?.id || ''">
-          <view class="qa__picker"><text>{{ baseLines.find(item => item.id === baseLineId)?.name || '选择基础项目' }}</text><JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" /></view>
-        </picker>
+        <view class="qa__biz-card" :class="{ 'qa__biz-card--empty': !baseLine }" @tap="openBaseLinePicker">
+          <view class="qa__biz-icon"><JzIcon name="file-text" :size="32" :color="TOKEN_COLOR.primary" /></view>
+          <view class="qa__biz-main">
+            <text class="qa__biz-name">{{ baseLine?.name || '选择基础项目' }}</text>
+            <text class="qa__biz-meta">{{ baseLine ? [baseLine.category, baseLine.space?.name, `${baseLine.quantity}${baseLine.unit}`, money(baseLine.amount || 0)].filter(Boolean).join(' · ') : '按分类、空间、品牌和金额定位套餐基线' }}</text>
+          </view>
+          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+        </view>
       </template>
 
       <template v-if="action !== 'deduct'">
-        <text class="qa__label">项目类型</text>
-        <view class="jz-chip-row">
-          <view v-for="item in catalogTypes" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': catalogType === item.value }" @tap="switchCatalogType(item.value)">{{ item.label }}</view>
-        </view>
         <text class="qa__label">报价项目 <text class="req">*</text></text>
-        <picker :range="catalogItems.map(item => `${item.name}（${item.brand || '无品牌'} / ${money(item.materialPrice + item.manualPrice)}）`)" @change="pickCatalog(Number($event.detail.value))">
-          <view class="qa__picker"><text>{{ selectedCatalog?.name || '选择报价项目' }}</text><JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" /></view>
-        </picker>
+        <view class="qa__biz-card" :class="{ 'qa__biz-card--empty': !selectedCatalog }" @tap="openCatalogPicker">
+          <view class="qa__biz-icon qa__biz-icon--warning"><JzIcon name="package" :size="32" :color="TOKEN_COLOR.warning" /></view>
+          <view class="qa__biz-main">
+            <text class="qa__biz-name">{{ selectedCatalog?.name || '选择报价项目' }}</text>
+            <text class="qa__biz-meta">{{ selectedCatalog ? [selectedCatalog.brand || '无品牌', selectedCatalog.spec, selectedCatalog.unit, money(selectedCatalog.materialPrice + selectedCatalog.manualPrice)].filter(Boolean).join(' · ') : '从企业报价项目库按分类、品牌和规格选择' }}</text>
+          </view>
+          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+        </view>
         <text class="qa__label">数量</text>
         <input v-model="quantity" type="digit" class="qa__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </template>
@@ -202,6 +223,14 @@ async function deductDifference(line: QuoteItem) {
       <view><text>税金</text><text>{{ money(quote.taxAmount || 0) }}</text></view>
       <view class="qa__summary-total"><text>报价合计</text><text>{{ money(quote.amount) }}</text></view>
     </view>
+
+    <CatalogPicker
+      :visible="catalogPickerVisible"
+      :type="catalogType"
+      title="选择报价项目"
+      @update:visible="catalogPickerVisible = $event"
+      @select="onCatalogSelect"
+    />
   </view>
 </template>
 
@@ -215,6 +244,13 @@ async function deductDifference(line: QuoteItem) {
 .qa__title { display: block; margin-bottom: 18rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 750; }
 .qa__label { display: block; margin: 22rpx 0 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .req { color: $jzb-danger; }
+.qa__biz-card { display: flex; align-items: center; gap: 16rpx; min-height: 104rpx; padding: 18rpx 20rpx; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
+.qa__biz-card--empty { background: $jzb-bg-hover; border-style: dashed; }
+.qa__biz-icon { width: 64rpx; height: 64rpx; flex: none; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 20rpx; }
+.qa__biz-icon--warning { background: $jzb-warning-soft; }
+.qa__biz-main { flex: 1; min-width: 0; }
+.qa__biz-name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qa__biz-meta { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.45; }
 .qa__picker, .qa__input { min-height: 82rpx; padding: 0 20rpx; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
 .qa__line { display: flex; align-items: center; gap: 12rpx; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .qa__line-name, .qa__line-meta { display: block; }

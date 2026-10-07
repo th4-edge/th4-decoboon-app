@@ -12,6 +12,7 @@ import { ACCEPT_RESULT_META } from '@/domains/acceptance/meta'
 import { projectApi } from '@/domains/project/api'
 import { acceptanceApi, acceptanceRoundApi } from '@/domains/acceptance/api'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import JzIcon from '@/components/JzIcon.vue'
 import JzActionCard from '@/components/JzActionCard.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -153,28 +154,28 @@ function roundLabel(r: AcceptanceRound['result']) { return ROUND_LABEL[r] }
 function roundColor(r: AcceptanceRound['result']) { return ROUND_COLOR[r] }
 function previewRound(urls: string[], current: string) { uni.previewImage({ urls, current }) }
 
-function chooseImage() {
+async function chooseImage() {
   const remain = 9 - images.value.length
   if (remain <= 0) return
-  uni.chooseImage({ count: remain, success: (res) => { images.value = [...images.value, ...res.tempFilePaths] } })
+  try { images.value = [...images.value, ...await chooseImages({ count: remain })] }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 function removeImage(i: number) { images.value.splice(i, 1) }
 function preview(i: number) { uni.previewImage({ urls: images.value, current: images.value[i] }) }
 function previewFull(im: string) { uni.previewImage({ urls: acceptance.value?.images || [], current: im }) }
-function chooseRectification() {
+async function chooseRectification() {
   const remain = 9 - rectificationImages.value.length
   if (remain <= 0) return
-  uni.chooseImage({ count: remain, success: (res) => { rectificationImages.value = [...rectificationImages.value, ...res.tempFilePaths] } })
+  try { rectificationImages.value = [...rectificationImages.value, ...await chooseImages({ count: remain })] }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 function removeRectification(i: number) { rectificationImages.value.splice(i, 1) }
 function previewRectification(i: number) { uni.previewImage({ urls: rectificationImages.value, current: rectificationImages.value[i] }) }
-function chooseRectificationIssueImage() {
+async function chooseRectificationIssueImage() {
   const remain = 9 - rectificationIssueImages.value.length
   if (remain <= 0) return
-  uni.chooseImage({
-    count: remain,
-    success: (res) => { rectificationIssueImages.value = [...rectificationIssueImages.value, ...res.tempFilePaths] }
-  })
+  try { rectificationIssueImages.value = [...rectificationIssueImages.value, ...await chooseImages({ count: remain })] }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 function removeRectificationIssueImage(i: number) { rectificationIssueImages.value.splice(i, 1) }
 function previewRectificationIssueImage(i: number) {

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import type { Employee } from '@/domains/identity/model'
-import { identityApi } from '@/domains/identity/api'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import type { CustomerBatchItem, CustomerBatchPreview } from '@/domains/crm/model'
 import { crmApi } from '@/domains/crm/api'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -13,17 +13,13 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 
 const text = ref('')
-const owners = ref<Employee[]>([])
-const ownerIndex = ref(0)
+const owner = ref<Employee | null>(null)
 const preview = ref<CustomerBatchPreview | null>(null)
 const parsing = ref(false)
 const submitting = ref(false)
 
 const isManager = computed(() => session.role === 'boss' || session.role === 'storeManager')
-const owner = computed(() => owners.value[ownerIndex.value] || null)
-const ownerLabel = computed(() => owner.value
-  ? `${owner.value.name} · ${owner.value.store?.name || '当前门店'}`
-  : '暂无可交付人员')
+const ownerLabel = computed(() => owner.value ? `${owner.value.name} · ${owner.value.store?.name || '当前门店'}` : '选择交付客户负责人')
 
 onLoad(async () => {
   if (!isManager.value) {
@@ -31,20 +27,16 @@ onLoad(async () => {
     setTimeout(() => uni.navigateBack(), 500)
     return
   }
-  try {
-    const all = await identityApi.employees()
-    const currentStoreId = session.emp?.store?.id
-    owners.value = all.filter((item) => item.status === 'active'
-      && (session.role === 'boss' || !currentStoreId || item.store?.id === currentStoreId))
-    ownerIndex.value = 0
-  } catch (error) {
-    toastError(error, '负责人列表加载失败')
-  }
 })
 
-function onOwnerChange(event: { detail: { value: string } }) {
-  ownerIndex.value = Number(event.detail.value || 0)
+onShow(() => {
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  owner.value = result.action === 'clear' ? null : result.value
   preview.value = null
+})
+function openOwnerPicker() {
+  uni.navigateTo({ url: `${P.employeePicker}?selectedId=${encodeURIComponent(owner.value?.id || '')}&selectedName=${encodeURIComponent(owner.value?.name || '')}` })
 }
 
 async function parse() {
@@ -124,19 +116,10 @@ function statusColor(item: CustomerBatchItem) {
           </view>
           <JzIcon name="users" :size="34" :color="TOKEN_COLOR.primary" />
         </view>
-        <picker
-          :range="owners"
-          range-key="name"
-          :value="ownerIndex"
-          :disabled="!owners.length"
-          @change="onOwnerChange"
-        >
-          <view class="cb__picker">
-            <text :class="{ 'cb__picker--empty': !owner }">{{ ownerLabel }}</text>
-            <JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" />
-          </view>
-        </picker>
-        <text v-if="!owners.length" class="cb__owner-empty">当前范围暂无可用在职员工</text>
+        <view class="cb__picker" @tap="openOwnerPicker">
+          <text :class="{ 'cb__picker--empty': !owner }">{{ ownerLabel }}</text>
+          <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
+        </view>
       </view>
 
       <view class="jz-card cb__input-card">

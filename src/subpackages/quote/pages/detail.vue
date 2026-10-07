@@ -53,7 +53,10 @@ const STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
 const MODE_META: Record<QuoteMode, string> = { package: '套餐报价', custom: '自定义报价', hybrid: '混合报价' }
 const canAct = computed(() => can(session.role, 'act:quote'))
 const canEdit = computed(() => can(session.role, 'edit:quote'))
-const canConvert = computed(() => can(session.role, 'act:convertCustomer'))
+const canPrepareContract = computed(() => can(session.role, 'act:contractPrepare'))
+const canConfirmContract = computed(() => can(session.role, 'act:contractConfirm'))
+const canCreateProject = computed(() => can(session.role, 'act:projectCreate'))
+const canEnterContract = computed(() => canPrepareContract.value || canConfirmContract.value)
 const canViewCost = computed(() => can(session.role, 'view:cost'))
 const canViewFinance = computed(() => can(session.role, 'view:finance'))
 const canApproveChange = computed(() => session.role === 'boss' || session.role === 'finance')
@@ -431,19 +434,6 @@ async function generateContract() {
   toProject()
 }
 
-async function effectiveContract() {
-  if (!contract.value || busy.value) return
-  const ok = await confirm('合同生效', '合同生效后将创建唯一施工项目，并生成材料预计划和应收计划。', '确认生效')
-  if (!ok) return
-  busy.value = true
-  try {
-    contract.value = await tradeApi.updateContract(contract.value.id, 'effective')
-    await loadDownstream()
-    toast('合同已生效，项目已创建', 'success')
-  } catch (error) {
-    toastError(error, '合同生效失败')
-  } finally { busy.value = false }
-}
 async function createChange() {
   if (!contract.value || busy.value) return
   const amountText = await openInputDialog({
@@ -578,9 +568,11 @@ async function confirmCustomerChange(change: ContractChange) {
     <view v-if="quote.status === 'accepted'" class="jz-card qd__handoff qd__handoff--accepted">
       <JzIcon name="check-circle" :size="34" :color="TOKEN_COLOR.primary" />
       <view class="jz-grow"><text class="qd__handoff-title">客户已确认报价，房屋报价已锁定</text><text class="qd__handoff-tip">该房屋不能再确认其他报价；生成唯一项目后，将通过合同基线、变更单和应收计划承接后续金额调整。</text></view>
-      <button v-if="canConvert && !contract" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="generateContract">生成合同</button>
-      <button v-else-if="canConvert && contract && contract.status !== 'effective'" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="effectiveContract">合同生效并生成项目</button>
+      <button v-if="canEnterContract && !contract" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="generateContract">{{ canPrepareContract ? '发起合同签约' : '生成合同基线' }}</button>
+      <button v-else-if="canConfirmContract && contract && contract.status !== 'effective'" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="generateContract">{{ contract.status === 'signed' ? '确认生效并生成项目' : '调整并确认签约' }}</button>
       <button v-else-if="project" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="openProject">查看项目</button>
+      <text v-else-if="contract && contract.status !== 'effective'" class="qd__handoff-permission">已提交，等待企业负责人或店长确认签约</text>
+      <text v-else-if="!canEnterContract" class="qd__handoff-permission">等待设计师发起或企业负责人确认合同签约</text>
     </view>
 
     <view v-if="quote.status === 'accepted' && contract" class="jz-card qd__contract">
@@ -607,7 +599,8 @@ async function confirmCustomerChange(change: ContractChange) {
 
       <view v-if="!contract" class="jz-card qd__contract-empty">
         <view class="jz-grow"><text class="qd__down-title">尚未生成合同基线</text><text class="qd__down-sub">合同基线冻结客户确认报价、合同金额和项目执行基准。</text></view>
-        <button v-if="canAct" class="jz-btn jz-btn--primary jz-btn--sm" :loading="busy" @tap="generateContract">生成合同基线</button>
+        <button v-if="canEnterContract" class="jz-btn jz-btn--primary jz-btn--sm" :loading="busy" @tap="generateContract">发起合同签约</button>
+        <text v-else class="qd__handoff-permission">等待设计师发起历史合同基线</text>
       </view>
 
       <view v-else class="jz-card qd__contract">
@@ -779,9 +772,9 @@ async function confirmCustomerChange(change: ContractChange) {
             <button class="jz-btn jz-btn--ghost qd__workflow-secondary" @tap="transition('rejected', '驳回报价', '确认驳回该报价？')">驳回</button>
             <button class="jz-btn jz-btn--primary qd__workflow-primary" @tap="transition('accepted', '确认客户接受', '确认客户已接受该报价？')">客户已接受</button>
           </template>
-          <button v-else-if="canConvert && quote.status === 'accepted'" class="jz-btn jz-btn--primary qd__workflow-primary" @tap="toProject">转为施工项目</button>
+          <button v-else-if="canEnterContract && quote.status === 'accepted'" class="jz-btn jz-btn--primary qd__workflow-primary" @tap="toProject">{{ !contract ? '发起合同签约' : contract.status === 'signed' && canCreateProject ? '确认生效并生成项目' : contract.status !== 'effective' && canConfirmContract ? '调整并确认签约' : '查看合同进度' }}</button>
           <button v-else-if="canEdit && quote.status === 'rejected'" class="jz-btn jz-btn--primary qd__workflow-primary" @tap="rebaseRejected">改版重报</button>
-          <view v-else class="qd__action-state"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /><text>{{ quote.status === 'converted' ? '已转为施工项目' : quote.status === 'superseded' ? '该报价已被确认报价替代，仅保留历史记录' : '报价推进中' }}</text></view>
+          <view v-else class="qd__action-state"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /><text>{{ quote.status === 'converted' ? '已转为施工项目' : quote.status === 'accepted' ? '等待设计师发起合同或企业负责人确认签约与生效' : quote.status === 'superseded' ? '该报价已被确认报价替代，仅保留历史记录' : '报价推进中' }}</text></view>
         </view>
       </view>
     </view>
@@ -1008,6 +1001,7 @@ async function confirmCustomerChange(change: ContractChange) {
 .qd__handoff--converted { border: 1rpx solid rgba(14,138,125,.18); background: linear-gradient(135deg, $jzb-text-inverse, $jzb-primary-lightest); }
 .qd__handoff-title { display: block; font-size: $jzb-font; font-weight: 750; }
 .qd__handoff-tip { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
+.qd__handoff-permission { flex-shrink: 0; max-width: 260rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; text-align: right; }
 .qd__contract-empty, .qd__contract, .qd__changes { margin-bottom: 16rpx; padding: 24rpx; }
 .qd__contract-empty { display: flex; align-items: center; gap: 16rpx; border: 1rpx dashed rgba(22,163,148,.28); background: $jzb-primary-lightest; }
 .qd__down-eyebrow { display: block; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 700; }

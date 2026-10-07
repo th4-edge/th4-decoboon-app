@@ -7,6 +7,7 @@ import { isCustomer } from '@/roles/permission'
 import { feedbackApi } from '@/domains/feedback/api'
 import type { CustomerFeedback, FeedbackKind, FeedbackType } from '@/domains/feedback/model'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
@@ -62,10 +63,11 @@ async function loadFeedback() {
   }
 }
 
-function chooseImage() {
+async function chooseImage() {
   const remain = 9 - images.value.length
   if (remain <= 0) return
-  uni.chooseImage({ count: remain, success: (res) => { images.value = [...images.value, ...res.tempFilePaths] } })
+  try { images.value = [...images.value, ...await chooseImages({ count: remain })] }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 function removeImage(index: number) { images.value.splice(index, 1) }
 function previewImage(index: number) { uni.previewImage({ urls: images.value, current: images.value[index] }) }

@@ -11,6 +11,7 @@ import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import { siteApi } from '@/domains/site/api'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import JzIcon from '@/components/JzIcon.vue'
 import { toast, loading, hideLoading } from '@/composables/toast'
 
@@ -63,13 +64,15 @@ function onType(t: ReportType) {
   type.value = t
   title.value = `${typeLabel(t)} · ${project.value?.name || ''}`
 }
-function chooseImage() {
+async function chooseImage() {
   const remain = 9 - images.value.length
   if (remain <= 0) { toast('最多 9 张'); return }
-  uni.chooseImage({
-    count: remain,
-    success: (res) => { images.value = [...images.value, ...res.tempFilePaths] }
-  })
+  try {
+    const paths = await chooseImages({ count: remain })
+    images.value = [...images.value, ...paths]
+  } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+  }
 }
 function removeImage(i: number) { images.value.splice(i, 1) }
 function preview(i: number) { uni.previewImage({ urls: images.value, current: images.value[i] }) }

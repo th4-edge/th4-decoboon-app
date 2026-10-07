@@ -53,6 +53,31 @@ expect(!bossBlock.includes('acceptConfirm') && !bossBlock.includes('业主确认
   '企业负责人首页不得把外部主体确认纳入内部能力超集')
 const bossPermissionBlock = permissions.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
 expect(bossPermissionBlock.includes("'view:workbench'"), '企业负责人缺少履约驾驶舱 capability')
+
+const designerBlock = actionSection.match(/designer:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
+const designerActions = [...designerBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1])
+const requiredDesignerActions = [
+  '待我设计',
+  '待我报价',
+  '合同签约',
+  '客户诉求',
+  '我的客户',
+  '报价池',
+  '设计业绩',
+  '消息通知'
+]
+expect(JSON.stringify(designerActions) === JSON.stringify(requiredDesignerActions),
+  '设计师首页快捷入口顺序未按 App 高频动作冻结')
+expect(!/key:\s*'customer-create'/.test(designerBlock),
+  '设计师首页仍直接展示登记客户，创建动作应留在客户列表内')
+expect(!/key:\s*'projects'/.test(designerBlock),
+  '设计师首页仍重复展示项目 Tab 的施工项目入口')
+expect(designerBlock.includes('path: P.designWorkbench') && designerBlock.includes('path: P.quoteWorkbench'),
+  '设计师首页缺少待我设计/待我报价工作台入口')
+expect(designerBlock.includes('path: P.signWorkbench'),
+  '设计师合同签约必须先进入签约工作台，不能直接进空表单')
+expect(designerBlock.includes('path: P.quoteList') && designerBlock.includes("label: '报价池'"),
+  '设计师首页报价池缺少独立命名或落点')
 expect(home.includes('经营专业工作台') && home.includes('professionalWorkbenches'),
   '企业负责人首页缺少二级专业工作台区')
 for (const label of ['量房经营', '选材工作台', '材料计划', '履约驾驶舱', '增减项经营', '员工绩效业绩']) {

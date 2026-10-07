@@ -202,6 +202,21 @@
             "backgroundColor": "#F4F7F8"
           }
         }
+        ,
+        {
+          "path": "pages/customer-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/property-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     },
     {
@@ -226,6 +241,13 @@
           "path": "pages/member-detail",
           "style": {
             "navigationBarTitleText": "员工详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/employee-picker",
+          "style": {
+            "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
         },
@@ -608,6 +630,13 @@
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/design-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -691,6 +720,21 @@
           "style": {
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/package-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+        ,
+        {
+          "path": "pages/quote-line-picker",
+          "style": {
+            "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
         }
@@ -1019,6 +1063,20 @@
             "navigationBarTitleText": "施工计划编辑",
             "backgroundColor": "#FFFFFF"
           }
+        },
+        {
+          "path": "pages/payment-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/construction-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -1121,6 +1179,20 @@
           "path": "pages/receipt-edit",
           "style": {
             "navigationBarTitleText": "确认材料到货",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/supplier-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/material-plan-picker",
+          "style": {
+            "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
         },
@@ -1246,7 +1318,8 @@
       "network": "all",
       "packages": [
         "subpackages/finance",
-        "subpackages/statistic"
+        "subpackages/statistic",
+        "subpackages/project"
       ]
     }
   },

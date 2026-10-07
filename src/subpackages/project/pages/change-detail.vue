@@ -6,6 +6,7 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
 import type { Contract, ContractChange, ContractChangeStatus } from '@/domains/trade/model'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { money } from '@/core/format'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -17,8 +18,8 @@ import PageState from '@/components/PageState/PageState.vue'
 
 const STATUS_META: Record<ContractChangeStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认', color: TOKEN_COLOR.purple },
-  customerConfirmed: { label: '客户已确认', color: TOKEN_COLOR.success },
+  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
 }
@@ -46,6 +47,7 @@ const canApprove = computed(() => ['boss', 'finance'].includes(role.value))
 const canConfirm = computed(() => ['boss', 'pm', 'designer'].includes(role.value))
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(role.value))
 const isConfirmed = computed(() => change.value?.status === 'customerConfirmed')
+const needsLegacyCustomerConfirm = computed(() => change.value?.status === 'approved' && change.value?.customerConfirmed === false)
 const currentAmount = computed(() => Number(contract.value?.currentAmount || 0))
 const delta = computed(() => Number(change.value?.amount || 0))
 const beforeAmount = computed(() => (isConfirmed.value ? currentAmount.value - delta.value : currentAmount.value))
@@ -80,7 +82,7 @@ async function approve() {
   busy.value = true
   try {
     await tradeApi.confirmContractChange(change.value.id, true, conclusion.value.trim() || undefined)
-    toast('变更已审批，等待客户确认', 'success')
+    toast('变更已审批并生效，合同与履约已同步', 'success')
     await load()
   } catch (error) {
     toastError(error, '审批失败')
@@ -101,16 +103,18 @@ async function reject() {
   } finally { busy.value = false }
 }
 
-function choosePhoto(target: 'signature' | 'evidence') {
-  uni.chooseImage({
-    count: target === 'signature' ? 1 : 9 - evidence.value.length,
-    success: (res) => {
-      const path = res.tempFilePaths[0]
-      if (!path) return
-      if (target === 'signature') signature.value = path
-      else evidence.value = [...evidence.value, ...res.tempFilePaths]
-    }
-  })
+async function choosePhoto(target: 'signature' | 'evidence') {
+  const count = target === 'signature' ? 1 : 9 - evidence.value.length
+  if (count <= 0) return
+  try {
+    const paths = await chooseImages({ count })
+    const path = paths[0]
+    if (!path) return
+    if (target === 'signature') signature.value = path
+    else evidence.value = [...evidence.value, ...paths]
+  } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+  }
 }
 
 async function upload(path: string): Promise<string> {
@@ -188,8 +192,10 @@ async function cancel() {
         <view class="cd__kv"><text>本次成本变化</text><text>{{ money(change.costDelta) }}</text></view>
       </view>
 
-      <view class="jz-card cd__block" v-if="change.evidenceImages?.length || change.signatureUrl">
-        <text class="cd__block-title">签证与签认</text>
+      <view class="jz-card cd__block" v-if="change.evidenceImages?.length || change.signatureUrl || change.customerConfirmed">
+        <text class="cd__block-title">客户线下确认与签认</text>
+        <view class="cd__kv" v-if="change.customerConfirmed"><text>确认事实</text><text>{{ change.customerConfirmedBy || '客户' }} · {{ change.customerConfirmMethod || '线下确认' }}</text></view>
+        <view class="cd__kv" v-if="change.customerConfirmedAt"><text>确认时间</text><text>{{ change.customerConfirmedAt }}</text></view>
         <view class="cd__photos">
           <image v-for="img in change.evidenceImages" :key="img" :src="img" mode="aspectFill" class="cd__photo" />
           <image v-if="change.signatureUrl" :src="change.signatureUrl" mode="aspectFill" class="cd__photo" />
@@ -214,7 +220,7 @@ async function cancel() {
             </view>
           </view>
           <view v-if="change.customerConfirmedAt" class="cd__node">
-            <text class="cd__node-title">客户已确认</text>
+            <text class="cd__node-title">已生效（客户线下已确认 + 企业审批通过）</text>
             <text class="cd__node-sub">{{ change.customerConfirmedAt }} · 合同金额、应收、任务、材料已同步</text>
           </view>
           <view v-if="change.status === 'pending'" class="cd__node cd__node--todo">
@@ -233,7 +239,7 @@ async function cancel() {
         <textarea v-model="conclusion" class="cd__ta" maxlength="200" placeholder="填写审批意见（驳回时必填）" />
       </view>
 
-      <view class="jz-card cd__block" v-if="change.status === 'approved' && canConfirm">
+      <view class="jz-card cd__block" v-if="needsLegacyCustomerConfirm && canConfirm">
         <view class="jz-between">
           <text class="cd__block-title">客户签认</text>
           <text class="cd__link" @tap="showConfirm = !showConfirm">{{ showConfirm ? '收起' : '展开登记' }}</text>
@@ -266,7 +272,7 @@ async function cancel() {
           <button class="jz-btn jz-btn--ghost" :disabled="busy" @tap="reject">驳回</button>
           <button class="jz-btn jz-btn--primary jz-grow" :disabled="busy" @tap="approve">审批通过</button>
         </template>
-        <template v-else-if="change.status === 'approved' && canConfirm">
+        <template v-else-if="needsLegacyCustomerConfirm && canConfirm">
           <button class="jz-btn jz-btn--primary jz-grow" :disabled="busy" @tap="submitConfirm">确认客户已认可</button>
         </template>
         <template v-else-if="change.status === 'pending'">

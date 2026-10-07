@@ -205,6 +205,10 @@ function normalizeFollow(raw: RawRecord): CustomerFollow {
 export interface CustomerPageQuery {
   current?: number
   size?: number
+  /** 姓名、手机号、小区或地址关键词。 */
+  keyword?: string
+  /** 客户生命周期状态（服务端 CustStatus 名称）。 */
+  stage?: string
   /** 门店维度筛选（服务端按数据范围校验） */
   storeId?: string
 }

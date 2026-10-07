@@ -10,6 +10,7 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzTabBar from '@/components/JzTabBar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
@@ -44,8 +45,8 @@ const loadingState = ref(true)
 const loadError = ref('')
 
 const role = computed(() => (session.role || '') as string)
-const canOrder = computed(() => ['boss', 'finance'].includes(role.value))
-const canConfirmArrival = computed(() => ['boss', 'finance', 'pm', 'designer'].includes(role.value))
+const canOrder = computed(() => ['boss', 'storeManager', 'finance'].includes(role.value))
+const canConfirmArrival = computed(() => ['boss', 'storeManager', 'finance', 'pm', 'designer'].includes(role.value))
 
 /** 企业负责人看全公司，财务看履约协同，其余角色看本人范围。 */
 const headerSubtitle = computed(() => {
@@ -262,13 +263,14 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
     toastError(new Error('该材料尚未下单，无法登记到场'), '暂不能登记到场')
     return
   }
-  uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${item.purchaseId}` })
+  const itemQuery = item.purchaseItemId ? `&purchaseItemId=${item.purchaseItemId}` : ''
+  uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${item.purchaseId}${itemQuery}` })
 }
 </script>
 
 <template>
   <view class="mpw">
-    <JzPageHeader title="材料计划工作台" :subtitle="headerSubtitle"  back />
+    <JzPageHeader title="材料计划工作台" :subtitle="headerSubtitle" />
 
     <PageState v-if="loadingState && !workbenches.length && !loadError" state="loading" :rows="5" />
     <PageState v-else-if="loadError && !workbenches.length" state="error" title="材料状态暂不可确认" :subtitle="loadError" @retry="load" />
@@ -427,6 +429,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
       <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="!selectedIds.length" @tap="openBatchOrder">合并下单</button>
     </view>
     <view class="jz-tabbar-gap" />
+    <JzTabBar :current="P.materialPlanWorkbench" />
   </view>
 </template>
 
@@ -483,7 +486,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
 .mpw__return-money { flex: 0 0 auto; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-success; }
 .mpw__return-reason { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .mpw__return-warn { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-danger; }
-.mpw__batchbar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
+.mpw__batchbar { position: fixed; left: 0; right: 0; bottom: calc(#{$jzb-tabbar-height} + #{$jzb-safe-bottom}); z-index: 101; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
 .mpw__batchbar-info { flex: 1; min-width: 0; }
 .mpw__batchbar-text { display: block; font-size: $jzb-font-sm; color: $jzb-text-1; font-weight: 650; }
 .mpw__batchbar-sub { display: block; margin-top: 4rpx; font-size: 20rpx; color: $jzb-text-3; }

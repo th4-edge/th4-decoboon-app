@@ -319,6 +319,7 @@ export const tradeApi = {
       contractId: string; reason: string; amount?: number; type?: NonNullable<ContractChange['type']>
       contractLineId?: string; newQuantity?: number; newPrice?: number; newCost?: number; costDelta?: number
       evidenceImages?: string[]; signatureUrl?: string; reportId?: string
+      customerConfirmedAt?: string; customerConfirmedBy?: string; customerConfirmMethod?: string
     } | string,
     amount?: number,
     reason?: string
@@ -330,7 +331,10 @@ export const tradeApi = {
       ...value,
       type: value.type ? CHANGE_TYPE_API[value.type] : undefined,
       evidenceImages: value.evidenceImages?.map((path) => fileApi.storagePath(path) || path),
-      signatureUrl: fileApi.storagePath(value.signatureUrl)
+      signatureUrl: fileApi.storagePath(value.signatureUrl),
+      customerConfirmedAt: value.customerConfirmedAt,
+      customerConfirmedBy: value.customerConfirmedBy,
+      customerConfirmMethod: value.customerConfirmMethod
     }).then(normalizeContractChange)
   },
   confirmContractChange: (changeId: string, approved: boolean, conclusion?: string) =>
@@ -352,12 +356,19 @@ export const tradeApi = {
     type?: NonNullable<ContractChange['type']>
     evidenceImages?: string[]
     signatureUrl?: string
+    customerConfirmedAt?: string
+    customerConfirmedBy?: string
+    customerConfirmMethod?: string
     items: Array<{
       name: string
       itemType?: string
       changeType?: NonNullable<ContractChange['type']>
-      amountDelta: number
-      costDelta: number
+      sourceLineId?: string
+      newQuantity?: number
+      newPrice?: number
+      newCost?: number
+      amountDelta?: number
+      costDelta?: number
       remark?: string
     }>
   }) =>
@@ -367,10 +378,17 @@ export const tradeApi = {
       type: input.type ? CHANGE_TYPE_API[input.type] : undefined,
       evidenceImages: input.evidenceImages?.map((path) => fileApi.storagePath(path) || path),
       signatureUrl: fileApi.storagePath(input.signatureUrl),
+      customerConfirmedAt: input.customerConfirmedAt,
+      customerConfirmedBy: input.customerConfirmedBy,
+      customerConfirmMethod: input.customerConfirmMethod,
       items: input.items.map((item) => ({
         name: item.name,
         itemType: item.itemType,
         changeType: item.changeType ? CHANGE_TYPE_API[item.changeType] : undefined,
+        sourceLineId: item.sourceLineId,
+        newQuantity: item.newQuantity,
+        newPrice: item.newPrice,
+        newCost: item.newCost,
         amountDelta: item.amountDelta,
         costDelta: item.costDelta,
         remark: item.remark

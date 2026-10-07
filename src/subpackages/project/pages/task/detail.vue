@@ -14,6 +14,7 @@ import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import { siteApi } from '@/domains/site/api'
 import { fileApi } from '@/domains/file/api'
+import { chooseMedia as selectMedia } from '@/domains/file/choose-media'
 import { toast, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -97,23 +98,13 @@ function nextTip(): string {
   return ''
 }
 
-function chooseMedia(): Promise<TaskMedia[]> {
-  return new Promise((resolve) => {
-    // @ts-ignore 小程序/App 支持 chooseMedia；H5 回退 chooseImage
-    if (typeof uni.chooseMedia === 'function') {
-      uni.chooseMedia({
-        count: 9, mediaType: ['image', 'video'], sourceType: ['album', 'camera'],
-        success: (r: any) => resolve((r.tempFiles || []).map((f: any) => ({ url: f.tempFilePath, type: f.fileType === 'video' ? 'video' : 'image' }))),
-        fail: () => resolve([])
-      })
-    } else {
-      uni.chooseImage({
-        count: 9, sourceType: ['album', 'camera'],
-        success: (r: any) => resolve(((r.tempFilePaths as string[]) || []).map((u: string) => ({ url: u, type: 'image' as const }))),
-        fail: () => resolve([])
-      })
-    }
-  })
+async function chooseMedia(): Promise<TaskMedia[]> {
+  try {
+    return await selectMedia({ count: 9, mediaType: ['image', 'video'] })
+  } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+    return []
+  }
 }
 
 async function confirmNode(key: TaskNodeKey) {

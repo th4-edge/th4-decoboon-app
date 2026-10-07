@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
-import { materialApi } from '@/domains/material/api'
+import { materialApi, materialSupplierApi } from '@/domains/material/api'
 import type { DeliveryMode, MaterialPlan } from '@/domains/material/model'
 import { supplyApi } from '@/domains/supply/api'
+import { consumeSupplierPickerResult } from '@/domains/supply/supplier-picker'
+import { consumeMaterialPlanPickerResult } from '@/domains/material/material-plan-picker'
 import type { Partner } from '@/domains/supply/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
-const plans = ref<MaterialPlan[]>([])
+const currentPlan = ref<MaterialPlan | null>(null)
+const currentPartner = ref<Partner | null>(null)
 const allPartners = ref<Partner[]>([])
-const partners = ref<Partner[]>([])
-const planIdx = ref(0)
-const partnerIdx = ref(0)
 const quantity = ref('')
 const unitPrice = ref('')
 const deliveryMode = ref<DeliveryMode>('direct')
@@ -25,51 +25,64 @@ const remark = ref('')
 const submitting = ref(false)
 const queryPlanId = ref('')
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
-const currentPlan = computed(() => plans.value[planIdx.value])
-const currentPartner = computed(() => partners.value[partnerIdx.value])
 
 onLoad(async (q) => {
   queryPlanId.value = q?.planId || ''
   try {
     const [planList, partnerList] = await Promise.all([materialApi.plans(), supplyApi.partners()])
-    plans.value = planList.filter((item) => ['planned', 'readyToOrder', 'requested', 'approved'].includes(item.status))
     allPartners.value = partnerList.filter((item) => item.status === 'active')
-    partners.value = allPartners.value
-    const planAt = queryPlanId.value ? plans.value.findIndex((item) => item.id === queryPlanId.value) : 0
-    planIdx.value = planAt >= 0 ? planAt : 0
-    applyPlan()
+    if (queryPlanId.value) {
+      const matched = planList.find((item) => item.id === queryPlanId.value)
+      if (matched) selectPlan(matched)
+    }
   } catch (error) {
     toastError(error, '采购资料加载失败')
   }
 })
 
-function applyPlan() {
-  const plan = currentPlan.value
-  if (!plan) return
+function selectPlan(plan: MaterialPlan) {
+  currentPlan.value = plan
   quantity.value = String(plan.quantity || '')
   expectedAt.value = plan.requiredAt || ''
-  const brand = plan.brand?.trim().toLowerCase()
-  const matched = brand
-    ? allPartners.value.filter((item) => (item.brands || []).some((value) => value.toLowerCase() === brand))
-    : []
-  partners.value = matched.length ? matched : allPartners.value
-  partnerIdx.value = 0
-  unitPrice.value = plan.cost ? String(plan.cost) : ''
+  unitPrice.value = canViewCost.value && plan.unitPrice ? String(plan.unitPrice) : ''
 }
-
-function changePlan(event: { detail: { value: number } }) {
-  planIdx.value = Number(event.detail.value)
-  applyPlan()
+function openMaterialPlanPicker() {
+  uni.navigateTo({ url: `${P.materialPlanPicker}?selectedId=${encodeURIComponent(currentPlan.value?.id || '')}&selectedName=${encodeURIComponent(currentPlan.value?.name || '')}` })
 }
-
-async function changePartner(event: { detail: { value: number } }) {
-  partnerIdx.value = Number(event.detail.value)
-  await suggestPrice()
+function openSupplierPicker() {
+  uni.navigateTo({ url: `${P.supplierPicker}?selectedId=${encodeURIComponent(currentPartner.value?.id || '')}&selectedName=${encodeURIComponent(currentPartner.value?.name || '')}` })
 }
+function applyPickerResults() {
+  const plan = consumeMaterialPlanPickerResult()
+  if (plan) { if (plan.action === 'clear') currentPlan.value = null; else selectPlan(plan.value) }
+  const supplier = consumeSupplierPickerResult()
+  if (supplier) {
+    currentPartner.value = supplier.action === 'clear' ? null : supplier.value
+    void suggestPrice()
+  }
+}
+onShow(() => { applyPickerResults() })
 
 async function suggestPrice() {
   const plan = currentPlan.value
-  if (canViewCost.value && plan?.cost) unitPrice.value = String(plan.cost)
+  const partner = currentPartner.value
+  if (!canViewCost.value || !plan || !partner?.id) return
+  try {
+    const matched = plan.materialKey
+      ? await materialSupplierApi.page(plan.materialKey, partner.id)
+      : await materialSupplierApi.match({
+          catalogItemId: plan.catalogItemId,
+          brand: plan.brand,
+          spec: plan.spec,
+          model: undefined
+        })
+    const relation = matched.find((item) => item.partner?.partnerId === partner.id) || matched[0]
+    if (relation && Number.isFinite(relation.purchasePrice)) {
+      unitPrice.value = String(relation.purchasePrice)
+    }
+  } catch {
+    // 无供应关系价时保留计划参考价，财务仍可手工录入本次执行价。
+  }
 }
 
 async function save() {
@@ -83,7 +96,7 @@ async function save() {
   submitting.value = true
   loading('提交采购单…')
   try {
-    const created = await materialApi.savePurchase({
+    await materialApi.savePurchase({
       materialPlanId: plan.id,
       supplierId: partner.id,
       supplierName: partner.name,
@@ -93,13 +106,8 @@ async function save() {
       expectedAt: expectedAt.value || undefined,
       remark: remark.value.trim() || undefined
     })
-    // 企业负责人/财务直接确认下单：下单即形成应付（DEC-MP-01）
-    if (['boss', 'finance'].includes(session.role || '')) {
-      await materialApi.orderPurchase(created.id)
-      toast('已确认下单并形成应付', 'success')
-    } else {
-      toast('采购单已提交待审批', 'success')
-    }
+    // 财务/店长/企业负责人确认下单：后端在同一事务形成应付（DEC-MP-01）。
+    toast('已确认下单并形成应付', 'success')
     setTimeout(() => uni.navigateBack(), 400)
   } catch (error) {
     toastError(error, '采购单创建失败')
@@ -113,23 +121,19 @@ async function save() {
 <template>
   <view class="pe">
     <JzPageHeader title="新增采购单" subtitle="从项目材料计划发起，默认供应商直送工地" />
-    <view v-if="plans.length" class="pe__card jz-card">
-      <view class="pe__field">
+    <view class="pe__card jz-card">
+      <view class="pe__field" @tap="openMaterialPlanPicker">
         <text class="pe__label">采购材料 <text class="pe__req">*</text></text>
-        <picker class="pe__picker" :range="plans.map(i => i.name)" :value="planIdx" @change="changePlan">
-          <view class="pe__value">{{ currentPlan?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <view class="pe__value">{{ currentPlan?.name || '选择材料计划' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
       </view>
       <view class="pe__summary">
         <text>{{ currentPlan?.project?.name || '项目材料' }}</text>
         <text>{{ currentPlan?.brand }} {{ currentPlan?.series }} {{ currentPlan?.spec }}</text>
         <text>计划 {{ currentPlan?.quantity }}{{ currentPlan?.unit }} · 要求到场 {{ currentPlan?.requiredAt || '未设置' }}</text>
       </view>
-      <view class="pe__field">
+      <view class="pe__field" @tap="openSupplierPicker">
         <text class="pe__label">供应商 <text class="pe__req">*</text></text>
-        <picker class="pe__picker" :range="partners.map(i => i.name)" :value="partnerIdx" @change="changePartner">
-          <view class="pe__value">{{ currentPartner?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <view class="pe__value">{{ currentPartner?.name || '选择供应商' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
       </view>
       <view class="pe__field">
         <text class="pe__label">本次采购数量</text>
@@ -159,8 +163,7 @@ async function save() {
         <textarea v-model="remark" class="pe__textarea" maxlength="200" placeholder="颜色、批次、送货要求或特殊约定" />
       </view>
     </view>
-    <view v-else class="pe__empty jz-card">暂无可采购的材料计划，请先由项目经理确认材料需求。</view>
-    <view class="jz-actionbar"><view class="jz-actionbar__inner"><button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting || !plans.length" @tap="save">创建采购单</button></view></view>
+    <view class="jz-actionbar"><view class="jz-actionbar__inner"><button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">创建采购单</button></view></view>
   </view>
 </template>
 

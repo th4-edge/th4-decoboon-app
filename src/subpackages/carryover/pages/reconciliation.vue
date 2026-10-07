@@ -14,6 +14,7 @@ import type {
 } from '@/domains/carryover/model'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
@@ -98,34 +99,35 @@ async function loadAttachments() {
   }
 }
 
-function uploadAttachment() {
+async function uploadAttachment() {
   const reconciliationId = report.value?.reconciliationId
   if (!reconciliationId) return
-  uni.chooseImage({
-    count: 9,
-    success: async (res) => {
-      actionBusy.value = true
-      loading('上传对账附件中')
-      try {
-        for (const path of res.tempFilePaths || []) {
-          const uploaded = await fileApi.upload('Carryover', path)
-          await carryoverApi.reconciliationAttachmentSave(reconciliationId, {
-            category: 'Reconciliation',
-            fileUrl: uploaded.path,
-            originalName: uploaded.name || '对账附件'
-          })
-        }
-        await loadAttachments()
-        hideLoading()
-        toast('附件已上传', 'success')
-      } catch (error) {
-        hideLoading()
-        toastError(error, '附件上传失败')
-      } finally {
-        actionBusy.value = false
-      }
+  let paths: string[] = []
+  try { paths = await chooseImages({ count: 9 }) } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+    return
+  }
+  if (!paths.length) return
+  actionBusy.value = true
+  loading('上传对账附件中')
+  try {
+    for (const path of paths) {
+      const uploaded = await fileApi.upload('Carryover', path)
+      await carryoverApi.reconciliationAttachmentSave(reconciliationId, {
+        category: 'Reconciliation',
+        fileUrl: uploaded.path,
+        originalName: uploaded.name || '对账附件'
+      })
     }
-  })
+    await loadAttachments()
+    hideLoading()
+    toast('附件已上传', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '附件上传失败')
+  } finally {
+    actionBusy.value = false
+  }
 }
 
 async function removeAttachment(item: CarryoverReconciliationAttachment) {

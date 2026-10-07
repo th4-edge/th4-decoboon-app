@@ -37,7 +37,8 @@ const TAB = {
   mine: { key: 'mine', label: '我的', icon: 'user', path: P.mine },
   finance: { key: 'finance', label: '财务', icon: 'wallet', path: P.financeHome },
   design: { key: 'design', label: '设计', icon: 'edit', path: P.designWorkbench },
-  quote: { key: 'quote', label: '报价', icon: 'file-text', path: P.quoteWorkbench }
+  quote: { key: 'quote', label: '报价', icon: 'file-text', path: P.quoteWorkbench },
+  material: { key: 'material', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench }
 }
 
 /** 同一套页面由角色返回不同 Tab；新增角色只修改此映射。 */
@@ -49,7 +50,7 @@ export const ROLE_TABS: Record<RoleKey, RoleTab[]> = {
   marketer: [TAB.home, TAB.customer, TAB.project, TAB.mine],
   designer: [TAB.home, TAB.design, TAB.quote, TAB.project, TAB.mine],
   pm: [TAB.home, TAB.customer, TAB.project, TAB.mine],
-  finance: [TAB.home, TAB.finance, TAB.project, TAB.dynamic, TAB.mine],
+  finance: [TAB.home, TAB.finance, TAB.project, TAB.material, TAB.mine],
   customer: [
     { key: 'home', label: '我的家', icon: 'home', path: P.home },
     { key: 'project', label: '进度', icon: 'briefcase', path: P.projectList },
@@ -73,7 +74,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'customer', label: '客户经营', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'design-workbench', label: '设计工作台', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
     { key: 'quotes', label: '报价谈单', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
-    { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'edit:project' },
+    { key: 'sign', label: '合同确认', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractConfirm' },
     { key: 'projects', label: '项目工地', icon: 'briefcase', path: P.projectList, capability: 'view:allProjects' },
     { key: 'manager-workbench', label: '履约驾驶舱', icon: 'chart', path: P.managerWorkbench, capability: 'view:workbench' },
     { key: 'workers', label: '工人档案', icon: 'users', path: P.laborWorkers, capability: 'view:worker' },
@@ -86,6 +87,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'designer-dispatch', label: '设计调度', icon: 'users', path: P.managerDesigners, capability: 'act:assignDesigner' },
     { key: 'members', label: '成员管理', icon: 'users', path: P.companyMembers, capability: 'act:inviteMember' },
     { key: 'quotes', label: '方案报价', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
+    { key: 'sign', label: '合同确认', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractConfirm' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
     { key: 'projects', label: '门店项目', icon: 'briefcase', path: P.projectList },
     { key: 'team', label: '门店团队', icon: 'users', path: P.teamList, capability: 'view:team' },
@@ -114,12 +116,16 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
   ],
   designer: [
+    // 历史坑：FIX-032 首页快捷入口曾混入“登记客户”和与项目 Tab 同页的“施工项目”，
+    // 且“合同签约”直接进空表单。这里按 App 设计师高频动作排序：先阶段待办，再对象和工具；
+    // 不新增业务动作，仅收敛入口落点和名称。
+    { key: 'design-workbench', label: '待我设计', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
+    { key: 'quote-workbench', label: '待我报价', icon: 'file-text', path: P.quoteWorkbench, capability: 'view:quote' },
+    // FIX-038：设计师负责发起/登记合同，最终确认签约和生效立项由企业负责人或店长完成。
+    { key: 'sign-workbench', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractPrepare' },
     { key: 'requirements', label: '客户诉求', icon: 'message', path: P.designRequirements, capability: 'edit:design' },
-    { key: 'customers', label: '客户', icon: 'user', path: P.customerList, capability: 'view:customers' },
-    { key: 'customer-create', label: '登记客户', icon: 'edit', path: P.customerEdit, capability: 'act:followCustomer' },
-    { key: 'quotes', label: '方案报价', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
-    { key: 'project-create', label: '合同签约', icon: 'shield-check', path: P.projectCreate, capability: 'edit:project' },
-    { key: 'projects', label: '施工项目', icon: 'briefcase', path: P.projectList },
+    { key: 'customers', label: '我的客户', icon: 'user', path: P.customerList, capability: 'view:customers' },
+    { key: 'quote-pool', label: '报价池', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
     { key: 'performance', label: '设计业绩', icon: 'chart', path: P.performance, capability: 'view:performance' },
     { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
   ],
@@ -132,18 +138,17 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'performance', label: '履约业绩', icon: 'chart', path: P.performance, capability: 'view:performance' },
     { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
   ],
+  /* 财务首页入口 = 今日待办队列（对象+状态），不重复财务 Tab 的功能目录；
+     纯功能目录（收付凭证/资金台账/项目账本等）统一由财务 Tab 承载。 */
   finance: [
-    { key: 'vouchers', label: '收付凭证', icon: 'file-text', path: P.financeVouchers, capability: 'view:finance' },
-    { key: 'ledger', label: '资金台账', icon: 'clipboard', path: P.financeLedger, capability: 'view:finance' },
-    { key: 'receivables', label: '应收计划', icon: 'file-text', path: P.financeReceivables, capability: 'view:finance' },
-    { key: 'payables', label: '应付账款', icon: 'wallet', path: P.financePayables, capability: 'view:finance' },
-    { key: 'salaries', label: '工人工资', icon: 'users', path: `${P.financePayables}?type=salary`, capability: 'view:finance' },
-    { key: 'projects', label: '项目账本', icon: 'briefcase', path: P.financeProjects, capability: 'view:finance' },
+    { key: 'receivable-outstanding', label: '待收工程款', icon: 'file-text', path: `${P.financeReceivables}?filter=outstanding`, capability: 'view:finance' },
+    { key: 'receivable-overdue', label: '逾期应收', icon: 'alert-circle', path: `${P.financeReceivables}?filter=overdue`, capability: 'view:finance' },
+    { key: 'payable-outstanding', label: '待付账款', icon: 'wallet', path: P.financePayables, capability: 'view:finance' },
+    { key: 'payable-salary', label: '工人工资应付', icon: 'users', path: `${P.financePayables}?type=salary`, capability: 'view:finance' },
+    { key: 'refund', label: '客户退款', icon: 'history', path: P.financeRefunds, capability: 'view:finance' },
+    { key: 'partner', label: '供应商往来', icon: 'users', path: P.financePartners, capability: 'view:finance' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
-    { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:supply' },
-    { key: 'fulfillment-projects', label: '履约项目', icon: 'briefcase', path: P.projectList, capability: 'view:myProjects' },
-    { key: 'supply', label: '供应商协作', icon: 'package', path: P.supply, capability: 'view:supply' },
-    { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
+    { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:supply' }
   ],
   customer: [
     { key: 'project', label: '我的家', icon: 'home', path: P.projectList },

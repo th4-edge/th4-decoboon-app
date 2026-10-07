@@ -25,16 +25,16 @@ type ViewKey = 'all' | 'pending' | 'approved' | 'confirmed' | 'risk' | 'closed'
 const VIEWS: { key: ViewKey; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'pending', label: '待审批' },
-  { key: 'approved', label: '待客户确认' },
-  { key: 'confirmed', label: '客户已确认' },
+  { key: 'approved', label: '待客户确认（历史）' },
+  { key: 'confirmed', label: '已生效' },
   { key: 'risk', label: '风险优先' },
   { key: 'closed', label: '已关闭' }
 ]
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认', color: TOKEN_COLOR.purple },
-  customerConfirmed: { label: '客户已确认', color: TOKEN_COLOR.success },
+  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
 }

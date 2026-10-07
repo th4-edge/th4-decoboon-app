@@ -1,0 +1,285 @@
+Window: "装得清", App: 微信开发者工具.
+0 标准窗口 装得清, Secondary Actions: Raise
+	1 HTML 内容 file:///Applications/wechatwebdevtools.app/Contents/Resources/app.asar/html/electron-project-lite.html?projectpath=%2FUsers%2Fzhangwei%2FFutureFiles%2F%E5%AE%89%E5%BE%BD%E6%98%AD%E9%9D%92%2F%E5%AE%B6%E8%A3%85%E8%A3%85%E4%BF%AE%2F%E8%A3%85%E5%AE%A2%E5%AE%9D%2F%E5%89%8D%E7%AB%AF%E4%BB%A3%E7%A0%81%2Fth4-decoboon-app%2Fdist%2Fdev%2Fmp-weixin&projectname=%E8%A3%85%E5%BE%97%E6%B8%85&projectid=%2FUsers%2Fzhangwei%2FFutureFiles%2F%E5%AE%89%E5%BE%BD%E6%98%AD%E9%9D%92%2F%E5%AE%B6%E8%A3%85%E8%A3%85%E4%BF%AE%2F%E8%A3%85%E5%AE%A2%E5%AE%9D%2F%E5%89%8D%E7%AB%AF%E4%BB%A3%E7%A0%81%2Fth4-decoboon-app%2Fdist%2Fdev%2Fmp-weixin&theme=dark&skeletonPath=%2FUsers%2Fzhangwei%2FLibrary%2FApplication%20Support%2F%E5%BE%AE%E4%BF%A1%E5%BC%80%E5%8F%91%E8%80%85%E5%B7%A5%E5%85%B7%2Fd1e8765721a6c23d43b14c95b1843e6b%2FWeappCache%2FskeletonCache%2F82a0e25bf6c73bc31cd73bad2fbf4a73%2Fpageskeleton.html&appid=wxe5cc5fec9e50a9a9&windowMode=liteMode&compileType=weapp&trustProject=1&openSource=cli&frame=0&liteProject=1&devid=s0&runtimeid=0&devtype=miniprogram&proxyPort=20154&userDataPath=%2FUsers%2Fzhangwei%2FLibrary%2FApplication%2520Support%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25BC%2580%25E5%258F%2591%25E8%2580%2585%25E5%25B7%25A5%25E5%2585%25B7%2Fd1e8765721a6c23d43b14c95b1843e6b&appVersion=2.02.2609231&appVersionType=1
+		2 container
+			3 文本 预览
+			4 文本 真机调试
+			5 未加标签的图片 要获取缺失的图片说明，请打开上下文菜单。
+			6 container
+				7 container
+					8 文本 普通编译
+					9 container
+						10 文本 WeChat 
+						11 container
+							12 text 4 : 40
+						13 container
+							14 text 53 %
+						15 container
+							16 链接
+							17 链接
+						18 HTML 内容 Webview: pages/index/index, URL: 127.0.0.1:32629/__pageframe__/pages/index/index
+							19 container
+								20 text 夜深了，董夏鹏 昭青装饰
+								21 图像
+							22 container
+								23 文本 夏鹏
+							24 文本 董夏鹏
+							25 文本 设计师
+							26 图像
+							27 文本 昭青装饰
+							28 图像
+							29 文本 总店
+							30 图像
+							31 文本 负责客户
+							32 文本 23
+							33 图像
+							34 文本 待推进报价
+							35 文本 12
+							36 图像
+							37 文本 在施项目
+							38 文本 10
+							39 图像
+							40 文本 逾期任务
+							41 文本 0
+							42 文本 设计签约额
+							43 文本 27.43万
+							44 文本 最终报价接受率 86.7% · 25 份报价 · 10 个项目
+							45 图像
+							46 图像
+							47 文本 待我设计
+							48 图像
+							49 文本 待我报价
+							50 图像
+							51 文本 合同签约
+							52 图像
+							53 文本 客户诉求
+							54 图像
+							55 文本 我的客户
+							56 图像
+							57 文本 报价池
+							58 图像
+							59 文本 设计业绩
+							60 图像
+							61 文本 消息通知
+							62 文本 需要关注
+							63 图像
+							64 文本 12 份报价待推进
+							65 文本 草稿待提交，或已提交待客户确认
+							66 图像
+							67 文本 我的项目
+							68 文本 全部
+							69 图像
+							70 container
+								71 图像
+								72 text 荷塘家园-陈先生 · 合肥市蜀山区荷塘家园3栋1202室 P1791233715909 待验收
+								73 图像
+								74 text 开工交底 13%
+								75 图像
+								76 文本 合肥市蜀山区荷塘家园3栋1202室
+								77 图像
+								78 文本 计划完工 02-02
+								79 container
+									80 文本 徐勇
+								81 text 项目经理 徐勇 进入工地
+								82 图像
+							83 container
+								84 图像
+								85 text 荷塘家园业主 · 荷塘家园 3栋 1802室 P1790966484499 施工中
+								86 图像
+								87 text 开工交底 0%
+								88 图像
+								89 文本 荷塘家园 3栋 1802室
+								90 图像
+								91 文本 计划完工 01-04
+								92 container
+									93 文本 徐勇
+								94 text 项目经理 徐勇 进入工地
+								95 图像
+							96 container
+								97 图像
+								98 text 周启航（审计B） · 翡翠湖畔18栋2301室 P1790848304815 待开工
+								99 图像
+								100 text 开工交底 0%
+								101 图像
+								102 文本 翡翠湖畔18栋2301室
+								103 图像
+								104 文本 计划完工 02-10
+								105 container
+									106 文本 昌富
+								107 text 项目经理 王昌富 进入工地
+								108 图像
+							109 container
+								110 图像
+								111 text 李安然（审计A） · 滨湖云谷7栋1602 P1790848283546 待验收
+								112 图像
+								113 text 拆除改造 100%
+								114 图像
+								115 文本 滨湖云谷7栋1602
+								116 图像
+								117 文本 计划完工 12-31
+								118 container
+									119 文本 徐勇
+								120 text 项目经理 徐勇 进入工地
+								121 图像
+							122 文本 最新动态
+							123 文本 全部
+							124 图像
+							125 container
+								126 container
+									127 文本 张伟
+								128 text 张伟 企业负责人 10月06日 04:56 阶段开工 阶段开工 · 开工交底 开工交底已正式开工 阶段开工记录
+							129 container
+								130 container
+									131 文本 张伟
+								132 text 张伟 企业负责人 10月06日 04:55 项目通知 项目成员调整 项目经理：未指定 → 徐勇（操作人：张伟，时间：2026-10-06T04:55:44.781796，立即生效） 项目通知记录
+							133 container
+								134 container
+									135 文本 徐勇
+								136 text 徐勇 项目经理 10月04日 04:22 进度更新 全角色审计日报-961986 全角色审计现场日报：项目经理汇报现场进展；本条为本地测试数据，用于验证日报写入和角色可见性。 进度更新记录
+							137 container
+								138 container
+									139 文本 张伟
+								140 text 张伟 企业负责人 10月03日 02:42 阶段开工 阶段开工 · 开工交底 开工交底已正式开工 阶段开工记录
+							141 container
+								142 图像
+								143 文本 工作台
+								144 图像
+								145 文本 设计
+								146 图像
+								147 文本 报价
+								148 图像
+								149 文本 项目
+								150 图像
+								151 文本 我的
+						152 container
+							153 链接
+							154 链接
+						155 HTML 内容 Webview: subpackages/quote/pages/edit, URL: 127.0.0.1:32629/__pageframe__/subpackages/quote/pages/edit
+							156 文本 1 选客户
+							157 文本 2 选房屋/方案
+							158 文本 3 选套餐
+							159 文本 4 计价
+							160 文本 5 生成
+							161 container
+								162 text 报价路线  *
+							163 文本 套餐报价
+							164 文本 自定义报价
+							165 container
+								166 text 客户  *
+							167 图像
+							168 文本 璟阳里5-804业主
+							169 文本 13910009999 · 张伟 · 方案报价
+							170 图像
+							171 container
+								172 text 设计方案  *
+							173 文本 去设计转化
+							174 图像
+							175 文本 璟阳里5-804设计方案 V1
+							176 文本 待谈单 · V1 · 5个区域 · 67个分项
+							177 图像
+							178 文本 整体折扣（%）
+							179 文本栏 (settable) 100
+								180 文本栏 (settable) 100
+							181 文本 璟阳里5-804设计方案 V1
+							182 文本 待谈单
+							183 文本 5
+							184 文本 区域
+							185 文本 67
+							186 文本 施工/材料分项
+							187 文本 0㎡
+							188 文本 方案面积
+							189 文本 折前分项合计
+							190 文本 12.05万
+							191 图像
+							192 文本 报价总额 = 分项合计 × 折扣 + 5% 税金，金额由系统自动计算。
+							193 文本 报价生成后会冻结项目、数量、价格、成本和公式。套餐扣减、升级、替换和自定义增项将在报价详情中形成独立报价行。
+							194 container
+								195 按钮 方案管理
+								196 按钮 生成自定义报价
+						197 container
+							198 链接
+							199 标题 新建报价, Value: 3
+								200 文本 新建报价
+							201 链接
+							202 链接
+						203 HTML 内容 Webview: subpackages/quote/pages/edit, URL: 127.0.0.1:32629/__pageframe__/subpackages/quote/pages/edit
+							204 文本 1 选客户
+							205 文本 2 选房屋/方案
+							206 文本 3 选套餐
+							207 文本 4 计价
+							208 文本 5 生成
+							209 container
+								210 text 报价路线  *
+							211 文本 套餐报价
+							212 文本 自定义报价
+							213 container
+								214 text 客户  *
+							215 图像
+							216 文本 璟阳里5-804业主
+							217 文本 13910009999 · 张伟 · 方案报价
+							218 图像
+							219 container
+								220 text 客户房屋  *
+							221 图像
+							222 文本 选择客户房屋
+							223 文本 房屋按客户归属显式选择，不使用第一条兜底
+							224 图像
+							225 container
+								226 text 套餐模板  *
+							227 图像
+							228 文本 本地验收套餐模板
+							229 文本 标准100㎡ · 10万 · 折扣95%
+							230 图像
+							231 container
+								232 text 计价面积（㎡） *
+							233 文本栏 (settable) 100
+								234 文本栏 (settable) 100
+							235 文本 整体折扣（%）
+							236 文本栏 (settable) 100
+								237 文本栏 (settable) 100
+							238 文本 本地验收套餐模板
+							239 文本 套餐
+							240 文本 100
+							241 文本 标准面积㎡
+							242 文本 10万
+							243 文本 套餐价
+							244 文本 100㎡
+							245 文本 计价面积
+							246 文本 套餐折算金额
+							247 文本 10万
+							248 图像
+							249 文本 套餐金额 = 套餐价 × 实际面积 ÷ 标准面积，再计算折扣和税金。
+							250 文本 报价生成后会冻结项目、数量、价格、成本和公式。套餐扣减、升级、替换和自定义增项将在报价详情中形成独立报价行。
+							251 按钮 生成套餐报价
+						252 HTML 内容 小程序渲染层, URL: 127.0.0.1:32629/__pageframe__/instanceframe.html
+						253 HTML 内容 小程序逻辑层, URL: 127.0.0.1:32629/appservice/s0/_sessionId/simulator-app-session-s0/mainframe?load
+							254 container
+								255 HTML 内容 小程序逻辑层, URL: 127.0.0.1:32629/appservice/instanceframe?s=1791405400088&autoload#id_1
+								256 HTML 内容 127.0.0.1:32629/appservice/appContext?contextName=app&id=ifr-1_2#id_1
+								257 HTML 内容 127.0.0.1:32629/appservice/app_xrframe_renderContext?contextName=app_xrframe_render&id=ifr-1_3&empty=true#id_1
+								258 HTML 内容 127.0.0.1:32629/appservice/app_sub_debugContext?contextName=app_sub_debug&id=ifr-1_4&empty=true#id_1
+								259 HTML 内容 小程序逻辑层, URL: 127.0.0.1:32629/appservice/instanceframe?s=1791405400088#id_2
+						260 container
+							261 链接
+							262 链接
+					263 container
+						264 text Mac 13-inch and below 104% 16
+					265 container
+						266 文本 页面路径
+					267 文本 subpackages/quote/pages/edit
+					268 链接 复制
+				269 container
+					270 文本 调试器已设置启动时不加载，点此启动
+		271 container
+	272 关闭按钮
+	273 全屏幕按钮 Help: 此按钮也可以执行缩放窗口的操作, Secondary Actions: 缩放窗口
+	274 最小化按钮
+275 menu bar
+	276 微信开发者工具
+	277 项目
+	278 编辑
+	279 工具
+	280 界面
+	281 设置
+	282 插件
+	283 帮助

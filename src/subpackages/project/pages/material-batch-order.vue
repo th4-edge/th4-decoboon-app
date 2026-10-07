@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import { materialApi, materialBatchPurchaseApi } from '@/domains/material/api'
+import { materialApi, materialBatchPurchaseApi, materialSupplierApi } from '@/domains/material/api'
 import type { DeliveryMode, MaterialPlan } from '@/domains/material/model'
 import { supplyApi } from '@/domains/supply/api'
 import type { Partner } from '@/domains/supply/model'
@@ -53,7 +53,7 @@ async function load() {
       name: plan.name,
       unit: plan.unit,
       quantity: String(plan.quantity || ''),
-      unitPrice: canViewCost.value && plan.cost ? String(plan.cost) : ''
+      unitPrice: canViewCost.value && plan.unitPrice ? String(plan.unitPrice) : ''
     }))
   } catch (error) {
     toastError(error, '合并下单资料加载失败')
@@ -64,6 +64,31 @@ async function load() {
 
 function changePartner(event: { detail: { value: number } }) {
   partnerIdx.value = Number(event.detail.value)
+  void applySupplierPrices()
+}
+
+async function applySupplierPrices() {
+  const partner = currentPartner.value
+  if (!canViewCost.value || !partner?.id) return
+  await Promise.all(lines.value.map(async (line) => {
+    const plan = plans.value.find((item) => item.id === line.planId)
+    if (!plan) return
+    try {
+      const matched = plan.materialKey
+        ? await materialSupplierApi.page(plan.materialKey, partner.id)
+        : await materialSupplierApi.match({
+            catalogItemId: plan.catalogItemId,
+            brand: plan.brand,
+            spec: plan.spec
+          })
+      const relation = matched.find((item) => item.partner?.partnerId === partner.id) || matched[0]
+      if (relation && Number.isFinite(relation.purchasePrice)) {
+        line.unitPrice = String(relation.purchasePrice)
+      }
+    } catch {
+      // 无参考价时保留计划参考价，由财务为本次执行价负责。
+    }
+  }))
 }
 
 function changeDelivery(event: { detail: { value: number } }) {
@@ -82,7 +107,7 @@ async function submit() {
   submitting.value = true
   loading('提交合并下单…')
   try {
-    const created = await materialBatchPurchaseApi.submit({
+    await materialBatchPurchaseApi.submit({
       supplierId: partner.id,
       supplierName: partner.name,
       materialPlanIds: lines.value.map((line) => line.planId),
@@ -92,12 +117,7 @@ async function submit() {
       expectedAt: expectedAt.value || undefined,
       remark: remark.value.trim() || undefined
     })
-    if (['boss', 'finance'].includes((session.role || '') as string)) {
-      await materialApi.orderPurchase(created.id)
-      toast('已确认下单并形成应付', 'success')
-    } else {
-      toast('采购单已提交待审批', 'success')
-    }
+    toast('已确认下单并形成应付', 'success')
     setTimeout(() => uni.navigateBack(), 400)
   } catch (error) {
     toastError(error, '合并下单失败')

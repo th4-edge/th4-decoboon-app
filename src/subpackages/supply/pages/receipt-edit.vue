@@ -7,14 +7,23 @@ import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 const purchase = ref<PurchaseOrder | null>(null)
+const purchaseItemId = ref('')
 const quantity = ref('')
 const arrivedAt = ref(new Date().toISOString().slice(0, 10))
 const remark = ref('')
 const submitting = ref(false)
-const remaining = computed(() => Math.max(0, Number(purchase.value?.quantity || 0) - Number(purchase.value?.receivedQuantity || 0)))
+const selectedItem = computed(() => {
+  const items = purchase.value?.items || []
+  if (purchaseItemId.value) return items.find((item) => item.id === purchaseItemId.value)
+  return items.length === 1 ? items[0] : undefined
+})
+const remaining = computed(() => Math.max(0, Number(selectedItem.value?.quantity ?? purchase.value?.quantity ?? 0) - Number(selectedItem.value?.receivedQuantity ?? purchase.value?.receivedQuantity ?? 0)))
+const receiptUnit = computed(() => selectedItem.value?.unit || purchase.value?.unit || '')
+const receiptMaterialName = computed(() => selectedItem.value?.materialName || purchase.value?.materialName || '材料到货')
 
 onLoad(async (q) => {
   const purchaseId = q?.purchaseId || ''
+  purchaseItemId.value = q?.purchaseItemId || ''
   if (!purchaseId) {
     toast('采购单参数缺失')
     setTimeout(() => uni.navigateBack(), 300)
@@ -26,6 +35,11 @@ onLoad(async (q) => {
     if (!purchase.value) {
       toast('采购单不存在或无权访问')
       setTimeout(() => uni.navigateBack(), 300)
+      return
+    }
+    if ((purchase.value.items?.length || 0) > 1 && !selectedItem.value) {
+      toast('该采购单包含多条材料，请从材料计划或采购明细选择具体材料后确认到场')
+      setTimeout(() => uni.navigateBack(), 400)
       return
     }
     quantity.value = String(remaining.value)
@@ -47,11 +61,12 @@ async function save() {
   try {
     await materialApi.saveReceipt({
       purchaseId: purchase.value.id,
+      purchaseItemId: selectedItem.value?.id || undefined,
       quantity: value,
       arrivedAt: arrivedAt.value ? `${arrivedAt.value}T00:00:00` : undefined,
       remark: remark.value.trim() || undefined
     })
-    toast('到货已确认，应付已生成', 'success')
+    toast('到货已确认，实际成本和账期已回填', 'success')
     setTimeout(() => uni.navigateBack(), 400)
   } catch (error) {
     toastError(error, '到货确认失败')
@@ -64,15 +79,15 @@ async function save() {
 
 <template>
   <view class="re">
-    <JzPageHeader title="确认材料到货" subtitle="确认数量后自动形成项目实际成本和供应商应付" />
+    <JzPageHeader title="确认材料到货" subtitle="确认数量后形成项目实际成本，并回填应付账期" />
     <view v-if="purchase" class="re__card jz-card">
       <view class="re__head">
-        <text class="re__name">{{ purchase.materialName }}</text>
+        <text class="re__name">{{ receiptMaterialName }}</text>
         <text class="re__tag">{{ purchase.deliveryMode === 'direct' ? '直送工地' : '入仓库' }}</text>
       </view>
       <text class="re__meta">{{ purchase.projectName }} · {{ purchase.supplierName }}</text>
-      <text class="re__meta">{{ purchase.no }} · 已到 {{ purchase.receivedQuantity }} / {{ purchase.quantity }} {{ purchase.unit }}</text>
-      <view class="re__remaining">本次最多可确认 {{ remaining }} {{ purchase.unit }}</view>
+      <text class="re__meta">{{ purchase.no }} · 已到 {{ selectedItem?.receivedQuantity ?? purchase.receivedQuantity }} / {{ selectedItem?.quantity ?? purchase.quantity }} {{ receiptUnit }}</text>
+      <view class="re__remaining">本次最多可确认 {{ remaining }} {{ receiptUnit }}</view>
       <view class="re__field"><text class="re__label">本次到场数量</text><input v-model="quantity" type="digit" class="re__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="re__field"><text class="re__label">到场日期</text><input v-model="arrivedAt" class="re__input" placeholder="YYYY-MM-DD" /></view>
       <view class="re__field re__field--col"><text class="re__label">到货说明</text><textarea v-model="remark" class="re__textarea" maxlength="200" placeholder="破损、少发、色差或补发要求" /></view>

@@ -138,6 +138,8 @@ export interface ContractChange {
   status: ContractChangeStatus
   customerConfirmed?: boolean
   customerConfirmedAt?: string
+  customerConfirmedBy?: string
+  customerConfirmMethod?: string
   evidenceImages?: string[]
   signatureUrl?: string
   items?: ContractChangeItem[]

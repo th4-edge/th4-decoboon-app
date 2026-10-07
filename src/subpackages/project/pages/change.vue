@@ -17,8 +17,8 @@ import PageState from '@/components/PageState/PageState.vue'
 
 const STATUS_META: Record<ContractChangeStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认', color: TOKEN_COLOR.purple },
-  customerConfirmed: { label: '客户已确认', color: TOKEN_COLOR.success },
+  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
 }
@@ -206,11 +206,11 @@ function openContract() {
             <button class="jz-btn jz-btn--ghost jz-btn--sm" :disabled="busy === item.id" @tap="reject(item)">驳回</button>
             <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.id" @tap="approve(item)">审批通过</button>
           </view>
-          <view v-else-if="item.status === 'approved' && canCustomerConfirm" class="chg__actions" @tap.stop>
+          <view v-else-if="item.status === 'approved' && item.customerConfirmed === false && canCustomerConfirm" class="chg__actions" @tap.stop>
             <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.id" @tap="customerConfirm(item)">登记客户确认</button>
           </view>
           <view v-else-if="item.status === 'pending'" class="chg__hint">等待有审批权限的负责人处理</view>
-          <view v-else-if="item.status === 'approved'" class="chg__hint">已审批通过，等待客户确认后同步金额与履约计划</view>
+          <view v-else-if="item.status === 'approved'" class="chg__hint">历史单据：已审批通过，等待客户确认后同步金额与履约计划</view>
         </view>
       </view>
     </template>

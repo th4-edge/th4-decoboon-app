@@ -36,6 +36,7 @@
 .home__stat--danger .home__stat-dot { background: $jzb-danger; box-shadow: 0 0 0 8rpx rgba(229,72,77,.12); }
 .home__quicks { margin: 0 $jzb-page-pad 12rpx; padding: 24rpx 12rpx 8rpx; display: flex; flex-wrap: wrap; }
 .home__quicks--boss .home__quick { width: 25%; }
+.home__quicks--finance .home__quick { width: 25%; }
 .home__performance { margin: 0 $jzb-page-pad 18rpx; padding: 24rpx; display: flex; align-items: center; background: $jzb-gradient-surface; }
 .home__performance-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .home__performance-value { display: block; margin-top: 6rpx; color: $jzb-primary-dark; font-size: 42rpx; font-weight: 750; }

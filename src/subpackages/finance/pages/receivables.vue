@@ -34,7 +34,13 @@ const filtered = computed(() => items.value.filter((item) => {
 }))
 const totals = ref({ total: 0, received: 0, outstanding: 0, overdue: 0 })
 
-onLoad((query) => { projectId.value = query?.projectId || ''; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onLoad((query) => {
+  projectId.value = query?.projectId || ''
+  // 首页"待收工程款/逾期应收"入口按状态深链，避免进入后还要手动切换筛选。
+  const incoming = query?.filter as Filter | undefined
+  if (incoming && ['all', 'first', 'overdue', 'outstanding', 'received'].includes(incoming)) filter.value = incoming
+  if (!isLoggedIn()) uni.reLaunch({ url: P.login })
+})
 onShow(() => { if (isLoggedIn()) void refreshAll() })
 onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
 

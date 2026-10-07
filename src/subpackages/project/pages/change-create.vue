@@ -6,6 +6,7 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
 import type { Contract, ContractChangeType, ContractLine } from '@/domains/trade/model'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -48,9 +49,14 @@ const newPrice = ref('')
 const costDelta = ref('')
 const reason = ref('')
 const images = ref<string[]>([])
+const customerConfirmedDate = ref('')
+const customerConfirmedTime = ref('')
+const customerConfirmedBy = ref('')
+const customerConfirmMethod = ref('当面确认')
+const CONFIRM_METHODS = ['当面确认', '微信确认', '电话+书面', '其他']
 
-interface BatchRow { name: string; itemType: string; amount: string; cost: string; remark: string }
-const emptyRow = (): BatchRow => ({ name: '', itemType: 'Construction', amount: '', cost: '', remark: '' })
+interface BatchRow { name: string; itemType: string; sourceLineId: string; newQuantity: string; newPrice: string; newCost: string; amount: string; cost: string; remark: string }
+const emptyRow = (): BatchRow => ({ name: '', itemType: 'Construction', sourceLineId: '', newQuantity: '', newPrice: '', newCost: '', amount: '', cost: '', remark: '' })
 const batchRows = ref<BatchRow[]>([emptyRow()])
 
 const role = computed(() => (session.role || 'customer') as string)
@@ -94,12 +100,27 @@ const deltaCost = computed(() => {
   }
   return 0
 })
+const customerConfirmedAt = computed(() => customerConfirmedDate.value && customerConfirmedTime.value
+  ? `${customerConfirmedDate.value}T${customerConfirmedTime.value}:00`
+  : undefined)
+const customerSignOffReady = computed(() => !!customerConfirmedAt.value
+  && !!customerConfirmedBy.value.trim() && !!customerConfirmMethod.value && images.value.length > 0)
 const beforeAmount = computed(() => Number(contract.value?.currentAmount || 0))
 const afterAmount = computed(() => beforeAmount.value + deltaAmount.value)
 const negativeWarning = computed(() => afterAmount.value < 0)
+function batchRowReady(row: BatchRow): boolean {
+  if (!row.name.trim()) return false
+  if (requireLine.value) {
+    if (!row.sourceLineId) return false
+    if (type.value === 'price') return row.newPrice !== ''
+    return row.newQuantity !== ''
+  }
+  return Number(row.amount) > 0
+}
 const canSubmit = computed(() => {
   if (negativeWarning.value || !reason.value.trim()) return false
-  if (mode.value === 'batch') return batchRows.value.some((row) => row.name.trim() && Number(row.amount))
+  if (!customerSignOffReady.value) return false
+  if (mode.value === 'batch') return batchRows.value.some(batchRowReady)
   if (requireLine.value && !sourceLineId.value) return false
   if (type.value === 'add' || type.value === 'remove') return Number(amount.value) > 0
   if (type.value === 'quantity' || type.value === 'replace') return quantity.value !== ''
@@ -132,15 +153,30 @@ async function load() {
   }
 }
 
+const batchLineIndex = ref(-1)
+function openLinePicker(index = -1) {
+  batchLineIndex.value = index
+  showLinePicker.value = true
+}
 function pickLine(item: ContractLine) {
-  sourceLineId.value = item.id
+  if (batchLineIndex.value >= 0) {
+    const row = batchRows.value[batchLineIndex.value]
+    if (row) row.sourceLineId = item.id
+  } else {
+    sourceLineId.value = item.id
+  }
   showLinePicker.value = false
+  batchLineIndex.value = -1
+}
+function lineOf(id: string): ContractLine | null {
+  return lines.value.find((item) => item.id === id) || null
 }
 
-function chooseImage() {
+async function chooseImage() {
   const remain = 9 - images.value.length
   if (remain <= 0) { toast('最多 9 张'); return }
-  uni.chooseImage({ count: remain, success: (res) => { images.value = [...images.value, ...res.tempFilePaths] } })
+  try { images.value = [...images.value, ...await chooseImages({ count: remain })] }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 
 function addRow() { batchRows.value = [...batchRows.value, emptyRow()] }
@@ -162,7 +198,8 @@ async function uploadEvidence(): Promise<string[]> {
 async function submit() {
   if (submitting.value) return
   if (!canSubmit.value) {
-    toast(requireLine.value && !sourceLineId.value ? '请选择原合同行' : '请完善本次变更信息', 'none')
+    toast(requireLine.value && !sourceLineId.value ? '请选择原合同行'
+      : !customerSignOffReady.value ? '请完成客户线下确认并上传签认证据' : '请完善本次变更信息', 'none')
     return
   }
   submitting.value = true
@@ -174,13 +211,20 @@ async function submit() {
         reason: reason.value.trim(),
         type: type.value,
         evidenceImages: evidence,
+        customerConfirmedAt: customerConfirmedAt.value,
+        customerConfirmedBy: customerConfirmedBy.value.trim(),
+        customerConfirmMethod: customerConfirmMethod.value,
         items: batchRows.value
-          .filter((row) => row.name.trim() && Number(row.amount))
+          .filter(batchRowReady)
           .map((row) => ({
             name: row.name.trim(),
             itemType: row.itemType,
             changeType: type.value,
-            amountDelta: Number(row.amount),
+            sourceLineId: row.sourceLineId || undefined,
+            newQuantity: row.newQuantity === '' ? undefined : Number(row.newQuantity),
+            newPrice: row.newPrice === '' ? undefined : Number(row.newPrice),
+            newCost: row.newCost === '' ? undefined : Number(row.newCost),
+            amountDelta: requireLine.value ? undefined : Number(row.amount),
             costDelta: Number(row.cost) || 0,
             remark: row.remark.trim() || undefined
           }))
@@ -196,7 +240,10 @@ async function submit() {
         newQuantity: quantity.value === '' ? undefined : Number(quantity.value),
         newPrice: newPrice.value === '' ? undefined : Number(newPrice.value),
         costDelta: canViewCost.value ? (Number(costDelta.value) || 0) : undefined,
-        evidenceImages: evidence
+        evidenceImages: evidence,
+        customerConfirmedAt: customerConfirmedAt.value,
+        customerConfirmedBy: customerConfirmedBy.value.trim(),
+        customerConfirmMethod: customerConfirmMethod.value
       })
     toast('变更单已提交审批', 'success')
     setTimeout(() => {
@@ -235,7 +282,7 @@ async function submit() {
           <text class="cc__block-title">原合同行</text>
           <text class="cc__block-hint">{{ requireLine ? '必选' : '选填' }}</text>
         </view>
-        <view class="cc__line" :class="{ 'cc__line--empty': !line }" @tap="showLinePicker = true">
+        <view class="cc__line" :class="{ 'cc__line--empty': !line }" @tap="openLinePicker()">
           <view class="jz-grow">
             <text v-if="line" class="cc__line-name">{{ line.name }}</text>
             <text v-else class="cc__line-name cc__line-name--ph">从合同范围选择</text>
@@ -280,8 +327,17 @@ async function submit() {
             <text v-if="batchRows.length > 1" class="cc__row-del" @tap="removeRow(index)">删除</text>
           </view>
           <input v-model="row.name" class="cc__input cc__input--full" placeholder="项目名称，如客厅背景墙造型" />
+          <view v-if="requireLine" class="cc__line cc__line--compact" :class="{ 'cc__line--empty': !lineOf(row.sourceLineId) }" @tap="openLinePicker(index)">
+            <view class="jz-grow">
+              <text v-if="lineOf(row.sourceLineId)" class="cc__line-name">{{ lineOf(row.sourceLineId)?.name }}</text>
+              <text v-else class="cc__line-name cc__line-name--ph">选择原合同行（必选）</text>
+            </view>
+            <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
+          </view>
           <view class="cc__row-grid">
-            <input v-model="row.amount" class="cc__input jz-numeric-input" type="digit" placeholder="金额" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-if="!requireLine" v-model="row.amount" class="cc__input jz-numeric-input" type="digit" placeholder="金额" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-if="requireLine && (type === 'quantity' || type === 'replace')" v-model="row.newQuantity" class="cc__input jz-numeric-input" type="digit" placeholder="新数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-if="requireLine && (type === 'replace' || type === 'price')" v-model="row.newPrice" class="cc__input jz-numeric-input" type="digit" placeholder="新单价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <input v-if="canViewCost" v-model="row.cost" class="cc__input jz-numeric-input" type="digit" placeholder="成本" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <picker :range="ITEM_TYPES" range-key="label" @change="row.itemType = ITEM_TYPES[Number(($event.detail as any).value)].key">
               <view class="cc__pick">{{ ITEM_TYPES.find((i) => i.key === row.itemType)?.label || '类型' }}</view>
@@ -296,6 +352,26 @@ async function submit() {
         <view class="cc__money-row"><text>变更后合同额</text><text class="cc__money-num">{{ money(afterAmount) }}</text></view>
         <view class="cc__money-row" v-if="canViewCost"><text>成本变化</text><text class="cc__money-num">{{ deltaCost > 0 ? '+' : '' }}{{ money(deltaCost) }}</text></view>
         <view v-if="negativeWarning" class="cc__danger">变更后合同金额不能小于 0</view>
+      </view>
+
+      <view class="jz-card cc__block">
+        <view class="jz-between cc__block-head">
+          <text class="cc__block-title">客户线下确认</text>
+          <text class="cc__block-hint">必填</text>
+        </view>
+        <view class="cc__confirm-row">
+          <picker mode="date" :value="customerConfirmedDate" @change="customerConfirmedDate = ($event.detail as any).value">
+            <view class="cc__pick">{{ customerConfirmedDate || '确认日期' }}</view>
+          </picker>
+          <picker mode="time" :value="customerConfirmedTime" @change="customerConfirmedTime = ($event.detail as any).value">
+            <view class="cc__pick">{{ customerConfirmedTime || '确认时间' }}</view>
+          </picker>
+        </view>
+        <input v-model="customerConfirmedBy" class="cc__input cc__input--full" placeholder="客户确认人姓名" />
+        <picker :range="CONFIRM_METHODS" @change="customerConfirmMethod = CONFIRM_METHODS[Number($event.detail.value)]">
+          <view class="cc__pick">{{ customerConfirmMethod }}</view>
+        </picker>
+        <text class="cc__hint">客户线下确认时间、确认人、确认方式与下方签认/签证照片是形成变更单的前置条件。</text>
       </view>
 
       <view class="jz-card cc__block">
@@ -381,6 +457,9 @@ async function submit() {
 .cc__row-grid { display: flex; gap: 12rpx; }
 .cc__row-grid .cc__input { background: $jzb-bg-hover; border-radius: $jzb-radius-sm; padding: 16rpx 20rpx; text-align: left; }
 .cc__pick { padding: 16rpx 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; color: $jzb-text-2; white-space: nowrap; }
+.cc__confirm-row { display: flex; gap: 16rpx; margin-bottom: 16rpx; }
+.cc__confirm-row .cc__pick { flex: 1; }
+.cc__hint { display: block; margin-top: 10rpx; font-size: 20rpx; color: $jzb-text-3; line-height: 1.5; }
 .cc__money { margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-5; background: linear-gradient(150deg, #103a3a 0%, #0f2f31 100%); }
 .cc__money-row { display: flex; justify-content: space-between; align-items: center; padding: 12rpx 0; font-size: $jzb-font-sm; color: rgba(255, 255, 255, 0.72); }
 .cc__money-row--hero .cc__money-num { font-size: 40rpx; color: #5fe3cf; font-weight: 800; }

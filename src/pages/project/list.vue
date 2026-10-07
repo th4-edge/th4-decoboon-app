@@ -343,11 +343,11 @@ function open(id: string) {
   uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
 }
 function createProject() {
-  if (!can(role.value, 'edit:project')) return
+  if (!canCreate()) return
   uni.navigateTo({ url: P.projectCreate })
 }
 function canCreate() {
-  return can(role.value, 'edit:project')
+  return can(role.value, 'act:contractPrepare') || can(role.value, 'act:contractConfirm')
 }
 function openChangeWorkbench() {
   uni.navigateTo({ url: P.projectChangeWorkbench })
@@ -443,7 +443,7 @@ function openChangeWorkbench() {
         <view v-else class="jz-card pl__empty">
           <JzEmpty
             :text="isCustomer(role) ? '暂未关联工地' : '还没有项目'"
-            :sub="isCustomer(role) ? '等待装修公司通过业主邀请码绑定' : '暂无项目数据'"
+            :sub="isCustomer(role) ? '等待装修公司通过业主邀请码绑定' : canCreate() ? '暂无项目数据，可从已确认报价发起合同签约' : '合同生效后系统会自动生成项目'"
           />
         </view>
       </view>

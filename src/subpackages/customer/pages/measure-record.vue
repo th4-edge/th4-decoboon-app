@@ -9,6 +9,7 @@ import type { Property } from '@/domains/property/model'
 import { crmApi } from '@/domains/crm/api'
 import { propertyApi } from '@/domains/property/api'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -58,13 +59,15 @@ onLoad(async (query) => {
   }
 })
 
-function choosePhotos() {
+async function choosePhotos() {
   const remain = MAX_PHOTOS - sitePhotos.value.length
   if (remain <= 0) { toast(`最多 ${MAX_PHOTOS} 张`); return }
-  uni.chooseImage({
-    count: remain,
-    success: (res) => { sitePhotos.value = [...sitePhotos.value, ...res.tempFilePaths] }
-  })
+  try {
+    const paths = await chooseImages({ count: remain })
+    sitePhotos.value = [...sitePhotos.value, ...paths]
+  } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+  }
 }
 function removePhoto(index: number) {
   sitePhotos.value.splice(index, 1)

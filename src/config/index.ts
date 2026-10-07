@@ -52,6 +52,8 @@ export const P = {
   customerPortraitEdit: '/subpackages/customer/pages/portrait-edit',
   customerTagManage: '/subpackages/customer/pages/tag-manage',
   customerEdit: '/subpackages/customer/pages/edit',
+  customerPicker: '/subpackages/customer/pages/customer-picker',
+  propertyPicker: '/subpackages/customer/pages/property-picker',
   customerBatch: '/subpackages/customer/pages/batch',
   customerFollow: '/subpackages/customer/pages/follow',
   customerMeasureWorkbench: '/subpackages/customer/pages/measure-workbench',
@@ -60,6 +62,8 @@ export const P = {
   customerPropertyEdit: '/subpackages/customer/pages/property-edit',
   customerWechatRecord: '/subpackages/customer/pages/wechat-record',
   projectCreate: '/subpackages/project/pages/create',
+  paymentPlanPicker: '/subpackages/plan/pages/payment-picker',
+  constructionPlanPicker: '/subpackages/plan/pages/construction-picker',
   projectDetail: '/subpackages/project/pages/detail',
   projectJourney: '/subpackages/project/pages/journey',
   ownerMeasure: '/subpackages/project/pages/owner-measure',
@@ -96,6 +100,7 @@ export const P = {
   reportEdit: '/subpackages/project/pages/report/edit',
   reportDaily: '/subpackages/project/pages/report/daily',
   designList: '/subpackages/design/pages/list',
+  designSchemePicker: '/subpackages/design/pages/design-picker',
   designRequirements: '/subpackages/design/pages/requirements',
   designRequirement: '/subpackages/design/pages/requirement',
   designScheme: '/subpackages/design/pages/scheme',
@@ -108,6 +113,8 @@ export const P = {
   catalogImport: '/subpackages/quote/pages/catalog/import',
   catalogImportResult: '/subpackages/quote/pages/catalog/import-result',
   quoteList: '/subpackages/quote/pages/list',
+  quoteLinePicker: '/subpackages/quote/pages/quote-line-picker',
+  packagePicker: '/subpackages/quote/pages/package-picker',
   quoteDetail: '/subpackages/quote/pages/detail',
   quoteEdit: '/subpackages/quote/pages/edit',
   packageManage: '/subpackages/quote/pages/package-manage',
@@ -129,6 +136,7 @@ export const P = {
   businessDynamics: '/subpackages/statistic/pages/business-dynamics',
   managerWorkbench: '/subpackages/team/pages/workbench',
   managerDesigners: '/subpackages/team/pages/designers',
+  employeePicker: '/subpackages/company/pages/employee-picker',
   financeHome: '/pages/finance/index',
   financeLedger: '/subpackages/finance/pages/ledger',
   financeReceivables: '/subpackages/finance/pages/receivables',
@@ -136,6 +144,8 @@ export const P = {
   supplyPartnerEdit: '/subpackages/supply/pages/partner-edit',
   supplyPartnerPriceEdit: '/subpackages/supply/pages/partner-price-edit',
   supplyPurchaseEdit: '/subpackages/supply/pages/purchase-edit',
+  supplierPicker: '/subpackages/supply/pages/supplier-picker',
+  materialPlanPicker: '/subpackages/supply/pages/material-plan-picker',
   supplyReceiptEdit: '/subpackages/supply/pages/receipt-edit',
   financePartners: '/subpackages/finance/pages/partners',
   financePayables: '/subpackages/finance/pages/payables',
@@ -171,7 +181,7 @@ export const P = {
   supply: '/subpackages/supply/pages/index'
 } as const
 
-export const TAB_PATHS = [P.home, P.projectList, P.customerList, P.dynamic, P.mine, P.financeHome, P.designWorkbench, P.quoteWorkbench]
+export const TAB_PATHS = [P.home, P.projectList, P.customerList, P.dynamic, P.mine, P.financeHome, P.designWorkbench, P.quoteWorkbench, P.materialPlanWorkbench]
 
 export function isTabPath(path: string): boolean {
   return TAB_PATHS.includes(path as (typeof TAB_PATHS)[number])

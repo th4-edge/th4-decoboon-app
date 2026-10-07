@@ -40,7 +40,12 @@ async function load() {
   loading.value = true
   try {
     const catalog = await planApi.constructionManagement()
-    const current = templateId.value ? catalog.constructionPlans.find((item) => item.templateId === templateId.value) : undefined
+    let current = templateId.value ? catalog.constructionPlans.find((item) => item.templateId === templateId.value) : undefined
+    // 历史坑：管理页与合同目录可能取到不同模板来源，编辑页需回退全量目录，避免误报“模板不存在”。
+    if (!current && templateId.value) {
+      const fallback = await planApi.catalog()
+      current = fallback.constructionPlans.find((item) => item.templateId === templateId.value)
+    }
     if (current) apply(current)
     else if (templateId.value) {
       toast('施工计划模板不存在', 'none')

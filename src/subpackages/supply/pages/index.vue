@@ -23,7 +23,8 @@ const movements = ref<StockMovement[]>([])
 const plans = ref<MaterialPlan[]>([])
 const purchases = ref<PurchaseOrder[]>([])
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
-const canApprove = computed(() => ['boss', 'finance'].includes(session.role || ''))
+const canApprove = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
+const canBuy = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 const pendingPlans = computed(() => plans.value.filter((item) => ['planned', 'readyToOrder', 'requested', 'approved'].includes(item.status)).slice(0, 8))
 const activePurchases = computed(() => purchases.value.filter((item) => !['cancelled', 'closed'].includes(item.status)).slice(0, 12))
 const pendingPurchaseCount = computed(() => purchases.value.filter((item) => ['submitted', 'approved', 'ordered', 'partiallyReceived'].includes(item.status)).length)
@@ -86,12 +87,27 @@ function openMaterialWorkbench() {
 }
 
 function addPurchase(planId?: string) { uni.navigateTo({ url: `${P.supplyPurchaseEdit}${planId ? `?planId=${planId}` : ''}` }) }
-function receive(purchaseId: string) { uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchaseId}` }) }
+function receive(purchase: PurchaseOrder) {
+  const items = (purchase.items || []).filter((item) => item.receivedQuantity < item.quantity)
+  if (items.length > 1) {
+    uni.showActionSheet({
+      itemList: items.map((item) => `${item.materialName || '材料明细'}（待到 ${Math.max(0, item.quantity - item.receivedQuantity)}${item.unit || ''}）`),
+      success: ({ tapIndex }) => {
+        const item = items[tapIndex]
+        if (!item) return
+        uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchase.id}&purchaseItemId=${item.id}` })
+      }
+    })
+    return
+  }
+  const itemQuery = items[0]?.id ? `&purchaseItemId=${items[0].id}` : ''
+  uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchase.id}${itemQuery}` })
+}
 
 async function order(item: PurchaseOrder) {
   try {
     await materialApi.orderPurchase(item.id)
-    toast('采购单已标记下单', 'success')
+    toast('已确认下单并形成应付', 'success')
     await refresh()
   } catch (error) {
     toastError(error, '采购下单失败')
@@ -125,7 +141,7 @@ async function approve(item: PurchaseOrder) {
         <view><text>{{ pendingPurchaseCount }}</text><text>进行中</text></view>
         <view><text>{{ waitingReceiptCount }}</text><text>待到货</text></view>
       </view>
-      <view class="supply__add jz-card" @tap="addPurchase()">
+      <view v-if="canBuy" class="supply__add jz-card" @tap="addPurchase()">
         <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>从材料计划创建采购单</text>
       </view>
       <view class="supply__add jz-card" @tap="openMaterialWorkbench()">
@@ -136,7 +152,7 @@ async function approve(item: PurchaseOrder) {
       <view v-for="plan in pendingPlans" :key="plan.id" class="jz-card supply__card">
         <view class="jz-between"><text class="supply__name">{{ plan.name }}</text><JzTag text="待采购" :color="TOKEN_COLOR.warning" /></view>
         <text class="supply__meta">{{ plan.project?.name || '项目材料' }} · {{ plan.quantity }}{{ plan.unit }} · 要求到场 {{ plan.requiredAt || '未设置' }}</text>
-        <view class="supply__actions"><button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="addPurchase(plan.id)">去采购</button></view>
+        <view v-if="canBuy" class="supply__actions"><button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="addPurchase(plan.id)">去采购</button></view>
       </view>
 
       <view v-if="activePurchases.length" class="supply__section">采购进度</view>
@@ -147,7 +163,7 @@ async function approve(item: PurchaseOrder) {
         <view class="supply__metrics"><text>采购金额 {{ money(item.amount) }}</text><text>单价 {{ money(item.unitPrice) }}</text></view>
         <view v-if="canApprove && item.status === 'submitted'" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="approve(item)">确认采购</button></view>
         <view v-else-if="canOrder(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="order(item)">确认已下单</button></view>
-        <view v-else-if="canReceive(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="receive(item.id)">确认到货</button></view>
+        <view v-else-if="canReceive(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="receive(item)">确认到货</button></view>
       </view>
       <JzEmpty v-if="!pendingPlans.length && !activePurchases.length" text="暂无项目采购" sub="材料计划生成后，可从这里发起供应商采购" />
     </view>

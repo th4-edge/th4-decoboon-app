@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { identityApi } from '@/domains/identity/api'
 import type { Employee } from '@/domains/identity/model'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { carryoverApi } from '@/domains/carryover/api'
 import type { CarryoverAdjustment, CarryoverAttachment, CarryoverAttachmentCategory, CarryoverAdjustmentType, CarryoverCostStatus, CarryoverProjectInput, CarryoverProjectStatus } from '@/domains/carryover/model'
 import type { ProjectStatus } from '@/domains/project/model'
 import { fileApi } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
 import { confirm, confirmDanger, toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -65,11 +67,26 @@ const ADJUSTMENT_TYPES: { value: CarryoverAdjustmentType; label: string }[] = [
   { value: 'cost', label: '接管前成本' },
   { value: 'other', label: '其他更正' }
 ]
+onShow(() => { applyEmployeePickerResult() })
 function onProgressChange(event: any) { progress.value = Number(event?.detail?.value ?? 0) }
 const adjustmentTypeIndex = computed(() => Math.max(0, ADJUSTMENT_TYPES.findIndex(item => item.value === adjustmentType.value)))
 function onReceivableConfirmedChange(event: any) { receivableConfirmed.value = !!event?.detail?.value }
 function onPayableConfirmedChange(event: any) { payableConfirmed.value = !!event?.detail?.value }
 
+const employeePickerTarget = ref<'owner' | 'manager' | 'designer'>('owner')
+function openEmployeePicker(target: 'owner' | 'manager' | 'designer') {
+  employeePickerTarget.value = target
+  const selected = target === 'owner' ? owner.value : target === 'manager' ? manager.value : designer.value
+  uni.navigateTo({ url: `${P.employeePicker}?selectedId=${encodeURIComponent(selected?.id || '')}&selectedName=${encodeURIComponent(selected?.name || '')}` })
+}
+function applyEmployeePickerResult() {
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  const value = result.action === 'clear' ? undefined : result.value
+  if (employeePickerTarget.value === 'owner') owner.value = value
+  else if (employeePickerTarget.value === 'manager') manager.value = value
+  else designer.value = value
+}
 const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
   { value: 'preparing', label: '待开工' }, { value: 'ongoing', label: '施工中' },
   { value: 'suspended', label: '已停工' }, { value: 'accepting', label: '待验收' },
@@ -224,29 +241,30 @@ function openPaymentPlan() {
 
 async function chooseAttachment() {
   if (!id.value) { toast('请先保存项目草稿'); return }
-  uni.chooseImage({
-    count: 9,
-    success: async (res) => {
-      loading('上传附件…')
-      try {
-        for (const path of res.tempFilePaths || []) {
-          const uploaded = await fileApi.upload('Carryover', path)
-          const category: CarryoverAttachmentCategory = 'other'
-          attachments.value.push(await carryoverApi.attachmentSave({
-            itemId: id.value,
-            category,
-            fileUrl: uploaded.path,
-            originalName: uploaded.name || '承接附件'
-          }))
-        }
-        toast('附件已上传', 'success')
-      } catch (error) {
-        toastError(error, '附件上传失败')
-      } finally {
-        hideLoading()
-      }
+  let paths: string[] = []
+  try { paths = await chooseImages({ count: 9 }) } catch (error) {
+    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
+    return
+  }
+  if (!paths.length) return
+  loading('上传附件…')
+  try {
+    for (const path of paths) {
+      const uploaded = await fileApi.upload('Carryover', path)
+      const category: CarryoverAttachmentCategory = 'other'
+      attachments.value.push(await carryoverApi.attachmentSave({
+        itemId: id.value,
+        category,
+        fileUrl: uploaded.path,
+        originalName: uploaded.name || '承接附件'
+      }))
     }
-  })
+    toast('附件已上传', 'success')
+  } catch (error) {
+    toastError(error, '附件上传失败')
+  } finally {
+    hideLoading()
+  }
 }
 
 async function removeAttachment(item: CarryoverAttachment) {
@@ -357,9 +375,9 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>小区</text><input v-model="community" maxlength="128" placeholder="选填" /></view>
       <view class="co-edit__row"><text>房屋地址 *</text><input v-model="address" maxlength="256" placeholder="完整地址" /></view>
       <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row"><text>经营负责人 *</text><picker :range="employeeNames" :value="ownerIndex" @change="owner = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ owner?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
-      <view class="co-edit__row"><text>项目经理 *</text><picker :range="employeeNames" :value="managerIndex" @change="manager = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ manager?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
-      <view class="co-edit__row"><text>设计师</text><picker :range="employeeNames" :value="designerIndex" @change="designer = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ designer?.name || '选填' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
     </view>
 
     <view class="co-edit__section jz-card">

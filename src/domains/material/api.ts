@@ -65,12 +65,17 @@ function normalize(raw: RawRecord): MaterialPlan {
     id: String(raw.id ?? raw.planId ?? raw.materialPlanId ?? ''),
     catalogItemId: String(raw.catalogItemId ?? catalog.itemId ?? '') || undefined,
     catalogItemType: catalog.type ? enumValue(catalog.type) : undefined,
+    materialKey: raw.materialKey,
     name: raw.name ?? catalog.name ?? '',
-    spec: raw.spec ?? catalog.spec,
-    brand: catalog.brand,
+    spec: raw.selectedSpec ?? raw.spec ?? catalog.spec,
+    brand: raw.selectedBrand ?? catalog.brand,
     series: catalog.series,
     cost: Number(raw.cost ?? 0),
+    unitPrice: Number(raw.unitPrice ?? 0),
     quantity: Number(raw.quantity ?? 0),
+    netQuantity: raw.netQuantity == null ? undefined : Number(raw.netQuantity),
+    lossRate: raw.lossRate == null ? undefined : Number(raw.lossRate),
+    lossQuantity: raw.lossQuantity == null ? undefined : Number(raw.lossQuantity),
     unit: UNIT_LABEL[enumValue(raw.unit)] || enumValue(raw.unit),
     requiredAt: raw.requiredAt,
     arrivedAt: raw.arrivedAt,
@@ -105,7 +110,25 @@ function normalizePurchase(raw: RawRecord): PurchaseOrder {
     expectedAt: raw.expectedAt,
     orderedAt: raw.orderedAt,
     remark: raw.remark,
-    createdAt: dateTimeValue(raw.createTime?.dateTime ?? raw.createTime)
+    createdAt: dateTimeValue(raw.createTime?.dateTime ?? raw.createTime),
+    items: Array.isArray(raw.items)
+      ? raw.items.map((item: RawRecord) => {
+          const plan = item.materialPlan || {}
+          const catalog = plan.catalogItem || {}
+          return {
+            id: String(item.id ?? item.purchaseItemId ?? ''),
+            materialPlanId: String(item.materialPlanId ?? plan.planId ?? ''),
+            materialName: catalog.name ?? plan.name ?? '材料明细',
+            quantity: Number(item.quantity ?? 0),
+            unit: UNIT_LABEL[enumValue(item.unit)] || enumValue(item.unit),
+            unitPrice: Number(item.unitPrice ?? 0),
+            amount: Number(item.amount ?? 0),
+            receivedQuantity: Number(item.receivedQuantity ?? 0),
+            status: PURCHASE_STATUS[enumValue(item.status)] || 'ordered',
+            priceSource: item.priceSource
+          }
+        })
+      : []
   }
 }
 
@@ -180,7 +203,7 @@ export const materialApi = {
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/goods-receipt/page', { purchaseId }))
       .map(normalizeReceipt),
 
-  saveReceipt: (input: { purchaseId: string; quantity: number; arrivedAt?: string; images?: string[]; remark?: string }) =>
+  saveReceipt: (input: { purchaseId: string; purchaseItemId?: string; quantity: number; arrivedAt?: string; images?: string[]; remark?: string }) =>
     post<RawRecord>('project/goods-receipt/save', input).then(normalizeReceipt)
 }
 
@@ -355,6 +378,7 @@ function normalizeWorkbenchItem(raw: RawRecord): import('./model').MaterialPlanW
     selectionStatus: raw.selectionStatus,
     selectionStatusName: raw.selectionStatusName,
     purchaseId: raw.purchaseId ? String(raw.purchaseId) : undefined,
+    purchaseItemId: raw.purchaseItemId ? String(raw.purchaseItemId) : undefined,
     purchaseNo: raw.purchaseNo,
     supplierName: raw.supplierName,
     delayed: raw.delayed === true,

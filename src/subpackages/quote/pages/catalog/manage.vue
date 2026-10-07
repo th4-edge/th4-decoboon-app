@@ -6,6 +6,7 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import type { CatalogImportBatch, CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
+import { chooseImages as selectImages } from '@/domains/file/choose-media'
 import { fileApi } from '@/domains/file/api'
 import { can } from '@/roles/permission'
 import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -203,17 +204,11 @@ function selectBrandSuggestion(value: string) {
   brandFocused.value = false
 }
 
-function chooseImages() {
+async function chooseImages() {
   const remain = 9 - images.value.length
   if (remain <= 0) { toast('最多上传 9 张效果图片'); return }
-  uni.chooseImage({
-    count: remain,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (result) => {
-      images.value = [...images.value, ...result.tempFilePaths].slice(0, 9)
-    }
-  })
+  try { images.value = [...images.value, ...await selectImages({ count: remain })].slice(0, 9) }
+  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
 }
 
 function removeImage(index: number) {

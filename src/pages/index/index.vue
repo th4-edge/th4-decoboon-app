@@ -764,7 +764,7 @@ const projectSectionTitle = computed(() => {
       </view>
 
       <!-- 快捷入口 -->
-      <view class="home__quicks jz-card" :class="{ 'home__quicks--boss': role === 'boss' }">
+      <view class="home__quicks jz-card" :class="{ 'home__quicks--boss': role === 'boss', 'home__quicks--finance': role === 'finance' }">
         <view v-for="q in quicks" :key="q.label" class="home__quick" @tap="q.action()">
           <view class="home__quick-icon"><JzIcon :name="iconName(q.icon)" :size="38" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
           <text class="home__quick-label">{{ q.label }}</text>
@@ -875,7 +875,7 @@ const projectSectionTitle = computed(() => {
         <template v-else>
           <view v-if="myProjects.length === 0" class="jz-card home__empty-card">
             <JzEmpty :text="isCustomer(role) ? '您还没有关联工地' : '还没有项目'"
-              :sub="isCustomer(role) ? '请联系装修公司发送业主邀请码' : '点击「合同签约」从客户确认报价生成工地'" />
+              :sub="isCustomer(role) ? '请联系装修公司发送业主邀请码' : can(role, 'act:contractPrepare') || can(role, 'act:contractConfirm') ? '点击「合同签约」从客户确认报价发起或确认签约' : '合同签约确认后系统会自动生成工地'" />
           </view>
           <view v-else class="home__projects">
             <view v-for="p in myProjects.slice(0, isCustomer(role) ? 1 : 4)" :key="p.id" class="home__project jz-card" @tap="openProject(p.id)">

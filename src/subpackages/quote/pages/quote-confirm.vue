@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import type { Customer } from '@/domains/crm/model'
@@ -9,6 +9,7 @@ import type { PackageTemplate } from '@/domains/pack/model'
 import { designApi } from '@/domains/design/api'
 import { crmApi } from '@/domains/crm/api'
 import { packApi } from '@/domains/pack/api'
+import { consumePackagePickerResult } from '@/domains/pack/package-picker'
 import { tradeApi } from '@/domains/trade/api'
 import { money } from '@/core/format'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -70,6 +71,7 @@ onLoad((query) => {
   }
   void load()
 })
+onShow(() => { void applyPackageSelection() })
 
 async function load() {
   loadingData.value = true
@@ -100,6 +102,36 @@ function pickTemplate(index: number) {
   if (selectedTemplate.value?.discount) {
     discount.value = String(Math.round(selectedTemplate.value.discount * 100))
   }
+}
+
+async function applyPackageSelection() {
+  const result = consumePackagePickerResult()
+  if (!result) return
+  if (result.action === 'clear') {
+    templateId.value = ''
+    discount.value = '100'
+    return
+  }
+  templateId.value = result.value.id
+  let selected = templates.value.find((item) => item.id === templateId.value)
+  if (!selected) {
+    try {
+      selected = await packApi.template(templateId.value)
+      templates.value = [...templates.value, selected]
+    } catch (error) {
+      toastError(error, '套餐模板读取失败')
+      templateId.value = ''
+      return
+    }
+  }
+  if (selected?.discount) discount.value = String(Math.round(selected.discount * 100))
+}
+function openPackagePicker() {
+  const query = [
+    templateId.value ? `selectedId=${encodeURIComponent(templateId.value)}` : '',
+    selectedTemplate.value?.name ? `selectedName=${encodeURIComponent(selectedTemplate.value.name)}` : ''
+  ].filter(Boolean).join('&')
+  uni.navigateTo({ url: `${P.packagePicker}?${query}` })
 }
 
 function cancel() {
@@ -171,12 +203,13 @@ async function submit() {
           </view>
           <JzIcon name="package" :size="32" :color="'#16A394'" />
         </view>
-        <picker :range="['仅设计方案报价', ...templates.map(item => `${item.name}（${item.area}㎡ / ${money(item.price)}）`)]" @change="pickTemplate(Number($event.detail.value) - 1)">
-          <view class="qc__package-picker">
-            <text>{{ selectedTemplate ? selectedTemplate.name : '仅设计方案报价' }}</text>
-            <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+        <view class="qc__package-picker" @tap="openPackagePicker">
+          <view class="qc__package-picker-main">
+            <text class="qc__package-picker-name">{{ selectedTemplate ? selectedTemplate.name : '仅设计方案报价' }}</text>
+            <text class="qc__package-picker-meta">{{ selectedTemplate ? `标准${selectedTemplate.area}㎡ · ${money(selectedTemplate.price)}` : '按客户确认的差异选择套餐基线' }}</text>
           </view>
-        </picker>
+          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+        </view>
         <view v-if="selectedTemplate" class="qc__package-meta">
           <text>套餐面积比例 {{ packageRatio.toFixed(3) }}</text>
           <text>套餐基线 ¥{{ money(previewSubtotal) }}</text>
@@ -562,4 +595,8 @@ async function submit() {
 .qc__footer-submit[disabled] {
   opacity: 0.5;
 }
+
+.qc__package-picker-main { flex: 1; min-width: 0; }
+.qc__package-picker-name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qc__package-picker-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
 </style>
