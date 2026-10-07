@@ -199,9 +199,9 @@ async function submit() {
             <input
               v-model="discount"
               type="number"
-              class="qc__discount-input"
+              class="qc__discount-input jz-numeric-input"
               placeholder="100"
-              maxlength="3"
+              maxlength="3" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
             />
             <text class="qc__discount-unit">%</text>
           </view>

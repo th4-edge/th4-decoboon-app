@@ -148,11 +148,11 @@ async function save() {
           <view class="pp__value">{{ items[itemIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
-      <view class="pp__field"><text class="pp__label">采购价(元)</text><input v-model="purchasePrice" type="digit" class="pp__input" placeholder="供应商实际采购价" /></view>
-      <view class="pp__field"><text class="pp__label">人工/班组价(元)</text><input v-model="laborPrice" type="digit" class="pp__input" placeholder="施工/劳务成本" /></view>
-      <view class="pp__field"><text class="pp__label">最小起订量</text><input v-model="minimumOrder" type="digit" class="pp__input" /></view>
-      <view class="pp__field"><text class="pp__label">交货天数</text><input v-model="leadTimeDays" type="number" class="pp__input" /></view>
-      <view class="pp__field"><text class="pp__label">账期天数</text><input v-model="settlementDays" type="number" class="pp__input" /></view>
+      <view class="pp__field"><text class="pp__label">采购价(元)</text><input v-model="purchasePrice" type="digit" class="pp__input jz-numeric-input" placeholder="供应商实际采购价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pp__field"><text class="pp__label">人工/班组价(元)</text><input v-model="laborPrice" type="digit" class="pp__input jz-numeric-input" placeholder="施工/劳务成本" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pp__field"><text class="pp__label">最小起订量</text><input v-model="minimumOrder" type="digit" class="pp__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pp__field"><text class="pp__label">交货天数</text><input v-model="leadTimeDays" type="number" class="pp__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pp__field"><text class="pp__label">账期天数</text><input v-model="settlementDays" type="number" class="pp__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="pp__field"><text class="pp__label">生效日期</text><input v-model="effectiveFrom" class="pp__input" placeholder="YYYY-MM-DD" /></view>
       <view class="pp__field"><text class="pp__label">失效日期</text><input v-model="effectiveTo" class="pp__input" placeholder="YYYY-MM-DD" /></view>
       <view class="pp__field"><text class="pp__label">启用</text><switch :checked="active" :color="TOKEN_COLOR.primary" @change="active = ($event as any).detail.value" /></view>

@@ -176,7 +176,7 @@ async function save(publish = false) {
         <text class="ppe__section-title">模板信息</text>
         <view class="ppe__field"><text>模板名称</text><input v-model="name" maxlength="128" placeholder="例如：企业标准收款" /></view>
         <view class="ppe__field ppe__field--textarea"><text>说明</text><textarea v-model="description" maxlength="512" auto-height placeholder="描述适用项目或收款规则" /></view>
-        <view class="ppe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" /></view>
+        <view class="ppe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       </view>
 
       <view class="ppe__summary jz-card" :class="{ 'ppe__summary--error': Math.abs(ratioTotal - 100) >= 0.001 }">
@@ -188,12 +188,12 @@ async function save(publish = false) {
         <view class="ppe__node-head"><text>第 {{ index + 1 }} 期</text><view class="ppe__remove" @tap="removeNode(index)"><JzIcon name="trash" :size="28" :color="TOKEN_COLOR.danger" /></view></view>
         <view class="ppe__field"><text>节点名称</text><input v-model="node.name" maxlength="128" placeholder="例如：水电验收款" /></view>
         <view class="ppe__grid">
-          <view class="ppe__field"><text>收款比例</text><input v-model.number="node.ratioPercent" type="digit" placeholder="30" /><text class="ppe__unit">%</text></view>
+          <view class="ppe__field"><text>收款比例</text><input v-model.number="node.ratioPercent" type="digit" placeholder="30" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="ppe__unit">%</text></view>
           <view class="ppe__field"><text>应收类型</text><picker mode="selector" :range="typeOptions" range-key="label" @change="node.type = typeOptions[Number($event.detail.value)]?.value || node.type"><view>{{ typeLabel(node.type) }}</view></picker></view>
         </view>
         <view class="ppe__field"><text>触发条件</text><picker mode="selector" :range="triggerOptions" range-key="label" @change="node.triggerType = triggerOptions[Number($event.detail.value)]?.value || node.triggerType"><view>{{ triggerLabel(node.triggerType) }}</view></picker></view>
         <view v-if="requiresStage(node.triggerType)" class="ppe__field"><text>触发阶段</text><picker mode="selector" :range="stageOptions" range-key="name" @change="node.triggerStageCode = stageOptions[Number($event.detail.value)]?.code"><view>{{ stageLabel(node.triggerStageCode) }}</view></picker></view>
-        <view class="ppe__field"><text>偏移天数</text><input v-model.number="node.offsetDays" type="number" placeholder="0" /></view>
+        <view class="ppe__field"><text>偏移天数</text><input v-model.number="node.offsetDays" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       </view>
     </view>
 

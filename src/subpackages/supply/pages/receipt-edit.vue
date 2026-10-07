@@ -73,7 +73,7 @@ async function save() {
       <text class="re__meta">{{ purchase.projectName }} · {{ purchase.supplierName }}</text>
       <text class="re__meta">{{ purchase.no }} · 已到 {{ purchase.receivedQuantity }} / {{ purchase.quantity }} {{ purchase.unit }}</text>
       <view class="re__remaining">本次最多可确认 {{ remaining }} {{ purchase.unit }}</view>
-      <view class="re__field"><text class="re__label">本次到场数量</text><input v-model="quantity" type="digit" class="re__input" /></view>
+      <view class="re__field"><text class="re__label">本次到场数量</text><input v-model="quantity" type="digit" class="re__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="re__field"><text class="re__label">到场日期</text><input v-model="arrivedAt" class="re__input" placeholder="YYYY-MM-DD" /></view>
       <view class="re__field re__field--col"><text class="re__label">到货说明</text><textarea v-model="remark" class="re__textarea" maxlength="200" placeholder="破损、少发、色差或补发要求" /></view>
     </view>

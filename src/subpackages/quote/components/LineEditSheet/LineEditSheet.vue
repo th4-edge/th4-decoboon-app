@@ -108,7 +108,7 @@ function handleSave() {
       <view class="les__grid">
         <view>
           <text class="les__label">数量系数</text>
-          <input v-model="factor" type="digit" class="les__input" placeholder="1" />
+          <input v-model="factor" type="digit" class="les__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
         </view>
         <view>
           <text class="les__label">计价方式</text>

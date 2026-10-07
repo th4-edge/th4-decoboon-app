@@ -353,10 +353,10 @@ async function submitCarryover() {
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">1. 客户与房屋</text>
       <view class="co-edit__row"><text>客户姓名 *</text><input v-model="customerName" maxlength="32" placeholder="请输入" /></view>
-      <view class="co-edit__row"><text>手机号 *</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="11 位手机号" /></view>
+      <view class="co-edit__row"><text>手机号 *</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="11 位手机号" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row"><text>小区</text><input v-model="community" maxlength="128" placeholder="选填" /></view>
       <view class="co-edit__row"><text>房屋地址 *</text><input v-model="address" maxlength="256" placeholder="完整地址" /></view>
-      <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" /></view>
+      <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row"><text>经营负责人 *</text><picker :range="employeeNames" :value="ownerIndex" @change="owner = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ owner?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
       <view class="co-edit__row"><text>项目经理 *</text><picker :range="employeeNames" :value="managerIndex" @change="manager = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ manager?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
       <view class="co-edit__row"><text>设计师</text><picker :range="employeeNames" :value="designerIndex" @change="designer = employees[Number($event.detail.value)]"><view class="co-edit__picker">{{ designer?.name || '选填' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
@@ -365,8 +365,8 @@ async function submitCarryover() {
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">2. 报价与合同基线</text>
       <view class="co-edit__row"><text>合同编号 *</text><input v-model="contractNo" maxlength="64" placeholder="原合同编号" /></view>
-      <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" /></view>
-      <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" /></view>
+      <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row"><text>签约日期 *</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="co-edit__picker">{{ signedAt || '请选择' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
     </view>
 
@@ -410,7 +410,7 @@ async function submitCarryover() {
           <view><text class="co-edit__block-title">客户未收工程款</text><text class="co-edit__block-sub">= 应收账款总额 - 已收款合计</text></view>
           <view class="co-edit__quick" @tap="acceptZeroReceivable">无未收款</view>
         </view>
-        <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" /></view>
+        <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view v-if="receivableExceedsContract" class="co-edit__field-warning">未收金额超过当前合同金额，请检查是否将累计已收填成了未收余额。</view>
         <view class="co-edit__row"><text>约定收款日</text><picker mode="date" :value="receivableDueDate" @change="receivableDueDate = $event.detail.value"><view class="co-edit__picker">{{ receivableDueDate || '选填' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
         <view class="co-edit__row"><text>原应收单号</text><input v-model="receivableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
@@ -422,7 +422,7 @@ async function submitCarryover() {
           <view><text class="co-edit__block-title">当前未付款</text><text class="co-edit__block-sub">= 应付总额 - 已付款合计</text></view>
           <view class="co-edit__quick" @tap="acceptZeroPayable">无未付款</view>
         </view>
-        <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" /></view>
+        <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view class="co-edit__row"><text>约定付款日</text><picker mode="date" :value="payableDueDate" @change="payableDueDate = $event.detail.value"><view class="co-edit__picker">{{ payableDueDate || '选填' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
         <view class="co-edit__row"><text>收款方</text><input v-model="payablePayeeName" maxlength="128" placeholder="供应商、工人或项目班组" /></view>
         <view class="co-edit__row"><text>原应付单号</text><input v-model="payableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
@@ -432,7 +432,7 @@ async function submitCarryover() {
       <view class="co-edit__finance-block">
         <text class="co-edit__block-title">接管前已发生成本</text>
         <text class="co-edit__block-sub">包含已付与未付，不是上面的未付款，也不包含未来预算。</text>
-        <view class="co-edit__row"><text>已发生成本总额</text><input v-model="costTotal" type="digit" placeholder="只知总额也可填写，未知可留空" /></view>
+        <view class="co-edit__row"><text>已发生成本总额</text><input v-model="costTotal" type="digit" placeholder="只知总额也可填写，未知可留空" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view class="co-edit__cost-options">
           <view v-for="option in COST_STATUSES" :key="option.value" class="co-edit__cost-option" :class="{ 'co-edit__cost-option--on': costStatus === option.value }" @tap="costStatus = option.value">
             <view class="co-edit__cost-radio" />
@@ -474,7 +474,7 @@ async function submitCarryover() {
     <view v-if="id && status === 'locked'" class="co-edit__section jz-card">
       <text class="co-edit__title">锁定后调整</text>
       <view class="co-edit__row"><text>调整类型</text><picker :range="ADJUSTMENT_TYPES.map(item => item.label)" :value="adjustmentTypeIndex" @change="adjustmentType = ADJUSTMENT_TYPES[Number($event.detail.value)].value"><view class="co-edit__picker">{{ ADJUSTMENT_TYPES[adjustmentTypeIndex].label }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
-      <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" /></view>
+      <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row co-edit__row--col"><text>调整原因 *</text><textarea v-model="adjustmentReason" maxlength="500" placeholder="说明调整依据" /></view>
       <button class="jz-btn jz-btn--primary jz-btn--block co-edit__upload" @tap="adjust">记录调整</button>
       <view v-if="adjustments.length" class="co-edit__history">

@@ -263,11 +263,11 @@ async function save() {
           </view>
         </picker>
         <text class="qe__label">计价面积（㎡）<text class="req">*</text></text>
-        <input v-model="packageArea" type="digit" class="qe__input" placeholder="请输入实际计价面积" />
+        <input v-model="packageArea" type="digit" class="qe__input jz-numeric-input" placeholder="请输入实际计价面积" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
       </template>
 
       <text class="qe__label">整体折扣（%）</text>
-      <input v-model="discount" type="number" class="qe__input" placeholder="100 表示不打折" />
+      <input v-model="discount" type="number" class="qe__input jz-numeric-input" placeholder="100 表示不打折" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
 
       <view v-if="mode === 'custom' && design" class="qe__design">
         <view class="qe__design-head"><text class="jz-clamp-2">{{ design.name }}</text><text>{{ designMeta.designStatus[design.status] }}</text></view>

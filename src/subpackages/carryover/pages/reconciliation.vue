@@ -259,7 +259,7 @@ async function saveItem(item: CarryoverReconciliationItem) {
           <text class="rc-item__status">{{ item.differenceStatus === 'accepted' ? '已接受' : item.differenceStatus === 'resolved' ? '已解决' : item.differenceStatus === 'handling' ? '处理中' : '待处理' }}</text>
         </view>
         <view class="rc-row"><text class="rc-row__label">装得清</text><text class="rc-row__value">{{ (item.systemAmount || 0).toFixed(2) }} 元</text></view>
-        <view class="rc-row"><text class="rc-row__label">原账金额</text><input v-model="item.originalAmount" type="digit" placeholder="填写原账本金额" /></view>
+        <view class="rc-row"><text class="rc-row__label">原账金额</text><input v-model="item.originalAmount" type="digit" placeholder="填写原账本金额" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view class="rc-row"><text class="rc-row__label">差异</text><text class="rc-row__value" :class="{ 'rc-row__value--diff': item.difference }">{{ item.difference == null ? '待录入原账金额' : `${item.difference.toFixed(2)} 元` }}</text></view>
         <view class="rc-row">
           <text class="rc-row__label">差异分类</text>

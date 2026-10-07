@@ -474,10 +474,10 @@ async function doToggle(item: CatalogItem, active: boolean) {
             v-if="pricingMode === 'fixedTotal'"
             v-model="fixedTotalPrice"
             type="digit"
-            class="jz-form-input"
-            placeholder="固定总价（不按工程量折算）"
+            class="jz-form-input jz-numeric-input"
+            placeholder="固定总价（不按工程量折算）" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
           />
-          <view v-else class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input" placeholder="材料单价" /><input v-model="manualPrice" type="digit" class="jz-form-input" placeholder="人工单价" /></view>
+          <view v-else class="cm__double"><input v-model="materialPrice" type="digit" class="jz-form-input jz-numeric-input" placeholder="材料单价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><input v-model="manualPrice" type="digit" class="jz-form-input jz-numeric-input" placeholder="人工单价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
           <view class="cm__price-preview">
             <text class="cm__price-preview-label">报价展示</text>
             <text class="cm__price-preview-value">{{ pricePreview }}</text>
@@ -488,7 +488,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
               <text class="cm__cost-title">标准成本价</text>
               <text class="cm__cost-tag">{{ costPrice === '' ? '待维护' : '已维护' }}</text>
             </view>
-            <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input" placeholder="企业当前标准成本价" />
+            <input v-model="costPrice" type="digit" class="jz-form-input cm__cost-input jz-numeric-input" placeholder="企业当前标准成本价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <text class="cm__cost-hint">成本价由企业负责人、店长和财务维护；合同签约时按当时成本冻结，后续调整不回溯已签约成本。</text>
             <button class="jz-btn jz-btn--ghost jz-btn--sm cm__cost-action" @tap="openSupplierBrands">维护供应商品牌关系</button>
           </view>
@@ -516,17 +516,17 @@ async function doToggle(item: CatalogItem, active: boolean) {
           </view>
           <view v-if="detailOpen" class="cm__detail-body">
             <view v-if="type === 'construction'" class="cm__double">
-              <input v-model="durationDays" type="number" class="jz-form-input" placeholder="施工工期(天)" />
+              <input v-model="durationDays" type="number" class="jz-form-input jz-numeric-input" placeholder="施工工期(天)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             </view>
             <view v-else-if="type === 'material'" class="cm__double">
-              <input v-model="lossRate" type="digit" class="jz-form-input" placeholder="损耗率(%)" />
-              <input v-model="minimumOrder" type="digit" class="jz-form-input" placeholder="起订量" />
+              <input v-model="lossRate" type="digit" class="jz-form-input jz-numeric-input" placeholder="损耗率(%)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model="minimumOrder" type="digit" class="jz-form-input jz-numeric-input" placeholder="起订量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             </view>
             <view v-else-if="type === 'soft'" class="cm__double">
-              <input v-model="leadTimeDays" type="number" class="jz-form-input" placeholder="交期(天)" />
+              <input v-model="leadTimeDays" type="number" class="jz-form-input jz-numeric-input" placeholder="交期(天)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             </view>
             <view v-else-if="type === 'appliance'" class="cm__double">
-              <input v-model="warrantyMonths" type="number" class="jz-form-input" placeholder="保修(月)" />
+              <input v-model="warrantyMonths" type="number" class="jz-form-input jz-numeric-input" placeholder="保修(月)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             </view>
             <view v-else-if="type === 'custom'" class="cm__double">
               <input v-model="board" class="jz-form-input" placeholder="柜体板材，如颗粒板" />

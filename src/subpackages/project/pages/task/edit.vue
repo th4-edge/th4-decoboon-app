@@ -150,7 +150,7 @@ async function save() {
         </picker>
       </view>
       <view class="te__row"><text class="te__label">施工总量</text>
-        <input v-model="quantity" type="digit" class="jz-grow te__qty" placeholder="数量" />
+        <input v-model="quantity" type="digit" class="jz-grow te__qty jz-numeric-input" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
         <input v-model="unit" class="te__unit" placeholder="单位(㎡/m/项…)" />
       </view>
       <view class="te__row"><text class="te__label">负责人</text>

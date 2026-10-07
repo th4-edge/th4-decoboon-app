@@ -209,28 +209,28 @@ function currentMonth() {
           <view class="ana-field">
             <text class="ana-field__label">签约目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.signedAmount" type="digit" placeholder="0" />
+              <input v-model.number="targetForm.signedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">回款目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.receivedAmount" type="digit" placeholder="0" />
+              <input v-model.number="targetForm.receivedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">毛利目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.grossProfit" type="digit" placeholder="0" />
+              <input v-model.number="targetForm.grossProfit" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">在建目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.activeProjectCount" type="number" placeholder="0" />
+              <input v-model.number="targetForm.activeProjectCount" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
               <text class="ana-field__unit">个</text>
             </view>
           </view>

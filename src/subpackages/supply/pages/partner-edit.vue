@@ -121,7 +121,7 @@ async function save() {
         </picker>
       </view>
       <view class="pe__field"><text class="pe__label">联系人</text><input v-model="contactName" class="pe__input" maxlength="32" placeholder="对接人姓名" /></view>
-      <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input" type="number" maxlength="20" placeholder="手机号或固话" /></view>
+      <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input jz-numeric-input" type="number" maxlength="20" placeholder="手机号或固话" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="pe__field"><text class="pe__label">关联品牌</text><input v-model="brandsText" class="pe__input" maxlength="512" placeholder="如：马可波罗、东鹏，用逗号分隔" /></view>
       <view class="pe__field"><text class="pe__label">地址</text><input v-model="addr" class="pe__input" maxlength="128" placeholder="门店/仓库地址" /></view>
       <view class="pe__field"><text class="pe__label">税号</text><input v-model="taxNo" class="pe__input" maxlength="32" placeholder="开票税号（可选）" /></view>
@@ -134,8 +134,8 @@ async function save() {
           <view class="pe__value">{{ MODE_OPTIONS[modeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </picker>
       </view>
-      <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input" type="number" placeholder="默认 30" /></view>
-      <view v-if="MODE_OPTIONS[modeIdx].value === 'MonthlyCutoff'" class="pe__field"><text class="pe__label">截账日</text><input v-model="cutoffDay" class="pe__input" type="number" placeholder="每月几号，默认 25" /></view>
+      <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input jz-numeric-input" type="number" placeholder="默认 30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view v-if="MODE_OPTIONS[modeIdx].value === 'MonthlyCutoff'" class="pe__field"><text class="pe__label">截账日</text><input v-model="cutoffDay" class="pe__input jz-numeric-input" type="number" placeholder="每月几号，默认 25" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="pe__field">
         <text class="pe__label">状态</text>
         <picker class="pe__picker" :range="STATUS_OPTIONS.map(i => i.label)" :value="statusIdx" @change="statusIdx = Number($event.detail.value)">

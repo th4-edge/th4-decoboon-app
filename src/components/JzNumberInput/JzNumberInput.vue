@@ -98,6 +98,8 @@ function onBlur() {
       :disabled="disabled"
       :maxlength="maxlength"
       :placeholder="placeholder"
+      placeholder-class="jz-number-input__placeholder"
+      placeholder-style="text-align: left"
       @input="onInput"
       @focus="emit('focus')"
       @blur="onBlur"
@@ -127,6 +129,7 @@ function onBlur() {
 }
 .jz-number-input--disabled { opacity: .58; background: $jzb-bg-hover; }
 .jz-number-input__prefix { flex: none; color: $jzb-text-2; font-size: $jzb-font-md; font-weight: 650; }
+.jz-number-input__placeholder { color: $jzb-text-4; text-align: left; }
 .jz-number-input__control {
   flex: 1;
   min-width: 0;

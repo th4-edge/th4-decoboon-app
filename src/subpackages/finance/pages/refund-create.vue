@@ -5,11 +5,13 @@ import { P } from '@/config'
 import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
 import type { FundAccount, Receipt } from '@/domains/finance/model'
+import { REFUND_MAX_PAGES, REFUND_PAGE_SIZE, remainingRefundable, roundMoney, sumRefundsForReceipt } from '@/domains/finance/refund'
 import { ACCOUNT_LABEL } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
@@ -17,9 +19,26 @@ const receiptId = ref('')
 const receipt = ref<Receipt | null>(null)
 const loading = ref(false)
 const submitting = ref(false)
+const refundedAmount = ref(0)
+const refundableError = ref('')
 const form = reactive({ amount: '', account: 'companyBank' as FundAccount, refundAt: localDate(), reason: '' })
 const accounts: FundAccount[] = ['companyBank', 'cash', 'wechat', 'alipay', 'other']
-const canSubmit = computed(() => !!receipt.value && Number(form.amount) > 0 && Number(form.amount) <= receipt.value.amount && !submitting.value)
+const refundableAmount = computed(() => remainingRefundable(receipt.value?.amount || 0, refundedAmount.value))
+const amountError = computed(() => {
+  if (!receipt.value || form.amount === '') return ''
+  const amount = Number(form.amount)
+  if (!Number.isFinite(amount) || amount <= 0) return '退款金额必须大于 0'
+  if (amount > refundableAmount.value) return `退款金额不能超过可退金额 ${money(refundableAmount.value)}`
+  return ''
+})
+const canSubmit = computed(() => !!receipt.value
+  && !loading.value
+  && !refundableError.value
+  && refundableAmount.value > 0
+  && Number(form.amount) > 0
+  && Number(form.amount) <= refundableAmount.value
+  && !amountError.value
+  && !submitting.value)
 
 function localDate(): string {
   const date = new Date()
@@ -38,11 +57,24 @@ onLoad(async (query) => {
     const candidates = await financeApi.receipts({ size: 200 })
     receipt.value = candidates.find((item) => item.id === receiptId.value) || null
     if (!receipt.value) throw new Error('原收款不存在或无权访问')
-    form.amount = String(receipt.value.amount)
+    refundedAmount.value = await loadRefundedAmount(receipt.value)
   } catch (error) {
-    toastError(error, '原收款加载失败')
+    refundableError.value = error instanceof Error ? error.message : '可退金额暂不可确认'
+    toastError(error, receipt.value ? '可退金额加载失败' : '原收款加载失败')
   } finally { loading.value = false }
 })
+
+async function loadRefundedAmount(target: Receipt): Promise<number> {
+  const projectId = target.project?.id
+  if (!projectId) throw new Error('原收款项目信息缺失，暂不可确认可退金额')
+  let total = 0
+  for (let current = 1; current <= REFUND_MAX_PAGES; current += 1) {
+    const page = await financeApi.refunds({ projectId, current, size: REFUND_PAGE_SIZE })
+    total = roundMoney(total + sumRefundsForReceipt(target.id, page))
+    if (page.length < REFUND_PAGE_SIZE) return total
+  }
+  throw new Error('退款记录过多，暂不可确认可退金额，请稍后重试')
+}
 
 async function submit() {
   if (!receipt.value || !canSubmit.value) return
@@ -74,8 +106,12 @@ async function submit() {
       </view>
       <view class="fin-section"><text class="fin-section__title">退款信息</text></view>
       <view class="fin-body">
-        <label class="fin-field-label">退款金额</label>
-        <input v-model="form.amount" class="fin-input" type="digit" placeholder="请输入退款金额" />
+        <view class="fin-field-head"><label class="fin-field-label">退款金额</label><text v-if="receipt && !refundableError" class="fin-refund-limit">最多可退 {{ money(refundableAmount) }}</text></view>
+        <JzMoneyInput v-model="form.amount" placeholder="请输入退款金额" />
+        <text v-if="refundableError" class="fin-field-error">{{ refundableError }}</text>
+        <text v-else-if="receipt" class="fin-field-tip">原收款 {{ money(receipt.amount) }}<template v-if="refundedAmount > 0"> · 已退 {{ money(refundedAmount) }} · 尚可退 {{ money(refundableAmount) }}</template></text>
+        <text v-if="amountError" class="fin-field-error">{{ amountError }}</text>
+        <text v-else-if="receipt && refundableAmount <= 0" class="fin-field-error">该笔收款已全额退款，不能再次登记退款。</text>
         <label class="fin-field-label">退款日期</label>
         <picker mode="date" :value="form.refundAt" @change="form.refundAt = $event.detail.value"><view class="fin-picker"><text>{{ form.refundAt }}</text><JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" /></view></picker>
         <label class="fin-field-label">退款账户</label>
@@ -91,8 +127,12 @@ async function submit() {
 
 <style lang="scss" scoped>
 @import '@/styles/finance.scss';
+.fin-field-head { display:flex; align-items:center; justify-content:space-between; gap:20rpx; }
 .fin-field-label { display:block; margin:20rpx 0 10rpx; color: var(--text-2); font-size:26rpx; }
+.fin-refund-limit { margin-top:20rpx; color:var(--brand-500); font-size:24rpx; font-weight:650; }
 .fin-input,.fin-picker,.fin-textarea { box-sizing:border-box; width:100%; padding:24rpx; border:1rpx solid var(--line-2); border-radius:16rpx; background:#fff; color:var(--text-1); }
+.fin-field-tip { display:block; margin-top:10rpx; color:var(--text-3); font-size:22rpx; line-height:1.5; }
+.fin-field-error { display:block; margin-top:10rpx; color:var(--danger-500, #E5484D); font-size:22rpx; line-height:1.5; }
 .fin-picker { display:flex; justify-content:space-between; align-items:center; }
 .fin-textarea { min-height:180rpx; }
 .fin-submit { margin-top:32rpx; border-radius:16rpx; background:var(--brand-500); color:#fff; }

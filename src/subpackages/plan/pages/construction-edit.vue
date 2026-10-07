@@ -131,7 +131,7 @@ async function save(publish = false) {
         <text class="cpe__section-title">模板信息</text>
         <view class="cpe__field"><text>模板名称</text><input v-model="name" maxlength="128" placeholder="例如：企业标准八阶段" /></view>
         <view class="cpe__field cpe__field--textarea"><text>说明</text><textarea v-model="description" maxlength="512" auto-height placeholder="描述适用项目或施工组织方式" /></view>
-        <view class="cpe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" /></view>
+        <view class="cpe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       </view>
 
       <view class="cpe__summary jz-card"><text>标准总工期</text><text>{{ totalDays }} 天</text></view>
@@ -141,7 +141,7 @@ async function save(publish = false) {
         <view class="cpe__field"><text>阶段名称</text><input v-model="stage.name" maxlength="128" placeholder="例如：水电施工" /></view>
         <view class="cpe__field"><text>阶段编码</text><input v-model="stage.code" maxlength="64" placeholder="例如：WATER_ELECTRIC" /></view>
         <view class="cpe__grid">
-          <view class="cpe__field"><text>标准工期</text><input v-model.number="stage.defaultDays" type="number" placeholder="1" /><text class="cpe__unit">天</text></view>
+          <view class="cpe__field"><text>标准工期</text><input v-model.number="stage.defaultDays" type="number" placeholder="1" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="cpe__unit">天</text></view>
           <view class="cpe__field"><text>验收方式</text><picker mode="selector" :range="acceptanceOptions" range-key="label" @change="stage.acceptanceMode = acceptanceOptions[Number($event.detail.value)]?.value || stage.acceptanceMode"><view>{{ acceptanceLabel(stage.acceptanceMode) }}</view></picker></view>
         </view>
         <view class="cpe__field cpe__field--textarea"><text>阶段说明</text><textarea v-model="stage.description" maxlength="512" auto-height placeholder="说明施工范围和完成条件" /></view>

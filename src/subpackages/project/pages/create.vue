@@ -243,10 +243,10 @@ async function submit() {
         <text class="pc__label">最终签约价</text>
         <input
           v-model="finalSignedAmount"
-          class="jz-grow pc__value"
+          class="jz-grow pc__value jz-numeric-input"
           type="digit"
           :disabled="Boolean(contract && contract.status !== 'draft' && contract.status !== 'pendingSign')"
-          placeholder="客户最终确认的合同价格"
+          placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
         />
       </view>
       <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
