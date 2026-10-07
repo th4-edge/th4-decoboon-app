@@ -6,6 +6,7 @@ export const LEDGER_CATEGORY_PICKER_KEY = 'finance_ledger_category_picker_result
 export interface LedgerCategorySelection {
   id: string
   name: string
+  description?: string
   path: string
   direction: 'income' | 'expense'
 }

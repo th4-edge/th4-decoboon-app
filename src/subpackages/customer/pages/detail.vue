@@ -413,14 +413,16 @@ async function recordVisit() {
 async function assignDesigner() {
   actionLoading.value = true
   try {
-    if (!designers.value.length) designers.value = await identityApi.designers()
     if (!designers.value.length) {
-      toast('当前范围暂无可指定设计师')
+      designers.value = (await identityApi.employees()).filter((item) => item.status === 'active')
+    }
+    if (!designers.value.length) {
+      toast('当前范围暂无可指定人员')
       return
     }
     designerSheetOpen.value = true
   } catch (error) {
-    toastError(error, '设计师列表加载失败')
+    toastError(error, '可指派人员加载失败')
   } finally {
     actionLoading.value = false
   }
@@ -432,7 +434,6 @@ async function assignOwner() {
     const all = await identityApi.employees()
     const currentStoreId = session.emp?.store?.id
     owners.value = all.filter((item) => item.status === 'active'
-      && ['boss', 'storeManager', 'teamLeader', 'marketer'].includes(item.role)
       && (session.role === 'boss' || !currentStoreId || item.store?.id === currentStoreId))
     if (!owners.value.length) {
       toast('当前范围暂无可转交的客户负责人')

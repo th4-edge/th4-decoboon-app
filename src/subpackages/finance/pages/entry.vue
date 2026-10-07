@@ -12,6 +12,7 @@ import {
 } from '@/domains/finance/project-picker'
 import { consumeFinanceReceivablePickerResult } from '@/domains/finance/receivable-picker'
 import { consumeFinancePayablePickerResult } from '@/domains/finance/payable-picker'
+import { consumeLedgerCategoryPickerResult } from '@/domains/finance/ledger-category-picker'
 import { laborApi } from '@/domains/labor/api'
 import type { Worker } from '@/domains/labor/model'
 import type {
@@ -81,6 +82,8 @@ const form = reactive({
   sourceNo: '',
   direction: 'income' as LedgerDirection,
   category: '',
+  categoryId: '',
+  categoryDescription: '',
   purpose: 'other' as LedgerManualPurpose,
   counterparty: '',
   summary: '',
@@ -166,6 +169,7 @@ onShow(async () => {
   const projectResult = consumeFinanceProjectPickerResult()
   const receivableResult = consumeFinanceReceivablePickerResult()
   const payableResult = consumeFinancePayablePickerResult()
+  const categoryResult = consumeLedgerCategoryPickerResult()
   let contextLoaded = false
   if (!projectResult) pendingReceivableAfterProject = false
 
@@ -196,6 +200,17 @@ onShow(async () => {
   if (payableResult && type.value === 'payment') {
     if (payableResult.action === 'clear') clearPayableSelection()
     else setSelectedPayable(payableResult.value)
+  }
+  if (categoryResult && type.value === 'ledger') {
+    if (categoryResult.action === 'clear') {
+      form.category = ''
+      form.categoryId = ''
+      form.categoryDescription = ''
+    } else {
+      form.category = categoryResult.value.name
+      form.categoryId = categoryResult.value.id
+      form.categoryDescription = categoryResult.value.description || ''
+    }
   }
 
   if (booting.value || contextLoaded) return
@@ -291,6 +306,8 @@ async function hydrate(id: string) {
       // FIX-031 历史记录可能存在方向与用途不匹配，先归一到合法用途，避免 picker 显示与提交值不一致。
       normalizePurposeForDirection()
       form.category = item.category
+      form.categoryId = item.categoryNode?.id || ''
+      form.categoryDescription = item.categoryNode?.description || ''
       form.amount = String(item.amount)
       form.account = item.account
       form.date = item.occurredAt
@@ -519,6 +536,17 @@ async function loadProjectSelection() {
   }
 }
 
+function openCategoryPicker() {
+  if (type.value !== 'ledger') return
+  const params = [
+    `direction=${form.direction}`,
+    `selectedId=${encodeURIComponent(form.categoryId)}`,
+    `selectedName=${encodeURIComponent(form.category)}`
+  ]
+  if (form.categoryDescription) params.push(`selectedDescription=${encodeURIComponent(form.categoryDescription)}`)
+  uni.navigateTo({ url: `${P.financeLedgerCategoryPicker}?${params.join('&')}` })
+}
+
 function openProjectPicker() {
   const params = [`selectedId=${encodeURIComponent(form.projectId)}`]
   if (selectedProject.value) {
@@ -553,7 +581,9 @@ async function submit() {
   if (type.value === 'payment' && selectedPayable.value && amount > selectedPayable.value.outstandingAmount) {
     toast('付款金额不能超过待付余额'); return
   }
-  if (type.value === 'ledger' && (!form.category.trim() || !form.summary.trim())) { toast('请填写分类说明和摘要'); return }
+  if (type.value === 'ledger' && !form.category.trim()) { toast('请选择业务分类'); return }
+  if (type.value === 'ledger' && !editId.value && !form.categoryId) { toast('请选择业务分类'); return }
+  if (type.value === 'ledger' && !form.summary.trim()) { toast('请填写摘要'); return }
   if (type.value === 'ledger') {
     normalizePurposeForDirection()
     if (form.purpose === 'projectIncidentalCost' && !form.projectId) { toast('项目零星成本必须关联项目'); return }
@@ -578,6 +608,7 @@ async function submit() {
         direction: form.direction,
         purpose: form.purpose,
         category: form.category.trim(),
+        categoryId: form.categoryId || undefined,
         amount,
         account: form.account,
         occurredAt: form.date,
@@ -775,7 +806,12 @@ async function submit() {
         <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fin-field"><text class="fin-field__label">账务用途</text><picker :range="purposeOptions" range-key="label" :value="purposeIndex" @change="onPurpose"><view class="fin-field__value">{{ selectLabel(purposeOptions, purposeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <view class="fe-purpose-hint">{{ purposeOptions[purposeIndex]?.hint }}</view>
-        <view class="fin-field"><text class="fin-field__label">分类说明</text><input v-model="form.category" maxlength="128" placeholder="如 银行手续费、临时保洁、股东借款" /></view>
+        <view class="fin-field fin-field--tap" @tap="openCategoryPicker">
+          <text class="fin-field__label">业务分类</text>
+          <view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.category }">{{ form.category || '请选择业务分类' }}</view>
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+        </view>
+        <view v-if="form.categoryDescription" class="fe-purpose-hint">{{ form.categoryDescription }}</view>
         <view v-if="form.purpose === 'projectIncidentalCost' && !form.projectId" class="fe-purpose-warn">项目零星成本必须关联项目</view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>

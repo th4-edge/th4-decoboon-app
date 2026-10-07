@@ -12,7 +12,6 @@ import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 
-const OWNER_ROLES = ['boss', 'storeManager', 'teamLeader', 'marketer']
 const text = ref('')
 const owners = ref<Employee[]>([])
 const ownerIndex = ref(0)
@@ -36,7 +35,6 @@ onLoad(async () => {
     const all = await identityApi.employees()
     const currentStoreId = session.emp?.store?.id
     owners.value = all.filter((item) => item.status === 'active'
-      && OWNER_ROLES.includes(item.role)
       && (session.role === 'boss' || !currentStoreId || item.store?.id === currentStoreId))
     ownerIndex.value = 0
   } catch (error) {
@@ -115,7 +113,7 @@ function statusColor(item: CustomerBatchItem) {
 
 <template>
   <view class="cb">
-    <JzPageHeader title="批量录入客户" subtitle="粘贴手机号，解析确认后交付业务员营销" back />
+    <JzPageHeader title="批量录入客户" subtitle="粘贴手机号，解析确认后交付客户负责人营销" back />
 
     <view class="cb__body">
       <view class="jz-card cb__owner">
@@ -138,7 +136,7 @@ function statusColor(item: CustomerBatchItem) {
             <JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" />
           </view>
         </picker>
-        <text v-if="!owners.length" class="cb__owner-empty">当前门店暂无可用业务员、团队负责人或店长</text>
+        <text v-if="!owners.length" class="cb__owner-empty">当前范围暂无可用在职员工</text>
       </view>
 
       <view class="jz-card cb__input-card">

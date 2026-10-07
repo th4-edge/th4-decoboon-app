@@ -204,26 +204,26 @@ async function refresh() {
   try {
     /* FIX-010：BOSS 角色跳过 storeManager/teamLeader 报表接口（后端不授权），直接拉客户和设计师列表 */
     if (isBoss.value) {
-      const [customerList, designerList, designReport] = await Promise.all([
+      const [customerList, memberList, designReport] = await Promise.all([
         crmApi.list(),
-        identityApi.designers(),
+        identityApi.employees(),
         workbenchApi.bossDesign()
       ])
       customers.value = customerList
-      designers.value = designerList
+      designers.value = memberList.filter((item) => item.status === 'active')
       bossDesign.value = designReport
       return
     }
-    const [loadedReport, customerList, designerList] = await Promise.all([
+    const [loadedReport, customerList, memberList] = await Promise.all([
       isTeamLeader.value ? statisticApi.teamLeader() : statisticApi.storeManager(),
       crmApi.list(),
-      identityApi.designers()
+      identityApi.employees()
     ])
     report.value = loadedReport
     if (isTeamLeader.value) teamReport.value = loadedReport as TeamLeaderReport
     else storeReport.value = loadedReport as StoreManagerReport
     customers.value = customerList
-    designers.value = designerList
+    designers.value = memberList.filter((item) => item.status === 'active')
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '设计调度数据加载失败'
     toastError(error, '设计调度数据加载失败')
@@ -344,7 +344,7 @@ function riskColor(level: string) {
 function assign(customer: Customer) {
   if (!can(session.role, 'act:assignDesigner')) return
   if (!designers.value.length) {
-    uni.showToast({ title: isTeamLeader.value ? '当前团队暂无可指派设计师' : isBoss.value ? '全企业暂无可指派设计师' : '本门店暂无可指派设计师', icon: 'none' })
+    uni.showToast({ title: isTeamLeader.value ? '当前团队暂无可指派人员' : isBoss.value ? '全企业暂无可指派人员' : '本门店暂无可指派人员', icon: 'none' })
     return
   }
   assignTarget.value = customer
@@ -587,7 +587,7 @@ function measureText(value?: string) {
     <view v-if="assignTarget" class="md__sheet">
       <view class="md__sheet-head">
         <view class="jz-grow">
-          <text class="md__sheet-title">选择设计师</text>
+          <text class="md__sheet-title">选择设计承接人</text>
           <text class="md__sheet-sub">{{ assignTarget.name }} · 量房 {{ measureText(assignTarget.measureAt) }}</text>
         </view>
         <JzIcon name="close" :size="30" :color="TOKEN_COLOR.text4" @tap="assignTarget = null" />

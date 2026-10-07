@@ -30,8 +30,9 @@ const manager = computed(() => project.value?.manager)
 const designer = computed(() => project.value?.designer)
 const candidates = computed(() => {
   if (!picking.value) return []
-  const wanted = picking.value === 'pm' ? ['pm', 'boss'] : ['designer', 'boss']
-  return employees.value.filter((e) => wanted.includes(e.role))
+  const active = employees.value.filter((e) => e.status === 'active')
+  if (picking.value === 'pm') return active.filter((e) => ['pm', 'boss'].includes(e.role))
+  return active
 })
 const pickingTitle = computed(() => (picking.value === 'pm' ? '项目经理' : '设计师'))
 
@@ -161,7 +162,7 @@ function joinedText(value?: string | number) {
             </view>
             <JzIcon v-if="(picking === 'pm' ? manager?.id : designer?.id) === e.id" name="check" :size="30" :color="TOKEN_COLOR.primary" />
           </view>
-          <view v-if="!candidates.length" class="mb__empty">暂无可选员工（可先在「我的-企业成员」添加）</view>
+          <view v-if="!candidates.length" class="mb__empty">暂无当前范围可选的在职员工（可先在「我的-企业成员」添加）</view>
         </scroll-view>
       </view>
     </view>

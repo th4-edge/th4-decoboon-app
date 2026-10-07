@@ -74,6 +74,7 @@ function normalizeLedgerCategory(raw: Raw): LedgerCategory {
   return {
     id: String(raw.id ?? raw.categoryId ?? ''),
     name: raw.name ?? '',
+    description: raw.description == null ? undefined : String(raw.description),
     direction: lower(raw.direction) === 'income' ? 'income' : 'expense',
     code: raw.code == null ? undefined : String(raw.code),
     builtIn: raw.builtIn === true,
@@ -393,10 +394,10 @@ export const financeApi = {
     const raw = await post<Raw[]>('finance/ledger-category/tree', {})
     return Array.isArray(raw) ? raw.map((item) => normalizeLedgerCategory(item)) : []
   },
-  saveLedgerCategory: async (input: { name: string; direction: LedgerDirection; parentId?: string }): Promise<LedgerCategory> =>
+  saveLedgerCategory: async (input: { name: string; description: string; direction: LedgerDirection; parentId?: string }): Promise<LedgerCategory> =>
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/save', { ...input, direction: LEDGER_DIRECTION_API[input.direction] })),
-  updateLedgerCategory: async (input: { id: string; name: string; active: boolean }): Promise<LedgerCategory> =>
-    normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, active: input.active })),
+  updateLedgerCategory: async (input: { id: string; name: string; description: string; active: boolean }): Promise<LedgerCategory> =>
+    normalizeLedgerCategory(await post<Raw>('finance/ledger-category/update', { categoryId: input.id, name: input.name, description: input.description, active: input.active })),
   deleteLedgerCategory: async (id: string): Promise<LedgerCategory> =>
     normalizeLedgerCategory(await post<Raw>('finance/ledger-category/delete', { categoryId: id })),
   openingBalances: async (): Promise<OpeningBalance[]> => {
