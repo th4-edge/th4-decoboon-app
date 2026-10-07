@@ -11,7 +11,7 @@ const expect = (condition, message) => {
   if (!condition) failures.push(message)
 }
 
-const expectedGroups = ['资金收付', '往来管理', '账务核算']
+const expectedGroups = ['资金收付', '往来管理', '员工薪酬', '账务核算']
 let previous = -1
 for (const group of expectedGroups) {
   const index = page.indexOf(`title: '${group}'`)
@@ -22,6 +22,7 @@ for (const group of expectedGroups) {
 const expectedItems = [
   '登记收款', '登记付款', '手工记账',
   '应收计划', '应付账款', '工人工资', '供应商往来',
+  '员工薪酬', '员工工资', '员工提成',
   '资金台账', '项目账本', '收付凭证'
 ]
 previous = -1
@@ -48,4 +49,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('财务工作台信息架构校验通过：资金收付 → 往来管理 → 账务核算，业务动词与只读状态已冻结。')
+console.log('财务工作台信息架构校验通过：资金收付 → 往来管理 → 员工薪酬 → 账务核算，业务动词与只读状态已冻结。')

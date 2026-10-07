@@ -133,6 +133,7 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     title: '员工薪酬',
     description: '员工工资与提成独立核算，发放后进入工资条和资金台账',
     items: [
+      { key: 'payrollWorkbench', label: '员工薪酬', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollWorkbench },
       { key: 'employeeSalary', label: '员工工资', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollSheetList },
       { key: 'employeeCommission', label: '员工提成', icon: 'chart', tone: '#E9F6F7', path: P.payrollCommissionList }
     ]

@@ -79,7 +79,6 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'workers', label: '工人档案', icon: 'users', path: P.laborWorkers, capability: 'view:worker' },
     { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:material' },
     { key: 'finance', label: '财务工作台', icon: 'wallet', path: P.financeHome, capability: 'view:finance' },
-    { key: 'payroll', label: '员工薪酬', icon: 'wallet', path: P.payrollWorkbench, capability: 'view:payroll' }
   ],
   storeManager: [
     { key: 'customers', label: '门店客户', icon: 'users', path: P.customerList, capability: 'view:customers' },
@@ -139,7 +138,6 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'receivables', label: '应收计划', icon: 'file-text', path: P.financeReceivables, capability: 'view:finance' },
     { key: 'payables', label: '应付账款', icon: 'wallet', path: P.financePayables, capability: 'view:finance' },
     { key: 'salaries', label: '工人工资', icon: 'users', path: `${P.financePayables}?type=salary`, capability: 'view:finance' },
-    { key: 'payroll', label: '员工薪酬', icon: 'wallet', path: P.payrollWorkbench, capability: 'view:payroll' },
     { key: 'projects', label: '项目账本', icon: 'briefcase', path: P.financeProjects, capability: 'view:finance' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
     { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:supply' },

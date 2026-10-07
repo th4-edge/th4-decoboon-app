@@ -38,14 +38,17 @@ const requiredBossActions = [
   '履约驾驶舱',
   '工人档案',
   '材料计划',
-  '财务工作台',
-  '员工薪酬'
+  '财务工作台'
 ]
 for (const label of requiredBossActions) {
   expect(bossActions.includes(label), `企业负责人首页缺少内部岗位入口：${label}`)
 }
 expect(bossActions.length >= requiredBossActions.length,
   '企业负责人首页功能域未覆盖全部内部岗位能力')
+const financeBlock = actionSection.match(/finance:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
+const financeActions = [...financeBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1])
+expect(!bossActions.includes('员工薪酬'), '企业负责人首页仍直接展示员工薪酬，应移至财务工作台')
+expect(!financeActions.includes('员工薪酬'), '财务首页仍直接展示员工薪酬，应移至财务工作台')
 expect(!bossBlock.includes('acceptConfirm') && !bossBlock.includes('业主确认'),
   '企业负责人首页不得把外部主体确认纳入内部能力超集')
 const bossPermissionBlock = permissions.match(/boss:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
@@ -103,4 +106,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('首页产品契约校验通过：四项指示灯、BOSS 内部能力超集入口、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')
+console.log('首页产品契约校验通过：四项指示灯、BOSS 内部能力超集入口、财务工作台承接员工薪酬、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')
