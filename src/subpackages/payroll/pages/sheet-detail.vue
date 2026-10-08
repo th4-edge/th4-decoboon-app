@@ -35,9 +35,19 @@ const blockers = computed<Blocker[]>(() => {
   const list: Blocker[] = []
   if (!items.value.length) list.push({ key: 'items', text: '该月没有工资项：请检查薪酬方案生效期，或重新生成工资单草稿', action: 'rebuild' })
   if (!current.attendanceComplete) list.push({ key: 'attendance', text: '考勤未确认：确认全部员工月度考勤后才能确认工资单', action: 'attendance' })
-  if (!current.commissionComplete) list.push({ key: 'commission', text: '提成未完整：处理待计提/已释放未入单的提成后才能确认工资单', action: 'commission' })
   if (items.value.some((item) => item.netAmount < 0)) list.push({ key: 'negative', text: '存在实发为负的工资项：需人工处理后才能确认', action: 'items' })
   return list
+})
+
+/** DEC-047 / BR-039：提成与工资解耦，提成未结清只提示、不阻断。 */
+const hints = computed<{ key: string; text: string; action?: BlockerAction }[]>(() => {
+  const current = sheet.value
+  if (!current || current.commissionComplete) return []
+  return [{
+    key: 'commission',
+    text: '本月存在未结清的提成；提成与工资独立结算、独立发放，不影响本次工资确认',
+    action: 'commission'
+  }]
 })
 
 const editableStatus = computed(() => sheet.value?.status === 'draft' || sheet.value?.status === 'pending')
@@ -139,7 +149,14 @@ async function confirmSheet() {
         <view><text>应发合计</text><text>{{ money(sheet.totalGrossAmount) }}</text></view>
         <view><text>扣款合计</text><text>{{ money(sheet.totalDeductionAmount) }}</text></view>
         <view><text>考勤</text><text>{{ sheet.attendanceComplete ? '已完整' : '未完整' }}</text></view>
-        <view><text>提成</text><text>{{ sheet.commissionComplete ? '已完整' : '未完整' }}</text></view>
+        <view><text>提成</text><text>{{ sheet.commissionComplete ? '已结清' : '有未结清' }}</text></view>
+      </view>
+      <view v-if="hints.length" class="hint-card jz-card">
+        <view v-for="hint in hints" :key="hint.key" class="hint-card__row">
+          <JzIcon name="info" :size="28" :color="TOKEN_COLOR.text3" />
+          <text class="hint-card__text">{{ hint.text }}</text>
+          <text v-if="hint.action" class="hint-card__action" @tap="resolveBlocker(hint.action)">去查看</text>
+        </view>
       </view>
       <view v-if="showBlockers" class="blocker-card jz-card">
         <text class="blocker-card__title">确认前需先处理</text>
@@ -198,6 +215,10 @@ async function confirmSheet() {
 .item-card__rows .item-card__subtotal { margin-top: 6rpx; padding-top: 14rpx; border-top: 1rpx dashed $jzb-border-light; color: $jzb-text-2; font-weight: 700; }
 .item-card__rows .item-card__subtotal text:last-child { color: $jzb-text-1; }
 .item-card__net { display: flex; align-items: center; justify-content: space-between; margin-top: 20rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary-deep; font-size: $jzb-font-md; font-weight: 750; }
+.hint-card { margin-top: 22rpx; padding: 22rpx 28rpx; background: $jzb-bg-page; }
+.hint-card__row { display: flex; align-items: flex-start; gap: 12rpx; }
+.hint-card__text { flex: 1; min-width: 0; color: $jzb-text-2; font-size: 22rpx; line-height: 1.5; }
+.hint-card__action { flex: none; color: $jzb-primary; font-size: 22rpx; font-weight: 650; }
 .blocker-card { margin-top: 22rpx; padding: 26rpx 28rpx; border-left: 8rpx solid $jzb-warning; }
 .blocker-card__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .blocker-card__row { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; }
