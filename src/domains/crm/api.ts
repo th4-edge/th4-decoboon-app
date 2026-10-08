@@ -11,7 +11,7 @@ type RawRecord = Record<string, any>
 const STAGE_FROM_STATUS: Record<string, CustomerStage> = {
   New: 'intention', Following: 'following', PendingMeasure: 'pendingMeasure',
   Quoted: 'quote', Signed: 'sign',
-  Serving: 'construction', Finished: 'done', Lost: 'lost'
+  Serving: 'construction', Finished: 'done', Lost: 'lost', Dormant: 'dormant'
 }
 
 function enumValue(raw: unknown): string {
@@ -43,6 +43,8 @@ export function normalizeTag(raw: RawRecord): CustomerTag {
 
 export function normalizeCustomer(raw: RawRecord): Customer {
   const owner = raw.owner
+  const dormantBy = raw.dormantBy
+  const restoredBy = raw.restoredBy
   const source = enumValue(raw.source).toLowerCase()
   const gender = enumValue(raw.gender).toUpperCase()
   return {
@@ -72,6 +74,13 @@ export function normalizeCustomer(raw: RawRecord): Customer {
     lastVisitAt: raw.lastVisitAt,
     measureAt: raw.measureAt,
     pendingMeasureAt: raw.pendingMeasureAt,
+    statusBeforeDormant: STAGE_FROM_STATUS[enumValue(raw.statusBeforeDormant)] || undefined,
+    dormantReason: enumValue(raw.dormantReason) || undefined,
+    dormantReasonText: raw.dormantReasonText || undefined,
+    dormantAt: raw.dormantAt || undefined,
+    dormantByName: dormantBy?.name || undefined,
+    restoredAt: raw.restoredAt || undefined,
+    restoredByName: restoredBy?.name || undefined,
     measureRequestedAt: raw.measureRequestedAt,
     handedOffAt: raw.handedOffAt,
     projectId: raw.projectId == null ? undefined : String(raw.projectId),
@@ -269,6 +278,23 @@ export const crmApi = {
     const uri = session.role === 'pm' ? 'project/manager/customer/info' : 'customer/customer/info'
     return post<RawRecord>(uri, { customerId: id }).then(normalizeCustomer)
   },
+
+  setDormant: (customerId: string, reasonCode: string, reasonText?: string, expectedStatus?: string) =>
+    post<RawRecord>('customer/customer/dormant', {
+      customerId,
+      reasonCode,
+      reasonText,
+      expectedStatus,
+      requestId: `app-dormant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }).then(normalizeCustomer),
+
+  resume: (customerId: string, restoreStatus?: string, nextFollowAt?: string) =>
+    post<RawRecord>('customer/customer/resume', {
+      customerId,
+      restoreStatus,
+      nextFollowAt,
+      requestId: `app-resume-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }).then(normalizeCustomer),
 
   save: async (customer: Partial<Customer>) => {
     const payload = writePayload(customer)

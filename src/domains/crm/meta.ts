@@ -14,7 +14,8 @@ export const CUSTOMER_STAGE_META: Record<CustomerStage, { label: string; color: 
   sign:         { label: '已签约',   color: TOKEN_COLOR.primaryBase },
   construction: { label: '施工中',   color: STATUS_COLOR.alert },
   done:         { label: '已完工',   color: STATUS_COLOR.done },
-  lost:         { label: '已流失',   color: STATUS_COLOR.idle }
+  lost:         { label: '已流失',   color: STATUS_COLOR.idle },
+  dormant:      { label: '休眠客户', color: STATUS_COLOR.idle }
 }
 
 export const CUSTOMER_STAGE_ORDER: CustomerStage[] = [

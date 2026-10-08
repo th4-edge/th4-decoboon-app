@@ -17,6 +17,7 @@ import { projectApi } from '@/domains/project/api'
 import { propertyApi } from '@/domains/property/api'
 import { tradeApi } from '@/domains/trade/api'
 import JzActionSheet from '@/components/JzActionSheet.vue'
+import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -55,6 +56,10 @@ const actionLoading = ref(false)
 const openDesignerOnLoad = ref(false)
 const designerSheetOpen = ref(false)
 const ownerSheetOpen = ref(false)
+const dormantSheetOpen = ref(false)
+const dormantTextOpen = ref(false)
+const dormantReason = ref('')
+const dormantReasonText = ref('')
 /** FIX-006：评级依据从独立卡片改为评级标签旁的 ? 图标，点击弹出浮层。 */
 const showGradePopup = ref(false)
 
@@ -77,10 +82,22 @@ const QUOTE_STATUS_META: Record<QuoteStatus, { label: string; color: string }> =
 const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
+const isBoss = computed(() => session.role === 'boss')
+const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value)
+const canSetDormant = computed(() => Boolean(customer.value && canManageDormant.value && !['sign', 'construction', 'done', 'lost', 'dormant'].includes(customer.value.stage)))
+const dormantReasonActions = [
+  { label: '装修计划延期', value: 'PlanPostponed' },
+  { label: '预算或方案未定', value: 'BudgetUndecided' },
+  { label: '决策未确定', value: 'DecisionPending' },
+  { label: '客户要求暂缓联系', value: 'CustomerRequestedPause' },
+  { label: '长期无法有效联系', value: 'ContactUnreachable' },
+  { label: '线索待核实', value: 'LeadPendingVerification' },
+  { label: '其他', value: 'Other' }
+]
 const isCustomerOwner = computed(() => Boolean(customer.value?.owner?.id && customer.value.owner.id === session.emp?.id))
 const isAssignedDesigner = computed(() => Boolean(customer.value?.designer?.id && customer.value.designer.id === session.emp?.id))
 const showMarketing = computed(() => isMarketer.value || isStoreManager.value || isTeamLeader.value)
-const canFollow = computed(() => can(session.role, 'act:followCustomer'))
+const canFollow = computed(() => can(session.role, 'act:followCustomer') && customer.value?.stage !== 'dormant')
 const canQuote = computed(() => can(session.role, 'edit:quote'))
 const canRecordWechat = computed(() => can(session.role, 'act:recordWechat'))
 const canRecordVisit = computed(() => can(session.role, 'act:recordVisit'))
@@ -208,7 +225,8 @@ const marketingProgress = computed(() => {
     sign: '已签约',
     construction: '施工中',
     done: '已完工',
-    lost: '已流失'
+    lost: '已流失',
+    dormant: '已休眠'
   }
   return map[customer.value.stage] || '—'
 })
@@ -224,6 +242,7 @@ const salesStage = computed<SalesStageKey>(() => {
   return 'visit'
 })
 const primaryAction = computed<PrimaryAction | null>(() => {
+  if (customer.value?.stage === 'dormant') return null
   if (project.value) return { kind: 'project', label: '查看工地' }
   if (confirmedQuote.value || activeQuote.value) return { kind: 'quote', label: '查看报价流转' }
   if (isMarketer.value && (customer.value?.measureAt || activeProperty.value?.latestMeasureAt || customer.value?.designer)) {
@@ -350,6 +369,72 @@ function copyPropertyNo(value: string) {
 }
 function follow() { uni.navigateTo({ url: `${P.customerFollow}?id=${id.value}` }) }
 function edit() { uni.navigateTo({ url: `${P.customerEdit}?id=${id.value}` }) }
+function openDormantAction() {
+  if (!customer.value || !canManageDormant.value) return
+  if (customer.value.stage === 'dormant') {
+    void confirm('恢复客户跟进', '恢复后客户将重新参与逾期、沉睡风险和工作台待办，是否继续？', '确认恢复')
+      .then((ok) => { if (ok) void submitResume() })
+    return
+  }
+  if (!canSetDormant.value) return
+  dormantReason.value = ''
+  dormantReasonText.value = ''
+  dormantSheetOpen.value = true
+}
+
+function selectDormantReason(index: number) {
+  const action = dormantReasonActions[index]
+  if (!action) return
+  dormantReason.value = action.value
+  if (action.value === 'Other') {
+    dormantTextOpen.value = true
+    return
+  }
+  void submitDormant('')
+}
+
+async function submitDormant(reasonText: string) {
+  if (!customer.value || !dormantReason.value) return
+  if (dormantReason.value === 'Other' && !reasonText.trim()) {
+    toast('请填写休眠原因')
+    dormantTextOpen.value = true
+    return
+  }
+  loading('保存中…')
+  try {
+    await crmApi.setDormant(customer.value.id, dormantReason.value, reasonText.trim() || undefined, stageApi(customer.value.stage))
+    toast('已设为休眠客户', 'success')
+    dormantTextOpen.value = false
+    await load()
+  } catch (error) {
+    toastError(error, '休眠设置失败')
+  } finally {
+    hideLoading()
+  }
+}
+
+async function submitResume() {
+  if (!customer.value) return
+  loading('恢复中…')
+  try {
+    await crmApi.resume(customer.value.id)
+    toast('已恢复跟进', 'success')
+    await load()
+  } catch (error) {
+    toastError(error, '恢复失败')
+  } finally {
+    hideLoading()
+  }
+}
+
+function stageApi(stage: string): string {
+  const map: Record<string, string> = {
+    intention: 'New', following: 'Following', pendingMeasure: 'PendingMeasure', quote: 'Quoted',
+    sign: 'Signed', construction: 'Serving', done: 'Finished', lost: 'Lost', dormant: 'Dormant'
+  }
+  return map[stage] || stage
+}
+
 function scheduleMeasure() {
   // 约定量房必须关联房屋：先有房屋档案（含详细地址）才能安排量房
   if (!properties.value.length) {
@@ -580,6 +665,12 @@ function viewMeasure(property: Property) {
       </button>
     </view>
 
+    <view v-if="canManageDormant && (customer.stage === 'dormant' || canSetDormant)" class="cd__contact-actions">
+      <button class="jz-btn jz-btn--plain jz-btn--block" @tap="openDormantAction">
+        {{ customer.stage === 'dormant' ? '恢复跟进' : '设为休眠客户' }}
+      </button>
+    </view>
+
     <SalesSteps
       :value="salesStage"
       :action-label="primaryAction?.label || ''"
@@ -743,6 +834,27 @@ function viewMeasure(property: Property) {
     :actions="designerActions"
     @select="onDesignerSelect"
     @update:visible="designerSheetOpen = $event"
+  />
+
+  <JzActionSheet
+    :visible="dormantSheetOpen"
+    title="选择休眠原因"
+    :actions="dormantReasonActions"
+    @select="selectDormantReason"
+    @update:visible="dormantSheetOpen = $event"
+  />
+
+  <JzInputDialog
+    v-model:visible="dormantTextOpen"
+    v-model="dormantReasonText"
+    title="填写休眠原因"
+    label="其他原因"
+    description="必须说明客户暂不推进的具体原因"
+    placeholder="例如：客户计划明年再装修"
+    multiline
+    :maxlength="200"
+    confirm-text="确认休眠"
+    @confirm="submitDormant(dormantReasonText)"
   />
 
   <JzActionSheet

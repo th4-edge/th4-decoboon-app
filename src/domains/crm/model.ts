@@ -1,7 +1,7 @@
 import type { Employee } from '@/domains/identity/model'
 
 export type CustomerSource = 'lead' | 'referral' | 'walkin' | 'old' | 'video' | 'other' | 'batch'
-export type CustomerStage = 'intention' | 'following' | 'pendingMeasure' | 'quote' | 'sign' | 'construction' | 'done' | 'lost'
+export type CustomerStage = 'intention' | 'following' | 'pendingMeasure' | 'quote' | 'sign' | 'construction' | 'done' | 'lost' | 'dormant'
 
 export type CustomerTagCategory = 'source' | 'behavior' | 'intent' | 'demand' | 'preference' | 'value' | 'risk'
 export type CustomerTagScope = 'system' | 'manual'
@@ -75,6 +75,13 @@ export interface Customer {
   lastVisitAt?: string
   pendingMeasureAt?: string
   measureAt?: string
+  statusBeforeDormant?: CustomerStage
+  dormantReason?: string
+  dormantReasonText?: string
+  dormantAt?: string
+  dormantByName?: string
+  restoredAt?: string
+  restoredByName?: string
   projectId?: string
   createdAt?: string
   /** 只读投影：系统标签 + 人工标签 */
