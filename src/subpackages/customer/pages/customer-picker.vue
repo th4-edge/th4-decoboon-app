@@ -24,7 +24,8 @@ const stageOptions: Array<{ label: string; value: StageFilter }> = [
   { label: '已签约', value: 'sign' },
   { label: '施工中', value: 'construction' },
   { label: '已完工', value: 'done' },
-  { label: '已流失', value: 'lost' }
+  { label: '已流失', value: 'lost' },
+  { label: '休眠客户', value: 'dormant' }
 ]
 const stageApi: Record<Exclude<StageFilter, 'all'>, string> = {
   intention: 'New',
@@ -34,7 +35,8 @@ const stageApi: Record<Exclude<StageFilter, 'all'>, string> = {
   sign: 'Signed',
   construction: 'Serving',
   done: 'Finished',
-  lost: 'Lost'
+  lost: 'Lost',
+  dormant: 'Dormant'
 }
 
 const selectedId = ref('')

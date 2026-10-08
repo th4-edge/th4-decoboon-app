@@ -73,6 +73,10 @@ async function save() {
       <JzTag :text="CUSTOMER_STAGE_META[customer.stage].label" :color="CUSTOMER_STAGE_META[customer.stage].color" />
     </view>
 
+    <view v-if="customer?.stage === 'dormant'" class="cf__dormant-tip jz-card">
+      <text>该客户当前为休眠客户。保存本跟进后，系统会自动恢复为休眠前状态并重新参与风险提醒。</text>
+    </view>
+
     <view v-if="lastFollow" class="cf__last jz-card">
       <view class="cf__last-head">
         <text class="cf__last-title">上次跟进</text>
@@ -107,6 +111,7 @@ async function save() {
 .cf__customer-meta { flex: 1; min-width: 0; }
 .cf__customer-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .cf__customer-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cf__dormant-tip { margin-top: 16rpx; padding: 20rpx 24rpx; color: $jzb-warning; background: $jzb-warning-soft; font-size: $jzb-font-xs; line-height: 1.6; }
 .cf__last { margin-top: 16rpx; padding: 24rpx; background: $jzb-primary-lightest; }
 .cf__last-head { display: flex; align-items: center; justify-content: space-between; }
 .cf__last-title { color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 700; }

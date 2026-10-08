@@ -85,10 +85,10 @@ const ALL_FILTERS: { key: 'all' | CustomerStage | 'assign'; label: string }[] = 
   { key: 'following', label: '跟进中' }, { key: 'pendingMeasure', label: '待量房' },
   { key: 'quote', label: '报价' },
   { key: 'sign', label: '签约' }, { key: 'construction', label: '施工' },
-  { key: 'done', label: '完工' }, { key: 'lost', label: '流失' }
+  { key: 'done', label: '完工' }, { key: 'lost', label: '流失' }, { key: 'dormant', label: '休眠' }
 ]
 const filters = computed(() => isMarketer.value
-  ? ALL_FILTERS.filter((item) => ['all', 'intention', 'following', 'pendingMeasure', 'lost'].includes(item.key))
+  ? ALL_FILTERS.filter((item) => ['all', 'intention', 'following', 'pendingMeasure', 'lost', 'dormant'].includes(item.key))
   : isBoss.value || isStoreManager.value || isTeamLeader.value
     ? [{ key: 'assign' as const, label: '待指派设计' }, ...ALL_FILTERS]
     : ALL_FILTERS)
@@ -113,6 +113,7 @@ function ageDays(c: Customer) {
 }
 
 function followMeta(c: Customer) {
+  if (c.stage === 'dormant') return { label: '已休眠', tone: 'muted', rank: 99 }
   if (!c.nextFollowAt) {
     return c.lastFollowAt
       ? { label: '待安排', tone: 'muted', rank: 4 }
@@ -128,6 +129,7 @@ function followMeta(c: Customer) {
 const followStats = computed(() => {
   const stats = { overdue: 0, today: 0, upcoming: 0, unplanned: 0 }
   list.value.forEach((c) => {
+    if (c.stage === 'dormant') return
     const meta = followMeta(c)
     if (meta.tone === 'danger' && c.nextFollowAt) stats.overdue++
     else if (meta.label === '今日跟进') stats.today++
@@ -157,7 +159,7 @@ const goldenStats = computed(() => {
   const stats = { hot: 0, warm: 0, cooling: 0, risk: 0, wechat: 0, pending: 0 }
   list.value.forEach((c) => {
     const days = ageDays(c)
-    if (c.stage !== 'lost') {
+    if (c.stage !== 'lost' && c.stage !== 'dormant') {
       if (days <= 3) stats.hot++
       else if (days <= 7) stats.warm++
       else if (days <= 15) stats.cooling++
@@ -376,12 +378,14 @@ function selectSort(key: typeof sortMode.value) {
 }
 
 function riskLabel(customer: Customer) {
+  if (customer.stage === 'dormant') return '已休眠'
   if (customer.riskLevel === 'high') return '高风险'
   if (customer.riskLevel === 'attention') return '需关注'
   return '正常'
 }
 
 function riskColor(customer: Customer) {
+  if (customer.stage === 'dormant') return TOKEN_COLOR.text3
   if (customer.riskLevel === 'high') return TOKEN_COLOR.danger
   if (customer.riskLevel === 'attention') return TOKEN_COLOR.warning
   return TOKEN_COLOR.success
@@ -631,7 +635,7 @@ function bossBusinessAmount(customer: Customer) {
             <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
             <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
           </view>
-          <view v-if="isMarketer" class="cl__item-foot"><JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" /><text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text></view>
+          <view v-if="isMarketer && c.stage !== 'dormant'" class="cl__item-foot"><JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" /><text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text></view>
         </template>
       </view>
       <view v-if="loadError" class="jz-card cl__error"><text>{{ loadError }}</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="refresh">重新加载</button></view>
