@@ -112,6 +112,18 @@ function ageDays(c: Customer) {
   return Math.max(0, Math.floor((Date.now() - ms) / 86400000))
 }
 
+/**
+ * 跟进逾期只在客户预约量房前成立，与服务端 CustomerInsightContext.followOverdueEligible 同口径。
+ * 预约量房后客户进入量房/设计/报价主链，逾期跟进提醒不应贯穿整个生命周期。
+ */
+function followOverdueEligible(c: Customer) {
+  if (c.stage !== 'intention' && c.stage !== 'following') return false
+  // 状态兜底：历史/异常数据可能仍停在跟进中，但已写入量房约定事实或已预约量房。
+  if (c.measureRequestedAt || c.pendingMeasureAt || c.measureAt) return false
+  if (c.tags?.some((tag) => tag.key === 'measure:scheduled')) return false
+  return true
+}
+
 function followMeta(c: Customer) {
   if (c.stage === 'dormant') return { label: '已休眠', tone: 'muted', rank: 99 }
   if (!c.nextFollowAt) {
@@ -120,7 +132,10 @@ function followMeta(c: Customer) {
       : { label: '待首联', tone: 'danger', rank: 0 }
   }
   const days = diffDays(c.nextFollowAt)
-  if (days < 0) return { label: `逾期 ${Math.abs(days)} 天`, tone: 'danger', rank: -1 }
+  if (days < 0) {
+    if (!followOverdueEligible(c)) return { label: '不在跟进期', tone: 'muted', rank: 30 }
+    return { label: `逾期 ${Math.abs(days)} 天`, tone: 'danger', rank: -1 }
+  }
   if (days === 0) return { label: '今日跟进', tone: 'warning', rank: 0 }
   if (days <= 3) return { label: `${days} 天后`, tone: 'primary', rank: days }
   return { label: `下次 ${c.nextFollowAt.slice(5, 10)}`, tone: 'muted', rank: 20 + days }
