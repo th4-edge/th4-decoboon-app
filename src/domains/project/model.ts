@@ -23,6 +23,8 @@ export interface Project {
   baselineProgress?: number
   startDate?: string
   planEndDate?: string
+  /** DEC-048：排期驱动的动态预计完工日（合同基准完工日仍看 planEndDate） */
+  expectedEndDate?: string
   actualEndDate?: string
   company?: Company
   customer?: Customer

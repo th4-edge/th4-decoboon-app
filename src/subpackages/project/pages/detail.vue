@@ -302,6 +302,7 @@ function avatarOf(m: ProjectMember) {
         <view class="pd__hero-meta">
           <view class="pd__hero-meta-item"><JzIcon name="calendar" :size="22" :color="TOKEN_COLOR.white" /><text>{{ project.startDate?.slice(5) }} 开工</text></view>
           <view class="pd__hero-meta-item"><JzIcon name="flag" :size="22" :color="TOKEN_COLOR.white" /><text>计划 {{ project.planEndDate?.slice(5) }}</text></view>
+          <view v-if="project.expectedEndDate" class="pd__hero-meta-item"><JzIcon name="history" :size="22" :color="TOKEN_COLOR.white" /><text>预计 {{ project.expectedEndDate.slice(5) }}</text></view>
           <view v-if="canViewFinance" class="pd__hero-meta-item"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.white" /><text>{{ money(project.contractAmount) }}</text></view>
           <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goDaily"><JzIcon name="clipboard" :size="22" :color="TOKEN_COLOR.white" /><text>日报</text></view>
           <view class="pd__hero-meta-item" @tap="goAlbum"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>相册</text></view>
