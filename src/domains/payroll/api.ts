@@ -211,6 +211,8 @@ export const payrollApi = {
 
   compensationPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/compensation/page', params, normalizeCompensation, current, size),
   compensationInfo: async (schemeId: string) => normalizeCompensation(await post<Raw>('payroll/compensation/info', { schemeId })),
+  compensationForMonth: async (empId: string, month: string) =>
+    normalizeCompensation(await post<Raw>('payroll/compensation/info', { empId, month })),
   saveCompensation: async (input: { empId: string; baseSalary: number; scheduledDays: number; effectiveFrom: string; effectiveTo?: string; remark?: string }) =>
     normalizeCompensation(await post<Raw>('payroll/compensation/save', input)),
   updateCompensation: async (input: { schemeId: string; baseSalary?: number; scheduledDays?: number; effectiveFrom?: string; effectiveTo?: string; remark?: string }) =>

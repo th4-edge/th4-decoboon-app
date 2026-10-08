@@ -71,6 +71,14 @@ function changePeriod(event: { detail?: { value?: string } }) {
 
 function open(path: string) { uni.navigateTo({ url: path }) }
 
+function openSheetList() {
+  uni.navigateTo({ url: `${P.payrollSheetList}?period=${encodeURIComponent(selectedPeriod.value)}` })
+}
+
+function openAttendanceList() {
+  uni.navigateTo({ url: `${P.payrollAttendanceList}?month=${encodeURIComponent(selectedPeriod.value)}` })
+}
+
 function openLatestSheet() {
   const sheetId = report.value?.latestSheetId
   if (!sheetId) return
@@ -114,7 +122,7 @@ function openLatestSheet() {
         </view>
         <view class="pay-latest__actions">
           <text @tap="openLatestSheet">查看最近工资单</text>
-          <text @tap="open(P.payrollSheetList)">全部工资单</text>
+          <text @tap="openSheetList">全部工资单</text>
         </view>
       </view>
 
@@ -127,12 +135,12 @@ function openLatestSheet() {
 
       <view class="jz-section"><text class="jz-section__title">薪酬入口</text><text class="jz-section__more">按角色开放</text></view>
       <view class="pay-menu jz-card">
-        <view class="pay-menu__item" @tap="open(P.payrollSheetList)">
+        <view class="pay-menu__item" @tap="openSheetList">
           <view class="pay-menu__icon"><JzIcon name="wallet" :size="32" :color="TOKEN_COLOR.primary" /></view>
           <view class="jz-grow"><text class="pay-menu__label">工资单</text><text class="pay-menu__desc">生成、确认与查看员工实发工资</text></view>
           <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
         </view>
-        <view v-if="can(session.role, 'edit:attendance')" class="pay-menu__item" @tap="open(P.payrollAttendanceList)">
+        <view v-if="can(session.role, 'edit:attendance')" class="pay-menu__item" @tap="openAttendanceList">
           <view class="pay-menu__icon"><JzIcon name="calendar" :size="32" :color="TOKEN_COLOR.primary" /></view>
           <view class="jz-grow"><text class="pay-menu__label">月度考勤</text><text class="pay-menu__desc">申报异常、确认后进入工资单</text></view>
           <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />

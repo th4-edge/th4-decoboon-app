@@ -18,24 +18,38 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
 const editable = ref(can(session.role, 'edit:payroll'))
+const selectedPeriod = ref(localMonth())
+const maxPeriod = localMonth()
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.sheetPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
 )
 
-onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onLoad((query) => {
+  if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  const queryPeriod = String(query?.period || '')
+  if (/^\d{4}-\d{2}$/.test(queryPeriod)) selectedPeriod.value = queryPeriod
+})
 onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
-async function buildCurrent() {
-  if (!editable.value) return
+function localMonth(): string {
   const now = new Date()
-  const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  showLoading('生成中')
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function onPeriodChange(event: any) {
+  selectedPeriod.value = String(event.detail.value || '')
+}
+
+async function buildSelected() {
+  if (!editable.value || !selectedPeriod.value) return
+  const period = selectedPeriod.value
+  showLoading(`生成 ${period} 工资单`)
   try {
     const sheet = await payrollApi.buildSheet(period)
     hideLoading()
-    toast('工资单草稿已生成', 'success')
+    toast(`${period} 工资单草稿已生成`, 'success')
     uni.navigateTo({ url: `${P.payrollSheetDetail}?sheetId=${sheet.id}` })
   } catch (error) {
     hideLoading()
@@ -48,8 +62,17 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
 
 <template>
   <view class="pay-page">
-    <JzPageHeader title="工资单" subtitle="确认后生成实发工资应付" :right-text="editable ? '生成本月' : ''" :right-icon="editable ? 'plus' : undefined" @right="buildCurrent" />
+    <JzPageHeader title="工资单" subtitle="可补发历史月份；确认后生成实发工资应付" :right-text="editable ? '生成' : ''" :right-icon="editable ? 'plus' : undefined" @right="buildSelected" />
     <view class="pay-body">
+      <view class="sheet-period jz-card">
+        <view class="sheet-period__copy">
+          <text class="sheet-period__label">工资归属月份</text>
+          <text class="sheet-period__tip">补发过去月份时，请选择实际工资月份；考勤确认后需重新生成同月工资单</text>
+        </view>
+        <picker mode="date" fields="month" :value="selectedPeriod" :end="maxPeriod" @change="onPeriodChange">
+          <view class="sheet-period__value">{{ selectedPeriod }}</view>
+        </picker>
+      </view>
       <PageState v-if="loadError && !items.length" state="error" title="工资单加载失败" :subtitle="loadError" @retry="refresh" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />
       <view v-for="item in items" :key="item.id" class="sheet-card jz-card" @tap="open(item)">
@@ -72,6 +95,11 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
 <style lang="scss" scoped>
 .pay-page { min-height: 100vh; background: $jzb-bg-page; }
 .pay-body { padding: 24rpx $jzb-page-pad 48rpx; }
+.sheet-period { display: flex; align-items: center; justify-content: space-between; gap: 24rpx; padding: 26rpx 28rpx; margin-bottom: 20rpx; }
+.sheet-period__copy { flex: 1; min-width: 0; }
+.sheet-period__label { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.sheet-period__tip { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.5; }
+.sheet-period__value { min-width: 160rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary; font-size: $jzb-font-sm; font-weight: 700; text-align: center; }
 .sheet-card { padding: 28rpx; margin-bottom: 20rpx; }
 .sheet-card__top { display: flex; justify-content: space-between; gap: 20rpx; }
 .sheet-card__title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }

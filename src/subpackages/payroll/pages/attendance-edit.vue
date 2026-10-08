@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { payrollApi } from '@/domains/payroll/api'
@@ -14,20 +14,27 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 const summaryId = ref('')
 const selectedEmployee = ref<Employee | null>(null)
 const scheduledDays = ref<number | null>(null)
+const schemeLoading = ref(false)
+let schemeRequest = 0
 const form = reactive({ month: localMonth(), normalDays: '0', personalLeaveDays: '0', sickLeaveDays: '0', absenceDays: '0', externalDays: '0', annualLeaveDays: '0', compLeaveDays: '0', remark: '' })
 const saving = ref(false)
 function localMonth(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
+function monthParam(value: unknown): string { const month = String(value || ''); return /^\d{4}-\d{2}$/.test(month) ? month : '' }
 function numberFields() { return { normalDays:Number(form.normalDays),personalLeaveDays:Number(form.personalLeaveDays),sickLeaveDays:Number(form.sickLeaveDays),absenceDays:Number(form.absenceDays),externalDays:Number(form.externalDays),annualLeaveDays:Number(form.annualLeaveDays),compLeaveDays:Number(form.compLeaveDays) } }
 
 onLoad(async (query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  const queryMonth = monthParam(query?.month)
+  if (queryMonth) form.month = queryMonth
   summaryId.value = query?.summaryId || ''
   if (summaryId.value) {
     const item = await payrollApi.attendanceInfo(summaryId.value)
     selectedEmployee.value = item.employee
     scheduledDays.value = item.scheduledDays
-    form.month = item.payrollMonth
+    form.month = item.payrollMonth || form.month
     Object.assign(form, { normalDays:String(item.normalDays), personalLeaveDays:String(item.personalLeaveDays), sickLeaveDays:String(item.sickLeaveDays), absenceDays:String(item.absenceDays), externalDays:String(item.externalDays), annualLeaveDays:String(item.annualLeaveDays), compLeaveDays:String(item.compLeaveDays), remark:item.remark || '' })
+  } else {
+    void loadEffectiveScheme()
   }
 })
 
@@ -53,8 +60,33 @@ function clearEmployee() {
   if (!summaryId.value) {
     selectedEmployee.value = null
     scheduledDays.value = null
+    schemeRequest += 1
+    schemeLoading.value = false
   }
 }
+
+async function loadEffectiveScheme() {
+  const empId = selectedEmployee.value?.id
+  if (summaryId.value || !empId || !form.month) {
+    scheduledDays.value = null
+    return
+  }
+  const version = ++schemeRequest
+  schemeLoading.value = true
+  try {
+    const scheme = await payrollApi.compensationForMonth(empId, form.month)
+    if (version !== schemeRequest) return
+    scheduledDays.value = scheme.scheduledDays
+  } catch {
+    if (version === schemeRequest) scheduledDays.value = null
+  } finally {
+    if (version === schemeRequest) schemeLoading.value = false
+  }
+}
+
+watch([() => selectedEmployee.value?.id, () => form.month], () => {
+  if (!summaryId.value) void loadEffectiveScheme()
+})
 
 async function submit() {
   const employee = selectedEmployee.value
@@ -88,9 +120,9 @@ async function submit() {
       <view class="pay-scheme-days">
         <view class="pay-scheme-days__main">
           <text class="pay-scheme-days__label">月应出勤天数</text>
-          <text class="pay-scheme-days__value">{{ scheduledDays ? `${scheduledDays} 天` : '按薪酬方案读取' }}</text>
+          <text class="pay-scheme-days__value">{{ schemeLoading ? '读取中' : !selectedEmployee ? '选择员工后读取' : scheduledDays ? `${scheduledDays} 天` : '未找到当月生效方案' }}</text>
         </view>
-        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤快照' : '保存时从员工当前生效薪酬方案读取，不在考勤页默认 22 天' }}</text>
+        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤快照' : '按所选工资月份匹配生效薪酬方案；保存后写入当月考勤快照' }}</text>
       </view>
 
       <view class="pay-grid">

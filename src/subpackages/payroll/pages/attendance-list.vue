@@ -17,15 +17,23 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 
-const month = ref(new Date().toISOString().slice(0, 7))
+const month = ref(localMonth())
 const deletingId = ref('')
 const editable = computed(() => can(session.role, 'edit:attendance'))
+function localMonth(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.attendancePage({ month: month.value }, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
 )
 
-onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onLoad((query) => {
+  if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  const queryMonth = String(query?.month || '')
+  if (/^\d{4}-\d{2}$/.test(queryMonth)) month.value = queryMonth
+})
 onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
@@ -38,7 +46,7 @@ async function confirm(item: AttendanceSummary) {
   if (item.status === 'confirmed') return
   showLoading('确认中')
   try {
-    await payrollApi.updateAttendance({ summaryId: item.id, status: 'confirmed' })
+    await payrollApi.updateAttendance({ summaryId: item.id, status: 'Confirmed' })
     hideLoading()
     toast('考勤已确认', 'success')
     await refresh()
@@ -49,9 +57,9 @@ async function confirm(item: AttendanceSummary) {
 }
 
 function openEdit(item: AttendanceSummary) {
-  uni.navigateTo({ url: `${P.payrollAttendanceEdit}?summaryId=${item.id}` })
+  uni.navigateTo({ url: `${P.payrollAttendanceEdit}?summaryId=${item.id}&month=${encodeURIComponent(item.payrollMonth || month.value)}` })
 }
-function add() { uni.navigateTo({ url: P.payrollAttendanceEdit }) }
+function add() { uni.navigateTo({ url: `${P.payrollAttendanceEdit}?month=${encodeURIComponent(month.value)}` }) }
 
 async function remove(item: AttendanceSummary) {
   if (!editable.value || deletingId.value || item.status === 'inPayroll') return
@@ -87,7 +95,7 @@ async function remove(item: AttendanceSummary) {
     <JzPageHeader title="月度考勤" subtitle="服务行业月度申报，不打卡、不计加班" right-text="录入" right-icon="plus" @right="add" />
     <view class="att-month jz-card">
       <picker mode="date" fields="month" :value="month" @change="onMonthChange"><text>{{ month }}</text></picker>
-      <text class="att-month__tip">异常考勤确认后才能进入工资单</text>
+      <text class="att-month__tip">可切换历史月份补录；确认后需重新生成同月工资单</text>
     </view>
     <view class="att-body">
       <PageState v-if="loadError && !items.length" state="error" title="薪酬数据暂不可确认" :subtitle="loadError" @retry="refresh" />
