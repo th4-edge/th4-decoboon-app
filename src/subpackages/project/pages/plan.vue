@@ -82,7 +82,7 @@ function openCarryoverPlan() {
     <view class="jz-card plan__arrange" v-if="editPlan">
       <view class="jz-grow">
         <text class="plan__arrange-title">设计师排期</text>
-        <text class="plan__arrange-sub">从系统工艺库选择任务，关联「阶段 × 区域」，设定总量，下发项目经理</text>
+        <text class="plan__arrange-sub">调整本项目合同施工任务的阶段、区域与计划起止；合同外施工请走增减项</text>
       </view>
       <button class="jz-btn jz-btn--plain jz-btn--sm" @tap="arrange">去排期</button>
     </view>
@@ -118,7 +118,7 @@ function openCarryoverPlan() {
             </text>
           </view>
         </view>
-        <view v-if="!tasksOf(s.id).length" class="plan__no-task">该阶段尚未排任务（设计师可在排期页从工艺库添加）</view>
+        <view v-if="!tasksOf(s.id).length" class="plan__no-task">该阶段尚未排任务（任务来自合同施工行与已生效增减项）</view>
       </view>
     </view>
 

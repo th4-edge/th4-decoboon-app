@@ -1,6 +1,6 @@
 import { catalogApi } from '@/domains/catalog/api'
 import { packApi } from '@/domains/pack/api'
-import type { CraftTask, GiftPack, MaterialOption, Zone } from './model'
+import type { GiftPack, MaterialOption, Zone } from './model'
 
 /**
  * 施工区域来自后端 SpaceType 枚举。
@@ -25,31 +25,6 @@ function isConceal(name: string, code: string): boolean {
 export const baseApi = {
   /** 区域是后端稳定枚举，不在前端维护可持久化主数据。 */
   zones: async (): Promise<Zone[]> => SPACE_TYPES.map((item) => ({ ...item })),
-
-  /** 施工项目录直接复用企业材料库，CatalogItem 是唯一主数据源。 */
-  craftCatalog: async (_stageId?: string, _zoneId?: string, keyword?: string): Promise<CraftTask[]> => {
-    const result = await catalogApi.page({
-      type: 'construction',
-      keyword,
-      current: 1,
-      size: 100
-    })
-    return result.list.map((item) => ({
-      id: item.id,
-      code: item.code || '',
-      name: item.name,
-      category: item.category,
-      // 当前后端 CatalogItem 尚未绑定固定阶段，阶段在排期时由用户明确选择。
-      defaultStageId: '',
-      // 当前分类目录尚未维护区域白名单，先允许落位到任一施工区域。
-      zoneIds: [...ZONE_IDS],
-      craft: item.craft || item.name,
-      spec: item.spec || item.criterion || '',
-      unit: item.unit,
-      conceal: isConceal(item.name, item.code || ''),
-      sort: item.sort
-    }))
-  },
 
   /** 主材选择同样直接消费 catalog/item/page。 */
   materials: async (keyword?: string): Promise<MaterialOption[]> => {

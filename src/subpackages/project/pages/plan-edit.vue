@@ -3,29 +3,30 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { isLoggedIn, session } from '@/domains/identity/session'
-import type { CraftTask, Zone } from '@/domains/base/model'
+import { isLoggedIn } from '@/domains/identity/session'
+import type { Zone } from '@/domains/base/model'
 import type { Project, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
 import { projectApi } from '@/domains/project/api'
 import { baseApi } from '@/domains/base/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import JzIcon from '@/components/JzIcon.vue'
-import { toast, toastError, loading, hideLoading, confirm } from '@/composables/toast'
+import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 
 const projectId = ref('')
 const project = ref<Project | null>(null)
 const stages = ref<ProjectStage[]>([])
 const zones = ref<Zone[]>([])
-const allCraft = ref<CraftTask[]>([])
-const existingTasks = ref<Task[]>([])
+const tasks = ref<Task[]>([])
 const keyword = ref('')
 
 const stageId = ref('')
-const zoneId = ref('')
-const selected = ref<{ ct: CraftTask; zone: Zone; qty: number }[]>([])
-const savedCount = ref(0)
 const requestedStageId = ref('')
+
+const editingId = ref('')
+const editZoneId = ref('')
+const editStart = ref('')
+const editEnd = ref('')
 
 onLoad((q) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
@@ -33,32 +34,33 @@ onLoad((q) => {
   requestedStageId.value = q?.stageId || ''
   load()
 })
+
 async function load() {
-  const [p, st, zn, ct, tk] = await Promise.all([
-    projectApi.info(projectId.value), projectApi.stages(projectId.value),
-    baseApi.zones(), baseApi.craftCatalog(), scheduleApi.tasks(projectId.value).catch(() => [])
+  const [p, st, zn, tk] = await Promise.all([
+    projectApi.info(projectId.value),
+    projectApi.stages(projectId.value),
+    baseApi.zones(),
+    scheduleApi.tasks(projectId.value).catch(() => [])
   ])
   project.value = p || null
-  existingTasks.value = tk
   stages.value = [...st].sort((a, b) => a.sort - b.sort)
   zones.value = zn
-  allCraft.value = ct
+  tasks.value = tk
   const requested = stages.value.find((s) => s.id === requestedStageId.value)
   const first = requested || stages.value.find((s) => s.status === 'todo' || s.status === 'doing') || stages.value[0]
   stageId.value = first?.id || ''
-  applyZone()
 }
 
 const stage = computed(() => stages.value.find((s) => s.id === stageId.value))
+
 /**
  * 可选区域 = 系统空间枚举 ∪ 项目既有任务里的区域名。
- * 合同施工行带入的是自由文本区域（如「客餐厅」「主卧」），不在 SpaceType 枚举内；
- * 若只给枚举区域，设计师既看不到既有区域，也无法据此去重（BUG-ZONE-DICT-MISMATCH）。
+ * 合同施工行带入的是自由文本区域（如「客餐厅」「主卧」），不在 SpaceType 枚举内。
  */
 const zoneOptions = computed(() => {
   const list = zones.value.map((z) => ({ ...z }))
   const known = new Set(list.map((z) => z.name))
-  for (const task of existingTasks.value) {
+  for (const task of tasks.value) {
     const name = task.zone?.name || task.zone?.id
     if (name && !known.has(name)) {
       known.add(name)
@@ -67,127 +69,81 @@ const zoneOptions = computed(() => {
   }
   return list
 })
-/** 当前阶段可落位的区域（取该阶段工艺库覆盖的区域，保证可选项都有任务） */
-const enumZoneIds = computed(() => new Set(zones.value.map((z) => z.id)))
-const stageZones = computed(() => {
-  const ids = new Set(allCraft.value
-    .filter((c) => !c.defaultStageId || c.defaultStageId === stageId.value)
-    .flatMap((c) => c.zoneIds))
-  // 既有任务的区域名（非系统枚举）始终保留，保证可以选中并做去重
-  return zoneOptions.value.filter((z) => ids.has(z.id) || !enumZoneIds.value.has(z.id))
+
+/** 当前阶段的施工任务：来源只能是本项目合同施工行或已生效增减项（服务端强校验）。 */
+const stageTasks = computed(() => {
+  const k = keyword.value.trim().toLowerCase()
+  return tasks.value
+    .filter((t) => t.stageId === stageId.value)
+    .filter((t) => !k || `${t.name} ${t.craft || ''} ${t.spec || ''} ${t.zone?.name || ''}`.toLowerCase().includes(k))
 })
-function applyZone() {
-  const zs = stageZones.value
-  if (!zs.some((z) => z.id === zoneId.value)) zoneId.value = zs[0]?.id || ''
-}
+
+const pendingCount = computed(() => tasks.value.filter((t) => t.status === 'todo').length)
+
 function onStage(i: number) {
   stageId.value = stages.value[i].id
-  applyZone()
-}
-function onZone(i: number) {
-  const zs = stageZones.value
-  zoneId.value = zs[i]?.id || ''
+  editingId.value = ''
 }
 
-/** 当前区域是否为系统空间枚举（自由文本区域不做工艺适用范围过滤，否则工艺库会整片为空） */
-const isEnumZone = computed(() => zones.value.some((z) => z.id === zoneId.value))
-const lib = computed(() => {
-  const k = keyword.value.trim().toLowerCase()
-  return allCraft.value.filter((c) => {
-    if (c.defaultStageId && c.defaultStageId !== stageId.value) return false
-    if (zoneId.value && isEnumZone.value && !c.zoneIds.includes(zoneId.value)) return false
-    if (k && !(c.name + c.code + c.craft + c.spec).toLowerCase().includes(k)) return false
-    return true
-  })
-})
-const zoneOf = (id: string) => zones.value.find((z) => z.id === id)
-
-/**
- * 已下发识别：同一「项目 × 阶段 × 区域 × 工艺」只允许一条未取消任务。
- * 历史缺陷：重复下发会生成多条重复任务（BUG-TASK-DUPLICATE-DISPATCH），服务端已拦截，
- * 前端在此提前标记「已下发」并阻止重复选择。
- */
-const dispatchedKeys = computed(() => new Set(
-  existingTasks.value
-    .filter((t) => t.status !== 'overdue' && t.catalogId)
-    // 后端施工任务的 zone 存的是中文区域名（ProjectTask.resolveZone → SpaceType.name），
-    // 因此这里统一用区域名做键，避免「LivingRoom」与「客厅」对不上导致已下发识别失效。
-    .map((t) => `${t.stageId}|${t.zone?.name || t.zone?.id || ''}|${t.catalogId}`)
-))
-function isDispatched(ct: CraftTask) {
-  const zoneName = zoneOf(zoneId.value)?.name || zoneId.value
-  return dispatchedKeys.value.has(`${stageId.value}|${zoneName}|${ct.id}`)
+function beginEdit(task: Task) {
+  editingId.value = task.id
+  editZoneId.value = task.zone?.name || task.zone?.id || ''
+  editStart.value = task.plannedStart || stage.value?.plannedStart || ''
+  editEnd.value = task.plannedEnd || stage.value?.plannedEnd || ''
 }
 
-function defaultQty(ct: CraftTask): number {
-  const map: Record<string, number> = { '㎡': 20, 'm': 10, '个': 10, '点': 6, '樘': 2, '套': 1, '项': 1 }
-  return map[ct.unit] || 1
+function cancelEdit() {
+  editingId.value = ''
 }
-function add(ct: CraftTask) {
-  if (!zoneId.value) { toast('请先选择施工区域'); return }
-  if (isDispatched(ct)) {
-    toast('该工艺已在当前阶段·区域下发，请在原任务上调整数量'); return
-  }
-  if (selected.value.some((x) => x.ct.id === ct.id && x.zone.id === zoneId.value)) {
-    toast('该区域下已选此工艺'); return
-  }
-  const zn = zones.value.find((z) => z.id === zoneId.value)!
-  selected.value.push({ ct, zone: zn, qty: defaultQty(ct) })
+
+function onStartChange(e: any) {
+  editStart.value = e.detail.value
 }
-function removeAt(i: number) { selected.value.splice(i, 1) }
-function changeQty(i: number, delta: number) {
-  const it = selected.value[i]
-  it.qty = Math.max(0, it.qty + delta)
+
+function onEndChange(e: any) {
+  editEnd.value = e.detail.value
 }
-async function save() {
-  if (!selected.value.length) { toast('请先选择施工任务'); return }
-  const ok = await confirm('保存排期', `将为「${stage.value?.name}」添加 ${selected.value.length} 项施工任务，确认保存？`, '保存')
-  if (!ok) return
+
+async function saveEdit(task: Task) {
+  if (!editZoneId.value) { toast('请选择施工区域'); return }
+  if (!editStart.value || !editEnd.value) { toast('请选择计划起止日期'); return }
+  if (editEnd.value < editStart.value) { toast('计划完工不能早于计划开工'); return }
   loading('保存排期中…')
-  const failed: string[] = []
-  for (const it of selected.value) {
-    try {
-      await scheduleApi.addTaskFromCatalog({
-        projectId: projectId.value,
-        stageId: stageId.value,
-        zoneId: it.zone.id,
-        catalogId: it.ct.id,
-        quantity: it.qty,
-        ownerId: session.emp?.id
-      })
-      existingTasks.value.push({
-        id: '', projectId: projectId.value, stageId: stageId.value, catalogId: it.ct.id,
-        name: it.ct.name, status: 'todo', zone: it.zone
-      } as Task)
-    } catch (error) {
-      failed.push(`${it.ct.name}（${it.zone.name}）`)
-      toastError(error, '下发失败')
-    }
+  try {
+    const zone = zoneOptions.value.find((z) => z.id === editZoneId.value || z.name === editZoneId.value)
+    await scheduleApi.saveTask({
+      id: task.id,
+      projectId: projectId.value,
+      stageId: stageId.value,
+      zone: zone ? { ...zone, name: zone.name } : { id: editZoneId.value, name: editZoneId.value, sort: 0 },
+      plannedStart: editStart.value,
+      plannedEnd: editEnd.value
+    })
+    hideLoading()
+    toast('排期已保存', 'success')
+    editingId.value = ''
+    await refresh()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '保存失败')
   }
-  savedCount.value += selected.value.length - failed.length
-  selected.value = []
-  hideLoading()
-  if (failed.length) {
-    toast(`以下任务未下发：${failed.join('、')}`, 'none')
-  } else {
-    toast('排期已保存，任务已下发', 'success')
-    setTimeout(() => uni.navigateBack(), 450)
-  }
+}
+
+async function refresh() {
+  tasks.value = await scheduleApi.tasks(projectId.value).catch(() => tasks.value)
 }
 </script>
 
 <template>
   <view class="pe" v-if="project">
-    <!-- 计划上下文 -->
     <view class="pe__ctx jz-card">
       <view class="jz-between">
         <text class="pe__ctx-name">{{ project.name }}</text>
-        <text class="pe__ctx-tip">签约后 · 设计师排期</text>
+        <text class="pe__ctx-tip">签约后 · 施工任务排期</text>
       </view>
-      <text class="pe__ctx-sub">从系统工艺库选择施工任务，任务将落位到「阶段 × 区域」，驱动项目经理按节点推进。</text>
+      <text class="pe__ctx-sub">本项目施工任务来自合同施工行与已生效增减项。排期只调整施工阶段、区域与计划起止；数量与金额以合同为准，变更请走增减项。</text>
     </view>
 
-    <!-- 阶段 -->
     <scroll-view scroll-x class="pe__chips" :show-scrollbar="false">
       <view class="pe__chips-row">
         <view v-for="s in stages" :key="s.id" class="pe__chip" :class="{ 'pe__chip--on': stageId === s.id }" @tap="onStage(stages.indexOf(s))">
@@ -197,75 +153,66 @@ async function save() {
       </view>
     </scroll-view>
 
-    <!-- 区域 -->
-    <view class="pe__zone-row">
-      <text class="pe__zone-label">施工区域</text>
-      <scroll-view scroll-x class="pe__zones" :show-scrollbar="false">
-        <view class="pe__zones-row">
-          <view v-for="z in stageZones" :key="z.id" class="pe__zone" :class="{ 'pe__zone--on': zoneId === z.id }" @tap="onZone(stageZones.indexOf(z))">
-            {{ z.name }}
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-
-    <!-- 搜索 + 工艺库 -->
     <view class="pe__search jz-card">
       <view class="pe__search-icon"><JzIcon name="search" :size="32" :color="TOKEN_COLOR.text3" /></view>
-      <input v-model="keyword" placeholder="搜索工艺名称/规格/工艺说明" />
+      <input v-model="keyword" placeholder="搜索任务名称/工艺/区域" />
     </view>
 
-    <view class="jz-section"><text class="jz-section__title">工艺任务库（{{ lib.length }}）</text><text class="jz-section__more">系统内置 · 设计师选择</text></view>
+    <view class="jz-section">
+      <text class="jz-section__title">本项目施工任务（{{ stageTasks.length }}）</text>
+      <text class="jz-section__more">待排期 {{ pendingCount }} 项</text>
+    </view>
+
     <view class="pe__lib">
-      <view v-for="ct in lib" :key="ct.id" class="jz-card pe__lib-item">
+      <view v-for="task in stageTasks" :key="task.id" class="jz-card pe__lib-item">
         <view class="jz-between">
-          <view class="jz-row">
-            <text class="pe__lib-code">{{ ct.code }}</text>
-            <text class="pe__lib-name">{{ ct.name }}</text>
-            <text v-if="ct.conceal" class="pe__lib-conceal">需隐蔽验收</text>
-          </view>
-          <view class="pe__add" :class="{ 'pe__add--dispatched': isDispatched(ct) }" @tap="add(ct)">
-            <JzIcon v-if="!isDispatched(ct)" name="plus" :size="24" :color="TOKEN_COLOR.primary" />
-            <text>{{ isDispatched(ct) ? '已下发' : '选择' }}</text>
-          </view>
-        </view>
-        <text class="pe__lib-craft">工艺：{{ ct.craft }}</text>
-        <text class="pe__lib-spec">规格：{{ ct.spec }}</text>
-        <view class="jz-between pe__lib-foot">
-          <text class="pe__lib-meta">计量单位 {{ ct.unit }} · 适用：{{ ct.zoneIds.map((z) => zoneOf(z)?.name).join('、') }}</text>
-        </view>
-      </view>
-      <view v-if="!lib.length" class="jz-card"><view class="pe__empty">该阶段/区域暂无匹配工艺，可切换区域或搜索</view></view>
-    </view>
-
-    <!-- 已选清单（待保存） -->
-    <view v-if="selected.length" class="pe__basket">
-      <view class="jz-section"><text class="jz-section__title">已选（{{ selected.length }}）· 待保存</text></view>
-      <view class="jz-card pe__basket-card">
-        <view v-for="(it, i) in selected" :key="i" class="pe__basket-row">
           <view class="jz-grow">
             <view class="jz-row">
-              <text class="pe__basket-name">{{ it.ct.name }}</text>
-              <text class="pe__basket-zone">{{ it.zone.name }}</text>
+              <text class="pe__lib-name">{{ task.name }}</text>
+              <text v-if="task.conceal" class="pe__lib-conceal">需隐蔽验收</text>
             </view>
-            <text class="pe__basket-unit">单位：{{ it.ct.unit }}</text>
+            <text class="pe__lib-craft">区域：{{ task.zone?.name || task.zone?.id || '未指定' }} · 数量：{{ task.quantity ?? '-' }} {{ task.unit || '' }}</text>
+            <text class="pe__lib-spec">计划：{{ task.plannedStart || '未排' }} ~ {{ task.plannedEnd || '未排' }}</text>
           </view>
-          <view class="pe__stepper">
-            <view class="pe__step-btn" @tap="changeQty(i, -1)"><JzIcon name="minus" :size="26" :color="TOKEN_COLOR.text1" /></view>
-            <text class="pe__step-val">{{ it.qty }}</text>
-            <view class="pe__step-btn" @tap="changeQty(i, 1)"><JzIcon name="plus" :size="26" :color="TOKEN_COLOR.text1" /></view>
+          <view class="pe__add" @tap="beginEdit(task)">
+            <JzIcon name="edit" :size="24" :color="TOKEN_COLOR.primary" />
+            <text>调整</text>
           </view>
-          <view class="pe__basket-del" @tap="removeAt(i)"><JzIcon name="close" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        </view>
+
+        <view v-if="editingId === task.id" class="pe__editor">
+          <text class="pe__editor-label">施工区域</text>
+          <scroll-view scroll-x class="pe__zones" :show-scrollbar="false">
+            <view class="pe__zones-row">
+              <view v-for="z in zoneOptions" :key="z.id" class="pe__zone" :class="{ 'pe__zone--on': editZoneId === z.id || editZoneId === z.name }" @tap="editZoneId = z.id">
+                {{ z.name }}
+              </view>
+            </view>
+          </scroll-view>
+
+          <view class="pe__editor-row">
+            <text class="pe__editor-label">计划开工</text>
+            <picker mode="date" :value="editStart" @change="onStartChange">
+              <view class="pe__editor-date">{{ editStart || '请选择' }}</view>
+            </picker>
+          </view>
+          <view class="pe__editor-row">
+            <text class="pe__editor-label">计划完工</text>
+            <picker mode="date" :value="editEnd" @change="onEndChange">
+              <view class="pe__editor-date">{{ editEnd || '请选择' }}</view>
+            </picker>
+          </view>
+
+          <view class="pe__editor-actions">
+            <button class="jz-btn jz-grow" @tap="cancelEdit">取消</button>
+            <button class="jz-btn jz-btn--primary jz-grow" @tap="saveEdit(task)">保存排期</button>
+          </view>
         </view>
       </view>
-      <view class="jz-actionbar">
-        <view class="jz-actionbar__inner">
-          <text class="pe__save-tip">已选 {{ selected.length }} 项 · 共 {{ selected.reduce((a, b) => a + b.qty, 0) }} {{ selected[0]?.ct.unit || '项' }}</text>
-          <button class="jz-btn jz-btn--primary jz-grow" @tap="save">保存并下发任务</button>
-        </view>
+      <view v-if="!stageTasks.length" class="jz-card">
+        <view class="pe__empty">本阶段暂无施工任务。任务只能来自本项目报价/合同施工行或已生效增减项，请检查报价/合同或发起增减项。</view>
       </view>
     </view>
-    <view v-if="savedCount" class="pe__saved-tip"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /><text>本次已保存 {{ savedCount }} 项任务（已进入计划）</text></view>
   </view>
 </template>
 
@@ -315,3 +262,9 @@ async function save() {
 .pe__save-tip { font-size: $jzb-font-sm; color: $jzb-text-3; white-space: nowrap; }
 .pe__saved-tip { text-align: center; color: $jzb-success; font-size: $jzb-font-xs; padding: 12rpx 0 30rpx; }
 </style>
+.pe__editor { margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border; }
+.pe__editor-label { font-size: $jzb-font-sm; color: $jzb-text-3; }
+.pe__editor-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-top: 16rpx; }
+.pe__editor-date { font-size: $jzb-font; color: $jzb-text-1; padding: 10rpx 22rpx; background: $jzb-bg-page; border-radius: $jzb-radius; }
+.pe__editor-actions { display: flex; flex-direction: row; margin-top: 20rpx; }
+.pe__zones { margin-top: 10rpx; }

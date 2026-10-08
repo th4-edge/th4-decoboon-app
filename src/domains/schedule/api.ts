@@ -149,12 +149,6 @@ export const scheduleApi = {
       unit: task.unit
     }),
 
-  removeTask: (id: string) =>
-    post<void>('project/task/delete', { taskId: id }),
-
-  addTaskFromCatalog: (input: { projectId: string; stageId: string; zoneId: string; catalogId: string; quantity?: number; ownerId?: string }) =>
-    post<Task>('project/task/save', input),
-
   advanceTask: (id: string, action: 'start' | 'finish' | 'reopen', employee: Employee, medias?: TaskMedia[]) =>
     post<Task>('project/task/update', {
       taskId: id,
