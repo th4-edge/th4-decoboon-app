@@ -36,7 +36,8 @@ async function load() {
     projectApi.info(id.value),
     projectApi.stages(id.value),
     scheduleApi.tasks(id.value),
-    planDeviationApi.page(id.value).catch(() => [] as PlanDeviation[])
+    (session.role === 'customer' ? planDeviationApi.customerPage : planDeviationApi.page)(id.value)
+      .catch(() => [] as PlanDeviation[])
   ])
   project.value = p || null
   stages.value = [...s].sort((a, b) => a.sort - b.sort)
@@ -59,7 +60,7 @@ const spanDays = computed(() => {
   return Math.max(1, Math.round((b - a) / 86400000))
 })
 const pendingDeviation = computed(() => deviations.value.find((item) => item.status === 'pending'))
-const latestConfirmedDeviation = computed(() => deviations.value.find((item) => item.status === 'confirmed'))
+const latestConfirmedDeviation = computed(() => deviations.value.find((item) => item.status === 'confirmed' || item.status === 'routedToChange'))
 /** DEC-051 DEV-01：确认/驳回限企业负责人或本门店店长。 */
 const canHandleDeviation = computed(() => session.role === 'boss' || session.role === 'storeManager')
 
@@ -150,8 +151,9 @@ function openCarryoverPlan() {
     </view>
 
     <view v-else-if="latestConfirmedDeviation" class="jz-card plan__deviation plan__deviation--ok">
-      <text class="plan__deviation-title">计划偏差已确认</text>
-      <text class="plan__deviation-line">合同基准完工调整为：{{ latestConfirmedDeviation.newBaseEndDate || latestConfirmedDeviation.baseEndDate || '-' }}</text>
+      <text class="plan__deviation-title">{{ latestConfirmedDeviation.status === 'routedToChange' ? '计划偏差已转合同工期变更' : '计划偏差已确认' }}</text>
+      <text class="plan__deviation-line">合同基准完工：{{ latestConfirmedDeviation.newBaseEndDate || latestConfirmedDeviation.baseEndDate || '-' }}</text>
+      <text class="plan__deviation-line">当前预计完工：{{ latestConfirmedDeviation.expectedEndDate || '-' }}（超 {{ latestConfirmedDeviation.deviationDays ?? 0 }} 天）</text>
     </view>
 
     <view v-if="carryover" class="jz-card plan__arrange plan__carryover">

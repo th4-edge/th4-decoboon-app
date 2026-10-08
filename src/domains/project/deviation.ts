@@ -61,6 +61,12 @@ export const planDeviationApi = {
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/plan-deviation/page', { projectId }))
       .map((item) => normalize(item)),
 
+  /** 业主侧只读：仅返回已确认 / 已转合同工期变更且对业主可见的偏差。 */
+  customerPage: async (projectId: string): Promise<PlanDeviation[]> =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/plan-deviation/page', {
+      projectId, current: 1, size: 50
+    })).map((item) => normalize(item)),
+
   update: async (input: {
     deviationId: string
     status: 'Confirmed' | 'Rejected' | 'RoutedToChange'
