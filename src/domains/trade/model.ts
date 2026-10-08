@@ -221,6 +221,8 @@ export interface ContractWorkbenchProgress {
   pendingAcceptanceCount: number
   startDate?: string
   planEndDate?: string
+  /** DEC-048：当前预计完工日（动态）；planEndDate 为合同基准完工日 */
+  expectedEndDate?: string
 }
 
 export interface ContractWorkbenchChange {

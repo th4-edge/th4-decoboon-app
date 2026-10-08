@@ -67,6 +67,7 @@ export function normalizeProject(raw: RawRecord): Project {
     progress: Number(raw.progress ?? 0),
     startDate: raw.startDate,
     planEndDate: raw.planEndDate,
+    expectedEndDate: raw.expectedEndDate,
     actualEndDate: raw.actualEndDate,
     customer,
     property: raw.property ? normalizeProperty(raw.property) : undefined,

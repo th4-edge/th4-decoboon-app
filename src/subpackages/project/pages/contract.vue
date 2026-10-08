@@ -245,7 +245,8 @@ function nodeColor(status?: string) {
       </view>
       <view class="cw__hero-foot">
         <text>签约 {{ contract.signedAt || '待签约' }}</text>
-        <text>计划 {{ contract.startDate?.slice(5) }} ~ {{ contract.planEndDate?.slice(5) }}</text>
+        <text>合同计划 {{ contract.startDate?.slice(5) }} ~ {{ contract.planEndDate?.slice(5) }}</text>
+        <text v-if="workbench.progress.expectedEndDate">预计完工 {{ workbench.progress.expectedEndDate.slice(5) }}</text>
       </view>
       <view v-if="changeAmount !== 0" class="cw__delta">
         <JzIcon name="history" :size="26" :color="TOKEN_COLOR.white" />

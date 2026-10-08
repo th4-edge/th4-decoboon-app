@@ -471,7 +471,8 @@ function normalizeContractWorkbench(raw: RawRecord): ContractWorkbench {
       stageDone: Number(progress.stageDone ?? 0),
       pendingAcceptanceCount: Number(progress.pendingAcceptanceCount ?? 0),
       startDate: progress.startDate,
-      planEndDate: progress.planEndDate
+      planEndDate: progress.planEndDate,
+      expectedEndDate: progress.expectedEndDate
     },
     change: {
       totalCount: Number(change.totalCount ?? 0),
