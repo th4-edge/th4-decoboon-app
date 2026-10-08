@@ -67,12 +67,24 @@ async function confirmSheet() {
       <view class="jz-section"><text class="jz-section__title">员工工资项</text><text class="jz-section__more">{{ items.length }} 条</text></view>
       <view v-for="item in items" :key="item.id" class="item-card jz-card">
         <view class="item-card__top"><text class="item-card__name">{{ item.employee.name }}</text><JzTag :text="PAYROLL_ITEM_STATUS_META[item.status].label" :color="PAYROLL_ITEM_STATUS_META[item.status].color" /></view>
-        <view class="item-card__facts">
-          <text>{{ item.project?.name || '企业费用' }}</text>
-          <text>应发 {{ money(item.grossAmount) }}</text>
-          <text>扣款 {{ money(item.deductionAmount) }}</text>
-          <text>实发 {{ money(item.netAmount) }}</text>
+        <view class="item-card__attribution"><text>{{ item.project?.name || '企业费用' }}</text></view>
+        <view class="item-card__section-title">收入明细</view>
+        <view class="item-card__rows">
+          <view><text>基本工资</text><text>{{ money(item.baseSalaryAmount) }}</text></view>
+          <view><text>提成</text><text>{{ money(item.commissionAmount) }}</text></view>
+          <view><text>奖金</text><text>{{ money(item.bonusAmount) }}</text></view>
+          <view><text>补贴</text><text>{{ money(item.allowanceAmount) }}</text></view>
+          <view class="item-card__subtotal"><text>应发</text><text>{{ money(item.grossAmount) }}</text></view>
         </view>
+        <view class="item-card__section-title">扣款明细</view>
+        <view class="item-card__rows">
+          <view><text>考勤扣款</text><text>{{ money(item.attendanceDeduction) }}</text></view>
+          <view><text>社保</text><text>{{ money(item.socialInsuranceAmount) }}</text></view>
+          <view><text>个税</text><text>{{ money(item.taxAmount) }}</text></view>
+          <view><text>其他扣款</text><text>{{ money(item.otherDeduction) }}</text></view>
+          <view class="item-card__subtotal"><text>扣款合计</text><text>{{ money(item.deductionAmount) }}</text></view>
+        </view>
+        <view class="item-card__net"><text>实发工资</text><text>{{ money(item.netAmount) }}</text></view>
       </view>
       <JzEmpty v-if="!items.length" text="暂无工资项" sub="先生成工资单草稿并补齐考勤、提成和归属" />
       <button v-if="canConfirm && (sheet.status === 'draft' || sheet.status === 'pending')" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirming" @tap="confirmSheet">确认工资单</button>
@@ -92,6 +104,13 @@ async function confirmSheet() {
 .item-card { padding: 26rpx; margin-bottom: 18rpx; }
 .item-card__top { display: flex; justify-content: space-between; align-items: center; }
 .item-card__name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
-.item-card__facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 20rpx; color: $jzb-text-3; font-size: 22rpx; }
+.item-card__attribution { margin-top: 12rpx; color: $jzb-text-3; font-size: 22rpx; }
+.item-card__section-title { margin-top: 24rpx; padding-top: 20rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 700; }
+.item-card__rows { margin-top: 12rpx; }
+.item-card__rows view { display: flex; justify-content: space-between; gap: 20rpx; padding: 9rpx 0; color: $jzb-text-3; font-size: 22rpx; }
+.item-card__rows view text:last-child { color: $jzb-text-1; font-weight: 600; }
+.item-card__rows .item-card__subtotal { margin-top: 6rpx; padding-top: 14rpx; border-top: 1rpx dashed $jzb-border-light; color: $jzb-text-2; font-weight: 700; }
+.item-card__rows .item-card__subtotal text:last-child { color: $jzb-text-1; }
+.item-card__net { display: flex; align-items: center; justify-content: space-between; margin-top: 20rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary-deep; font-size: $jzb-font-md; font-weight: 750; }
 button { margin-top: 28rpx; }
 </style>

@@ -14,6 +14,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzIcon from '@/components/JzIcon.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
@@ -85,6 +86,7 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
           <view><text>扣款</text><text>{{ money(item.totalDeductionAmount) }}</text></view>
           <view><text>实发</text><text>{{ money(item.totalNetAmount) }}</text></view>
         </view>
+        <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" color="#16A394" /></view>
       </view>
       <ListFooter v-if="!loadError && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="暂无工资单" sub="生成工资单后在这里完成确认与发放" />
@@ -108,4 +110,5 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
 .sheet-card__amounts view { display: flex; flex-direction: column; gap: 8rpx; }
 .sheet-card__amounts text:first-child { color: $jzb-text-3; font-size: 22rpx; }
 .sheet-card__amounts text:last-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.sheet-card__open { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary; font-size: $jzb-font-sm; font-weight: 650; }
 </style>
