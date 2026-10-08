@@ -21,6 +21,7 @@ import PageState from '@/components/PageState/PageState.vue'
 const editable = ref(can(session.role, 'edit:payroll'))
 const selectedPeriod = ref(localMonth())
 const maxPeriod = localMonth()
+const deletingId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.sheetPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
@@ -59,6 +60,34 @@ async function buildSelected() {
 }
 
 function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetail}?sheetId=${item.id}` }) }
+
+async function removeDraft(item: PayrollSheet) {
+  if (session.role !== 'boss' || item.status !== 'draft' || deletingId.value) return
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '删除工资单草稿',
+      content: `确认删除 ${item.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`,
+      confirmText: '删除',
+      confirmColor: '#E5484D',
+      success: (result) => resolve(result.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  deletingId.value = item.id
+  showLoading('删除中')
+  try {
+    await payrollApi.deleteSheet(item.id)
+    hideLoading()
+    toast('工资单草稿已删除', 'success')
+    await refresh()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '工资单草稿删除失败')
+  } finally {
+    deletingId.value = ''
+  }
+}
 </script>
 
 <template>
@@ -86,7 +115,10 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
           <view><text>扣款</text><text>{{ money(item.totalDeductionAmount) }}</text></view>
           <view><text>实发</text><text>{{ money(item.totalNetAmount) }}</text></view>
         </view>
-        <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" color="#16A394" /></view>
+        <view class="sheet-card__actions">
+          <text v-if="session.role === 'boss' && item.status === 'draft'" class="sheet-card__delete" @tap.stop="removeDraft(item)">{{ deletingId === item.id ? '删除中' : '删除草稿' }}</text>
+          <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" color="#16A394" /></view>
+        </view>
       </view>
       <ListFooter v-if="!loadError && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="暂无工资单" sub="生成工资单后在这里完成确认与发放" />
@@ -110,5 +142,7 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
 .sheet-card__amounts view { display: flex; flex-direction: column; gap: 8rpx; }
 .sheet-card__amounts text:first-child { color: $jzb-text-3; font-size: 22rpx; }
 .sheet-card__amounts text:last-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
-.sheet-card__open { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary; font-size: $jzb-font-sm; font-weight: 650; }
+.sheet-card__actions { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
+.sheet-card__delete { color: $jzb-danger; font-size: $jzb-font-sm; font-weight: 650; }
+.sheet-card__open { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; color: $jzb-primary; font-size: $jzb-font-sm; font-weight: 650; }
 </style>

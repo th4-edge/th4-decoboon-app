@@ -19,6 +19,7 @@ const sheet = ref<PayrollSheet | null>(null)
 const items = ref<PayrollItem[]>([])
 const loading = ref(false)
 const confirming = ref(false)
+const deleting = ref(false)
 const canConfirm = ref(can(session.role, 'confirm:payroll'))
 
 onLoad((query) => { sheetId.value = query?.sheetId || ''; void refresh() })
@@ -32,6 +33,34 @@ async function refresh() {
     items.value = await payrollApi.itemPage({ sheetId: sheetId.value }, 1, 200)
   } catch (error) { toastError(error, '工资单详情加载失败') }
   finally { loading.value = false }
+}
+
+async function removeDraft() {
+  if (!sheet.value || session.role !== 'boss' || sheet.value.status !== 'draft' || deleting.value) return
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '删除工资单草稿',
+      content: `确认删除 ${sheet.value?.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`,
+      confirmText: '删除',
+      confirmColor: '#E5484D',
+      success: (result) => resolve(result.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  deleting.value = true
+  showLoading('删除中')
+  try {
+    await payrollApi.deleteSheet(sheet.value.id)
+    hideLoading()
+    toast('工资单草稿已删除', 'success')
+    setTimeout(() => uni.navigateBack(), 400)
+  } catch (error) {
+    hideLoading()
+    toastError(error, '工资单草稿删除失败')
+  } finally {
+    deleting.value = false
+  }
 }
 
 async function confirmSheet() {
@@ -87,6 +116,7 @@ async function confirmSheet() {
         <view class="item-card__net"><text>实发工资</text><text>{{ money(item.netAmount) }}</text></view>
       </view>
       <JzEmpty v-if="!items.length" text="暂无工资项" sub="先生成工资单草稿并补齐考勤、提成和归属" />
+      <button v-if="session.role === 'boss' && sheet.status === 'draft'" class="jz-btn jz-btn--danger jz-btn--block" :disabled="deleting" @tap="removeDraft">删除草稿</button>
       <button v-if="canConfirm && (sheet.status === 'draft' || sheet.status === 'pending')" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirming" @tap="confirmSheet">确认工资单</button>
     </view>
   </view>

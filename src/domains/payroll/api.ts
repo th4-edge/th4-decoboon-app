@@ -231,6 +231,7 @@ export const payrollApi = {
   sheetInfo: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/info', { sheetId })),
   buildSheet: async (period: string) => normalizeSheet(await post<Raw>('payroll/sheet/build', { period })),
   confirmSheet: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/update', { sheetId })),
+  deleteSheet: async (sheetId: string) => post<Raw>('payroll/sheet/delete', { sheetId }),
 
   itemPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/item/page', params, normalizeItem, current, size),
   storePayrollPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/store-payroll/page', params, normalizeItem, current, size),
