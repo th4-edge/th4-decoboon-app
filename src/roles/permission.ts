@@ -27,6 +27,16 @@ export type Capability =
   | 'view:design'
   | 'view:catalog'
   | 'edit:catalog'
+  | 'view:catalog-cost'
+  | 'view:package-template'
+  | 'edit:package-template'
+  | 'view:payment-plan-template'
+  | 'edit:payment-plan-template'
+  | 'view:construction-plan-template'
+  | 'edit:construction-plan-template'
+  | 'view:selection-board'
+  | 'view:rectify'
+  | 'view:feedback'
   | 'edit:design'
   | 'act:talk'
   | 'view:approval'
@@ -66,6 +76,16 @@ export type Capability =
 
 type InternalRoleKey = Exclude<RoleKey, 'customer'>
 
+/** 所有内部岗位都可查看的经营资料；写权限仍由各自能力单独控制。 */
+const INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES: Capability[] = [
+  'view:catalog',
+  'view:package-template',
+  'view:payment-plan-template',
+  'view:construction-plan-template',
+  'view:ownPayslip',
+  'view:feedback'
+]
+
 /**
  * 内部岗位能力矩阵。BOSS 在运行时取全部内部岗位能力的并集，
  * 外部主体专属能力（如业主本人确认）不进入内部矩阵。
@@ -79,9 +99,14 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:workbench'
   ],
   storeManager: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
-    'view:catalog', 'edit:catalog',
+    'edit:catalog', 'view:catalog-cost',
+    'edit:package-template',
+    'edit:payment-plan-template',
+    'edit:construction-plan-template',
+    'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
     'view:cost',
@@ -94,6 +119,8 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
   teamLeader: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    'view:selection-board', 'view:rectify',
     'view:catalog',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:team', 'view:schedule', 'view:task',
@@ -102,14 +129,17 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'view:ownPayslip', 'view:commission'
   ],
   marketer: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'view:design', 'view:quote',
     'view:myProjects', 'view:customers',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
     'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'view:ownPayslip', 'view:commission'
   ],
   designer: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'view:worker',
     'view:catalog',
+    'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
     'edit:project', 'edit:plan', 'act:report', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
@@ -117,17 +147,21 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   pm: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'view:worker', 'edit:worker',
     'view:catalog',
+    'view:selection-board', 'view:rectify',
     'view:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:material', 'view:supply', 'view:quote',
     'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest',
     'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   finance: [
+    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
-    'view:catalog', 'edit:catalog',
+    'view:catalog',
+    'view:selection-board', 'view:rectify',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
     'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
@@ -139,8 +173,18 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
 /** 仅外部主体可执行的能力，BOSS 内部岗位超集也必须排除。 */
 const EXTERNAL_ONLY_CAPABILITIES: readonly Capability[] = ['act:acceptConfirm']
 
+/**
+ * 仅 BOSS 独有的内部能力；不进入其它岗位矩阵。
+ * DEC-046 APP-PAY-03/08：工资单确认动作人仅 BOSS，财务不参与确认。
+ * 这类能力必须显式列出，否则 BOSS 并集无法自动覆盖新增能力键。
+ */
+const BOSS_ONLY_CAPABILITIES: readonly Capability[] = ['confirm:payroll']
+
 const INTERNAL_CAPABILITIES = [
-  ...new Set(Object.values(INTERNAL_MATRIX).flat())
+  ...new Set([
+    ...Object.values(INTERNAL_MATRIX).flat(),
+    ...BOSS_ONLY_CAPABILITIES
+  ])
 ].filter((capability) => !EXTERNAL_ONLY_CAPABILITIES.includes(capability))
 
 const MATRIX: Record<RoleKey, Capability[]> = {

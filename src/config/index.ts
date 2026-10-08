@@ -88,6 +88,7 @@ export const P = {
   projectContract: '/subpackages/project/pages/contract',
   projectChange: '/subpackages/project/pages/change',
   projectChangeWorkbench: '/subpackages/project/pages/change-workbench',
+  projectChangePicker: '/subpackages/project/pages/change-project-picker',
   projectChangeCreate: '/subpackages/project/pages/change-create',
   projectChangeDetail: '/subpackages/project/pages/change-detail',
   projectMaterialPlan: '/subpackages/project/pages/material-plan',

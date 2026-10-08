@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { planApi } from '@/domains/plan/api'
 import type { ConstructionPlanTemplate } from '@/domains/plan/model'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -18,11 +19,12 @@ const loading = ref(false)
 const loadError = ref('')
 const customPlans = computed(() => plans.value.filter((item) => item.source === 'company'))
 const baselinePlans = computed(() => plans.value.filter((item) => item.source === 'baseline'))
+const canEdit = computed(() => can(session.role, 'edit:construction-plan-template'))
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => {
   if (!isLoggedIn()) return
-  if (session.role !== 'boss') { uni.reLaunch({ url: P.mine }); return }
+  if (!can(session.role, 'view:construction-plan-template')) { uni.reLaunch({ url: P.mine }); return }
   void load()
 })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
@@ -54,11 +56,12 @@ function statusColor(plan: ConstructionPlanTemplate) {
 
 function createBlank() { uni.navigateTo({ url: P.constructionPlanTemplateEdit }) }
 function edit(plan: ConstructionPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   uni.navigateTo({ url: `${P.constructionPlanTemplateEdit}?id=${plan.templateId}` })
 }
 
 async function copyBaseline(plan: ConstructionPlanTemplate) {
+  if (!canEdit.value) return
   try {
     const created = await planApi.saveConstruction({
       sourceBaselineCode: plan.code,
@@ -75,7 +78,7 @@ async function copyBaseline(plan: ConstructionPlanTemplate) {
 }
 
 async function publish(plan: ConstructionPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   try {
     await planApi.publishConstruction(plan.templateId)
     toast('模板已启用', 'success')
@@ -86,7 +89,7 @@ async function publish(plan: ConstructionPlanTemplate) {
 }
 
 async function disable(plan: ConstructionPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   if (!await confirm('停用施工计划', `确认停用“${plan.name}”？历史合同不受影响。`, '停用')) return
   try {
     await planApi.disableConstruction(plan.templateId)
@@ -98,7 +101,7 @@ async function disable(plan: ConstructionPlanTemplate) {
 }
 
 async function setDefault(plan: ConstructionPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   try {
     await planApi.defaultConstruction(plan.templateId)
     toast('已设为默认施工计划', 'success')
@@ -111,7 +114,7 @@ async function setDefault(plan: ConstructionPlanTemplate) {
 
 <template>
   <view class="cpt">
-    <JzPageHeader title="施工计划模板" subtitle="企业自定义施工阶段、工期和验收方式" right-text="新建" right-icon="plus" @right="createBlank" />
+    <JzPageHeader title="施工计划模板" subtitle="企业自定义施工阶段、工期和验收方式" :right-text="canEdit ? '新建' : ''" :right-icon="canEdit ? 'plus' : undefined" @right="createBlank" />
 
     <view class="cpt__notice jz-card">
       <JzIcon name="info" :size="34" :color="TOKEN_COLOR.primary" />
@@ -132,11 +135,11 @@ async function setDefault(plan: ConstructionPlanTemplate) {
                 <view class="cpt__name-row"><text class="cpt__name">{{ plan.name }}</text><JzTag v-if="plan.defaultPlan" text="默认" :color="TOKEN_COLOR.primary" /><JzTag :text="statusText(plan)" :color="statusColor(plan)" /></view>
                 <text class="cpt__meta">v{{ plan.version }} · {{ plan.stages.length }} 个阶段 · {{ plan.totalDays }} 天</text>
               </view>
-              <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
+              <JzIcon v-if="canEdit" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
             </view>
             <text class="cpt__desc">{{ plan.description || '暂无说明' }}</text>
             <view class="cpt__preview"><text v-for="stage in plan.stages" :key="stage.code">{{ stage.name }} {{ stage.defaultDays }}天</text></view>
-            <view class="cpt__actions">
+            <view v-if="canEdit" class="cpt__actions">
               <button class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="edit(plan)">编辑</button>
               <button v-if="plan.status !== 'enabled'" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="publish(plan)">启用</button>
               <button v-if="plan.status === 'enabled' && !plan.defaultPlan" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="setDefault(plan)">设为默认</button>
@@ -159,7 +162,7 @@ async function setDefault(plan: ConstructionPlanTemplate) {
             </view>
             <text class="cpt__desc">{{ plan.description }}</text>
             <view class="cpt__preview"><text v-for="stage in plan.stages" :key="stage.code">{{ stage.name }} {{ stage.defaultDays }}天</text></view>
-            <view class="cpt__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="copyBaseline(plan)">复制为企业模板</button></view>
+            <view v-if="canEdit" class="cpt__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="copyBaseline(plan)">复制为企业模板</button></view>
           </view>
         </view>
       </view>

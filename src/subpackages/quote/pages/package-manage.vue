@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { PackageTemplate } from '@/domains/pack/model'
 import { money, timeText } from '@/core/format'
@@ -16,7 +17,8 @@ import JzTag from '@/components/JzTag.vue'
 
 const loading = ref(false)
 const templates = ref<PackageTemplate[]>([])
-const canEdit = computed(() => session.role === 'boss')
+const canEdit = computed(() => can(session.role, 'edit:package-template'))
+const canViewCost = computed(() => can(session.role, 'view:cost'))
 
 interface TemplateStats {
   sectionCount: number
@@ -59,6 +61,7 @@ async function load() {
 }
 
 function edit(templateId = '') {
+  if (!canEdit.value) return
   const query = templateId ? `?templateId=${templateId}` : ''
   uni.navigateTo({ url: `${P.packageEdit}${query}` })
 }
@@ -77,7 +80,7 @@ function createQuote(templateId: string) {
         <text class="pm__hero-count">{{ templates.length }} 套</text>
       </view>
       <text class="pm__hero-value">{{ readyCount }} 套可使用 · {{ templates.length - readyCount }} 套配置中</text>
-      <text class="pm__hero-sub">套餐是企业标准报价模板，客户报价生成后保存独立快照，修改模板不影响历史报价。</text>
+      <text class="pm__hero-sub">{{ canEdit ? '套餐是企业标准报价模板，客户报价生成后保存独立快照，修改模板不影响历史报价。' : '只读查看企业套餐模板；套餐调整由企业负责人或店长维护。' }}</text>
     </view>
 
     <!-- 列表 -->
@@ -89,7 +92,7 @@ function createQuote(templateId: string) {
         class="jz-card pm__item"
       >
         <!-- 标题行 -->
-        <view class="pm__item-head" @tap="edit(item.id)">
+        <view class="pm__item-head" @tap="canEdit && edit(item.id)">
           <view class="jz-grow">
             <view class="pm__name-row">
               <text class="pm__name">{{ item.name }}</text>
@@ -104,22 +107,26 @@ function createQuote(templateId: string) {
               <text v-if="item.updatedAt"> · 更新于{{ timeText(item.updatedAt) }}</text>
             </text>
           </view>
-          <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
+          <JzIcon v-if="canEdit" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
 
         <!-- 金额行 -->
-        <view class="pm__money-row">
+        <view class="pm__money-row" :class="{ 'pm__money-row--compact': !canViewCost }">
           <view class="pm__money-item">
             <text class="pm__money-value">{{ money(item.price) }}</text>
             <text class="pm__money-label">套餐牌价</text>
           </view>
-          <view class="pm__money-item">
+          <view v-if="canViewCost" class="pm__money-item">
             <text class="pm__money-value pm__money-value--cost">{{ money(item.cost) }}</text>
             <text class="pm__money-label">标准成本</text>
           </view>
-          <view class="pm__money-item">
+          <view v-if="canViewCost" class="pm__money-item">
             <text class="pm__money-value pm__money-value--margin">{{ statsOf(item).grossMargin }}%</text>
             <text class="pm__money-label">参考毛利率</text>
+          </view>
+          <view v-else class="pm__money-item">
+            <text class="pm__money-value">{{ statsOf(item).lineCount }}</text>
+            <text class="pm__money-label">项目项数</text>
           </view>
         </view>
 
@@ -138,7 +145,7 @@ function createQuote(templateId: string) {
       <JzEmpty
         v-if="!loading && !templates.length"
         text="暂无套餐模板"
-        sub="企业负责人可创建套餐、配置分区和项目行，沉淀企业标准报价"
+        :sub="canEdit ? '企业负责人或店长可创建套餐、配置分区和项目行' : '请联系企业负责人或店长维护套餐模板'"
       />
     </view>
 
@@ -238,6 +245,8 @@ function createQuote(templateId: string) {
   padding-top: 20rpx;
   border-top: 1rpx solid $jzb-border-light;
 }
+
+.pm__money-row--compact { grid-template-columns: repeat(2, 1fr); }
 
 .pm__money-item {
   text-align: center;

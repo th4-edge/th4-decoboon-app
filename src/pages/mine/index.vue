@@ -61,9 +61,8 @@ const groups = computed(() => {
   const employee = !isCustomer(role.value)
   const account: ReturnType<typeof cell>[] = []
   const organization: ReturnType<typeof cell>[] = []
-  const RECTIFY_FOLLOW_ROLES = ['boss', 'storeManager', 'teamLeader', 'pm', 'finance']
-  const SELECTION_FOLLOW_ROLES = ['boss', 'storeManager', 'teamLeader', 'designer', 'pm', 'finance']
   const business: ReturnType<typeof cell>[] = []
+  const payroll: ReturnType<typeof cell>[] = []
   const mine: ReturnType<typeof cell>[] = []
   const support: ReturnType<typeof cell>[] = []
 
@@ -79,18 +78,32 @@ const groups = computed(() => {
   if (employee && can(role.value, 'view:team')) organization.push(cell('users', '团队成员', `${memberCount.value} 人`, () => uni.navigateTo({ url: P.teamList })))
   if (employee && can(role.value, 'act:inviteMember')) organization.push(cell('user-plus', '邀请员工加入', '生成邀请并分配岗位', () => uni.navigateTo({ url: P.companyInvite })))
 
-  if (employee && can(role.value, 'edit:catalog')) business.push(cell('folder', '报价项目库', '价格、规格、公式与工艺', () => uni.navigateTo({ url: P.catalogManage })))
+  // 历史坑：FIX-040。经营资料对全部内部岗位开放，写权限只在负责人/店长；
+  // 不得再按 BOSS 单独裁剪入口，否则角色会看到不同的企业标准模板。
+  if (employee && can(role.value, 'view:catalog')) {
+    const editable = can(role.value, 'edit:catalog')
+    business.push(cell('folder', '报价项目库', editable ? '价格、规格、公式与工艺' : '只读查看价格、规格与工艺', () => uni.navigateTo({ url: P.catalogManage })))
+  }
+  if (employee && can(role.value, 'view:package-template')) {
+    const editable = can(role.value, 'edit:package-template')
+    business.push(cell('package', '套餐模板', editable ? '套餐分区、项目行、数量系数与成本' : '只读查看套餐配置与项目行', () => uni.navigateTo({ url: P.packageManage })))
+  }
+  if (employee && can(role.value, 'view:payment-plan-template')) {
+    const editable = can(role.value, 'edit:payment-plan-template')
+    business.push(cell('file-text', '付款计划模板', editable ? '收款节点、比例与触发条件' : '只读查看收款节点与比例', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
+  }
+  if (employee && can(role.value, 'view:construction-plan-template')) {
+    const editable = can(role.value, 'edit:construction-plan-template')
+    business.push(cell('calendar', '施工计划模板', editable ? '施工阶段、工期与验收方式' : '只读查看施工阶段与工期', () => uni.navigateTo({ url: P.constructionPlanTemplates })))
+  }
   if (role.value === 'boss') business.push(cell('briefcase', '业务承接', '承接在跑项目，延续工地与账务', () => uni.navigateTo({ url: P.carryoverHome })))
   if (role.value === 'boss') business.push(cell('chart', '员工绩效业绩', '按员工汇总转化、签约、交付与验收', () => uni.navigateTo({ url: P.performanceAssessment })))
   if (role.value === 'boss') business.push(cell('chart', '使用进度', '7/14/30 天激活、岗位使用与流失风险', () => uni.navigateTo({ url: P.successProgram })))
-  if (role.value === 'boss') business.push(cell('package', '套餐模板', '套餐分区、项目行、数量系数与成本', () => uni.navigateTo({ url: P.packageManage })))
-  if (role.value === 'boss') business.push(cell('file-text', '付款计划模板', '收款节点、比例与触发条件', () => uni.navigateTo({ url: P.paymentPlanTemplates })))
-  if (role.value === 'boss') business.push(cell('calendar', '施工计划模板', '施工阶段、工期与验收方式', () => uni.navigateTo({ url: P.constructionPlanTemplates })))
-  if (employee && can(role.value, 'view:ownPayslip')) business.push(cell('wallet', '我的工资条', '已发放工资条、提成与考勤', () => uni.navigateTo({ url: P.payrollMyPayroll })))
   if (employee && can(role.value, 'view:supply')) business.push(cell('package', '供应商协作', '项目采购、到货、采购价与月结', () => uni.navigateTo({ url: P.supply })))
   if (employee && can(role.value, 'view:worker')) business.push(cell('users', '工人档案', '工人信息、工种与工资到账账户', () => uni.navigateTo({ url: P.laborWorkers })))
-  if (SELECTION_FOLLOW_ROLES.includes(role.value)) business.push(cell('package', role.value === 'boss' ? '选材工作台' : '主材选材跟进', '在建项目选材进度、卡点与下一步', () => uni.navigateTo({ url: P.selectionBoard })))
-  if (RECTIFY_FOLLOW_ROLES.includes(role.value)) business.push(cell('alert-circle', '整改跟进', '被驳回、待整改复验的阶段', () => uni.navigateTo({ url: P.rectifyBoard })))
+  if (employee && can(role.value, 'view:selection-board')) business.push(cell('package', '选材工作台', '在建项目选材进度、卡点与下一步', () => uni.navigateTo({ url: P.selectionBoard })))
+  if (employee && can(role.value, 'view:rectify')) business.push(cell('alert-circle', '整改跟进', '被驳回、待整改复验的阶段', () => uni.navigateTo({ url: P.rectifyBoard })))
+  if (employee && can(role.value, 'view:feedback')) business.push(cell('alert-circle', '客户意见投诉', '受理、回复和关闭客户事项', () => uni.navigateTo({ url: P.feedbackList })))
   if (employee && can(role.value, 'view:finance')) business.push(cell('file-text', '收付凭证', '按企业版式打印收款单与付款单', () => uni.navigateTo({ url: P.financeVouchers })))
   if (role.value === 'marketer') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
   if (role.value === 'teamLeader') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))
@@ -101,7 +114,7 @@ const groups = computed(() => {
   if (employee && role.value !== 'boss') mine.push(cell('briefcase', '我参与的项目', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
   if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
   if (!employee) mine.push(cell('alert-circle', '我的意见投诉', '提交问题并查看处理进度', () => uni.navigateTo({ url: P.feedbackList })))
-  if (employee) business.push(cell('alert-circle', '客户意见投诉', '受理、回复和关闭客户事项', () => uni.navigateTo({ url: P.feedbackList })))
+  if (employee && can(role.value, 'view:ownPayslip')) payroll.push(cell('wallet', '我的工资条', '已发放工资条与收入明细', () => uni.navigateTo({ url: P.payrollMyPayroll })))
 
   support.push(cell('bell', '消息通知', '', () => uni.navigateTo({ url: P.msgList })))
   support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', () => uni.navigateTo({ url: P.helpCenter })))
@@ -111,7 +124,8 @@ const groups = computed(() => {
   return [
     { key: 'account', title: '账号与企业', subtitle: '企业身份、账号安全和订阅权益', items: account },
     { key: 'organization', title: '组织与权限', subtitle: '团队、成员与岗位协作', items: organization },
-    { key: 'business', title: '经营工具', subtitle: '按当前角色开放的经营与履约能力', items: business },
+    { key: 'business', title: '经营工具', subtitle: '企业标准资料与经营履约能力', items: business },
+    { key: 'payroll', title: '我的工资', subtitle: '已发放工资条与收入明细', items: payroll },
     { key: 'mine', title: '我的业务', subtitle: '我参与和负责的项目', items: mine },
     { key: 'support', title: '服务与支持', subtitle: '消息、咨询与产品信息', items: support }
   ].filter((group) => group.items.length > 0)

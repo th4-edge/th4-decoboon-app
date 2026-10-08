@@ -4,6 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { planApi } from '@/domains/plan/api'
 import type { PaymentPlanTemplate } from '@/domains/plan/model'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -18,11 +19,12 @@ const loading = ref(false)
 const loadError = ref('')
 const customPlans = computed(() => plans.value.filter((item) => item.source === 'company'))
 const baselinePlans = computed(() => plans.value.filter((item) => item.source === 'baseline'))
+const canEdit = computed(() => can(session.role, 'edit:payment-plan-template'))
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => {
   if (!isLoggedIn()) return
-  if (session.role !== 'boss') { uni.reLaunch({ url: P.mine }); return }
+  if (!can(session.role, 'view:payment-plan-template')) { uni.reLaunch({ url: P.mine }); return }
   void load()
 })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
@@ -53,15 +55,17 @@ function statusColor(plan: PaymentPlanTemplate) {
 }
 
 function createBlank() {
+  if (!canEdit.value) return
   uni.navigateTo({ url: P.paymentPlanTemplateEdit })
 }
 
 function edit(plan: PaymentPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   uni.navigateTo({ url: `${P.paymentPlanTemplateEdit}?id=${plan.templateId}` })
 }
 
 async function copyBaseline(plan: PaymentPlanTemplate) {
+  if (!canEdit.value) return
   try {
     const created = await planApi.savePayment({
       sourceBaselineCode: plan.code,
@@ -78,7 +82,7 @@ async function copyBaseline(plan: PaymentPlanTemplate) {
 }
 
 async function publish(plan: PaymentPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   try {
     await planApi.publishPayment(plan.templateId)
     toast('模板已启用', 'success')
@@ -89,7 +93,7 @@ async function publish(plan: PaymentPlanTemplate) {
 }
 
 async function disable(plan: PaymentPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   if (!await confirm('停用付款计划', `确认停用“${plan.name}”？历史合同不受影响。`, '停用')) return
   try {
     await planApi.disablePayment(plan.templateId)
@@ -101,7 +105,7 @@ async function disable(plan: PaymentPlanTemplate) {
 }
 
 async function setDefault(plan: PaymentPlanTemplate) {
-  if (!plan.templateId) return
+  if (!canEdit.value || !plan.templateId) return
   try {
     await planApi.defaultPayment(plan.templateId)
     toast('已设为默认付款计划', 'success')
@@ -115,7 +119,7 @@ async function setDefault(plan: PaymentPlanTemplate) {
 
 <template>
   <view class="ppt">
-    <JzPageHeader title="付款计划模板" subtitle="企业自定义合同收款节点，历史合同快照不受影响" right-text="新建" right-icon="plus" @right="createBlank" />
+    <JzPageHeader title="付款计划模板" subtitle="企业自定义合同收款节点，历史合同快照不受影响" :right-text="canEdit ? '新建' : ''" :right-icon="canEdit ? 'plus' : undefined" @right="createBlank" />
 
     <view class="ppt__notice jz-card">
       <JzIcon name="info" :size="34" :color="TOKEN_COLOR.primary" />
@@ -136,11 +140,11 @@ async function setDefault(plan: PaymentPlanTemplate) {
                 <view class="ppt__name-row"><text class="ppt__name">{{ plan.name }}</text><JzTag v-if="plan.defaultPlan" text="默认" :color="TOKEN_COLOR.primary" /><JzTag :text="statusText(plan)" :color="statusColor(plan)" /></view>
                 <text class="ppt__meta">v{{ plan.version }} · {{ plan.nodes.length }} 个收款节点</text>
               </view>
-              <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
+              <JzIcon v-if="canEdit" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
             </view>
             <text class="ppt__desc">{{ plan.description || '暂无说明' }}</text>
             <view class="ppt__preview"><text v-for="node in plan.nodes" :key="node.code">{{ node.name }} {{ Math.round(node.ratio * 100) }}%</text></view>
-            <view class="ppt__actions">
+            <view v-if="canEdit" class="ppt__actions">
               <button class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="edit(plan)">编辑</button>
               <button v-if="plan.status !== 'enabled'" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="publish(plan)">启用</button>
               <button v-if="plan.status === 'enabled' && !plan.defaultPlan" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="setDefault(plan)">设为默认</button>
@@ -163,7 +167,7 @@ async function setDefault(plan: PaymentPlanTemplate) {
             </view>
             <text class="ppt__desc">{{ plan.description }}</text>
             <view class="ppt__preview"><text v-for="node in plan.nodes" :key="node.code">{{ node.name }} {{ Math.round(node.ratio * 100) }}%</text></view>
-            <view class="ppt__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="copyBaseline(plan)">复制为企业模板</button></view>
+            <view v-if="canEdit" class="ppt__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="copyBaseline(plan)">复制为企业模板</button></view>
           </view>
         </view>
       </view>

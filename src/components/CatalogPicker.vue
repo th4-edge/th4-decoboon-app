@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { CatalogItem, CatalogPricingMode, CatalogTree, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
 import { session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -14,10 +15,11 @@ const props = withDefaults(defineProps<{
   type: CatalogType
   title?: string
   manage?: boolean
+  readonly?: boolean
   multiple?: boolean
   preselected?: CatalogItem[]
   includeInactive?: boolean
-}>(), { title: '选择库内项目', manage: false, multiple: false, preselected: () => [], includeInactive: false })
+}>(), { title: '选择库内项目', manage: false, readonly: false, multiple: false, preselected: () => [], includeInactive: false })
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'select', value: CatalogItem): void
@@ -28,7 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const activeType = ref<CatalogType>(props.type)
-const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
+const canViewCost = computed(() => can(session.role, 'view:catalog-cost'))
 const tree = ref<CatalogTree | null>(null)
 const category = ref('')
 const brand = ref('')
@@ -136,6 +138,7 @@ function close() { emit('update:visible', false) }
 function choose(item: CatalogItem) { emit('select', item); close() }
 /** 卡片“更多”操作菜单：启用/停用与删除（删除必须由父页面二次确认后执行）。 */
 function openManageActions(item: CatalogItem) {
+  if (props.readonly) return
   uni.showActionSheet({
     itemList: [item.active ? '停用' : '启用', '删除项目'],
     success: (res) => {
@@ -148,7 +151,7 @@ function openManageActions(item: CatalogItem) {
 
 function activate(item: CatalogItem) {
   if (props.manage) {
-    emit('select', item)
+    if (!props.readonly) emit('select', item)
     return
   }
   if (!props.multiple) {
@@ -199,17 +202,17 @@ defineExpose({
     <view class="cp__header">
       <view class="cp__header-main">
         <text class="cp__title">{{ title }}</text>
-        <text class="cp__sub">{{ manage ? '维护企业报价项目库，价格公式统一管理' : '只能选择企业报价项目库项目，价格和公式由后台统一维护' }}</text>
+        <text class="cp__sub">{{ readonly ? '只读查看企业报价项目库，价格、成本与公式由负责人或店长统一维护' : manage ? '维护企业报价项目库，价格公式统一管理' : '只能选择企业报价项目库项目，价格和公式由后台统一维护' }}</text>
       </view>
       <view class="cp__header-actions">
-        <view v-if="manage" class="jz-btn jz-btn--primary jz-btn--sm cp__create" @tap="emit('create', activeType)"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.white" /><text>新增{{ typeLabel }}</text></view>
+        <view v-if="manage && !readonly" class="jz-btn jz-btn--primary jz-btn--sm cp__create" @tap="emit('create', activeType)"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.white" /><text>新增{{ typeLabel }}</text></view>
         <view class="cp__close" @tap="close"><JzIcon name="close" :size="26" :color="TOKEN_COLOR.text3" /></view>
       </view>
     </view>
 
     <!-- 管理模式工具栏插槽：由维护页注入批量导入/模板下载等入口，
          必须渲染在固定层内部，否则会被 .cp 全屏层覆盖而不可见 -->
-    <view v-if="manage" class="cp__manage-toolbar">
+    <view v-if="manage && !readonly" class="cp__manage-toolbar">
       <slot name="manage-toolbar" />
     </view>
 
@@ -255,15 +258,15 @@ defineExpose({
             </view>
             <view class="cp__formula"><text>{{ modeLabel(item.pricingMode) }}</text><text class="jz-clamp-2">{{ item.formula }}</text></view>
             <view v-if="item.craft" class="cp__craft jz-clamp-2">{{ item.craft }}</view>
-            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage" class="cp__item-more" @tap.stop="openManageActions(item)"><text>更多</text></view><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
+            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage && !readonly" class="cp__item-more" @tap.stop="openManageActions(item)"><text>更多</text></view><text v-else-if="manage && readonly" class="cp__readonly">只读</text><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
           </view>
           <view v-if="loading" class="cp__loading">正在加载…</view>
           <view v-else-if="hasMore" class="cp__more" @tap="loadMore">加载更多</view>
           <view v-else class="cp__loading">已加载全部 {{ items.length }} 项</view>
         </view>
         <view v-else-if="!loading" class="cp__empty">
-          <JzEmpty :text="`暂无${typeLabel}项目`" :sub="manage ? '点击下方按钮新增到企业报价项目库' : '请联系企业负责人或财务维护报价项目库'" />
-          <button v-if="manage" class="jz-btn jz-btn--ghost jz-btn--sm cp__empty-action" @tap="emit('create', activeType)">
+          <JzEmpty :text="`暂无${typeLabel}项目`" :sub="readonly ? '企业尚未配置该类型项目，请联系负责人或店长维护' : manage ? '点击下方按钮新增到企业报价项目库' : '请联系企业负责人或店长维护报价项目库'" />
+          <button v-if="manage && !readonly" class="jz-btn jz-btn--ghost jz-btn--sm cp__empty-action" @tap="emit('create', activeType)">
             <JzIcon name="plus" :size="20" :color="TOKEN_COLOR.primary" />
             <text>新增{{ typeLabel }}</text>
           </button>
@@ -315,6 +318,7 @@ defineExpose({
 .cp__item-edit:active { background: $jzb-bg-hover; }
 .cp__item-more { flex-shrink: 0; display: inline-flex; align-items: center; padding: 8rpx 20rpx; color: $jzb-text-2; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .cp__item-more:active { background: $jzb-primary-lightest; color: $jzb-primary-dark; }
+.cp__readonly { flex-shrink: 0; color: $jzb-text-4; font-size: $jzb-font-xs; }
 .cp__item-head { display: flex; align-items: flex-start; gap: 14rpx; }
 .cp__item-head .jz-grow { min-width: 0; }
 .cp__item-name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; }

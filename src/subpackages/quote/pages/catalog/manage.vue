@@ -15,12 +15,12 @@ import JzIcon from '@/components/JzIcon.vue'
 
 const pickerVisible = ref(true)
 const pickerRef = ref<InstanceType<typeof CatalogPicker> | null>(null)
-// 标准采购成本敏感：仅企业负责人 / 店长 / 财务可见（后端同样裁剪，前端仅控制展示）
-const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
+// 标准采购成本敏感：仅企业负责人 / 店长可见（后端同样裁剪，前端仅控制展示）。
+const canViewCost = computed(() => can(session.role, 'view:catalog-cost'))
+const canEdit = computed(() => can(session.role, 'edit:catalog'))
 const authorized = ref(false)
 const recentBatches = ref<CatalogImportBatch[]>([])
 const templateDownloading = ref(false)
-const isBoss = computed(() => session.role === 'boss')
 const editorOpen = ref(false)
 const editingId = ref('')
 const type = ref<CatalogType>('construction')
@@ -102,14 +102,14 @@ onLoad(() => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (!can(session.role, 'edit:catalog')) {
-    toast('当前账号无权维护报价项目库')
+  if (!can(session.role, 'view:catalog')) {
+    toast('当前账号无权查看报价项目库')
     setTimeout(() => uni.reLaunch({ url: P.home }), 300)
     return
   }
   authorized.value = true
   void loadBrandSuggestions()
-  if (session.role === 'boss') void loadRecentBatches()
+  if (canEdit.value) void loadRecentBatches()
 })
 
 /** 最近导入记录（仅 BOSS，PRD §4.2） */
@@ -122,16 +122,18 @@ async function loadRecentBatches() {
 }
 
 function openImport() {
+  if (!canEdit.value) return
   uni.navigateTo({ url: P.catalogImport })
 }
 
 function openImportResult(batchId: string) {
+  if (!canEdit.value) return
   uni.navigateTo({ url: `${P.catalogImportResult}?batchId=${batchId}` })
 }
 
 /** 下载 V1.0 标准模板 */
 async function downloadTemplate() {
-  if (templateDownloading.value) return
+  if (!canEdit.value || templateDownloading.value) return
   templateDownloading.value = true
   try {
     loading('准备模板…')
@@ -226,6 +228,7 @@ function closePicker() {
 }
 
 function create(value: CatalogType) {
+  if (!canEdit.value) return
   editingId.value = ''
   type.value = value
   code.value = ''
@@ -257,6 +260,7 @@ function create(value: CatalogType) {
 }
 
 function edit(item: CatalogItem) {
+  if (!canEdit.value) return
   editingId.value = item.id
   type.value = item.type
   code.value = item.code || ''
@@ -299,6 +303,7 @@ function toggleDetail() {
 }
 
 async function save() {
+  if (!canEdit.value) return
   if (!category.value.trim() || !name.value.trim()) {
     toast('请填写分类和项目名称')
     return
@@ -355,6 +360,7 @@ async function save() {
 }
 
 function onToggle(item: CatalogItem, active: boolean) {
+  if (!canEdit.value) return
   if (!active) {
     void confirmDanger('停用报价项目', `停用后「${item.name}」将不在报价选择中显示，确定停用吗？`, '确认停用')
       .then((ok) => { if (ok) void doToggle(item, false) })
@@ -365,6 +371,7 @@ function onToggle(item: CatalogItem, active: boolean) {
 
 /** 删除报价项目：必须二次确认；失败时展示后端业务原因并建议停用。 */
 async function confirmDelete(item: CatalogItem) {
+  if (!canEdit.value) return
   const confirmed = await confirmDanger('删除报价项目', `确认删除「${item.name}」？已被设计分项、套餐、报价、项目或供应链引用的项目不能删除，可改为停用。`, '确认删除')
   if (!confirmed) return
   loading('删除中…')
@@ -401,15 +408,16 @@ async function doToggle(item: CatalogItem, active: boolean) {
       :visible="pickerVisible"
       :type="type"
       :manage="true"
+      :readonly="!canEdit"
       :include-inactive="true"
-      title="报价项目库维护"
+      :title="canEdit ? '报价项目库维护' : '报价项目库'"
       @update:visible="!$event && closePicker()"
       @select="edit"
       @create="create"
       @toggle="onToggle"
       @delete="confirmDelete"
     >
-      <template v-if="isBoss" #manage-toolbar>
+      <template v-if="canEdit" #manage-toolbar>
         <view class="cm__import">
           <view class="cm__import-head">
             <view><text class="cm__import-title">批量导入报价项目库</text><text class="cm__import-sub">按 V1.0 模板在电脑整理，手机上传预览后确认导入</text></view>

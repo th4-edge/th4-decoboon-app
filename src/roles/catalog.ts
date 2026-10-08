@@ -117,12 +117,14 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   ],
   designer: [
     // 历史坑：FIX-032 首页快捷入口曾混入“登记客户”和与项目 Tab 同页的“施工项目”，
-    // 且“合同签约”直接进空表单。这里按 App 设计师高频动作排序：先阶段待办，再对象和工具；
-    // 不新增业务动作，仅收敛入口落点和名称。
+    // 且“合同签约”直接进空表单。这里按 App 设计师高频动作排序：先阶段待办，再对象和工具。
+    // 2026-10-08：按 DEC-041 / BR-035，设计师是增减项主责发起人，新增“增减项”入口
+    // （落到按“我负责的项目”过滤的项目选择器，见 ANS-BIZ-20261008-005）。
     { key: 'design-workbench', label: '待我设计', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
     { key: 'quote-workbench', label: '待我报价', icon: 'file-text', path: P.quoteWorkbench, capability: 'view:quote' },
     // FIX-038：设计师负责发起/登记合同，最终确认签约和生效立项由企业负责人或店长完成。
     { key: 'sign-workbench', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractPrepare' },
+    { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangePicker },
     { key: 'requirements', label: '客户诉求', icon: 'message', path: P.designRequirements, capability: 'edit:design' },
     { key: 'customers', label: '我的客户', icon: 'user', path: P.customerList, capability: 'view:customers' },
     { key: 'quote-pool', label: '报价池', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },

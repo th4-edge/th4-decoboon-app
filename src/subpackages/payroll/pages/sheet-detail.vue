@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { P } from '@/config'
 import { money } from '@/core/format'
 import { payrollApi } from '@/domains/payroll/api'
@@ -8,11 +8,17 @@ import type { PayrollItem, PayrollSheet } from '@/domains/payroll/model'
 import { PAYROLL_ITEM_STATUS_META, PAYROLL_SHEET_STATUS_META } from '@/domains/payroll/meta'
 import { session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { confirmAction, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzIcon from '@/components/JzIcon.vue'
+import { TOKEN_COLOR } from '@/styles/tokens'
+
+type BlockerAction = 'attendance' | 'commission' | 'rebuild' | 'items'
+
+interface Blocker { key: string; text: string; action?: BlockerAction }
 
 const sheetId = ref('')
 const sheet = ref<PayrollSheet | null>(null)
@@ -21,6 +27,22 @@ const loading = ref(false)
 const confirming = ref(false)
 const deleting = ref(false)
 const canConfirm = ref(can(session.role, 'confirm:payroll'))
+
+/** DEC-046/BR-038：确认前必须逐项校验，阻断时给出可执行的下一步。 */
+const blockers = computed<Blocker[]>(() => {
+  const current = sheet.value
+  if (!current) return []
+  const list: Blocker[] = []
+  if (!items.value.length) list.push({ key: 'items', text: '该月没有工资项：请检查薪酬方案生效期，或重新生成工资单草稿', action: 'rebuild' })
+  if (!current.attendanceComplete) list.push({ key: 'attendance', text: '考勤未确认：确认全部员工月度考勤后才能确认工资单', action: 'attendance' })
+  if (!current.commissionComplete) list.push({ key: 'commission', text: '提成未完整：处理待计提/已释放未入单的提成后才能确认工资单', action: 'commission' })
+  if (items.value.some((item) => item.netAmount < 0)) list.push({ key: 'negative', text: '存在实发为负的工资项：需人工处理后才能确认', action: 'items' })
+  return list
+})
+
+const editableStatus = computed(() => sheet.value?.status === 'draft' || sheet.value?.status === 'pending')
+const showBlockers = computed(() => editableStatus.value && blockers.value.length > 0)
+const confirmDisabled = computed(() => confirming.value || blockers.value.length > 0)
 
 onLoad((query) => { sheetId.value = query?.sheetId || ''; void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
@@ -63,14 +85,40 @@ async function removeDraft() {
   }
 }
 
+function goAttendance() {
+  const month = sheet.value?.period || ''
+  uni.navigateTo({ url: `${P.payrollAttendanceList}?month=${encodeURIComponent(month)}` })
+}
+
+function goCommission() { uni.navigateTo({ url: P.payrollCommissionList }) }
+
+function goRebuild() {
+  const period = sheet.value?.period || ''
+  uni.navigateTo({ url: `${P.payrollSheetList}?period=${encodeURIComponent(period)}` })
+}
+
+function resolveBlocker(action?: BlockerAction) {
+  if (action === 'attendance') return goAttendance()
+  if (action === 'commission') return goCommission()
+  if (action === 'rebuild') return goRebuild()
+}
+
 async function confirmSheet() {
-  if (!sheet.value || !canConfirm.value || confirming.value) return
+  if (!sheet.value || !canConfirm.value || confirming.value || !editableStatus.value) return
+  if (blockers.value.length) { toast(blockers.value[0].text); return }
+  const ok = await confirmAction({
+    title: '确认工资单',
+    content: `确认 ${sheet.value.period} 工资单？确认后系统将按实发生成员工工资应付并计入项目/企业成本；工资条在发放完成后才对员工可见。`,
+    confirmText: '确认'
+  })
+  if (!ok) return
   confirming.value = true
   showLoading('确认中')
   try {
     sheet.value = await payrollApi.confirmSheet(sheet.value.id)
+    items.value = await payrollApi.itemPage({ sheetId: sheetId.value }, 1, 200)
     hideLoading()
-    toast('工资单已确认，员工工资应付已生成', 'success')
+    toast('工资单已确认：应付已生成，工资条待发放后可见', 'success')
   } catch (error) {
     hideLoading()
     toastError(error, '工资单确认失败')
@@ -92,6 +140,14 @@ async function confirmSheet() {
         <view><text>扣款合计</text><text>{{ money(sheet.totalDeductionAmount) }}</text></view>
         <view><text>考勤</text><text>{{ sheet.attendanceComplete ? '已完整' : '未完整' }}</text></view>
         <view><text>提成</text><text>{{ sheet.commissionComplete ? '已完整' : '未完整' }}</text></view>
+      </view>
+      <view v-if="showBlockers" class="blocker-card jz-card">
+        <text class="blocker-card__title">确认前需先处理</text>
+        <view v-for="blocker in blockers" :key="blocker.key" class="blocker-card__row">
+          <JzIcon name="alert-circle" :size="28" :color="TOKEN_COLOR.warning" />
+          <text class="blocker-card__text">{{ blocker.text }}</text>
+          <text v-if="blocker.action" class="blocker-card__action" @tap="resolveBlocker(blocker.action)">去处理</text>
+        </view>
       </view>
       <view class="jz-section"><text class="jz-section__title">员工工资项</text><text class="jz-section__more">{{ items.length }} 条</text></view>
       <view v-for="item in items" :key="item.id" class="item-card jz-card">
@@ -117,7 +173,7 @@ async function confirmSheet() {
       </view>
       <JzEmpty v-if="!items.length" text="暂无工资项" sub="先生成工资单草稿并补齐考勤、提成和归属" />
       <button v-if="session.role === 'boss' && sheet.status === 'draft'" class="jz-btn jz-btn--danger jz-btn--block" :disabled="deleting" @tap="removeDraft">删除草稿</button>
-      <button v-if="canConfirm && (sheet.status === 'draft' || sheet.status === 'pending')" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirming" @tap="confirmSheet">确认工资单</button>
+      <button v-if="canConfirm && editableStatus" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirmDisabled" @tap="confirmSheet">{{ confirmDisabled && !confirming ? '请先处理阻断项' : '确认工资单' }}</button>
     </view>
   </view>
 </template>
@@ -142,5 +198,10 @@ async function confirmSheet() {
 .item-card__rows .item-card__subtotal { margin-top: 6rpx; padding-top: 14rpx; border-top: 1rpx dashed $jzb-border-light; color: $jzb-text-2; font-weight: 700; }
 .item-card__rows .item-card__subtotal text:last-child { color: $jzb-text-1; }
 .item-card__net { display: flex; align-items: center; justify-content: space-between; margin-top: 20rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-primary-deep; font-size: $jzb-font-md; font-weight: 750; }
+.blocker-card { margin-top: 22rpx; padding: 26rpx 28rpx; border-left: 8rpx solid $jzb-warning; }
+.blocker-card__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.blocker-card__row { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; }
+.blocker-card__text { flex: 1; min-width: 0; color: $jzb-text-2; font-size: 22rpx; line-height: 1.5; }
+.blocker-card__action { flex: none; color: $jzb-primary; font-size: 22rpx; font-weight: 650; }
 button { margin-top: 28rpx; }
 </style>

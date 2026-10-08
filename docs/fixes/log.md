@@ -10,6 +10,55 @@
 
 
 
+## FIX-040 · 经营工具统一可见、四类企业模板只读与报价成本收紧
+
+* 日期：2026-10-08
+* 报告角色：企业负责人 / 店长 / 设计师 / 财务 / 全员
+* 影响模块：我的、经营工具、报价项目库、套餐/付款/施工计划模板、工人档案、选材、整改、客户意见投诉
+* 严重度：P1 角色入口缺失与越权可见风险
+
+### 现象
+
+企业负责人以外的内部岗位只能看到部分经营工具；付款计划和施工计划模板页面硬编码为仅负责人可进入；套餐模板入口仅负责人可见；非负责人/店长即使能进入模板页也没有稳定只读态；财务原可见报价项目库标准成本，与本轮要求不符；设计师缺少整改跟进入口。
+
+### 根因
+
+`src/pages/mine/index.vue` 以 `role === 'boss'` 和零散角色数组裁剪入口；`src/roles/permission.ts` 缺少“查看模板”和“维护模板”分层能力；`src/roles/guard.ts` 未覆盖套餐、付款、施工、工资条、工人、选材、整改、投诉等页面；后端套餐/付款/施工写 Provider 仍按 BOSS 校验，报价项目库成本上下文仍包含财务；页面模板动作未按 `view/edit` 能力分离。
+
+### 修复方案
+
+* 经营工具对全部内部岗位开放，统一提供报价项目库、套餐模板、付款计划模板、施工计划模板；我的工资条拆入独立“我的工资”分组。
+* 新增 `view/edit:package-template`、`view/edit:payment-plan-template`、`view/edit:construction-plan-template` 能力；维护仅企业负责人、店长，其他内部岗位只读。
+* 报价项目库新增 `view:catalog-cost`，仅企业负责人、店长可见；后端 `CatalogCostContext` 与 `CatalogContext.requireMaintainer` 同步收紧。
+* 店长增加套餐/付款/施工模板维护权限；设计师补齐整改跟进、工人档案、选材工作台、客户意见投诉入口；财务保留工人档案、选材工作台、整改跟进、客户意见投诉入口。
+* 新增页面级守卫：模板编辑页需编辑能力，模板列表页只读可见；工资条需本人工资条能力；工人档案需查看/编辑工人能力。
+
+### 代码改动
+
+* App：`src/pages/mine/index.vue`、`src/roles/permission.ts`、`src/roles/catalog.ts`、`src/roles/guard.ts`、`src/components/CatalogPicker.vue`、`src/subpackages/quote/pages/catalog/manage.vue`、`src/subpackages/quote/pages/package-manage.vue`、`src/subpackages/plan/pages/payment-list.vue`、`src/subpackages/plan/pages/construction-list.vue`、`scripts/verify-homepage-contract.mjs`。
+* 后端：`CatalogCostContext`、`CatalogContext`、`PackageConfigContext`、套餐模板 Save/Update、`PackageCostContext`、套餐 Page/Info、`CompanyPlanTemplateContext`。
+* 测试：新增/扩展 `CatalogCostMaintenanceTest`、`PackageCostContextTest`、`PackageTemplateMaintainRoleTest`、`CompanyPlanTemplateContextTest`。
+
+### 业务观察者审查
+
+* 行业对标：企业标准报价库和模板属于经营资产，一线角色需要看见标准口径，但成本、毛利和发布权集中在负责人/店长。
+* 闭环检查：设计师、项目经理、财务从经营工具查看统一模板，不会因入口缺失改用个人本地资料；工资条独立于经营工具，避免把个人薪酬当作企业工具。
+* 权限与数据隔离：前端只读态、路由守卫和后端写权限三层同时收口；报价项目库成本服务端返回前裁剪，不以隐藏组件代替鉴权。
+* 降级与空态：无编辑权限时不展示新建、编辑、启停、导入和复制动作；模板列表为空时提示联系负责人或店长维护。
+* 结论：通过；套餐成本仍按既有 BOSS/店长/财务口径展示，报价项目库成本按本轮要求收紧为 BOSS/店长。
+
+### 验证
+
+* `npm run check:home`：通过；
+* `npm run type-check`：通过；
+* `mvn -q -Dtest=CatalogCostMaintenanceTest,PackageCostContextTest,PackageTemplateMaintainRoleTest,CompanyPlanTemplateContextTest,CustomerOverviewContextTest test`：通过。
+* 用户自测清单：
+  1. 企业负责人/店长 × 我的 → 经营工具 → 四类企业模板：可进入，可维护。
+  2. 设计师/业务员/团队负责人/项目经理/财务 × 四类企业模板：可进入，仅只读，无新建/编辑/启停/复制/导入入口。
+  3. 财务 × 报价项目库：可只读查看项目，成本和成本维护入口不可见，直接写接口返回 403。
+  4. 店长/设计师/财务 × 工人档案、选材工作台、整改跟进、客户意见投诉：入口可见。
+  5. 任一内部岗位 × 我的工资条：在“我的工资”独立分组展示，不混入经营工具。
+
 ## FIX-039 · 合同重复确认生效误报更换付款/施工计划
 
 * 日期：2026-10-08

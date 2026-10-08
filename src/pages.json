@@ -539,6 +539,14 @@
           }
         },
         {
+          "path": "pages/change-project-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/change-create",
           "style": {
             "navigationStyle": "custom"

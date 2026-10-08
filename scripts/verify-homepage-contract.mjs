@@ -60,6 +60,9 @@ const requiredDesignerActions = [
   '待我设计',
   '待我报价',
   '合同签约',
+  // 2026-10-08：按 DEC-041 / BR-035，设计师是增减项主责发起人，
+  // 入口落在“我负责的项目”选择器（ANS-BIZ-20261008-005）。
+  '增减项',
   '客户诉求',
   '我的客户',
   '报价池',
@@ -76,6 +79,8 @@ expect(designerBlock.includes('path: P.designWorkbench') && designerBlock.includ
   '设计师首页缺少待我设计/待我报价工作台入口')
 expect(designerBlock.includes('path: P.signWorkbench'),
   '设计师合同签约必须先进入签约工作台，不能直接进空表单')
+expect(designerBlock.includes('path: P.projectChangePicker'),
+  '设计师增减项入口必须落在项目选择器，不能绕过项目与合同上下文')
 expect(designerBlock.includes('path: P.quoteList') && designerBlock.includes("label: '报价池'"),
   '设计师首页报价池缺少独立命名或落点')
 expect(home.includes('经营专业工作台') && home.includes('professionalWorkbenches'),
@@ -124,6 +129,42 @@ expect(dynamics.includes("'customer'") && dynamics.includes("'contract'") && dyn
 expect(!mine.includes("role.value === 'boss' && business.push(cell('chart', '经营驾驶舱'"),
   '“我的”仍重复经营驾驶舱入口')
 expect(!mine.includes("role.value === 'pm'||role.value === 'boss'"), '“我的”仍保留 BOSS 履约驾驶舱重复入口')
+
+
+// FIX-040：我的经营工具对所有内部岗位开放；负责人/店长维护，其他岗位只读。
+for (const cap of [
+  "'view:package-template'",
+  "'view:payment-plan-template'",
+  "'view:construction-plan-template'",
+  "'view:catalog-cost'",
+  "'view:selection-board'",
+  "'view:rectify'",
+  "'view:feedback'"
+]) {
+  expect(permissions.includes(cap), `权限矩阵缺少 ${cap}`)
+}
+for (const cap of ["'view:catalog'", "'view:package-template'", "'view:payment-plan-template'", "'view:construction-plan-template'"]) {
+  expect(mine.includes(`can(role.value, ${cap})`), `经营工具缺少只读入口能力 ${cap}`)
+}
+expect(mine.includes("payroll.push(cell('wallet', '我的工资条'"), '我的工资条必须从经营工具中拆出为独立分组')
+expect(!/business\.push\(cell\('wallet', '我的工资条'/.test(mine), '我的工资条仍混在经营工具中')
+expect(mine.includes("can(role.value, 'view:selection-board')") && mine.includes("can(role.value, 'view:rectify')") && mine.includes("can(role.value, 'view:feedback')"), '选材/整改/意见投诉未按能力开放')
+expect(permissions.includes("'edit:package-template'") && permissions.includes("'edit:payment-plan-template'") && permissions.includes("'edit:construction-plan-template'"), '模板维护能力未独立声明')
+expect(!/finance:\s*\[[\s\S]*?'edit:catalog'/.test(permissions), '财务不应拥有报价项目库写权限')
+expect(!/finance:\s*\[[\s\S]*?'view:catalog-cost'/.test(permissions), '财务不应拥有报价项目库成本可见权限')
+const guard = read('src/roles/guard.ts')
+expect(guard.includes("{ path: P.catalogManage, anyOf: ['view:catalog'] }"), '报价项目库页面守卫未放宽为只读可见')
+expect(guard.includes("anyOf: ['edit:package-template']") && guard.includes("anyOf: ['edit:payment-plan-template']") && guard.includes("anyOf: ['edit:construction-plan-template']"), '模板编辑页缺少负责人/店长权限守卫')
+const catalogManage = read('src/subpackages/quote/pages/catalog/manage.vue')
+const catalogPicker = read('src/components/CatalogPicker.vue')
+expect(catalogManage.includes("can(session.role, 'view:catalog-cost')") && catalogManage.includes("can(session.role, 'edit:catalog')"), '报价项目库未区分成本可见与维护权限')
+expect(catalogPicker.includes('readonly?: boolean') && catalogPicker.includes("can(session.role, 'view:catalog-cost')"), '报价项目库组件未支持只读与成本裁剪')
+const packageManage = read('src/subpackages/quote/pages/package-manage.vue')
+expect(packageManage.includes("can(session.role, 'edit:package-template')") && packageManage.includes("can(session.role, 'view:cost')"), '套餐模板未区分维护与成本展示权限')
+const paymentList = read('src/subpackages/plan/pages/payment-list.vue')
+const constructionList = read('src/subpackages/plan/pages/construction-list.vue')
+expect(paymentList.includes("can(session.role, 'edit:payment-plan-template')") && !paymentList.includes("session.role !== 'boss'"), '付款计划模板仍按 BOSS 硬编码只读')
+expect(constructionList.includes("can(session.role, 'edit:construction-plan-template')") && !constructionList.includes("session.role !== 'boss'"), '施工计划模板仍按 BOSS 硬编码只读')
 
 if (failures.length) {
   console.error('首页产品契约校验失败：')

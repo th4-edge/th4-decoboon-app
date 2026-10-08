@@ -68,6 +68,16 @@ onShow(() => { if (id.value) load() })
 
 const role = computed(() => session.role || 'customer')
 const isOwner = computed(() => isCustomer(role.value))
+/** 可发起增减项：与后端 requireChangeInitiator 对齐（负责人/店长/项目经理/本项目设计师）。
+ *  设计师仅能对自己负责的项目发起，避免“看得见点不了”的 403。 */
+const canInitiateChange = computed(() => {
+  const current = role.value as string
+  if (!['boss', 'storeManager', 'pm', 'designer'].includes(current)) return false
+  if (current === 'designer') {
+    return !!project.value?.designer?.id && project.value.designer.id === session.emp?.id
+  }
+  return true
+})
 const TAB_ALL = [
   { key: 'overview', label: '进度' }, { key: 'plan', label: '计划' },
   { key: 'tasks', label: '任务' }, { key: 'feed', label: '动态' }, { key: 'members', label: '成员' }
@@ -215,6 +225,12 @@ function goContractChange() {
   const qs = [`projectId=${id.value}`]
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
   uni.navigateTo({ url: `${P.projectChange}?${qs.join('&')}` })
+}
+function goChangeCreate() {
+  if (!canInitiateChange.value) return
+  const qs = [`projectId=${id.value}`]
+  if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
+  uni.navigateTo({ url: `${P.projectChangeCreate}?${qs.join('&')}` })
 }
 function goInviteOwner() { uni.navigateTo({ url: `${P.projectInvite}?id=${id.value}` }) }
 function addTask() {
@@ -364,6 +380,10 @@ function avatarOf(m: ProjectMember) {
           <JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.warning" />
           <text class="pd__entry-title">增减项</text>
           <text class="pd__entry-sub">变更与重算</text>
+          <view v-if="canInitiateChange" class="pd__entry-add" @tap.stop="goChangeCreate">
+            <JzIcon name="plus-square" :size="22" :color="TOKEN_COLOR.warning" />
+            <text>新增</text>
+          </view>
         </view>
       </view>
 
@@ -660,6 +680,11 @@ function avatarOf(m: ProjectMember) {
 .pd__quick-actions .jz-btn { margin: 0 8rpx; }
 .pd__entry-row { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
 .pd__entry { flex: 1; padding: 24rpx; display: flex; flex-direction: column; gap: 6rpx; }
+.pd__entry-add {
+  display: inline-flex; align-items: center; gap: 6rpx; align-self: flex-start;
+  margin-top: 8rpx; padding: 6rpx 18rpx; background: $jzb-warning-soft;
+  color: $jzb-warning; border-radius: 999rpx; font-size: $jzb-font-xs; font-weight: 600;
+}
 .pd__entry-title { font-size: 28rpx; font-weight: 600; color: $jzb-primary-dark; }
 .pd__entry-sub { font-size: 22rpx; color: $jzb-text-3; }
 .pd__selection { padding: 24rpx; margin-bottom: 20rpx; }

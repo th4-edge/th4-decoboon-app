@@ -59,6 +59,8 @@ const canEnter = computed(() => ['boss', 'storeManager', 'finance', 'teamLeader'
 const canApprove = computed(() => ['boss', 'finance'].includes(role.value as string))
 /** 客户确认仅 BOSS/PM/设计师；企业级工作台只由 BOSS 代登记。 */
 const canCustomerConfirm = computed(() => role.value === 'boss')
+/** 发起增减项：与后端 requireChangeInitiator 对齐，经营工作台内仅负责人与本店店长可直接发起。 */
+const canCreate = computed(() => ['boss', 'storeManager'].includes(role.value as string))
 
 const groups = computed<BossContractChangeGroup[]>(() => report.value?.groups || [])
 const contractCurrentTotal = computed(() =>
@@ -187,6 +189,11 @@ async function customerConfirm(item: BossContractChangeItem) {
   }
 }
 
+function goCreate() {
+  if (!canCreate.value) return
+  uni.navigateTo({ url: P.projectChangePicker })
+}
+
 function openDetail(item?: BossContractChangeItem) {
   if (!item) return
   const params = [`changeId=${item.changeId}`]
@@ -241,7 +248,14 @@ function addressText(group: BossContractChangeGroup) {
 
 <template>
   <view class="ccw">
-    <JzPageHeader title="增减项经营" subtitle="在途审批 · 客户确认 · 合同金额与材料落地"  back />
+    <JzPageHeader
+      title="增减项经营"
+      subtitle="在途审批 · 客户确认 · 合同金额与材料落地"
+      :right-text="canCreate ? '发起' : ''"
+      :right-icon="canCreate ? 'plus-square' : undefined"
+      back
+      @right="goCreate"
+    />
 
     <PageState
       v-if="!canEnter"
