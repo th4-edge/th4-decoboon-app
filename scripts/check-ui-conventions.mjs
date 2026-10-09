@@ -66,7 +66,8 @@ for (const dir of SCAN_DIRS) {
       if (inStyle && /z-index:\s*-?\d/.test(line)) {
         failures.push(`${rel}:${index + 1} 样式内禁止裸数字 z-index，请使用 $jzb-z-* 层级 Token`)
       }
-      if (/['"](TOKEN_COLOR|STATUS_COLOR)\.[A-Za-z0-9_]+['"]/.test(line)) {
+      // 仅单引号包裹才算“把 Token 引用写进字符串”（属性引号 " 不算）
+      if (/'((TOKEN_COLOR|STATUS_COLOR)\.[A-Za-z0-9_]+)'/.test(line)) {
         failures.push(`${rel}:${index + 1} Token 引用被写进字符串，请去掉引号作为表达式使用`)
       }
     })
