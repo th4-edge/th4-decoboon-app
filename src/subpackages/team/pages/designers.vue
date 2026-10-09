@@ -718,9 +718,9 @@ function measureText(value?: string) {
 .md__designer-num { display: block; margin-bottom: 4rpx; color: $jzb-text-1; font-size: 34rpx; font-weight: 700; }
 .md__designer-num--danger { color: $jzb-danger; }
 .md__designer-foot { display: flex; justify-content: space-between; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.md__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.md__editor { display: flex; flex-direction: column; height: calc(70vh - 32rpx); }
 .md__sheet-sub { display: block; margin-bottom: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.md__sheet-list { flex: 1; min-height: 0; height: 0; }
+.md__sheet-list { flex: 1; min-height: 0; }
 .md__sheet-item { display: flex; align-items: center; min-height: 108rpx; padding: 14rpx 4rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .md__sheet-item:last-child { border-bottom: none; }
 .md__sheet-who { margin-left: 18rpx; }

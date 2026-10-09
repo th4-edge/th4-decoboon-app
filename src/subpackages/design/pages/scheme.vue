@@ -815,13 +815,13 @@ function handleMoreAction(index: number) {
     />
     <JzSheet :visible="layoutPickerOpen" title="选择户型" @close="closeLayoutPicker">
       <view class="ds__editor">
-        <scroll-view scroll-y class="ds__sheet-body">
+        <view class="ds__sheet-body">
           <input v-model="layoutDraft" class="ds__sheet-input" maxlength="60" placeholder="可直接输入自定义户型" />
           <text class="ds__sheet-label">常用户型</text>
           <view class="ds__layout-options">
             <view v-for="item in LAYOUT_OPTIONS" :key="item" class="ds__layout-option" :class="{ 'ds__layout-option--on': layoutDraft === item }" @tap="selectLayoutOption(item)">{{ item }}</view>
           </view>
-        </scroll-view>
+        </view>
         <view class="ds__sheet-actions">
           <button class="jz-btn jz-btn--neutral jz-grow" @tap="closeLayoutPicker">取消</button>
           <button class="jz-btn jz-btn--primary jz-grow" @tap="confirmLayout">确定</button>
@@ -860,8 +860,8 @@ function handleMoreAction(index: number) {
 </template>
 <style lang="scss" scoped>@import '@/styles/design-scheme.scss';
 
-.ds__editor { display: flex; flex-direction: column; max-height: 60vh; }
-.ds__sheet-body { flex: 1; min-height: 0; height: 0; padding: 0 0 18rpx; }
+.ds__editor { display: flex; flex-direction: column; }
+.ds__sheet-body { padding: 0 0 18rpx; }
 .ds__sheet-input { width: 100%; min-height: 80rpx; padding: 0 24rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .ds__sheet-label { display: block; margin: 24rpx 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ds__layout-options { display: flex; flex-wrap: wrap; gap: 12rpx; }

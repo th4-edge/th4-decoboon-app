@@ -171,13 +171,13 @@ async function save() {
 
     <JzSheet :visible="layoutPickerOpen" title="选择户型" @close="closeLayoutPicker">
       <view class="pe__editor">
-        <scroll-view scroll-y class="pe__sheet-body">
+        <view class="pe__sheet-body">
           <input v-model="layoutDraft" class="pe__sheet-input" maxlength="60" placeholder="可直接输入自定义户型" />
           <text class="pe__sheet-label">常用户型</text>
           <view class="pe__layout-options">
             <view v-for="item in LAYOUT_OPTIONS" :key="item" class="pe__layout-option" :class="{ 'pe__layout-option--on': layoutDraft === item }" @tap="selectLayoutOption(item)">{{ item }}</view>
           </view>
-        </scroll-view>
+        </view>
         <view class="pe__sheet-actions">
           <button class="jz-btn jz-btn--neutral jz-grow" @tap="closeLayoutPicker">取消</button>
           <button class="jz-btn jz-btn--primary jz-grow" @tap="confirmLayout">确定</button>
@@ -212,8 +212,8 @@ async function save() {
 .pe__input--block { flex: none; width: 100%; margin-top: 12rpx; text-align: left; }
 .pe__input--picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; }
 .pe__placeholder { color: $jzb-text-4; }
-.pe__editor { display: flex; flex-direction: column; max-height: 60vh; }
-.pe__sheet-body { flex: 1; min-height: 0; height: 0; padding: 0 0 18rpx; box-sizing: border-box; }
+.pe__editor { display: flex; flex-direction: column; }
+.pe__sheet-body { padding: 0 0 18rpx; box-sizing: border-box; }
 .pe__sheet-input { width: 100%; min-height: 80rpx; padding: 0 24rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .pe__sheet-label { display: block; margin: 24rpx 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pe__layout-options { display: flex; flex-wrap: wrap; gap: 12rpx; }

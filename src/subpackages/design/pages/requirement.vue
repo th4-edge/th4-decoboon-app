@@ -279,9 +279,9 @@ async function save() {
 .dr__submit { width: 100%; }
 
 /* 弹出表单 */
-.dr__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.dr__editor { display: flex; flex-direction: column; height: calc(70vh - 32rpx); }
 .dr__sheet-sub { display: block; margin-bottom: $jzb-space-2; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
-.dr__sheet-content { flex: 1; min-height: 0; height: 0; padding: $jzb-space-1 0 $jzb-space-4; }
+.dr__sheet-content { flex: 1; min-height: 0; padding: $jzb-space-1 0 $jzb-space-4; }
 .dr__field-label { display: block; margin: $jzb-space-5 0 $jzb-space-3; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 /* input 直接使用 jz-form-input 时补充宽度和盒模型 */
 .dr__sheet-content input.jz-form-input {

@@ -177,8 +177,8 @@ function joinedText(value?: string | number) {
 .mb__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 6rpx 18rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
 .mb__role-person { margin-left: 18rpx; }
 .mb__role-tip { display: block; padding: 14rpx 0 6rpx; font-size: $jzb-font-xs; color: $jzb-text-4; }
-.mb__editor { display: flex; flex-direction: column; max-height: 60vh; }
-.mb__sheet-list { flex: 1; min-height: 0; height: 0; }
+.mb__editor { display: flex; flex-direction: column; height: calc(70vh - 32rpx); }
+.mb__sheet-list { flex: 1; min-height: 0; }
 .mb__sheet-item { display: flex; flex-direction: row; align-items: center; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .mb__sheet-who { margin-left: 18rpx; }
 .mb__sheet-name { display: block; font-size: $jzb-font-sm; font-weight: 600; color: $jzb-text-1; }

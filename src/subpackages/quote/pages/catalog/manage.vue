@@ -557,11 +557,11 @@ async function doToggle(item: CatalogItem, active: boolean) {
 .cm__import-row { display: flex; justify-content: space-between; font-size: 24rpx; color: $jzb-text-3; }
 .cm__import-status { color: $jzb-text-3; }
 
-.cm__editor { display: flex; flex-direction: column; max-height: 78vh; }
+.cm__editor { display: flex; flex-direction: column; height: calc(92vh - 32rpx); }
 .cm__sub { display: block; margin-bottom: 14rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.5; }
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
-.cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx 0 24rpx; }
+.cm__body { flex: 1; min-height: 0; box-sizing: border-box; padding: 6rpx 0 24rpx; }
 .cm__price-preview { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 16rpx; padding: 16rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cm__price-preview-label { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cm__price-preview-value { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; text-align: right; }

@@ -461,8 +461,8 @@ async function submit() {
 .cc__photo-img { width: 100%; height: 100%; }
 .cc__photo--add { display: flex; align-items: center; justify-content: center; border: 2rpx dashed $jzb-border-light; }
 .cc__photo-del { position: absolute; top: 4rpx; right: 10rpx; color: $jzb-text-inverse; font-size: 32rpx; }
-.cc__picker-wrap { display: flex; flex-direction: column; max-height: 62vh; }
-.cc__picker-body { flex: 1; min-height: 0; height: 0; }
+.cc__picker-wrap { display: flex; flex-direction: column; height: calc(70vh - 32rpx); }
+.cc__picker-body { flex: 1; min-height: 0; }
 .cc__picker-item { display: flex; align-items: center; gap: 12rpx; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .cc__picker-name { display: block; font-size: $jzb-font-sm; font-weight: 600; }
 .cc__picker-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
