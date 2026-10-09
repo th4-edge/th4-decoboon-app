@@ -147,7 +147,7 @@ async function submit() {
   content: ''; position: absolute; right: -90rpx; top: -120rpx; width: 320rpx; height: 320rpx;
   border-radius: 50%; background: rgba(255, 255, 255, .10); pointer-events: none;
 }
-.ent__hero-main { position: relative; z-index: 1; display: flex; align-items: center; }
+.ent__hero-main { position: relative; z-index: $jzb-z-content; display: flex; align-items: center; }
 .ent__hero-logo {
   display: flex; align-items: center; justify-content: center; width: 104rpx; height: 104rpx; margin-right: 22rpx;
   background: rgba(255, 255, 255, .14); border: 1rpx solid rgba(255, 255, 255, .18); border-radius: 30rpx;
@@ -155,14 +155,14 @@ async function submit() {
 .ent__hero-eyebrow { display: block; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; font-weight: 650; }
 .ent__hero-title { display: block; margin-top: 6rpx; font-size: 42rpx; font-weight: 780; line-height: 1.25; }
 .ent__hero-sub { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; }
-.ent__hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 26rpx; }
+.ent__hero-meta { position: relative; z-index: $jzb-z-content; display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 26rpx; }
 .ent__hero-chip {
   display: flex; align-items: center; gap: 8rpx; min-height: 48rpx; padding: 0 16rpx;
   color: $jzb-text-inverse; background: rgba(255, 255, 255, .14); border-radius: 999rpx;
   font-size: 21rpx;
 }
 .ent__hero-points {
-  position: relative; z-index: 1; display: flex; justify-content: space-between; margin-top: 26rpx;
+  position: relative; z-index: $jzb-z-content; display: flex; justify-content: space-between; margin-top: 26rpx;
   padding-top: 22rpx; border-top: 1rpx solid rgba(255, 255, 255, .18);
 }
 .ent__hero-points > view { display: flex; align-items: center; gap: 8rpx; color: rgba(255, 255, 255, .88); font-size: $jzb-font-xs; }

@@ -111,12 +111,19 @@ $jzb-duration-slow: 300ms;
 $jzb-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 $jzb-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-/* Z-index */
-$jzb-z-fixed: 800;
-$jzb-z-sticky: 900;
-$jzb-z-dropdown: 950;
-$jzb-z-mask: 1000;
-$jzb-z-modal: 1010;
+/* Z-index 统一层级（唯一真源，禁止在页面/组件内写裸数字）
+   同层内需要再分先后时，用 $jzb-z-<name> + n，不要另起数值。 */
+$jzb-z-content: 1;        /* 同层装饰：头图内文字、卡片压边 */
+$jzb-z-raised: 10;        /* 局部抬升：页头栏、卡内下拉建议 */
+$jzb-z-sticky: 100;       /* 吸顶导航 / 分段 / 表头 */
+$jzb-z-fixed: 200;        /* 底部固定操作条、悬浮新增（FAB） */
+$jzb-z-tabbar: 300;       /* 自定义 TabBar */
+$jzb-z-page: 400;         /* 全屏页面层（CatalogPicker 等） */
+$jzb-z-dropdown: 500;     /* 锚定下拉浮层 */
+$jzb-z-mask: 1000;        /* 遮罩 */
+$jzb-z-modal: 1010;       /* 抽屉 / 模态面板 */
+$jzb-z-confirm: 1020;     /* 确认弹窗（必须高于抽屉） */
+$jzb-z-popover: 1050;     /* 高优先级说明气泡 */
 $jzb-z-toast: 1100;
 $jzb-z-loading: 1200;
 

@@ -646,7 +646,7 @@ function avatarOf(m: ProjectMember) {
 .pd__hero-avatar--more { width: 52rpx; height: 52rpx; background: rgba(255,255,255,0.3); color: $jzb-text-inverse; font-size: $jzb-font-xs; display: flex; align-items: center; justify-content: center; }
 .pd__hero-team-link { display: flex; align-items: center; margin-left: 22rpx; }
 .pd__hero-team-text { color: rgba(255,255,255,0.92); font-size: $jzb-font-xs; }
-.pd__accept-banner { margin: -40rpx 24rpx 0; position: relative; background: $jzb-warning-soft; border-radius: $jzb-radius; padding: 22rpx 24rpx; display: flex; flex-direction: row; align-items: center; z-index: 5; box-shadow: $jzb-shadow-card; }
+.pd__accept-banner { margin: -40rpx 24rpx 0; position: relative; background: $jzb-warning-soft; border-radius: $jzb-radius; padding: 22rpx 24rpx; display: flex; flex-direction: row; align-items: center; z-index: $jzb-z-content; box-shadow: $jzb-shadow-card; }
 .pd__accept-icon { width: 58rpx; height: 58rpx; margin-right: 16rpx; border-radius: 18rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.7); }
 .pd__accept-title { display: block; font-size: $jzb-font; font-weight: 600; }
 .pd__accept-sub { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; margin-top: 2rpx; }
@@ -672,7 +672,7 @@ function avatarOf(m: ProjectMember) {
 .pd__role-value { flex: 1; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .pd__role-value--empty { color: $jzb-danger; font-weight: 700; }
 .pd__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 4rpx 16rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
-.pd__tabs { position: sticky; top: 0; z-index: 20; display: flex; flex-direction: row; background: $jzb-text-inverse; padding: 0 16rpx; box-shadow: $jzb-shadow-xs; }
+.pd__tabs { position: sticky; top: 0; z-index: $jzb-z-sticky; display: flex; flex-direction: row; background: $jzb-text-inverse; padding: 0 16rpx; box-shadow: $jzb-shadow-xs; }
 .pd__tab { flex: 1; text-align: center; font-size: $jzb-font; color: $jzb-text-2; padding: 24rpx 0 20rpx; position: relative; }
 .pd__tab--on { color: $jzb-primary-dark; font-weight: 700; }
 .pd__tab--on::after { content: ''; position: absolute; bottom: 6rpx; left: 50%; transform: translateX(-50%); width: 48rpx; height: 6rpx; border-radius: 6rpx; background: $jzb-primary; }

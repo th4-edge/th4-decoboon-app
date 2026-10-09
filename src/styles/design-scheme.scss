@@ -11,7 +11,7 @@
 .ds__summary text { display: block; }
 .ds__summary text:first-child { font-size: $jzb-font-md; font-weight: 700; word-break: break-all; }
 .ds__summary text:last-child { margin-top: 5rpx; font-size: $jzb-font-xs; opacity: .75; }
-.ds__tabs { position: sticky; top: 0; z-index: 30; background: rgba(244,247,248,.97); white-space: nowrap; border-bottom: 1rpx solid rgba(15,23,42,.04); }
+.ds__tabs { position: sticky; top: 0; z-index: $jzb-z-sticky; background: rgba(244,247,248,.97); white-space: nowrap; border-bottom: 1rpx solid rgba(15,23,42,.04); }
 .ds__tab-row { display: inline-flex; gap: 12rpx; padding: 16rpx $jzb-page-pad; }
 .ds__tab { min-height: 64rpx; padding: 0 24rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: #fff; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
 .ds__tab text { margin-left: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
@@ -66,13 +66,7 @@
 .ds__item-foot text:first-child { flex: 1; min-width: 0; line-height: 1.45; word-break: break-word; }
 .ds__item-foot text:last-child { flex-shrink: 0; white-space: nowrap; }
 .ds__total { display: flex; justify-content: space-between; padding: 26rpx 8rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 750; }
-.ds__mask { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.ds__sheet { width: 100%; max-height: 90vh; display: flex; flex-direction: column; background: #fff; border-radius: 32rpx 32rpx 0 0; }
-.ds__sheet--tall { height: 90vh; }
-.ds__sheet-head { padding: 30rpx $jzb-page-pad 22rpx; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
-.ds__sheet-title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.35; }
 .ds__sheet-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
-.ds__close { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
 .ds__sheet-content { flex: 1; min-height: 0; height: 0; padding: 6rpx $jzb-page-pad 30rpx; overflow: hidden; }
 .ds__field-label { display: block; margin: 26rpx 0 12rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 .ds__picker { justify-content: space-between; }
@@ -104,7 +98,6 @@
 .ds__source .jz-grow, .ds__source > view:first-child { min-width: 0; }
 .ds__source text:last-child { display: block; margin-top: 4rpx; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 650; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ds__formula-tip { display: flex; gap: 10rpx; margin: 24rpx 0; padding: 18rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; line-height: 1.5; }
-.ds__sheet-foot { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.05); }
 
 /* 分项左右布局 */
 .ds__section--split { padding-bottom: 32rpx; }
@@ -117,7 +110,7 @@
 .ds__space-side-count { color: $jzb-text-4; font-size: 20rpx; }
 .ds__space-side-amount { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ds__item-side { flex: 1; min-width: 0; background: $jzb-bg-page; border-radius: $jzb-radius; overflow: hidden; }
-.ds__item-side-head { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 20rpx; background: $jzb-bg-card; border-bottom: 1rpx solid $jzb-border-light; position: sticky; top: 0; z-index: 2; }
+.ds__item-side-head { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 20rpx; background: $jzb-bg-card; border-bottom: 1rpx solid $jzb-border-light; position: sticky; top: 0; z-index: $jzb-z-content; }
 .ds__item-side-title { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .ds__item-side-total { color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 750; font-variant-numeric: tabular-nums; }
 .ds__item-side .ds__item-card { margin: 12rpx 12rpx 0; padding: 18rpx 20rpx; }
@@ -135,4 +128,3 @@
 .ds__summary-name { flex: 1; min-width: 0; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .ds__summary-count { flex-shrink: 0; color: $jzb-text-4; font-size: $jzb-font-xs; }
 .ds__summary-amount { flex-shrink: 0; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; font-variant-numeric: tabular-nums; }
-@media (min-width: 768px) { .ds__mask, .ds__sheet { left: 50%; right: auto; width: 560px; transform: translateX(-50%); } }

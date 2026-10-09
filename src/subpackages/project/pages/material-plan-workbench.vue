@@ -486,7 +486,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
 .mpw__return-money { flex: 0 0 auto; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-success; }
 .mpw__return-reason { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .mpw__return-warn { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-danger; }
-.mpw__batchbar { position: fixed; left: 0; right: 0; bottom: calc(#{$jzb-tabbar-height} + #{$jzb-safe-bottom}); z-index: 101; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
+.mpw__batchbar { position: fixed; left: 0; right: 0; bottom: calc(#{$jzb-tabbar-height} + #{$jzb-safe-bottom}); z-index: $jzb-z-fixed; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
 .mpw__batchbar-info { flex: 1; min-width: 0; }
 .mpw__batchbar-text { display: block; font-size: $jzb-font-sm; color: $jzb-text-1; font-weight: 650; }
 .mpw__batchbar-sub { display: block; margin-top: 4rpx; font-size: 20rpx; color: $jzb-text-3; }

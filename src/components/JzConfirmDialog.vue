@@ -68,7 +68,7 @@ const iconColor = computed(() => {
 
 <style scoped lang="scss">
 /* 居中卡片：与 JzSheet 的底部非模态区分，确认/警示动作使用模态语义 */
-.jz-confirm { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; padding: 0 56rpx; background: rgba(15, 23, 42, .45); }
+.jz-confirm { position: fixed; inset: 0; z-index: $jzb-z-confirm; display: flex; align-items: center; justify-content: center; padding: 0 56rpx; background: rgba(15, 23, 42, .45); }
 .jz-confirm__card { width: 100%; max-width: 600rpx; padding: 36rpx 32rpx 28rpx; box-sizing: border-box; background: $jzb-bg-card; border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
 .jz-confirm__head { display: flex; align-items: flex-start; gap: 20rpx; }
 .jz-confirm__icon { flex-shrink: 0; width: 72rpx; height: 72rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: $jzb-primary-lighter; }

@@ -278,7 +278,7 @@ defineExpose({
 </template>
 
 <style lang="scss" scoped>
-.cp { position: fixed; inset: 0; z-index: 120; display: flex; flex-direction: column; background: $jzb-bg-page; }
+.cp { position: fixed; inset: 0; z-index: $jzb-z-page; display: flex; flex-direction: column; background: $jzb-bg-page; }
 .cp__manage-toolbar { flex-shrink: 0; padding: 0 $jzb-page-pad 16rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
 .cp__header { padding: 24rpx $jzb-page-pad 20rpx; display: flex; align-items: flex-start; gap: 16rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
 .cp__header-main { flex: 1; min-width: 0; }

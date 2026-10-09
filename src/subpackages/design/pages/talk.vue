@@ -155,7 +155,7 @@ function jumpTo(section: TalkSection, index: number) {
 .dt__facts { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 26rpx; padding-top: 20rpx; border-top: 1rpx solid rgba(255,255,255,.16); }
 .dt__facts text { display: block; text-align: center; font-size: $jzb-font-xs; opacity: .72; }
 .dt__facts text:last-child { margin-top: 5rpx; font-size: $jzb-font-sm; font-weight: 700; opacity: 1; word-break: break-all; }
-.dt__nav { position: sticky; top: 0; z-index: 30; background: rgba(244,247,248,.97); white-space: nowrap; border-bottom: 1rpx solid rgba(15,23,42,.04); }
+.dt__nav { position: sticky; top: 0; z-index: $jzb-z-sticky; background: rgba(244,247,248,.97); white-space: nowrap; border-bottom: 1rpx solid rgba(15,23,42,.04); }
 .dt__nav-row { display: inline-flex; gap: 12rpx; padding: 16rpx $jzb-page-pad; }
 .dt__nav-item { max-width: 220rpx; min-height: 64rpx; padding: 0 20rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
 .dt__nav-item text:last-child { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

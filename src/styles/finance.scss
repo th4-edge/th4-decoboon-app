@@ -72,8 +72,8 @@
 .fin-quick__item--disabled { opacity: .45; }
 .fin-quick__icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; }
 .fin-quick__text { margin-top: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
-.fin-sheet-mask { position: fixed; inset: 0; z-index: 200; background: rgba(15,23,42,.42); }
-.fin-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 201; max-height: 82vh; padding: 28rpx 28rpx calc(28rpx + #{$jzb-safe-bottom}); background: $jzb-text-inverse; border-radius: 36rpx 36rpx 0 0; }
+.fin-sheet-mask { position: fixed; inset: 0; z-index: $jzb-z-mask; background: rgba(15,23,42,.42); }
+.fin-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: $jzb-z-modal; max-height: 82vh; padding: 28rpx 28rpx calc(28rpx + #{$jzb-safe-bottom}); background: $jzb-text-inverse; border-radius: 36rpx 36rpx 0 0; }
 .fin-sheet__head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20rpx; }
 .fin-sheet__title { color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 720; }
 .fin-sheet__list { max-height: 56vh; }

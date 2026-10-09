@@ -38,7 +38,7 @@ function onTap(item: RoleTab) {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: $jzb-z-tabbar;
   display: flex;
   flex-direction: row;
   background: rgba(255, 255, 255, 0.96);

@@ -58,7 +58,7 @@ function handleClose() {
 .jz-sheet {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: $jzb-z-mask;
   pointer-events: none;
 }
 

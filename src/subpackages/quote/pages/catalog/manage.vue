@@ -590,7 +590,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
 .cm__image--add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; color: $jzb-text-3; border: 2rpx dashed $jzb-text-4; font-size: $jzb-font-xs; }
 .cm__brand-row { align-items: start; }
 .cm__brand-field { position: relative; min-width: 0; }
-.cm__brand-suggest { position: absolute; top: calc(100% + 8rpx); left: 0; right: 0; z-index: 8; max-height: 430rpx; overflow-y: auto; padding: 8rpx; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; box-shadow: 0 12rpx 30rpx rgba(15,23,42,.12); }
+.cm__brand-suggest { position: absolute; top: calc(100% + 8rpx); left: 0; right: 0; z-index: $jzb-z-raised; max-height: 430rpx; overflow-y: auto; padding: 8rpx; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; box-shadow: 0 12rpx 30rpx rgba(15,23,42,.12); }
 .cm__brand-option { min-height: 68rpx; padding: 0 16rpx; display: flex; align-items: center; justify-content: space-between; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .cm__brand-option:active { background: $jzb-primary-lightest; }
 .cm__brand-custom { padding: 14rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: 8rpx; font-size: $jzb-font-xs; line-height: 1.5; }

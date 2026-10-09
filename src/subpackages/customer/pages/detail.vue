@@ -883,7 +883,7 @@ function viewMeasure(property: Property) {
 /* FIX-006：评级标签内的 ? 图标 */
 .cd__grade-help { display: flex; align-items: center; margin-left: 6rpx; opacity: 0.7; }
 /* FIX-006：评级依据浮层 */
-.cd__grade-mask { position: fixed; inset: 0; z-index: 1100; background: $jzb-bg-mask; display: flex; align-items: flex-end; }
+.cd__grade-mask { position: fixed; inset: 0; z-index: $jzb-z-popover; background: $jzb-bg-mask; display: flex; align-items: flex-end; }
 .cd__grade-popup { width: 100%; padding: 40rpx 32rpx calc(40rpx + env(safe-area-inset-bottom)); background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
 .cd__grade-popup-head { margin-bottom: 24rpx; }
 .cd__grade-popup-title { display: block; font-size: 32rpx; font-weight: 700; color: $jzb-text-1; }

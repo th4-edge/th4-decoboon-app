@@ -748,13 +748,13 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
 /* 主指标卡：品牌 Header 负责“我是谁”，浅底数据卡负责“结果如何”，避免两块深色相邻 */
 .perf__hero { position: relative; overflow: hidden; margin-bottom: 40rpx; padding: 26rpx 28rpx 22rpx; background: linear-gradient(160deg, $jzb-primary-lightest 0%, $jzb-text-inverse 58%); border: 1rpx solid rgba(14,138,125,.14); border-radius: $jzb-radius-lg; box-shadow: 0 10rpx 30rpx rgba(14,138,125,.10); }
 .perf__hero::after { content: ''; position: absolute; right: -90rpx; top: -110rpx; width: 260rpx; height: 260rpx; border-radius: 50%; background: rgba(22,163,148,.10); pointer-events: none; }
-.perf__hero-head { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
+.perf__hero-head { position: relative; z-index: $jzb-z-content; display: flex; align-items: center; justify-content: space-between; }
 .perf__hero-label { color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 600; }
 .perf__hero-scope { flex-shrink: 0; margin-left: 16rpx; padding: 4rpx 16rpx; color: $jzb-primary-dark; background: $jzb-text-inverse; border: 1rpx solid rgba(14,138,125,.20); border-radius: $jzb-radius-pill; font-size: 20rpx; }
-.perf__hero-figure { position: relative; z-index: 1; display: flex; align-items: baseline; margin-top: 10rpx; }
+.perf__hero-figure { position: relative; z-index: $jzb-z-content; display: flex; align-items: baseline; margin-top: 10rpx; }
 .perf__hero-value { color: $jzb-primary-dark; font-size: 64rpx; line-height: 1.1; font-weight: 760; letter-spacing: -2rpx; font-variant-numeric: tabular-nums; }
 .perf__hero-unit { margin-left: 8rpx; color: $jzb-primary; font-size: 30rpx; font-weight: 650; }
-.perf__hero-foot { position: relative; z-index: 1; display: flex; align-items: stretch; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid rgba(14,138,125,.12); }
+.perf__hero-foot { position: relative; z-index: $jzb-z-content; display: flex; align-items: stretch; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid rgba(14,138,125,.12); }
 .perf__hero-foot-col { flex: 1; min-width: 0; }
 .perf__hero-foot-col + .perf__hero-foot-col { margin-left: 22rpx; padding-left: 22rpx; border-left: 1rpx solid rgba(14,138,125,.12); }
 .perf__hero-foot-label { display: block; color: $jzb-text-3; font-size: 20rpx; }

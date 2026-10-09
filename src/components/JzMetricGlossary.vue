@@ -67,7 +67,7 @@ const show = ref(false)
 .jz-glossary__entry-main { display: flex; flex-direction: column; gap: 8rpx; }
 .jz-glossary__entry-title { font-size: 28rpx; font-weight: 600; color: $jzb-text-1; }
 .jz-glossary__entry-sub { font-size: 22rpx; color: $jzb-text-3; }
-.jz-glossary__mask { position: fixed; inset: 0; z-index: 999; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-end; }
+.jz-glossary__mask { position: fixed; inset: 0; z-index: $jzb-z-popover; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-end; }
 .jz-glossary__sheet { width: 100%; max-height: 82vh; border-radius: 28rpx 28rpx 0 0; background: $jzb-bg-hover; padding: 28rpx 28rpx 0; box-sizing: border-box; }
 .jz-glossary__head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16rpx; }
 .jz-glossary__title { font-size: 32rpx; font-weight: 700; color: $jzb-text-1; }

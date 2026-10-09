@@ -81,7 +81,7 @@ function handleTap(index: number) {
   justify-content: center;
   border-radius: 50%;
   background: $jzb-border-light;
-  z-index: 1;
+  z-index: $jzb-z-content;
 }
 
 .psteps__num {

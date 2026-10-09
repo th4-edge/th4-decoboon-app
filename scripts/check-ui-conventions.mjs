@@ -6,6 +6,7 @@
  * 2. 禁止页面手写遮罩浮层（`__mask` 类）—— 统一走 JzSheet / JzConfirmDialog。
  * 3. 禁止页面直写 <picker> —— 统一走 JzSelectField / JzDateRangeField。
  * 4. 禁止 <style> 内写裸色值（#hex）—— 统一走 $jzb-* Token。
+ * 5. 禁止 <style> 内写裸数字 z-index —— 统一走 $jzb-z-* 层级 Token。
  *
  * 允许清单仅包含统一浮层自身与「非模态解释气泡」。
  */
@@ -60,6 +61,9 @@ for (const dir of SCAN_DIRS) {
       if (inStyle && /#[0-9A-Fa-f]{6}\b/.test(line)) {
         failures.push(`${rel}:${index + 1} 样式内禁止裸色值，请使用 $jzb-* Token`)
       }
+      if (inStyle && /z-index:\s*-?\d/.test(line)) {
+        failures.push(`${rel}:${index + 1} 样式内禁止裸数字 z-index，请使用 $jzb-z-* 层级 Token`)
+      }
     })
   }
 }
@@ -69,4 +73,4 @@ if (failures.length) {
   for (const item of failures) console.error('  - ' + item)
   process.exit(1)
 }
-console.log('UI 统一化规范检查通过（无原生确认弹窗、无手写遮罩浮层、无页面级 picker、样式无裸色值）')
+console.log('UI 统一化规范检查通过（确认弹窗/浮层/picker/色值/层级 均已 Token 化）')

@@ -369,15 +369,15 @@ function openProject(card: WorkbenchCard) {
 .sw { padding: $jzb-space-4 $jzb-page-pad 40rpx; }
 .sw__hero { position: relative; overflow: hidden; padding: 30rpx 28rpx; margin-bottom: $jzb-page-gap; color: $jzb-text-inverse; background: $jzb-gradient; box-shadow: $jzb-shadow-float; }
 .sw__hero::after { content: ''; position: absolute; right: -60rpx; top: -80rpx; width: 260rpx; height: 260rpx; border-radius: 50%; background: rgba(255,255,255,.08); }
-.sw__hero-top { position: relative; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
+.sw__hero-top { position: relative; z-index: $jzb-z-content; display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
 .sw__eyebrow { display: block; color: rgba(255,255,255,.72); font-size: $jzb-font-xs; letter-spacing: 1rpx; }
 .sw__title { display: block; margin-top: 8rpx; color: $jzb-text-inverse; font-size: 40rpx; font-weight: 700; }
 .sw__live { padding: 6rpx 14rpx; border: 1rpx solid rgba(255,255,255,.24); border-radius: $jzb-radius-pill; color: rgba(255,255,255,.88); background: rgba(255,255,255,.10); font-size: $jzb-font-xs; }
-.sw__sub { position: relative; z-index: 1; display: block; margin-top: 10rpx; color: rgba(255,255,255,.76); font-size: $jzb-font-sm; line-height: 1.55; }
-.sw__progress-head { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; margin-top: 26rpx; color: rgba(255,255,255,.82); font-size: $jzb-font-xs; }
+.sw__sub { position: relative; z-index: $jzb-z-content; display: block; margin-top: 10rpx; color: rgba(255,255,255,.76); font-size: $jzb-font-sm; line-height: 1.55; }
+.sw__progress-head { position: relative; z-index: $jzb-z-content; display: flex; align-items: center; justify-content: space-between; margin-top: 26rpx; color: rgba(255,255,255,.82); font-size: $jzb-font-xs; }
 .sw__progress-value { color: $jzb-text-inverse; font-weight: 650; font-variant-numeric: tabular-nums; }
-.sw__hero :deep(.jz-progress) { position: relative; z-index: 1; margin-top: 10rpx; background: rgba(255,255,255,.20); }
-.sw__metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10rpx; margin-top: 24rpx; }
+.sw__hero :deep(.jz-progress) { position: relative; z-index: $jzb-z-content; margin-top: 10rpx; background: rgba(255,255,255,.20); }
+.sw__metrics { position: relative; z-index: $jzb-z-content; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10rpx; margin-top: 24rpx; }
 .sw__metric { min-width: 0; padding: 16rpx 8rpx; border-radius: $jzb-radius-sm; text-align: center; }
 .sw__metric-value { display: block; font-size: 34rpx; font-weight: 750; font-variant-numeric: tabular-nums; }
 .sw__metric-label { display: block; margin-top: 4rpx; color: $jzb-text-2; font-size: 20rpx; white-space: nowrap; }

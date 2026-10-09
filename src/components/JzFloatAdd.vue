@@ -23,7 +23,7 @@ const emit = defineEmits<{ (e: 'tap'): void }>()
   position: fixed;
   right: 28rpx;
   bottom: calc(#{$jzb-tabbar-height} + 36rpx + #{$jzb-safe-bottom});
-  z-index: 90;
+  z-index: $jzb-z-fixed;
   display: flex;
   align-items: center;
   min-height: 88rpx;

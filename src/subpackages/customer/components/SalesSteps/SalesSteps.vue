@@ -116,7 +116,7 @@ const hasAction = computed(() => !!props.actionLabel)
 }
 .sales-steps__node {
   position: relative;
-  z-index: 1;
+  z-index: $jzb-z-content;
   width: 44rpx;
   height: 44rpx;
   display: flex;

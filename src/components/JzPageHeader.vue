@@ -76,7 +76,7 @@ const totalTop = computed(() => `${(system.value.statusBarHeight || 20) + 8 + 54
   background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary 48%, $jzb-primary-deep 100%);
 }
 .jz-header--plain { background: $jzb-bg-card; }
-.jz-header__bar { position: absolute; left: 0; right: 0; top: 0; z-index: 10; }
+.jz-header__bar { position: absolute; left: 0; right: 0; top: 0; z-index: $jzb-z-raised; }
 /* 顶部锚定模式：bar 固定，自带渐变底色与投影，避免滚动时内容穿透 */
 .jz-header--fixed .jz-header__bar {
   position: fixed;
