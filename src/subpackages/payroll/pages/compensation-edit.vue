@@ -11,6 +11,7 @@ import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployee
 import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
 import JzNumberInput from '@/components/JzNumberInput/JzNumberInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const schemeId = ref('')
 const selectedEmployee = ref<Employee | null>(null)
@@ -97,10 +98,10 @@ async function submit() {
       <text class="pay-field-tip">考勤录入时，应出勤天数将按本方案读取，不再默认 22 天。</text>
 
       <label class="pay-label">生效日期</label>
-      <picker mode="date" :value="form.effectiveFrom" @change="form.effectiveFrom = $event.detail.value"><view class="pay-input">{{ form.effectiveFrom }}</view></picker>
+      <JzSelectField mode="date" variant="boxed" :value="form.effectiveFrom" :display="form.effectiveFrom" placeholder="选择生效日期" @change="form.effectiveFrom = $event" />
 
       <label class="pay-label">失效日期（可空）</label>
-      <picker mode="date" :value="form.effectiveTo || currentDate()" @change="form.effectiveTo = $event.detail.value"><view class="pay-input">{{ form.effectiveTo || '长期有效' }}</view></picker>
+      <JzSelectField mode="date" variant="boxed" :value="form.effectiveTo || currentDate()" :display="form.effectiveTo" placeholder="长期有效" @change="form.effectiveTo = $event" />
 
       <label class="pay-label">备注</label>
       <textarea v-model="form.remark" class="pay-textarea" maxlength="300" placeholder="可选" />

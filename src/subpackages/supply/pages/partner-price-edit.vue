@@ -10,6 +10,7 @@ import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const TYPE_OPTIONS: { value: CatalogType; label: string }[] = [
   { value: 'material', label: '主材' },
@@ -81,8 +82,10 @@ async function loadItems(selectedId?: string) {
   itemIdx.value = itemAt >= 0 ? itemAt : 0
 }
 
-async function changeType(event: { detail: { value: number } }) {
-  typeIdx.value = Number(event.detail.value)
+async function pickType(label: string) {
+  const idx = TYPE_OPTIONS.findIndex((i) => i.label === label)
+  if (idx < 0) return
+  typeIdx.value = idx
   await loadItems()
 }
 
@@ -132,21 +135,15 @@ async function save() {
     <view class="pp__card jz-card">
       <view class="pp__field">
         <text class="pp__label">供应商 <text class="pp__req">*</text></text>
-        <picker class="pp__picker" :range="partners.map(i => i.name)" :value="partnerIdx" @change="partnerIdx = Number($event.detail.value)">
-          <view class="pp__value">{{ partners[partnerIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="partners[partnerIdx]?.name || ''" :range="partners.map(i => i.name)" :index="partnerIdx" placeholder="请选择" @change="partnerIdx = Math.max(0, partners.findIndex(i => i.name === $event))" />
       </view>
       <view class="pp__field">
         <text class="pp__label">项目分类</text>
-        <picker class="pp__picker" :range="TYPE_OPTIONS.map(i => i.label)" :value="typeIdx" @change="changeType">
-          <view class="pp__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="TYPE_OPTIONS[typeIdx].label" :range="TYPE_OPTIONS.map(i => i.label)" :index="typeIdx" @change="pickType" />
       </view>
       <view class="pp__field">
         <text class="pp__label">报价项目 <text class="pp__req">*</text></text>
-        <picker class="pp__picker" :range="items.map(i => i.name)" :value="itemIdx" @change="itemIdx = Number($event.detail.value)">
-          <view class="pp__value">{{ items[itemIdx]?.name || '请选择' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="items[itemIdx]?.name || ''" :range="items.map(i => i.name)" :index="itemIdx" placeholder="请选择" @change="itemIdx = Math.max(0, items.findIndex(i => i.name === $event))" />
       </view>
       <view class="pp__field"><text class="pp__label">采购价(元)</text><input v-model="purchasePrice" type="digit" class="pp__input jz-numeric-input" placeholder="供应商实际采购价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="pp__field"><text class="pp__label">人工/班组价(元)</text><input v-model="laborPrice" type="digit" class="pp__input jz-numeric-input" placeholder="施工/劳务成本" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>

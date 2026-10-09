@@ -6,6 +6,7 @@ import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const TYPE_OPTIONS = [
   { value: 'supplier', label: '材料供应商' },
@@ -116,9 +117,7 @@ async function save() {
       <view class="pe__field"><text class="pe__label">名称 <text class="pe__req">*</text></text><input v-model="name" class="pe__input" maxlength="64" placeholder="如：合肥瓷砖供应商" /></view>
       <view class="pe__field">
         <text class="pe__label">类型</text>
-        <picker class="pe__picker" :range="TYPE_OPTIONS.map(i => i.label)" :value="typeIdx" @change="typeIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ TYPE_OPTIONS[typeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="TYPE_OPTIONS[typeIdx].label" :range="TYPE_OPTIONS.map(i => i.label)" :index="typeIdx" @change="typeIdx = Math.max(0, TYPE_OPTIONS.findIndex(i => i.label === $event))" />
       </view>
       <view class="pe__field"><text class="pe__label">联系人</text><input v-model="contactName" class="pe__input" maxlength="32" placeholder="对接人姓名" /></view>
       <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input jz-numeric-input" type="number" maxlength="20" placeholder="手机号或固话" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
@@ -130,17 +129,13 @@ async function save() {
       <view class="pe__field"><text class="pe__label">结算说明</text><input v-model="settlementTerms" class="pe__input" maxlength="64" placeholder="如：月结30天" /></view>
       <view class="pe__field">
         <text class="pe__label">账期模式</text>
-        <picker class="pe__picker" :range="MODE_OPTIONS.map(i => i.label)" :value="modeIdx" @change="modeIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ MODE_OPTIONS[modeIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="MODE_OPTIONS[modeIdx].label" :range="MODE_OPTIONS.map(i => i.label)" :index="modeIdx" @change="modeIdx = Math.max(0, MODE_OPTIONS.findIndex(i => i.label === $event))" />
       </view>
       <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input jz-numeric-input" type="number" placeholder="默认 30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view v-if="MODE_OPTIONS[modeIdx].value === 'MonthlyCutoff'" class="pe__field"><text class="pe__label">截账日</text><input v-model="cutoffDay" class="pe__input jz-numeric-input" type="number" placeholder="每月几号，默认 25" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="pe__field">
         <text class="pe__label">状态</text>
-        <picker class="pe__picker" :range="STATUS_OPTIONS.map(i => i.label)" :value="statusIdx" @change="statusIdx = Number($event.detail.value)">
-          <view class="pe__value">{{ STATUS_OPTIONS[statusIdx].label }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="STATUS_OPTIONS[statusIdx].label" :range="STATUS_OPTIONS.map(i => i.label)" :index="statusIdx" @change="statusIdx = Math.max(0, STATUS_OPTIONS.findIndex(i => i.label === $event))" />
       </view>
       <view class="pe__field pe__field--col"><text class="pe__label">备注</text><input v-model="remark" class="pe__input pe__input--block" maxlength="200" placeholder="合作说明、特殊约定" /></view>
     </view>

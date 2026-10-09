@@ -17,6 +17,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const month = ref(localMonth())
 const deletingId = ref('')
@@ -86,7 +87,7 @@ async function remove(item: AttendanceSummary) {
   <view class="att-page">
     <JzPageHeader title="月度考勤" subtitle="服务行业月度申报，不打卡、不计加班" right-text="录入" right-icon="plus" @right="add" />
     <view class="att-month jz-card">
-      <picker mode="date" fields="month" :value="month" @change="onMonthChange"><text>{{ month }}</text></picker>
+      <JzSelectField mode="date" fields="month" :value="month" :display="month" placeholder="选择月份" @change="(v) => { month = v; void refresh() }" />
       <text class="att-month__tip">可切换历史月份补录；确认后需重新生成同月工资单</text>
     </view>
     <view class="att-body">

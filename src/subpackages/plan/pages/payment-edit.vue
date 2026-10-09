@@ -9,6 +9,7 @@ import type { ConstructionStageTemplate, PaymentPlanNodeTemplate, PaymentPlanTem
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 interface PaymentNodeForm extends PaymentPlanNodeTemplate {
   ratioPercent: number
@@ -189,10 +190,10 @@ async function save(publish = false) {
         <view class="ppe__field"><text>节点名称</text><input v-model="node.name" maxlength="128" placeholder="例如：水电验收款" /></view>
         <view class="ppe__grid">
           <view class="ppe__field"><text>收款比例</text><input v-model.number="node.ratioPercent" type="digit" placeholder="30" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="ppe__unit">%</text></view>
-          <view class="ppe__field"><text>应收类型</text><picker mode="selector" :range="typeOptions" range-key="label" @change="node.type = typeOptions[Number($event.detail.value)]?.value || node.type"><view>{{ typeLabel(node.type) }}</view></picker></view>
+          <view class="ppe__field"><text>应收类型</text><JzSelectField variant="boxed" :display="typeLabel(node.type)" :range="typeOptions.map(i => i.label)" :index="Math.max(0, typeOptions.findIndex(i => i.value === node.type))" @change="node.type = typeOptions.find(i => i.label === $event)?.value || node.type" /></view>
         </view>
-        <view class="ppe__field"><text>触发条件</text><picker mode="selector" :range="triggerOptions" range-key="label" @change="node.triggerType = triggerOptions[Number($event.detail.value)]?.value || node.triggerType"><view>{{ triggerLabel(node.triggerType) }}</view></picker></view>
-        <view v-if="requiresStage(node.triggerType)" class="ppe__field"><text>触发阶段</text><picker mode="selector" :range="stageOptions" range-key="name" @change="node.triggerStageCode = stageOptions[Number($event.detail.value)]?.code"><view>{{ stageLabel(node.triggerStageCode) }}</view></picker></view>
+        <view class="ppe__field"><text>触发条件</text><JzSelectField variant="boxed" :display="triggerLabel(node.triggerType)" :range="triggerOptions.map(i => i.label)" :index="Math.max(0, triggerOptions.findIndex(i => i.value === node.triggerType))" @change="node.triggerType = triggerOptions.find(i => i.label === $event)?.value || node.triggerType" /></view>
+        <view v-if="requiresStage(node.triggerType)" class="ppe__field"><text>触发阶段</text><JzSelectField variant="boxed" :display="stageLabel(node.triggerStageCode)" :range="stageOptions.map(i => i.name)" :index="Math.max(0, stageOptions.findIndex(i => i.code === node.triggerStageCode))" @change="node.triggerStageCode = stageOptions.find(i => i.name === $event)?.code" /></view>
         <view class="ppe__field"><text>偏移天数</text><input v-model.number="node.offsetDays" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       </view>
     </view>

@@ -18,6 +18,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const editable = ref(can(session.role, 'edit:payroll'))
 const selectedPeriod = ref(localMonth())
@@ -91,9 +92,7 @@ async function removeDraft(item: PayrollSheet) {
           <text class="sheet-period__label">工资归属月份</text>
           <text class="sheet-period__tip">补发过去月份时，请选择实际工资月份；考勤确认后需重新生成同月工资单</text>
         </view>
-        <picker mode="date" fields="month" :value="selectedPeriod" :end="maxPeriod" @change="onPeriodChange">
-          <view class="sheet-period__value">{{ selectedPeriod }}</view>
-        </picker>
+        <JzSelectField mode="date" fields="month" variant="boxed" :value="selectedPeriod" :end="maxPeriod" :display="selectedPeriod" placeholder="选择周期" @change="selectedPeriod = $event" />
       </view>
       <PageState v-if="loadError && !items.length" state="error" title="工资单加载失败" :subtitle="loadError" @retry="refresh" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />

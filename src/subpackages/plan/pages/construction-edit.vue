@@ -9,6 +9,7 @@ import type { ConstructionPlanTemplate, ConstructionStageTemplate } from '@/doma
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const templateId = ref('')
 const name = ref('')
@@ -147,7 +148,7 @@ async function save(publish = false) {
         <view class="cpe__field"><text>阶段编码</text><input v-model="stage.code" maxlength="64" placeholder="例如：WATER_ELECTRIC" /></view>
         <view class="cpe__grid">
           <view class="cpe__field"><text>标准工期</text><input v-model.number="stage.defaultDays" type="number" placeholder="1" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="cpe__unit">天</text></view>
-          <view class="cpe__field"><text>验收方式</text><picker mode="selector" :range="acceptanceOptions" range-key="label" @change="stage.acceptanceMode = acceptanceOptions[Number($event.detail.value)]?.value || stage.acceptanceMode"><view>{{ acceptanceLabel(stage.acceptanceMode) }}</view></picker></view>
+          <view class="cpe__field"><text>验收方式</text><JzSelectField variant="boxed" :display="acceptanceLabel(stage.acceptanceMode)" :range="acceptanceOptions.map(i => i.label)" :index="Math.max(0, acceptanceOptions.findIndex(i => i.value === stage.acceptanceMode))" @change="stage.acceptanceMode = acceptanceOptions.find(i => i.label === $event)?.value || stage.acceptanceMode" /></view>
         </view>
         <view class="cpe__field cpe__field--textarea"><text>阶段说明</text><textarea v-model="stage.description" maxlength="512" auto-height placeholder="说明施工范围和完成条件" /></view>
       </view>

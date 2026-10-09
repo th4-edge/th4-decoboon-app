@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
-import JzIcon from '@/components/JzIcon.vue'
+import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
 /**
  * 表单选值控件（日期 / 时间 / 枚举列表）。
@@ -29,6 +29,12 @@ const props = withDefaults(defineProps<{
   timeEnd?: string
   /** plain=与表单行同高无底色（默认）；boxed=带浅底卡片（独立字段区） */
   variant?: 'plain' | 'boxed'
+  /** 日期粒度：year / month / day（配 mode=date 使用） */
+  fields?: 'year' | 'month' | 'day'
+  /** default=浅底深字；inverse=深底白字（品牌头图内） */
+  tone?: 'default' | 'inverse'
+  /** 可选前置图标 */
+  icon?: IconName
 }>(), {
   range: () => [],
   index: 0,
@@ -40,8 +46,15 @@ const props = withDefaults(defineProps<{
   end: '',
   timeStart: '',
   timeEnd: '',
-  variant: 'plain'
+  variant: 'plain',
+  fields: 'day',
+  tone: 'default',
+  icon: undefined
 })
+
+const isInverse = () => props.tone === 'inverse'
+const chevronColor = () => props.disabled ? TOKEN_COLOR.text4 : isInverse() ? 'rgba(255,255,255,.82)' : TOKEN_COLOR.text3
+const leadingIconColor = () => isInverse() ? TOKEN_COLOR.white : TOKEN_COLOR.text3
 
 const emit = defineEmits<{
   (e: 'change', value: string): void
@@ -59,6 +72,7 @@ function onChange(e: any) {
     :mode="mode"
     :range="mode === 'selector' ? range : undefined"
     :value="mode === 'selector' ? index : value"
+    :fields="mode === 'date' ? fields : undefined"
     :disabled="disabled"
     :start="mode === 'date' ? start : mode === 'time' ? timeStart : undefined"
     :end="mode === 'date' ? end : mode === 'time' ? timeEnd : undefined"
@@ -68,11 +82,13 @@ function onChange(e: any) {
       class="jz-select-field"
       :class="[
         `jz-select-field--${variant}`,
-        { 'jz-select-field--empty': !display, 'jz-select-field--disabled': disabled }
+        `jz-select-field--${tone}`,
+        { 'jz-select-field--empty': !display && tone === 'default', 'jz-select-field--disabled': disabled }
       ]"
     >
+      <JzIcon v-if="icon" :name="icon" :size="26" :color="leadingIconColor()" />
       <text class="jz-select-field__text">{{ display || placeholder }}</text>
-      <JzIcon name="chevron-down" :size="26" :color="disabled ? TOKEN_COLOR.text4 : TOKEN_COLOR.text3" />
+      <JzIcon name="chevron-down" :size="26" :color="chevronColor()" />
     </view>
   </picker>
 </template>
@@ -99,4 +115,11 @@ function onChange(e: any) {
 .jz-select-field--empty { color: $jzb-text-4; }
 .jz-select-field--disabled { opacity: 0.55; }
 .jz-select-field__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 深底反色：品牌头图 / 深色卡片内使用 */
+.jz-select-field--inverse {
+  color: $jzb-text-inverse;
+  border-color: rgba(255, 255, 255, .42);
+  background: rgba(255, 255, 255, .14);
+}
+.jz-select-field--inverse .jz-select-field__text { color: $jzb-text-inverse; }
 </style>

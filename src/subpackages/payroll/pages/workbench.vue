@@ -14,6 +14,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const report = ref<PayrollWorkbenchReport | null>(null)
 const loading = ref(false)
@@ -62,8 +63,7 @@ async function refresh(period = selectedPeriod.value) {
   }
 }
 
-function changePeriod(event: { detail?: { value?: string } }) {
-  const period = String(event.detail?.value || '')
+function changePeriod(period: string) {
   if (!/^\d{4}-\d{2}$/.test(period) || period === selectedPeriod.value) return
   selectedPeriod.value = period
   void refresh(period)
@@ -98,12 +98,7 @@ function openLatestSheet() {
             <text class="pay-hero__label">{{ report?.period || selectedPeriod }} 待发员工薪酬</text>
             <text class="pay-hero__value">{{ money(report?.pendingEmployeePayableAmount || 0) }}</text>
           </view>
-          <picker mode="date" fields="month" :value="selectedPeriod" :end="maxPeriod" @change="changePeriod">
-            <view class="pay-hero__period">
-              <JzIcon name="calendar" :size="26" :color="TOKEN_COLOR.white" />
-              <text>切换周期</text>
-            </view>
-          </picker>
+          <JzSelectField mode="date" fields="month" tone="inverse" icon="calendar" :value="selectedPeriod" :end="maxPeriod" display="切换周期" @change="changePeriod" />
         </view>
         <view class="pay-hero__sub">
           <text>已释放未发提成 {{ money(report?.releasedUnpaidCommissionAmount || 0) }}</text>

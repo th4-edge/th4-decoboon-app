@@ -10,6 +10,7 @@ import { toast, toastError } from '@/composables/toast'
 import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 import JzNumberInput from '@/components/JzNumberInput/JzNumberInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const summaryId = ref('')
 const selectedEmployee = ref<Employee | null>(null)
@@ -115,7 +116,7 @@ async function submit() {
       />
 
       <label class="pay-label">工资月份</label>
-      <picker mode="date" fields="month" :value="form.month" :disabled="!!summaryId" @change="form.month = $event.detail.value"><view class="pay-input">{{ form.month }}</view></picker>
+      <JzSelectField mode="date" fields="month" variant="boxed" :value="form.month" :disabled="!!summaryId" :display="form.month" placeholder="选择月份" @change="form.month = $event" />
 
       <view class="pay-scheme-days">
         <view class="pay-scheme-days__main">
