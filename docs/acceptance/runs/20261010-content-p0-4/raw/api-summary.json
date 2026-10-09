@@ -1,0 +1,23 @@
+{
+  "environment": "dev-8091",
+  "checks": [
+    { "case": "no-publication", "expected": "409", "actual": "409", "message": "内容尚未回填发布，暂不能登记线索归因" },
+    { "case": "low-confidence-primary", "expected": "400", "actual": "400", "message": "低置信归因不能设为主归因" },
+    { "case": "cross-tenant-customer", "expected": "404", "actual": "404", "message": "客户不存在或无权访问" },
+    { "case": "repeat-save", "expected": "same touch id and row count", "actual": "touchId=234445932152750080; rows=3" },
+    { "case": "primary-switch", "expected": "one primary for same customer", "actual": "content B primary; content A secondary" },
+    { "case": "customer-source", "expected": "Lead", "actual": "Lead" },
+    { "case": "dashboard", "expected": "published=2, leads=2, measured=1, signed=1", "actual": "published=2, leads=2, measured=1, signed=1" }
+  ],
+  "identifiers": {
+    "validationCustomerId": "234445907217612800",
+    "measuredCustomerId": "231845338615382016",
+    "contentAId": "234442022759432192",
+    "publicationAId": "234443404782600192",
+    "contentBId": "234439112692596736",
+    "publicationBId": "234439387734081536",
+    "leadTouchAId": "234445932152750080",
+    "leadTouchBId": "234445932375048192",
+    "leadTouchMeasuredId": "234445932588957696"
+  }
+}

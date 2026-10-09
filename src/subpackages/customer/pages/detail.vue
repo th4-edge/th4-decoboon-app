@@ -6,12 +6,14 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import type { Customer, CustomerFollow } from '@/domains/crm/model'
+import type { ContentAttributionConfidence, ContentAttributionType, LeadTouch } from '@/domains/content/model'
 import type { Project } from '@/domains/project/model'
 import type { Property } from '@/domains/property/model'
 import type { Quote, QuoteStatus } from '@/domains/trade/model'
 import type { Employee } from '@/domains/identity/model'
 import { CUSTOMER_SOURCE_META, CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { crmApi } from '@/domains/crm/api'
+import { leadTouchApi } from '@/domains/content/api'
 import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
 import { propertyApi } from '@/domains/property/api'
@@ -42,6 +44,8 @@ interface PrimaryAction {
 const id = ref('')
 const customer = ref<Customer | null>(null)
 const follows = ref<CustomerFollow[]>([])
+const contentTouches = ref<LeadTouch[]>([])
+const contentTouchError = ref('')
 const quotes = ref<Quote[]>([])
 const designs = ref<DesignScheme[]>([])
 const talkCount = ref(0)
@@ -70,6 +74,14 @@ const WAY_META: Record<CustomerFollow['way'], string> = {
   wechat: '微信',
   video: '视频',
   other: '其他'
+}
+const CONTENT_ATTRIBUTION_META: Record<ContentAttributionType, string> = {
+  platform: '平台回传', uniqueCode: '专属入口', manual: '人工确认', selfReport: '客户自述', inference: '仅推断'
+}
+const CONTENT_CONFIDENCE_META: Record<ContentAttributionConfidence, { label: string; color: string }> = {
+  high: { label: '高置信', color: TOKEN_COLOR.success },
+  medium: { label: '中置信', color: TOKEN_COLOR.warning },
+  low: { label: '低置信', color: TOKEN_COLOR.text3 }
 }
 const QUOTE_STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
   draft: { label: '草稿', color: TOKEN_COLOR.text3 },
@@ -305,7 +317,7 @@ async function load() {
       return
     }
     customer.value = detail
-    const [followResult, quoteResult, projectResult, propertyResult, designResult] = await Promise.allSettled([
+    const [followResult, quoteResult, projectResult, propertyResult, designResult, contentTouchResult] = await Promise.allSettled([
       crmApi.follows(id.value),
       tradeApi.quotes({ customerId: id.value }),
       // 必须按当前客户拉项目：BOSS 视角下 project/project/page 默认返回全公司项目，
@@ -313,12 +325,20 @@ async function load() {
       // 就会出现"跟进中客户显示查看工地、点击跳到别人工地"的串号问题。
       projectApi.list({ customerId: id.value }),
       propertyApi.list(id.value),
-      designApi.schemes(id.value)
+      designApi.schemes(id.value),
+      leadTouchApi.list({ customerId: id.value })
     ])
     if (followResult.status === 'fulfilled') follows.value = followResult.value
     if (quoteResult.status === 'fulfilled') quotes.value = quoteResult.value
     if (projectResult.status === 'fulfilled') customerProjects.value = projectResult.value
     if (propertyResult.status === 'fulfilled') properties.value = propertyResult.value
+    if (contentTouchResult.status === 'fulfilled') {
+      contentTouches.value = contentTouchResult.value
+      contentTouchError.value = ''
+    } else {
+      contentTouches.value = []
+      contentTouchError.value = '内容归因暂不可确认'
+    }
     if (designResult.status === 'fulfilled') {
       designs.value = designResult.value
       // 并行拉每套非归档方案的谈单材料数（N+1，方案数通常 1-3，可接受）
@@ -370,6 +390,10 @@ function copyPropertyNo(value: string) {
   })
 }
 function follow() { uni.navigateTo({ url: `${P.customerFollow}?id=${id.value}` }) }
+function openContentTouch(item: LeadTouch) {
+  const contentId = item.employeeContent?.id
+  if (contentId) uni.navigateTo({ url: `${P.employeeContentDetail}?contentId=${contentId}` })
+}
 function edit() { uni.navigateTo({ url: `${P.customerEdit}?id=${id.value}` }) }
 function openDormantAction() {
   if (!customer.value || !canManageDormant.value) return
@@ -735,6 +759,23 @@ function viewMeasure(property: Property) {
       <view class="cd__info-row"><text class="cd__info-label">转化项目</text><text class="cd__info-value">{{ project?.no || '—' }}</text></view>
     </view>
 
+    <view class="jz-card cd__content-source">
+      <view class="cd__section-head">
+        <view><text class="cd__section-title">内容来源</text><text class="cd__content-source-sub">已关联到本客户的内容发布与归因员工</text></view>
+      </view>
+      <view v-if="contentTouches.length" class="cd__content-list">
+        <view v-for="item in contentTouches.slice(0, 3)" :key="item.id" class="cd__content-item" @tap="openContentTouch(item)">
+          <view class="cd__content-item-head">
+            <text class="cd__content-item-title jz-ellipsis">{{ item.task?.title || item.employeeContent?.caption || '内容任务' }}</text>
+            <JzTag :text="CONTENT_CONFIDENCE_META[item.confidence].label" :color="CONTENT_CONFIDENCE_META[item.confidence].color" />
+          </view>
+          <text class="cd__content-item-meta">{{ item.employee?.name || '—' }} · {{ CONTENT_ATTRIBUTION_META[item.attributionType] }} · {{ item.isPrimary ? '主归因' : '辅助触点' }}</text>
+        </view>
+        <text v-if="contentTouches.length > 3" class="cd__content-more">另有 {{ contentTouches.length - 3 }} 条触点，请在内容详情中查看。</text>
+      </view>
+      <text v-else class="cd__content-empty">{{ contentTouchError || '尚未关联内容来源；客户从短视频咨询进入后，可由内容详情登记归因。' }}</text>
+    </view>
+
     <!-- FIX-006：客户画像从头部下方移到客户信息下方，符合"基础信息→画像→跟进"的阅读顺序 -->
     <view class="jz-card cd__portrait">
       <view class="cd__section-head">
@@ -906,6 +947,15 @@ function viewMeasure(property: Property) {
 .cd__section-title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .cd__section-more { color: $jzb-text-3; font-size: 20rpx; }
 /* FIX-006：画像卡片与客户信息卡片对齐，加左右边距和上下间距 */
+.cd__content-source { margin: 20rpx 24rpx; padding: 24rpx; }
+.cd__content-source-sub { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
+.cd__content-list { display: grid; gap: 12rpx; margin-top: 16rpx; }
+.cd__content-item { padding: 18rpx; border: 1rpx solid $jzb-border-light; border-radius: 14rpx; background: $jzb-bg-page; }
+.cd__content-item-head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
+.cd__content-item-title { min-width: 0; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.cd__content-item-meta { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: 20rpx; }
+.cd__content-more { display: block; color: $jzb-primary-dark; font-size: 20rpx; text-align: center; }
+.cd__content-empty { display: block; margin-top: 14rpx; padding: 16rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.6; background: $jzb-bg-page; border-radius: 12rpx; }
 .cd__portrait { margin: 20rpx 24rpx; padding: 24rpx; }
 .cd__grade-rows { margin-top: 16rpx; display: flex; flex-direction: column; gap: 12rpx; }
 .cd__grade-row { display: flex; align-items: baseline; gap: 12rpx; }

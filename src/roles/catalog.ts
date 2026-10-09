@@ -159,6 +159,74 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   ]
 }
 
+
+export interface ContentWorkbenchAction extends RoleAction {
+  subtitle: string
+}
+
+export interface ContentWorkbenchGroup {
+  subtitle: string
+  actions: ContentWorkbenchAction[]
+}
+
+/** 首页内容获客工作台：按角色聚合内容素材、任务、成片和线索入口。 */
+export const ROLE_CONTENT_WORKBENCH: Partial<Record<RoleKey, ContentWorkbenchGroup>> = {
+  boss: {
+    subtitle: '素材授权、内容任务、员工成片和线索结果统一管理',
+    actions: [
+      { key: 'dashboard', label: '内容经营', subtitle: '有效线索与客户结果', icon: 'chart', path: P.contentDashboard },
+      { key: 'assets', label: '素材库', subtitle: '素材、脱敏与三层授权', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '创建、发布与任务进度', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '员工内容', subtitle: '成片审核、发布与线索', icon: 'folder', path: P.employeeContents }
+    ]
+  },
+  storeManager: {
+    subtitle: '内容素材、任务和成片审核集中处理',
+    actions: [
+      { key: 'assets', label: '素材库', subtitle: '素材、脱敏与授权状态', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '创建、发布与跟踪任务', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '员工内容', subtitle: '审核成片、发布与线索', icon: 'folder', path: P.employeeContents },
+      { key: 'touches', label: '内容线索', subtitle: '查看门店归因和承接结果', icon: 'user', path: P.contentLeadTouch }
+    ]
+  },
+  teamLeader: {
+    subtitle: '领取内容任务，完成发布并登记内容线索',
+    actions: [
+      { key: 'assets', label: '素材库', subtitle: '查看可用素材与现场上传', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '领取、制作和提交成片', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '我的内容', subtitle: '成片、回填和内容线索', icon: 'folder', path: P.employeeContents },
+      { key: 'touches', label: '内容线索', subtitle: '查看归因和承接结果', icon: 'user', path: P.contentLeadTouch }
+    ]
+  },
+  marketer: {
+    subtitle: '用企业素材完成任务、发布内容并回填咨询线索',
+    actions: [
+      { key: 'assets', label: '素材库', subtitle: '查看可用素材与现场上传', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '领取、制作和提交成片', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '我的内容', subtitle: '成片、回填和内容线索', icon: 'folder', path: P.employeeContents },
+      { key: 'touches', label: '内容线索', subtitle: '查看归因和承接结果', icon: 'user', path: P.contentLeadTouch }
+    ]
+  },
+  designer: {
+    subtitle: '用项目素材完成任务、发布内容并登记线索',
+    actions: [
+      { key: 'assets', label: '素材库', subtitle: '查看可用素材与现场上传', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '领取、制作和提交成片', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '我的内容', subtitle: '成片、回填和内容线索', icon: 'folder', path: P.employeeContents },
+      { key: 'touches', label: '内容线索', subtitle: '查看归因和承接结果', icon: 'user', path: P.contentLeadTouch }
+    ]
+  },
+  pm: {
+    subtitle: '用现场素材完成任务、发布工地内容并登记线索',
+    actions: [
+      { key: 'assets', label: '素材库', subtitle: '查看可用素材与现场上传', icon: 'camera', path: P.contentAssets },
+      { key: 'tasks', label: '内容任务', subtitle: '领取、制作和提交成片', icon: 'clipboard', path: P.contentTasks },
+      { key: 'contents', label: '我的内容', subtitle: '成片、回填和内容线索', icon: 'folder', path: P.employeeContents },
+      { key: 'touches', label: '内容线索', subtitle: '查看归因和承接结果', icon: 'user', path: P.contentLeadTouch }
+    ]
+  }
+}
+
 export function tabsOf(role?: RoleKey | null): RoleTab[] {
   return ROLE_TABS[role || 'customer']
 }

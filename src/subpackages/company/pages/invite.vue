@@ -80,12 +80,12 @@ function pickTeam(label: string) {
         <view class="ci-field"><text>归属门店</text><text class="ci-field__readonly">{{ storeLabel }}</text></view>
         <view class="ci-field">
           <text>岗位</text>
-          <JzSelectField variant="boxed" :display="roles[roleIndex]?.label || ''" :range="roles.map(item => item.label)" :index="roleIndex" placeholder="请选择" @change="pickRole" />
+          <JzSelectField variant="plain" :display="roles[roleIndex]?.label || ''" :range="roles.map(item => item.label)" :index="roleIndex" placeholder="请选择" @change="pickRole" />
         </view>
         <view v-if="role === 'teamLeader' && !teamId" class="ci-field"><text>新团队</text><input v-model="teamName" maxlength="128" placeholder="团队负责人新团队名称" /></view>
         <view v-if="teams.length" class="ci-field">
           <text>团队</text>
-          <JzSelectField variant="boxed" :display="teamId ? teams[teamIndex]?.name : '未分配'" :range="['未分配', ...teams.map(item => item.name)]" :index="teamIndex + 1" @change="pickTeam" />
+          <JzSelectField variant="plain" :display="teamId ? teams[teamIndex]?.name : '未分配'" :range="['未分配', ...teams.map(item => item.name)]" :index="teamIndex + 1" @change="pickTeam" />
         </view>
       </view>
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="submitting" @tap="create">生成邀请</button>

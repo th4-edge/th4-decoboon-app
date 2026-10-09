@@ -92,11 +92,11 @@ async function save() {
       </view>
       <view class="ce__row">
         <text class="ce__label">性别</text>
-        <JzSelectField variant="boxed" :display="GENDERS[genderIdx]" :range="GENDERS" :index="genderIdx" @change="genderIdx = Math.max(0, GENDERS.indexOf($event)); gender = genderIdx === 1 ? 'F' : 'M'" />
+        <JzSelectField variant="plain" :display="GENDERS[genderIdx]" :range="GENDERS" :index="genderIdx" @change="genderIdx = Math.max(0, GENDERS.indexOf($event)); gender = genderIdx === 1 ? 'F' : 'M'" />
       </view>
       <view class="ce__row">
         <text class="ce__label">客户来源</text>
-        <JzSelectField variant="boxed" :display="SOURCES.find(s => s.key === source)?.label || ''" :range="SOURCES.map(s => s.label)" :index="Math.max(0, SOURCES.findIndex(s => s.key === source))" @change="source = SOURCES.find(s => s.label === $event)?.key || source" />
+        <JzSelectField variant="plain" :display="SOURCES.find(s => s.key === source)?.label || ''" :range="SOURCES.map(s => s.label)" :index="Math.max(0, SOURCES.findIndex(s => s.key === source))" @change="source = SOURCES.find(s => s.label === $event)?.key || source" />
       </view>
       <view class="ce__row">
         <text class="ce__label">意向小区</text>

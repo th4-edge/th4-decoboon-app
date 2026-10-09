@@ -115,6 +115,108 @@
   ],
   "subPackages": [
     {
+      "root": "subpackages/content",
+      "pages": [
+        {
+          "path": "pages/assets",
+          "style": {
+            "navigationBarTitleText": "内容素材",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/asset-detail",
+          "style": {
+            "navigationBarTitleText": "素材详情",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/upload",
+          "style": {
+            "navigationBarTitleText": "上传素材",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/project-picker",
+          "style": {
+            "navigationBarTitleText": "选择所属项目",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/authorization",
+          "style": {
+            "navigationBarTitleText": "素材授权",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/tasks",
+          "style": {
+            "navigationBarTitleText": "内容任务",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/task-edit",
+          "style": {
+            "navigationBarTitleText": "创建内容任务",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/task-detail",
+          "style": {
+            "navigationBarTitleText": "任务详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/my-content",
+          "style": {
+            "navigationBarTitleText": "我的内容",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/employee-content-create",
+          "style": {
+            "navigationBarTitleText": "生成成片",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/employee-content-detail",
+          "style": {
+            "navigationBarTitleText": "内容详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/lead-touch",
+          "style": {
+            "navigationBarTitleText": "内容线索归因",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/dashboard",
+          "style": {
+            "navigationBarTitleText": "内容经营",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
+      ]
+    },
+    {
       "root": "subpackages/customer",
       "pages": [
         {

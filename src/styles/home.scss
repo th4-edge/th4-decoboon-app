@@ -95,6 +95,11 @@
 .home__bell { width: 64rpx; height: 64rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.14); }
 .home__more { display: flex; align-items: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 
+/* 首页内容获客工作台：与经营专业工作台同一结构，按角色切换功能项 */
+.home__content-workbench .home__professional-grid { background: linear-gradient(145deg, #fff, $jzb-primary-lightest); }
+.home__content-workbench .home__professional-icon { background: #fff; }
+.home__content-workbench .home__professional-title::before { background: $jzb-gradient; }
+
 /* 企业负责人：四项高频功能域之外的经营专业工作台 */
 .home__professional { margin: 0 $jzb-page-pad 18rpx; }
 .home__professional-head { padding: 34rpx $jzb-space-1 18rpx; }

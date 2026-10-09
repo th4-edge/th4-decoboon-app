@@ -15,7 +15,7 @@ import type { FinanceSummary } from '@/domains/finance/model'
 import { financeApi } from '@/domains/finance/api'
 import { money, timeText } from '@/core/format'
 import { PROJECT_STATUS_META, projectStageText } from '@/domains/project/meta'
-import { ROLE_ACTIONS, ROLE_META } from '@/roles/catalog'
+import { ROLE_ACTIONS, ROLE_CONTENT_WORKBENCH, ROLE_META } from '@/roles/catalog'
 import { materialPlanWorkbenchApi } from '@/domains/material/api'
 import { projectApi } from '@/domains/project/api'
 import { carryoverApi } from '@/domains/carryover/api'
@@ -566,6 +566,8 @@ const quicks = computed(() =>
     }))
 )
 
+const contentWorkbench = computed(() => ROLE_CONTENT_WORKBENCH[role.value] || null)
+
 function displayName() {
   if (isCustomer(role.value)) return customer.value?.name || '业主'
   return emp.value?.name || '我'
@@ -763,6 +765,24 @@ const projectSectionTitle = computed(() => {
         <view v-for="q in quicks" :key="q.label" class="home__quick" @tap="q.action()">
           <view class="home__quick-icon"><JzIcon :name="iconName(q.icon)" :size="38" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
           <text class="home__quick-label">{{ q.label }}</text>
+        </view>
+      </view>
+
+      <!-- 内容获客工作台：按角色聚合素材、任务、成片、发布和线索入口 -->
+      <view v-if="contentWorkbench" class="home__professional home__content-workbench">
+        <view class="home__professional-head">
+          <text class="home__professional-title">内容获客</text>
+          <text class="home__professional-sub">{{ contentWorkbench.subtitle }}</text>
+        </view>
+        <view class="home__professional-grid jz-card">
+          <view v-for="item in contentWorkbench.actions" :key="item.key" class="home__professional-item" @tap="go(item.path)">
+            <view class="home__professional-icon"><JzIcon :name="iconName(item.icon)" :size="32" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
+            <view class="home__professional-copy">
+              <text class="home__professional-label">{{ item.label }}</text>
+              <text class="home__professional-desc">{{ item.subtitle }}</text>
+            </view>
+            <JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" />
+          </view>
         </view>
       </view>
 

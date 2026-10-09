@@ -134,7 +134,7 @@ async function submit() {
         </view>
         <view class="pp-row">
           <text class="pp-row__label">方向</text>
-          <JzSelectField variant="boxed" :display="directionOptions[directionIndex(plan.direction)].label" :range="directionOptions.map(item => item.label)" :index="directionIndex(plan.direction)" @change="plan.direction = directionOptions.find(item => item.label === $event)?.value || plan.direction" />
+          <JzSelectField variant="plain" :display="directionOptions[directionIndex(plan.direction)].label" :range="directionOptions.map(item => item.label)" :index="directionIndex(plan.direction)" @change="plan.direction = directionOptions.find(item => item.label === $event)?.value || plan.direction" />
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划金额</text>
@@ -142,7 +142,7 @@ async function submit() {
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划日期</text>
-          <JzSelectField mode="date" variant="boxed" :value="plan.plannedDate" :display="plan.plannedDate" placeholder="未排期" @change="plan.plannedDate = $event" />
+          <JzSelectField mode="date" variant="plain" :value="plan.plannedDate" :display="plan.plannedDate" placeholder="未排期" @change="plan.plannedDate = $event" />
         </view>
         <view class="pp-row">
           <text class="pp-row__label">往来对象</text>

@@ -75,7 +75,7 @@ async function submit() {
       <view class="jz-card hand-form">
         <view class="hand-field">
           <text>接收人</text>
-          <JzSelectField variant="boxed" :display="toEmpId ? candidates[selectedIndex]?.name : ''" :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :index="selectedIndex" placeholder="请选择在职员工" @change="pick" />
+          <JzSelectField variant="plain" :display="toEmpId ? candidates[selectedIndex]?.name : ''" :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :index="selectedIndex" placeholder="请选择在职员工" @change="pick" />
         </view>
         <view v-if="selectedCandidate" class="hand-receiver">
           <JzEmployeeAvatar :src="selectedCandidate.avatarUrl || ''" :name="selectedCandidate.name" :role="selectedCandidate.role" :status="selectedCandidate.status" :size="88" />

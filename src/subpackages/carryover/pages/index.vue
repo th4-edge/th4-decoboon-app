@@ -122,7 +122,7 @@ function statusClass(status: CarryoverProject['status']) {
       <text class="carryover__hero-desc">确定接管日期后，逐个录入项目，BOSS 可以代财务和项目经理确认。</text>
       <view class="carryover__date">
         <text>接管日期</text>
-        <JzSelectField mode="date" variant="boxed" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
+        <JzSelectField mode="date" variant="plain" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
       </view>
       <view class="carryover__note">
         <text class="carryover__note-label">账本摸底说明（选填）</text>

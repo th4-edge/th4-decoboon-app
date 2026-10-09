@@ -97,7 +97,7 @@ async function save() {
       <textarea v-model="content" class="cf__textarea" placeholder="记录这次沟通：客户关注点、异议、下一步动作…" maxlength="500" />
 
       <text class="cf__label">下次跟进时间</text>
-      <JzSelectField mode="date" variant="boxed" :value="nextFollowAt" start="2026-01-01" end="2027-12-31" :display="nextFollowAt" placeholder="选择下次跟进日期（可选）" @change="nextFollowAt = $event" />
+      <JzSelectField mode="date" variant="plain" :value="nextFollowAt" start="2026-01-01" end="2027-12-31" :display="nextFollowAt" placeholder="选择下次跟进日期（可选）" @change="nextFollowAt = $event" />
 
       <button class="jz-btn jz-btn--primary jz-btn--block cf__save" @tap="save">保存跟进</button>
     </view>

@@ -81,6 +81,12 @@ function requestFailure(error: unknown, scope: 'request' | 'upload' = 'request')
   if (scope === 'upload' && normalized.includes('url not in domain list')) {
     return new Error(`上传域名未配置：请管理员将 ${apiHost()} 加入微信 uploadFile 合法域名`)
   }
+  if (scope === 'upload' && (normalized.includes('privacy') || normalized.includes('隐私') || normalized.includes('not declared'))) {
+    return new Error('小程序隐私授权未完成，请重新打开后按微信提示同意隐私政策；如仍失败请联系管理员')
+  }
+  if (scope === 'upload' && (normalized.includes('auth') || normalized.includes('permission') || normalized.includes('deny'))) {
+    return new Error('未获得相机、相册或文件权限，请在微信设置中开启后重试')
+  }
   if (scope === 'upload' && (normalized.includes('ssl') || normalized.includes('certificate') || normalized.includes('cert'))) {
     return new Error('上传服务证书异常，请联系管理员检查 HTTPS 证书')
   }

@@ -204,6 +204,7 @@ function goOwnerChange() { uni.navigateTo({ url: `${P.ownerChange}?projectId=${i
 function goFeedbackList() { uni.navigateTo({ url: `${P.feedbackList}?projectId=${id.value}` }) }
 function goRectifyBoard() { uni.navigateTo({ url: P.rectifyBoard }) }
 function goAlbum() { uni.navigateTo({ url: `${P.projectAlbum}?id=${id.value}` }) }
+function goContentUpload() { uni.navigateTo({ url: `${P.contentAssetUpload}?projectId=${id.value}` }) }
 function goDaily() { uni.navigateTo({ url: `${P.reportDaily}?id=${id.value}` }) }
 function goSelection() {
   const propertyId = project.value?.property?.id || ''
@@ -306,6 +307,7 @@ function avatarOf(m: ProjectMember) {
           <view v-if="canViewFinance" class="pd__hero-meta-item"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.white" /><text>{{ money(project.contractAmount) }}</text></view>
           <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goDaily"><JzIcon name="clipboard" :size="22" :color="TOKEN_COLOR.white" /><text>日报</text></view>
           <view class="pd__hero-meta-item" @tap="goAlbum"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>相册</text></view>
+          <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goContentUpload"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>拍素材</text></view>
         </view>
         <view v-if="!isOwner" class="pd__hero-team" @tap="goMembers">
           <view class="pd__hero-avatars">

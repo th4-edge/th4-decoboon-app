@@ -15,6 +15,7 @@ export type PrivateFileScope =
   | 'StockMovement'
   | 'Catalog'
   | 'Carryover'
+  | 'Content'
 
 interface RawFileGrant {
   path?: string

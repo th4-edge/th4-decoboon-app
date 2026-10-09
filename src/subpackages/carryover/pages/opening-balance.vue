@@ -94,7 +94,7 @@ async function submit() {
 
       <view class="ob-date jz-card">
         <text>接管日</text>
-        <JzSelectField mode="date" variant="boxed" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
+        <JzSelectField mode="date" variant="plain" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
       </view>
 
       <view v-for="account in accounts" :key="account" class="ob-account jz-card">

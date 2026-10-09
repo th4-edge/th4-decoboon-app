@@ -264,11 +264,11 @@ async function saveItem(item: CarryoverReconciliationItem) {
         <view class="rc-row"><text class="rc-row__label">差异</text><text class="rc-row__value" :class="{ 'rc-row__value--diff': item.difference }">{{ item.difference == null ? '待录入原账金额' : `${item.difference.toFixed(2)} 元` }}</text></view>
         <view class="rc-row">
           <text class="rc-row__label">差异分类</text>
-          <JzSelectField variant="boxed" :display="diffTypes[typeIndex(item)].label" :range="diffTypes.map(o => o.label)" :index="typeIndex(item)" @change="onType(item, $event)" />
+          <JzSelectField variant="plain" :display="diffTypes[typeIndex(item)].label" :range="diffTypes.map(o => o.label)" :index="typeIndex(item)" @change="onType(item, $event)" />
         </view>
         <view class="rc-row">
           <text class="rc-row__label">差异状态</text>
-          <JzSelectField variant="boxed" :display="diffStatuses[statusIndex(item)].label" :range="diffStatuses.map(o => o.label)" :index="statusIndex(item)" @change="onStatus(item, $event)" />
+          <JzSelectField variant="plain" :display="diffStatuses[statusIndex(item)].label" :range="diffStatuses.map(o => o.label)" :index="statusIndex(item)" @change="onStatus(item, $event)" />
         </view>
         <view class="rc-row"><text class="rc-row__label">差异原因</text><input v-model="item.reason" maxlength="500" placeholder="例如：客户已付款未入账" /></view>
         <view class="rc-row"><text class="rc-row__label">处理动作</text><input v-model="item.action" maxlength="500" placeholder="例如：补录收款/继续观察" /></view>

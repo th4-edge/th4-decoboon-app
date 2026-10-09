@@ -14,7 +14,10 @@ function errorMessage(error: unknown): string {
   const message = String((error as { errMsg?: unknown } | null)?.errMsg || '')
   const normalized = message.toLowerCase()
   if (normalized.includes('cancel')) return ''
-  if (normalized.includes('auth') || normalized.includes('authorize') || normalized.includes('permission')) {
+  if (normalized.includes('privacy') || normalized.includes('隐私') || normalized.includes('not declared')) {
+    return '小程序隐私授权未完成，请重新打开后按微信提示同意隐私政策'
+  }
+  if (normalized.includes('auth') || normalized.includes('authorize') || normalized.includes('permission') || normalized.includes('deny')) {
     return '未获得相机或相册权限，请在微信设置中开启后重试'
   }
   if (normalized.includes('not support') || normalized.includes('unsupported')) {

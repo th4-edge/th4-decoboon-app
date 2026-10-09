@@ -398,13 +398,13 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>合同编号 *</text><input v-model="contractNo" maxlength="64" placeholder="原合同编号" /></view>
       <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row"><text>签约日期 *</text><JzSelectField mode="date" variant="boxed" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
+      <view class="co-edit__row"><text>签约日期 *</text><JzSelectField mode="date" variant="plain" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
     </view>
 
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">3. 当前工地</text>
       <view class="co-edit__row"><text>项目名称</text><input v-model="projectName" maxlength="128" placeholder="默认客户 + 地址" /></view>
-      <view class="co-edit__row"><text>项目状态 *</text><JzSelectField variant="boxed" :display="PROJECT_STATUSES[projectStatusIndex].label" :range="projectStatusLabels" :index="projectStatusIndex" @change="pickProjectStatus" /></view>
+      <view class="co-edit__row"><text>项目状态 *</text><JzSelectField variant="plain" :display="PROJECT_STATUSES[projectStatusIndex].label" :range="projectStatusLabels" :index="projectStatusIndex" @change="pickProjectStatus" /></view>
       <view class="co-edit__row"><text>当前阶段 *</text><input v-model="currentStageName" maxlength="128" placeholder="例：泥木阶段" /></view>
       <view class="co-edit__progress"><text>当前进度 {{ progress }}%</text><slider :value="progress" min="0" max="100" active:color="TOKEN_COLOR.primaryBase" @changing="onProgressChange" @change="onProgressChange" /></view>
       <view class="co-edit__row co-edit__row--col"><text>剩余工作摘要 *</text><textarea v-model="remainingWork" maxlength="1000" placeholder="当前还需要完成哪些施工、材料、验收事项" /></view>
@@ -443,7 +443,7 @@ async function submitCarryover() {
         </view>
         <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view v-if="receivableExceedsContract" class="co-edit__field-warning">未收金额超过当前合同金额，请检查是否将累计已收填成了未收余额。</view>
-        <view class="co-edit__row"><text>约定收款日</text><JzSelectField mode="date" variant="boxed" :value="receivableDueDate" :display="receivableDueDate" placeholder="选填" @change="receivableDueDate = $event" /></view>
+        <view class="co-edit__row"><text>约定收款日</text><JzSelectField mode="date" variant="plain" :value="receivableDueDate" :display="receivableDueDate" placeholder="选填" @change="receivableDueDate = $event" /></view>
         <view class="co-edit__row"><text>原应收单号</text><input v-model="receivableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
         <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对客户未收工程款</text><text class="co-edit__switch-note">无未收款也必须点击左侧“无未收款”或填写 0 并确认</text></view><switch :checked="receivableConfirmed" :color="TOKEN_COLOR.primaryBase" @change="onReceivableConfirmedChange" /></view>
       </view>
@@ -454,7 +454,7 @@ async function submitCarryover() {
           <view class="co-edit__quick" @tap="acceptZeroPayable">无未付款</view>
         </view>
         <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-        <view class="co-edit__row"><text>约定付款日</text><JzSelectField mode="date" variant="boxed" :value="payableDueDate" :display="payableDueDate" placeholder="选填" @change="payableDueDate = $event" /></view>
+        <view class="co-edit__row"><text>约定付款日</text><JzSelectField mode="date" variant="plain" :value="payableDueDate" :display="payableDueDate" placeholder="选填" @change="payableDueDate = $event" /></view>
         <view class="co-edit__row"><text>收款方</text><input v-model="payablePayeeName" maxlength="128" placeholder="供应商、工人或项目班组" /></view>
         <view class="co-edit__row"><text>原应付单号</text><input v-model="payableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
         <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对当前未付款</text><text class="co-edit__switch-note">无未付款也必须点击左侧“无未付款”或填写 0 并确认</text></view><switch :checked="payableConfirmed" :color="TOKEN_COLOR.primaryBase" @change="onPayableConfirmedChange" /></view>
@@ -504,7 +504,7 @@ async function submitCarryover() {
 
     <view v-if="id && status === 'locked'" class="co-edit__section jz-card">
       <text class="co-edit__title">锁定后调整</text>
-      <view class="co-edit__row"><text>调整类型</text><JzSelectField variant="boxed" :display="ADJUSTMENT_TYPES[adjustmentTypeIndex].label" :range="adjustmentTypeLabels" :index="adjustmentTypeIndex" @change="pickAdjustmentType" /></view>
+      <view class="co-edit__row"><text>调整类型</text><JzSelectField variant="plain" :display="ADJUSTMENT_TYPES[adjustmentTypeIndex].label" :range="adjustmentTypeLabels" :index="adjustmentTypeIndex" @change="pickAdjustmentType" /></view>
       <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row co-edit__row--col"><text>调整原因 *</text><textarea v-model="adjustmentReason" maxlength="500" placeholder="说明调整依据" /></view>
       <button class="jz-btn jz-btn--primary jz-btn--block co-edit__upload" @tap="adjust">记录调整</button>
