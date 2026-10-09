@@ -15,6 +15,7 @@ import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 const id = ref('')
@@ -147,12 +148,8 @@ function joinedText(value?: string | number) {
       <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" :color="TOKEN_COLOR.primary" /><text>邀请设计师 / 项目经理加入团队</text></button>
     </view>
     <!-- 员工选择（工地下发岗位） -->
-    <view v-if="picking" class="mb__mask" @tap="picking = ''">
-      <view class="mb__sheet" @tap.stop>
-        <view class="mb__sheet-head">
-          <text class="mb__sheet-title">选择{{ pickingTitle }}</text>
-          <text class="mb__sheet-close" @tap="picking = ''">取消</text>
-        </view>
+    <JzSheet :visible="Boolean(picking)" :title="`选择${pickingTitle}`" @close="picking = ''">
+      <view class="mb__editor">
         <scroll-view scroll-y class="mb__sheet-list">
           <view v-for="e in candidates" :key="e.id" class="mb__sheet-item" @tap="choose(e)">
             <JzEmployeeAvatar :src="e.avatarUrl || ''" :name="e.name" :role="e.role" :status="e.status" :size="76" />
@@ -165,7 +162,7 @@ function joinedText(value?: string | number) {
           <view v-if="!candidates.length" class="mb__empty">暂无当前范围可选的在职员工（可先在「我的-企业成员」添加）</view>
         </scroll-view>
       </view>
-    </view>
+    </JzSheet>
   </view>
 </template>
 
@@ -180,12 +177,8 @@ function joinedText(value?: string | number) {
 .mb__role-action { font-size: $jzb-font-xs; color: $jzb-primary; padding: 6rpx 18rpx; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; }
 .mb__role-person { margin-left: 18rpx; }
 .mb__role-tip { display: block; padding: 14rpx 0 6rpx; font-size: $jzb-font-xs; color: $jzb-text-4; }
-.mb__mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, .45); display: flex; flex-direction: column; justify-content: flex-end; z-index: 900; }
-.mb__sheet { background: $jzb-bg-card; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); max-height: 70vh; }
-.mb__sheet-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
-.mb__sheet-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
-.mb__sheet-close { font-size: $jzb-font-sm; color: $jzb-text-3; }
-.mb__sheet-list { max-height: 52vh; margin-top: 12rpx; }
+.mb__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.mb__sheet-list { flex: 1; min-height: 0; height: 0; }
 .mb__sheet-item { display: flex; flex-direction: row; align-items: center; padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .mb__sheet-who { margin-left: 18rpx; }
 .mb__sheet-name { display: block; font-size: $jzb-font-sm; font-weight: 600; color: $jzb-text-1; }

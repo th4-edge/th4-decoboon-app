@@ -18,6 +18,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type Tab = 'overview' | 'receivable' | 'payable' | 'ledger' | 'settlement'
 const projectId = ref('')
@@ -218,6 +219,7 @@ async function releaseRetention() {
     <JzSkeleton v-else-if="!report && loading" :rows="4" />
     <view v-else-if="!report" class="fin-body"><JzEmpty text="暂无项目财务数据" sub="项目立项后自动生成财务核算" /></view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

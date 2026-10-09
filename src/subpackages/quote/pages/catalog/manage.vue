@@ -11,7 +11,9 @@ import { fileApi } from '@/domains/file/api'
 import { can } from '@/roles/permission'
 import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import CatalogPicker from '@/components/CatalogPicker.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const pickerVisible = ref(true)
 const pickerRef = ref<InstanceType<typeof CatalogPicker> | null>(null)
@@ -437,9 +439,9 @@ async function doToggle(item: CatalogItem, active: boolean) {
       </template>
     </CatalogPicker>
 
-    <view v-if="editorOpen" class="cm__mask" @tap="editorOpen = false">
-      <view class="cm__sheet" @tap.stop>
-        <view class="cm__head"><view><text class="cm__title">{{ editingId ? '编辑库内项目' : '新增库内项目' }}</text><text class="cm__sub">销售价和标准成本独立维护，合同签约时按当时成本冻结</text></view><view class="cm__close" @tap="editorOpen = false"><JzIcon name="close" :size="30" :color="TOKEN_COLOR.text3" /></view></view>
+    <JzSheet :visible="editorOpen" :title="editingId ? '编辑库内项目' : '新增库内项目'" max-height="92vh" @close="editorOpen = false">
+      <view class="cm__editor">
+        <text class="cm__sub">销售价和标准成本独立维护，合同签约时按当时成本冻结</text>
         <scroll-view scroll-y class="cm__body">
           <text class="cm__label">项目类型</text>
           <view class="jz-chip-row"><view v-for="item in typeOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': type === item.value }" @tap="type = item.value">{{ item.label }}</view></view>
@@ -538,10 +540,11 @@ async function doToggle(item: CatalogItem, active: boolean) {
             <text v-else class="cm__detail-empty">该类目暂无需补充明细</text>
           </view>
         </scroll-view>
-        <view class="catalog-editor__actions"><button class="jz-btn jz-btn--neutral" @tap="editorOpen = false">取消</button><button class="jz-btn jz-btn--primary jz-grow" :loading="saving" @tap="save">保存报价项目</button></view>
+        <view class="catalog-editor__actions"><button class="jz-btn jz-btn--neutral" :disabled="saving" @tap="editorOpen = false">取消</button><button class="jz-btn jz-btn--primary jz-grow" :loading="saving" :disabled="saving" @tap="save">保存报价项目</button></view>
       </view>
-    </view>
+    </JzSheet>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>
@@ -554,15 +557,11 @@ async function doToggle(item: CatalogItem, active: boolean) {
 .cm__import-row { display: flex; justify-content: space-between; font-size: 24rpx; color: #667085; }
 .cm__import-status { color: #8d98a5; }
 
-.cm__mask { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.cm__sheet { width: 100%; height: 90vh; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
-.cm__head { padding: 30rpx $jzb-page-pad 22rpx; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
-.cm__title { display: block; font-size: $jzb-font-xl; font-weight: 750; }
-.cm__sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
-.cm__close { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
+.cm__editor { display: flex; flex-direction: column; max-height: 78vh; }
+.cm__sub { display: block; margin-bottom: 14rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.5; }
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
-.cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx $jzb-page-pad 30rpx; }
+.cm__body { flex: 1; height: 0; min-height: 0; box-sizing: border-box; padding: 6rpx 0 24rpx; }
 .cm__price-preview { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 16rpx; padding: 16rpx 24rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cm__price-preview-label { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cm__price-preview-value { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; text-align: right; }
@@ -583,7 +582,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
 .cm__triple { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12rpx; margin-top: 16rpx; }
 .cm__gap { margin-top: 16rpx; }
 .cm__formula { margin-top: 16rpx; padding: 18rpx; display: flex; gap: 10rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
-.catalog-editor__actions { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
+.catalog-editor__actions { flex-shrink: 0; padding-top: 16rpx; display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
 .cm__images { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .cm__image { position: relative; width: 196rpx; height: 196rpx; overflow: hidden; border-radius: $jzb-radius-sm; }
 .cm__image image { width: 100%; height: 100%; }
@@ -595,5 +594,5 @@ async function doToggle(item: CatalogItem, active: boolean) {
 .cm__brand-option { min-height: 68rpx; padding: 0 16rpx; display: flex; align-items: center; justify-content: space-between; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .cm__brand-option:active { background: $jzb-primary-lightest; }
 .cm__brand-custom { padding: 14rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: 8rpx; font-size: $jzb-font-xs; line-height: 1.5; }
-@media (min-width: 768px) { .cm__mask, .cm__sheet { left: 50%; right: auto; width: 560px; transform: translateX(-50%); } }
+
 </style>

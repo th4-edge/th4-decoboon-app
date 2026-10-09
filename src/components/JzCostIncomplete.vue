@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import JzIcon from './JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { alert } from '@/composables/toast'
 
 const props = withDefaults(defineProps<{
   reason?: string
@@ -20,12 +21,7 @@ const message = computed(() => {
 })
 
 function showReason() {
-  uni.showModal({
-    title: '成本未完整',
-    content: message.value,
-    showCancel: false,
-    confirmText: '知道了'
-  })
+  void alert('成本未完整', message.value)
 }
 </script>
 

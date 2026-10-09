@@ -15,6 +15,7 @@ import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const role = computed(() => session.role || 'customer')
 const roleMeta = computed(() => ROLE_META[role.value])
@@ -169,6 +170,7 @@ async function doLogout() {
     </view>
     <JzTabBar :current="P.mine" />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

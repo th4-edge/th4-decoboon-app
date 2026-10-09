@@ -14,6 +14,8 @@ import { chooseImages } from '@/domains/file/choose-media'
 import { confirm, confirmDanger, toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const id = ref('')
 const batchId = ref('')
@@ -70,6 +72,11 @@ const ADJUSTMENT_TYPES: { value: CarryoverAdjustmentType; label: string }[] = [
 onShow(() => { applyEmployeePickerResult() })
 function onProgressChange(event: any) { progress.value = Number(event?.detail?.value ?? 0) }
 const adjustmentTypeIndex = computed(() => Math.max(0, ADJUSTMENT_TYPES.findIndex(item => item.value === adjustmentType.value)))
+const adjustmentTypeLabels = ADJUSTMENT_TYPES.map((item) => item.label)
+function pickAdjustmentType(label: string) {
+  const hit = ADJUSTMENT_TYPES.find((item) => item.label === label)
+  if (hit) adjustmentType.value = hit.value
+}
 function onReceivableConfirmedChange(event: any) { receivableConfirmed.value = !!event?.detail?.value }
 function onPayableConfirmedChange(event: any) { payableConfirmed.value = !!event?.detail?.value }
 
@@ -102,6 +109,11 @@ const ownerIndex = computed(() => Math.max(0, employees.value.findIndex(item => 
 const managerIndex = computed(() => Math.max(0, employees.value.findIndex(item => item.id === manager.value?.id)))
 const designerIndex = computed(() => Math.max(0, employees.value.findIndex(item => item.id === designer.value?.id)))
 const projectStatusIndex = computed(() => Math.max(0, PROJECT_STATUSES.findIndex(item => item.value === projectStatus.value)))
+const projectStatusLabels = PROJECT_STATUSES.map((item) => item.label)
+function pickProjectStatus(label: string) {
+  const hit = PROJECT_STATUSES.find((item) => item.label === label)
+  if (hit) projectStatus.value = hit.value
+}
 const costStatusIndex = computed(() => Math.max(0, COST_STATUSES.findIndex(item => item.value === costStatus.value)))
 const amountNumber = (value: string) => value === '' ? 0 : Number(value)
 const contractAmountNumber = computed(() => amountNumber(currentAmount.value) || 0)
@@ -385,13 +397,13 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>合同编号 *</text><input v-model="contractNo" maxlength="64" placeholder="原合同编号" /></view>
       <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row"><text>签约日期 *</text><picker mode="date" :value="signedAt" @change="signedAt = $event.detail.value"><view class="co-edit__picker">{{ signedAt || '请选择' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
+      <view class="co-edit__row"><text>签约日期 *</text><JzSelectField mode="date" variant="boxed" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
     </view>
 
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">3. 当前工地</text>
       <view class="co-edit__row"><text>项目名称</text><input v-model="projectName" maxlength="128" placeholder="默认客户 + 地址" /></view>
-      <view class="co-edit__row"><text>项目状态 *</text><picker :range="PROJECT_STATUSES.map(item => item.label)" :value="projectStatusIndex" @change="projectStatus = PROJECT_STATUSES[Number($event.detail.value)].value"><view class="co-edit__picker">{{ PROJECT_STATUSES[projectStatusIndex].label }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
+      <view class="co-edit__row"><text>项目状态 *</text><JzSelectField variant="boxed" :display="PROJECT_STATUSES[projectStatusIndex].label" :range="projectStatusLabels" :index="projectStatusIndex" @change="pickProjectStatus" /></view>
       <view class="co-edit__row"><text>当前阶段 *</text><input v-model="currentStageName" maxlength="128" placeholder="例：泥木阶段" /></view>
       <view class="co-edit__progress"><text>当前进度 {{ progress }}%</text><slider :value="progress" min="0" max="100" activeColor="#16A394" @changing="onProgressChange" @change="onProgressChange" /></view>
       <view class="co-edit__row co-edit__row--col"><text>剩余工作摘要 *</text><textarea v-model="remainingWork" maxlength="1000" placeholder="当前还需要完成哪些施工、材料、验收事项" /></view>
@@ -430,7 +442,7 @@ async function submitCarryover() {
         </view>
         <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
         <view v-if="receivableExceedsContract" class="co-edit__field-warning">未收金额超过当前合同金额，请检查是否将累计已收填成了未收余额。</view>
-        <view class="co-edit__row"><text>约定收款日</text><picker mode="date" :value="receivableDueDate" @change="receivableDueDate = $event.detail.value"><view class="co-edit__picker">{{ receivableDueDate || '选填' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
+        <view class="co-edit__row"><text>约定收款日</text><JzSelectField mode="date" variant="boxed" :value="receivableDueDate" :display="receivableDueDate" placeholder="选填" @change="receivableDueDate = $event" /></view>
         <view class="co-edit__row"><text>原应收单号</text><input v-model="receivableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
         <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对客户未收工程款</text><text class="co-edit__switch-note">无未收款也必须点击左侧“无未收款”或填写 0 并确认</text></view><switch :checked="receivableConfirmed" color="#16A394" @change="onReceivableConfirmedChange" /></view>
       </view>
@@ -441,7 +453,7 @@ async function submitCarryover() {
           <view class="co-edit__quick" @tap="acceptZeroPayable">无未付款</view>
         </view>
         <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-        <view class="co-edit__row"><text>约定付款日</text><picker mode="date" :value="payableDueDate" @change="payableDueDate = $event.detail.value"><view class="co-edit__picker">{{ payableDueDate || '选填' }}<JzIcon name="calendar" :size="24" color="#94A3B8" /></view></picker></view>
+        <view class="co-edit__row"><text>约定付款日</text><JzSelectField mode="date" variant="boxed" :value="payableDueDate" :display="payableDueDate" placeholder="选填" @change="payableDueDate = $event" /></view>
         <view class="co-edit__row"><text>收款方</text><input v-model="payablePayeeName" maxlength="128" placeholder="供应商、工人或项目班组" /></view>
         <view class="co-edit__row"><text>原应付单号</text><input v-model="payableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
         <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对当前未付款</text><text class="co-edit__switch-note">无未付款也必须点击左侧“无未付款”或填写 0 并确认</text></view><switch :checked="payableConfirmed" color="#16A394" @change="onPayableConfirmedChange" /></view>
@@ -491,7 +503,7 @@ async function submitCarryover() {
 
     <view v-if="id && status === 'locked'" class="co-edit__section jz-card">
       <text class="co-edit__title">锁定后调整</text>
-      <view class="co-edit__row"><text>调整类型</text><picker :range="ADJUSTMENT_TYPES.map(item => item.label)" :value="adjustmentTypeIndex" @change="adjustmentType = ADJUSTMENT_TYPES[Number($event.detail.value)].value"><view class="co-edit__picker">{{ ADJUSTMENT_TYPES[adjustmentTypeIndex].label }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></picker></view>
+      <view class="co-edit__row"><text>调整类型</text><JzSelectField variant="boxed" :display="ADJUSTMENT_TYPES[adjustmentTypeIndex].label" :range="adjustmentTypeLabels" :index="adjustmentTypeIndex" @change="pickAdjustmentType" /></view>
       <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       <view class="co-edit__row co-edit__row--col"><text>调整原因 *</text><textarea v-model="adjustmentReason" maxlength="500" placeholder="说明调整依据" /></view>
       <button class="jz-btn jz-btn--primary jz-btn--block co-edit__upload" @tap="adjust">记录调整</button>
@@ -518,6 +530,7 @@ async function submitCarryover() {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

@@ -13,10 +13,12 @@ import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import { carryoverApi } from '@/domains/carryover/api'
 import type { CarryoverProject } from '@/domains/carryover/model'
-import { toastError, toast, loading, hideLoading } from '@/composables/toast'
+import { confirmAction, toastError, toast, loading, hideLoading } from '@/composables/toast'
 import { planDeviationApi, type PlanDeviation } from '@/domains/project/deviation'
+import { openActionSheet } from '@/composables/dialog'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const id = ref('')
 const project = ref<Project | null>(null)
@@ -64,15 +66,12 @@ const latestConfirmedDeviation = computed(() => deviations.value.find((item) => 
 /** DEC-051 DEV-01：确认/驳回限企业负责人或本门店店长。 */
 const canHandleDeviation = computed(() => session.role === 'boss' || session.role === 'storeManager')
 
-function chooseIndex(title: string, itemList: string[]): Promise<number> {
-  return new Promise((resolve) => {
-    uni.showActionSheet({ itemList, success: (res) => resolve(res.tapIndex), fail: () => resolve(-1) })
-  })
+async function chooseIndex(title: string, itemList: string[]): Promise<number> {
+  const index = await openActionSheet({ title, itemList })
+  return index === null ? -1 : index
 }
 function ask(title: string, content: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    uni.showModal({ title, content, success: (res) => resolve(!!res.confirm), fail: () => resolve(false) })
-  })
+  return confirmAction({ title, content })
 }
 async function submitDeviation(input: {
   deviationId: string
@@ -216,6 +215,7 @@ function openCarryoverPlan() {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

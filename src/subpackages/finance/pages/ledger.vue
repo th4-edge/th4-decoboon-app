@@ -17,6 +17,7 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type DirectionFilter = 'all' | LedgerDirection
 type DateFilter = 'all' | 'today' | 'd3' | 'd7' | 'm1' | 'm3' | 'm6' | 'year'
@@ -276,6 +277,7 @@ function openVouchers() {
       <button class="fin-selectbar__btn" :disabled="!selected.length || issuing" @tap="issueVoucher">生成凭证</button>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

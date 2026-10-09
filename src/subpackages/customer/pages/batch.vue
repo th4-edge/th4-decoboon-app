@@ -11,6 +11,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const text = ref('')
 const owner = ref<Employee | null>(null)
@@ -187,6 +188,7 @@ function statusColor(item: CustomerBatchItem) {
       </template>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

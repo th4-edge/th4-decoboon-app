@@ -7,10 +7,16 @@ const props = withDefaults(defineProps<{
   title?: string
   closable?: boolean
   round?: boolean
+  /** 内容区最大高度，超高表单可传 '92vh' 之类；默认维持 70vh */
+  maxHeight?: string
+  /** 是否展示顶部拖拽条 */
+  showBar?: boolean
 }>(), {
   title: '',
   closable: true,
-  round: true
+  round: true,
+  maxHeight: '70vh',
+  showBar: true
 })
 
 const emit = defineEmits<{
@@ -32,14 +38,14 @@ function handleClose() {
     <view class="jz-sheet__stage">
       <transition name="jz-sheet-slide">
         <view v-if="visible" class="jz-sheet__panel" :class="{ 'jz-sheet__panel--round': round }" @tap.stop>
-          <view class="jz-sheet__bar"></view>
+          <view v-if="showBar" class="jz-sheet__bar"></view>
           <view v-if="title || closable" class="jz-sheet__header">
             <text v-if="title" class="jz-sheet__title">{{ title }}</text>
             <view v-if="closable" class="jz-sheet__close" @tap="handleClose">
               <JzIcon name="close" :size="36" :color="TOKEN_COLOR.text3" />
             </view>
           </view>
-          <view class="jz-sheet__body">
+          <view class="jz-sheet__body" :style="{ maxHeight }">
             <slot />
           </view>
         </view>
@@ -112,7 +118,6 @@ function handleClose() {
 }
 
 .jz-sheet__body {
-  max-height: 70vh;
   padding: 0 28rpx 32rpx;
   overflow-y: auto;
 }

@@ -18,11 +18,13 @@ import { acceptanceApi } from '@/domains/acceptance/api'
 import { acceptanceRoundApi } from '@/domains/acceptance/api'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import { confirmAction, promptText, toast } from '@/composables/toast'
 import JzProgress from '@/components/JzProgress.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const id = ref('')
 const stage = ref<ProjectStage | null>(null)
@@ -105,38 +107,27 @@ function addTask() {
 function openTask(tid: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${tid}` }) }
 
 async function markNotApplicable() {
-  const res = await new Promise<any>((resolve) => {
-    uni.showModal({
-      title: '判定本项不涉及',
-      editable: true,
-      placeholderText: '请填写判定依据，例如：本项目不含水电改造，依据报价分项',
-      success: resolve,
-      fail: () => resolve({ confirm: false })
-    })
-  })
-  if (!res?.confirm) return
-  const reason = String(res.content || '').trim()
-  if (!reason) { uni.showToast({ title: '请填写判定依据', icon: 'none' }); return }
+  const reason = await promptText('判定本项不涉及', '请填写判定依据，例如：本项目不含水电改造，依据报价分项')
+  if (reason === null) return
+  if (!reason) { toast('请填写判定依据'); return }
   try {
     await projectApi.markStageNotApplicable(id.value, reason)
-    uni.showToast({ title: '已判定本项不涉及', icon: 'success' })
+    toast('已判定本项不涉及', 'success')
     load()
   } catch (error: any) {
-    uni.showToast({ title: error?.message || '判定失败，请重试', icon: 'none' })
+    toast(error?.message || '判定失败，请重试')
   }
 }
 
 async function restoreStage() {
-  const ok = await new Promise<boolean>((resolve) => {
-    uni.showModal({ title: '撤销判定', content: '撤销后该阶段回到未开始，需要按报价/合同施工行补齐任务后才能开工。', success: (r) => resolve(!!r.confirm), fail: () => resolve(false) })
-  })
+  const ok = await confirmAction({ title: '撤销判定', content: '撤销后该阶段回到未开始，需要按报价/合同施工行补齐任务后才能开工。' })
   if (!ok) return
   try {
     await projectApi.restoreStage(id.value)
-    uni.showToast({ title: '已撤销判定', icon: 'success' })
+    toast('已撤销判定', 'success')
     load()
   } catch (error: any) {
-    uni.showToast({ title: error?.message || '撤销失败，请重试', icon: 'none' })
+    toast(error?.message || '撤销失败，请重试')
   }
 }
 function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDetail}?id=${project.value.id}` }) }
@@ -244,6 +235,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
     <JzReportCard v-for="r in reports" :key="r.id" :report="r" />
     <view v-if="!reports.length" class="jz-card sd__empty"><JzEmpty text="本阶段暂无动态" /></view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

@@ -11,6 +11,8 @@ import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
@@ -360,12 +362,8 @@ async function submit() {
           <text class="cc__block-hint">必填</text>
         </view>
         <view class="cc__confirm-row">
-          <picker mode="date" :value="customerConfirmedDate" @change="customerConfirmedDate = ($event.detail as any).value">
-            <view class="cc__pick">{{ customerConfirmedDate || '确认日期' }}</view>
-          </picker>
-          <picker mode="time" :value="customerConfirmedTime" @change="customerConfirmedTime = ($event.detail as any).value">
-            <view class="cc__pick">{{ customerConfirmedTime || '确认时间' }}</view>
-          </picker>
+          <JzSelectField mode="date" variant="boxed" :value="customerConfirmedDate" :display="customerConfirmedDate" placeholder="确认日期" @change="customerConfirmedDate = $event" />
+          <JzSelectField mode="time" variant="boxed" :value="customerConfirmedTime" :display="customerConfirmedTime" placeholder="确认时间" @change="customerConfirmedTime = $event" />
         </view>
         <input v-model="customerConfirmedBy" class="cc__input cc__input--full" placeholder="客户确认人姓名" />
         <picker :range="CONFIRM_METHODS" @change="customerConfirmMethod = CONFIRM_METHODS[Number($event.detail.value)]">
@@ -404,12 +402,8 @@ async function submit() {
       </view>
     </view>
 
-    <view v-if="showLinePicker" class="cc__picker-mask" @tap="showLinePicker = false">
-      <view class="cc__picker" @tap.stop>
-        <view class="cc__picker-head">
-          <text class="cc__picker-title">选择原合同行</text>
-          <text class="cc__picker-close" @tap="showLinePicker = false">关闭</text>
-        </view>
+    <JzSheet :visible="showLinePicker" title="选择原合同行" @close="showLinePicker = false">
+      <view class="cc__picker-wrap">
         <scroll-view scroll-y class="cc__picker-body">
           <view v-for="item in lines" :key="item.id" class="cc__picker-item" @tap="pickLine(item)">
             <view class="jz-grow">
@@ -420,7 +414,7 @@ async function submit() {
           </view>
         </scroll-view>
       </view>
-    </view>
+    </JzSheet>
   </view>
 </template>
 
@@ -471,12 +465,8 @@ async function submit() {
 .cc__photo-img { width: 100%; height: 100%; }
 .cc__photo--add { display: flex; align-items: center; justify-content: center; border: 2rpx dashed $jzb-border-light; }
 .cc__photo-del { position: absolute; top: 4rpx; right: 10rpx; color: $jzb-text-inverse; font-size: 32rpx; }
-.cc__picker-mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 60; display: flex; align-items: flex-end; }
-.cc__picker { width: 100%; max-height: 70vh; background: $jzb-text-inverse; border-radius: $jzb-radius-lg $jzb-radius-lg 0 0; padding: $jzb-space-5; }
-.cc__picker-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx; }
-.cc__picker-title { font-size: $jzb-font-md; font-weight: 700; }
-.cc__picker-close { font-size: $jzb-font-sm; color: $jzb-text-3; }
-.cc__picker-body { max-height: 56vh; }
+.cc__picker-wrap { display: flex; flex-direction: column; max-height: 62vh; }
+.cc__picker-body { flex: 1; min-height: 0; height: 0; }
 .cc__picker-item { display: flex; align-items: center; gap: 12rpx; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .cc__picker-name { display: block; font-size: $jzb-font-sm; font-weight: 600; }
 .cc__picker-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }

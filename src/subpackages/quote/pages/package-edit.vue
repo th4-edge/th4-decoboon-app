@@ -17,6 +17,7 @@ import LineCard from '../components/LineCard/LineCard.vue'
 import CatalogPickerSheet from '../components/CatalogPickerSheet/CatalogPickerSheet.vue'
 import LineEditSheet from '../components/LineEditSheet/LineEditSheet.vue'
 import CostCheckPanel from '../components/CostCheckPanel/CostCheckPanel.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const templateId = ref('')
 const template = ref<PackageTemplate | null>(null)
@@ -473,6 +474,7 @@ const primaryText = computed(() => {
       @confirm="saveSectionDialog"
     />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

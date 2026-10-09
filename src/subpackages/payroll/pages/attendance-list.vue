@@ -8,7 +8,7 @@ import { ATTENDANCE_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn } from '@/domains/identity/session'
 import { session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -16,6 +16,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const month = ref(localMonth())
 const deletingId = ref('')
@@ -63,16 +64,7 @@ function add() { uni.navigateTo({ url: `${P.payrollAttendanceEdit}?month=${encod
 
 async function remove(item: AttendanceSummary) {
   if (!editable.value || deletingId.value || item.status === 'inPayroll') return
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '删除月度考勤',
-      content: `确认删除 ${item.employee.name} ${item.payrollMonth} 的考勤？已进入工资单的考勤不可删除。`,
-      confirmText: '删除',
-      confirmColor: '#E5484D',
-      success: (result) => resolve(result.confirm),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('删除月度考勤', `确认删除 ${item.employee.name} ${item.payrollMonth} 的考勤？已进入工资单的考勤不可删除。`, '删除')
   if (!confirmed) return
   deletingId.value = item.id
   showLoading('删除中')
@@ -117,6 +109,7 @@ async function remove(item: AttendanceSummary) {
       <JzEmpty v-if="!loading && !items.length" text="本月暂无考勤" sub="先录入异常考勤，再确认后生成工资单" />
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

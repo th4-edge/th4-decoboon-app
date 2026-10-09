@@ -8,7 +8,7 @@ import type { PayrollSheet } from '@/domains/payroll/model'
 import { PAYROLL_SHEET_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -17,6 +17,7 @@ import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const editable = ref(can(session.role, 'edit:payroll'))
 const selectedPeriod = ref(localMonth())
@@ -63,16 +64,7 @@ function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetai
 
 async function removeDraft(item: PayrollSheet) {
   if (session.role !== 'boss' || item.status !== 'draft' || deletingId.value) return
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '删除工资单草稿',
-      content: `确认删除 ${item.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`,
-      confirmText: '删除',
-      confirmColor: '#E5484D',
-      success: (result) => resolve(result.confirm),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('删除工资单草稿', `确认删除 ${item.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`, '删除')
   if (!confirmed) return
   deletingId.value = item.id
   showLoading('删除中')
@@ -124,6 +116,7 @@ async function removeDraft(item: PayrollSheet) {
       <JzEmpty v-if="!loading && !items.length" text="暂无工资单" sub="生成工资单后在这里完成确认与发放" />
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

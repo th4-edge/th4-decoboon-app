@@ -13,8 +13,10 @@ import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { toast, toastError, loading, hideLoading, confirm } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type ContractStatus = Contract['status']
 
@@ -379,9 +381,9 @@ function validateEffectiveInputs() {
           placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
         />
       </view>
-      <view class="pc__row"><text class="pc__label">签约日期</text><picker mode="date" :disabled="!signFieldsEditable" :value="signedAt" @change="signedAt = $event.detail.value"><view class="jz-grow pc__value">{{ signedAt || '请选择' }}</view></picker></view>
-      <view class="pc__row"><text class="pc__label">计划开工</text><picker mode="date" :disabled="!effectiveFieldsEditable" :value="startDate" @change="startDate = $event.detail.value"><view class="jz-grow pc__value">{{ startDate || '请选择' }}</view></picker></view>
-      <view class="pc__row"><text class="pc__label">计划完工</text><picker mode="date" :disabled="!effectiveFieldsEditable" :value="planEndDate" @change="planEndDate = $event.detail.value"><view class="jz-grow pc__value">{{ planEndDate || '请选择' }}</view></picker></view>
+      <view class="pc__row"><text class="pc__label">签约日期</text><JzSelectField mode="date" :disabled="!signFieldsEditable" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
+      <view class="pc__row"><text class="pc__label">计划开工</text><JzSelectField mode="date" :disabled="!effectiveFieldsEditable" :value="startDate" :display="startDate" placeholder="请选择" @change="startDate = $event" /></view>
+      <view class="pc__row"><text class="pc__label">计划完工</text><JzSelectField mode="date" :disabled="!effectiveFieldsEditable" :value="planEndDate" :display="planEndDate" start="" :end="startDate || ''" placeholder="请选择" @change="planEndDate = $event" /></view>
       <view class="pc__plan-block" :class="{ 'pc__plan-block--disabled': !planFieldsEditable }" @tap="openPaymentPlanPicker">
         <view class="pc__plan-head"><text class="pc__label">付款计划</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <text class="pc__plan-name">{{ selectedPaymentPlan?.name || '选择付款计划模板' }}</text>
@@ -413,6 +415,7 @@ function validateEffectiveInputs() {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

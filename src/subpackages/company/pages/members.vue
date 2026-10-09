@@ -13,6 +13,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type Filter = 'Active' | 'Suspended' | 'Resigned'
 const filter = ref<Filter>('Active')
@@ -143,6 +144,7 @@ async function resign(member: Employee) {
       <JzEmpty v-else text="暂无成员" sub="可通过微信分享邀请员工加入企业" />
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

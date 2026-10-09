@@ -14,6 +14,7 @@ import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const STATUS_META: Record<ContractChangeStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
@@ -223,6 +224,7 @@ function openContract() {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

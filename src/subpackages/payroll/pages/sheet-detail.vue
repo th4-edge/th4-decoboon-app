@@ -8,13 +8,14 @@ import type { PayrollItem, PayrollSheet } from '@/domains/payroll/model'
 import { PAYROLL_ITEM_STATUS_META, PAYROLL_SHEET_STATUS_META } from '@/domains/payroll/meta'
 import { session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { confirmAction, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { confirmAction, confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type BlockerAction = 'attendance' | 'commission' | 'rebuild' | 'items'
 
@@ -69,16 +70,7 @@ async function refresh() {
 
 async function removeDraft() {
   if (!sheet.value || session.role !== 'boss' || sheet.value.status !== 'draft' || deleting.value) return
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '删除工资单草稿',
-      content: `确认删除 ${sheet.value?.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`,
-      confirmText: '删除',
-      confirmColor: '#E5484D',
-      success: (result) => resolve(result.confirm),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('删除工资单草稿', `确认删除 ${sheet.value?.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`, '删除')
   if (!confirmed) return
   deleting.value = true
   showLoading('删除中')
@@ -193,6 +185,7 @@ async function confirmSheet() {
       <button v-if="canConfirm && editableStatus" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirmDisabled" @tap="confirmSheet">{{ confirmDisabled && !confirming ? '请先处理阻断项' : '确认工资单' }}</button>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

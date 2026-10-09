@@ -13,6 +13,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const inviteId = ref('')
 const token = ref('')
@@ -159,6 +160,7 @@ function roleLabel() {
       </button>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

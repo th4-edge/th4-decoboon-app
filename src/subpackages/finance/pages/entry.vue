@@ -32,6 +32,7 @@ import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
@@ -495,6 +496,35 @@ function onInvoiceSwitch(event: any) { form.invoiceRequired = !!event.detail.val
 function onUrgentSwitch(event: any) { form.urgent = !!event.detail.value }
 function selectLabel(options: { label: string }[], index: number) { return options[index]?.label || '' }
 
+/** JzSelectField 回传显示文案；按下标找到对应业务值再写回表单。 */
+function pickReceivableType(label: string) {
+  const hit = receivableTypeOptions.find((item) => item.label === label)
+  if (hit) form.receivableType = hit.value as Receivable['type']
+}
+function pickPayableType(label: string) {
+  const hit = payableTypeOptions.find((item) => item.label === label)
+  if (hit) form.payableType = hit.value as PayableType
+}
+function pickWorker(label: string) {
+  const hit = workerOptions.value.find((item) => item.label === label)
+  if (hit) form.workerId = hit.value
+}
+function pickAccount(label: string) {
+  const hit = accountOptions.find((item) => item.label === label)
+  if (hit) form.account = hit.value as FundAccount
+}
+function pickDirection(label: string) {
+  const hit = directionOptions.find((item) => item.label === label)
+  if (hit) {
+    form.direction = hit.value as LedgerDirection
+    normalizePurposeForDirection()
+  }
+}
+function pickPurpose(label: string) {
+  const hit = purposeOptions.value.find((item) => item.label === label)
+  if (hit) form.purpose = hit.value
+}
+
 function projectSelection(project?: Project | null): FinanceProjectSelection | null {
   if (!project?.id) return null
   return {
@@ -660,9 +690,9 @@ async function submit() {
       <template v-if="type === 'receivable'">
         <view class="fin-field"><text class="fin-field__label">节点名称</text><input v-model="form.name" maxlength="64" placeholder="如 合同首期款" /></view>
         <view class="fin-field"><text class="fin-field__label">施工节点</text><input v-model="form.stageName" maxlength="64" placeholder="如 签订合同 / 水电验收" /></view>
-        <view class="fin-field"><text class="fin-field__label">应收类型</text><picker :range="receivableTypeOptions" range-key="label" :value="receivableTypeIndex" @change="onReceivableType"><view class="fin-field__value">{{ selectLabel(receivableTypeOptions, receivableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">应收类型</text><JzSelectField variant="boxed" :display="selectLabel(receivableTypeOptions, receivableTypeIndex)" :range="receivableTypeOptions.map(item => item.label)" :index="receivableTypeIndex" @change="pickReceivableType" /></view>
         <view class="fin-field"><text class="fin-field__label">应收金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">约定收款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">约定收款日</text><JzSelectField mode="date" variant="boxed" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">需要开票</text><switch :checked="form.invoiceRequired" :color="TOKEN_COLOR.primary" @change="onInvoiceSwitch" /><text v-if="form.invoiceRequired" class="fin-field__label" style="width:auto;">发票号</text><input v-if="form.invoiceRequired" v-model="form.invoiceNo" placeholder="可选" /></view>
       </template>
 
@@ -721,18 +751,18 @@ async function submit() {
         </view>
 
         <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">收款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">收款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">收款账户</text><JzSelectField variant="boxed" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
+        <view class="fin-field"><text class="fin-field__label">收款日期</text><JzSelectField mode="date" variant="boxed" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">付款方</text><input v-model="form.payerName" maxlength="64" :placeholder="selectedProject?.customerName || '默认项目客户'" /></view>
       </template>
 
       <template v-else-if="type === 'payable'">
         <view class="fin-field"><text class="fin-field__label">应付名称</text><input v-model="form.name" maxlength="64" :placeholder="form.payableType === 'salary' ? '如 9月水电工工资' : '如 瓷砖材料款'" /></view>
-        <view class="fin-field"><text class="fin-field__label">费用类型</text><picker :range="payableTypeOptions" range-key="label" :value="payableTypeIndex" @change="onPayableType"><view class="fin-field__value">{{ selectLabel(payableTypeOptions, payableTypeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">费用类型</text><JzSelectField variant="boxed" :display="selectLabel(payableTypeOptions, payableTypeIndex)" :range="payableTypeOptions.map(item => item.label)" :index="payableTypeIndex" @change="pickPayableType" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" :placeholder="form.payableType === 'salary' ? '工人姓名' : '供应商/班组'" /></view>
         <view v-if="form.payableType === 'salary'" class="fin-field"><text class="fin-field__label">工资周期</text><input v-model="form.period" maxlength="32" placeholder="如 2026年8月" /></view>
         <view class="fin-field"><text class="fin-field__label">应付金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">约定付款日</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">约定付款日</text><JzSelectField mode="date" variant="boxed" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view v-if="form.payableType !== 'salary'" class="fin-field"><text class="fin-field__label">来源单号</text><input v-model="form.sourceNo" maxlength="64" placeholder="采购单/合同单号，可选" /></view>
         <view class="fin-field"><text class="fin-field__label">加急</text><switch :checked="form.urgent" :color="TOKEN_COLOR.danger" @change="onUrgentSwitch" /></view>
       </template>
@@ -795,16 +825,16 @@ async function submit() {
         </view>
 
         <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">付款账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">付款日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><picker :range="workerOptions" range-key="label" :value="workerIndex" @change="onWorker"><view class="fin-field__value" :class="{ 'fin-field__placeholder': !form.workerId }">{{ form.workerId ? selectLabel(workerOptions, workerIndex) : '选填：请选择工人（用于工资凭证）' }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">付款账户</text><JzSelectField variant="boxed" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
+        <view class="fin-field"><text class="fin-field__label">付款日期</text><JzSelectField mode="date" variant="boxed" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
+        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><JzSelectField variant="boxed" :display="form.workerId ? selectLabel(workerOptions, workerIndex) : ''" :range="workerOptions.map(item => item.label)" :index="workerIndex" placeholder="选填：请选择工人（用于工资凭证）" @change="pickWorker" /></view>
         <view v-if="isSalaryPayment && !form.workerId" class="fe-inline-hint fe-inline-hint--worker">未选择工人，工资凭证的身份证号/工种/银行账号栏位将留空，可稍后补录。</view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" placeholder="默认应付收款方" /></view>
       </template>
 
       <template v-else>
-        <view class="fin-field"><text class="fin-field__label">收支方向</text><picker :range="directionOptions" range-key="label" :value="directionIndex" @change="onDirection"><view class="fin-field__value">{{ selectLabel(directionOptions, directionIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">账务用途</text><picker :range="purposeOptions" range-key="label" :value="purposeIndex" @change="onPurpose"><view class="fin-field__value">{{ selectLabel(purposeOptions, purposeIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">收支方向</text><JzSelectField variant="boxed" :display="selectLabel(directionOptions, directionIndex)" :range="directionOptions.map(item => item.label)" :index="directionIndex" @change="pickDirection" /></view>
+        <view class="fin-field"><text class="fin-field__label">账务用途</text><JzSelectField variant="boxed" :display="selectLabel(purposeOptions, purposeIndex)" :range="purposeOptions.map(item => item.label)" :index="purposeIndex" @change="pickPurpose" /></view>
         <view class="fe-purpose-hint">{{ purposeOptions[purposeIndex]?.hint }}</view>
         <view class="fin-field fin-field--tap" @tap="openCategoryPicker">
           <text class="fin-field__label">业务分类</text>
@@ -814,8 +844,8 @@ async function submit() {
         <view v-if="form.categoryDescription" class="fe-purpose-hint">{{ form.categoryDescription }}</view>
         <view v-if="form.purpose === 'projectIncidentalCost' && !form.projectId" class="fe-purpose-warn">项目零星成本必须关联项目</view>
         <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
-        <view class="fin-field"><text class="fin-field__label">资金账户</text><picker :range="accountOptions" range-key="label" :value="accountIndex" @change="onAccount"><view class="fin-field__value">{{ selectLabel(accountOptions, accountIndex) }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-field"><text class="fin-field__label">发生日期</text><picker mode="date" :value="form.date" @change="form.date = $event.detail.value"><view class="fin-field__value">{{ form.date }}</view></picker><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
+        <view class="fin-field"><text class="fin-field__label">资金账户</text><JzSelectField variant="boxed" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
+        <view class="fin-field"><text class="fin-field__label">发生日期</text><JzSelectField mode="date" variant="boxed" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">往来对象</text><input v-model="form.counterparty" maxlength="64" placeholder="供应商/客户/个人" /></view>
         <view class="fin-field"><text class="fin-field__label">摘要</text><input v-model="form.summary" maxlength="128" placeholder="一句话说明资金用途" /></view>
       </template>

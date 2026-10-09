@@ -22,6 +22,7 @@ import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const customerId = ref('')
 const propertyId = ref('')
@@ -427,6 +428,7 @@ function statusClass(status: DesignStatus) {
 
     <JzFloatAdd v-if="canEdit && !locked && designs.length" text="新建方案" @tap="createScheme" />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

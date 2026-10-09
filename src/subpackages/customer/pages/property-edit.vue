@@ -8,6 +8,7 @@ import type { Customer } from '@/domains/crm/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSheet from '@/components/JzSheet.vue'
 
 const customerId = ref('')
 const propertyId = ref('')
@@ -168,12 +169,8 @@ async function save() {
       </view>
     </view>
 
-    <view v-if="layoutPickerOpen" class="pe__mask" @tap="closeLayoutPicker">
-      <view class="pe__sheet" @tap.stop>
-        <view class="pe__sheet-head">
-          <text class="pe__sheet-title">选择户型</text>
-          <view class="pe__sheet-close" @tap="closeLayoutPicker"><JzIcon name="close" :size="28" :color="TOKEN_COLOR.text3" /></view>
-        </view>
+    <JzSheet :visible="layoutPickerOpen" title="选择户型" @close="closeLayoutPicker">
+      <view class="pe__editor">
         <scroll-view scroll-y class="pe__sheet-body">
           <input v-model="layoutDraft" class="pe__sheet-input" maxlength="60" placeholder="可直接输入自定义户型" />
           <text class="pe__sheet-label">常用户型</text>
@@ -182,11 +179,11 @@ async function save() {
           </view>
         </scroll-view>
         <view class="pe__sheet-actions">
-          <button class="jz-btn jz-btn--neutral" @tap="closeLayoutPicker">取消</button>
+          <button class="jz-btn jz-btn--neutral jz-grow" @tap="closeLayoutPicker">取消</button>
           <button class="jz-btn jz-btn--primary jz-grow" @tap="confirmLayout">确定</button>
         </view>
       </view>
-    </view>
+    </JzSheet>
 
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner">
@@ -215,16 +212,12 @@ async function save() {
 .pe__input--block { flex: none; width: 100%; margin-top: 12rpx; text-align: left; }
 .pe__input--picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; }
 .pe__placeholder { color: $jzb-text-4; }
-.pe__mask { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.pe__sheet { width: 100%; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
-.pe__sheet-head { padding: 28rpx $jzb-page-pad 20rpx; display: flex; align-items: center; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
-.pe__sheet-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
-.pe__sheet-close { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
-.pe__sheet-body { max-height: 60vh; padding: 24rpx $jzb-page-pad; box-sizing: border-box; }
+.pe__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.pe__sheet-body { flex: 1; min-height: 0; height: 0; padding: 0 0 18rpx; box-sizing: border-box; }
 .pe__sheet-input { width: 100%; min-height: 80rpx; padding: 0 24rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .pe__sheet-label { display: block; margin: 24rpx 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .pe__layout-options { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .pe__layout-option { min-height: 64rpx; padding: 0 24rpx; display: flex; align-items: center; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .pe__layout-option--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; font-weight: 650; }
-.pe__sheet-actions { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
+.pe__sheet-actions { flex-shrink: 0; padding-top: 16rpx; display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
 </style>

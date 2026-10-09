@@ -12,6 +12,7 @@ import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const projectId = ref('')
 const items = ref<CustomerFeedback[]>([])
@@ -104,6 +105,7 @@ async function close(item: CustomerFeedback, satisfaction?: number) {
     </view>
     <view class="jz-tabbar-gap" />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

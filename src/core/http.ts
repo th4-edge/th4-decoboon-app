@@ -2,6 +2,7 @@ import { P, runtime } from '@/config'
 import type { PageResult } from '@/domains/common/model'
 import { pageRecords } from '@/domains/common/model'
 import { logout } from '@/domains/identity/session'
+import { openConfirm } from '@/composables/dialog'
 
 export interface ProviderEnvelope<T> {
   success: boolean
@@ -46,16 +47,13 @@ function isSubscriptionFailure(code?: string) {
 function presentSubscriptionPrompt(code: string, message: string) {
   if (subscriptionPromptVisible) return
   subscriptionPromptVisible = true
-  uni.showModal({
+  void openConfirm({
     title: code === 'SUBSCRIPTION_EXPIRED' ? '订阅已到期' : '需要升级套餐',
     content: message,
     confirmText: '查看套餐',
     cancelText: '稍后',
-    success: (result) => {
-      if (result.confirm) uni.navigateTo({ url: P.subscription })
-    },
-    complete: () => { subscriptionPromptVisible = false }
-  })
+    onConfirm: () => uni.navigateTo({ url: P.subscription })
+  }).finally(() => { subscriptionPromptVisible = false })
 }
 
 function providerFailure(message: string, code?: string): ProviderRequestError {

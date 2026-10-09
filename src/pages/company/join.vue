@@ -19,6 +19,7 @@ import { logout, session } from '@/domains/identity/session'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 /** 员工入口默认收起，避免业主/新用户误入 */
 const showEmployeeJoin = ref(false)
@@ -145,6 +146,7 @@ async function relogin() {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

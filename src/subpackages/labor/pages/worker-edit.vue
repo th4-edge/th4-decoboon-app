@@ -13,6 +13,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type FieldKey = 'name' | 'phone' | 'idCardNo' | 'bankAccount'
 
@@ -279,6 +280,7 @@ async function submit() {
       <text v-if="!canSubmit && !submitting" class="we__footer-hint">{{ footerHint }}</text>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

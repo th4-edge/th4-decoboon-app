@@ -7,6 +7,7 @@ import type { CarryoverPaymentDirection, CarryoverPaymentPlan, CarryoverPaymentP
 import { isLoggedIn } from '@/domains/identity/session'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 interface PlanDraft {
@@ -132,10 +133,7 @@ async function submit() {
         </view>
         <view class="pp-row">
           <text class="pp-row__label">方向</text>
-          <picker :range="directionOptions" range-key="label" :value="directionIndex(plan.direction)"
-                  @change="plan.direction = directionOptions[Number($event.detail.value)].value">
-            <view class="pp-row__value">{{ directionOptions[directionIndex(plan.direction)].label }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="directionOptions[directionIndex(plan.direction)].label" :range="directionOptions.map(item => item.label)" :index="directionIndex(plan.direction)" @change="plan.direction = directionOptions.find(item => item.label === $event)?.value || plan.direction" />
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划金额</text>
@@ -143,9 +141,7 @@ async function submit() {
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划日期</text>
-          <picker mode="date" :value="plan.plannedDate" @change="plan.plannedDate = $event.detail.value">
-            <view class="pp-row__value">{{ plan.plannedDate || '未排期' }}</view>
-          </picker>
+          <JzSelectField mode="date" variant="boxed" :value="plan.plannedDate" :display="plan.plannedDate" placeholder="未排期" @change="plan.plannedDate = $event" />
         </view>
         <view class="pp-row">
           <text class="pp-row__label">往来对象</text>

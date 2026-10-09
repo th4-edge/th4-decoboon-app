@@ -12,6 +12,9 @@ import { useInputDialog } from '@/composables/inputDialog'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
+import JzSheet from '@/components/JzSheet.vue'
+import JzDateRangeField from '@/components/JzDateRangeField/JzDateRangeField.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const itemId = ref('')
 const item = ref<CarryoverProject | null>(null)
@@ -98,10 +101,12 @@ function openEdit(stage: ProjectStage) {
   editorVisible.value = true
 }
 
+const invalidStageRange = computed(() => Boolean(editor.plannedStart && editor.plannedEnd && editor.plannedEnd < editor.plannedStart))
+
 async function saveStage() {
   if (!editor.name.trim()) { toast('请填写阶段名称'); return }
   if (!editor.plannedStart || !editor.plannedEnd) { toast('请选择计划起止日期'); return }
-  if (editor.plannedEnd < editor.plannedStart) { toast('计划完成日期不能早于开始日期'); return }
+  if (invalidStageRange.value) { toast('计划完成日期不能早于开始日期'); return }
   if (needReason.value && !editor.reason.trim()) { toast('调整已确认计划必须填写原因'); return }
   saving.value = true
   try {
@@ -322,12 +327,8 @@ function planActionText(action: CarryoverPlanChange['action']) {
       </view>
     </view>
 
-    <view v-if="editorVisible" class="cp__mask" @tap="editorVisible = false">
-      <view class="cp__sheet" @tap.stop>
-        <view class="cp__sheet-head">
-          <text class="cp__sheet-title">{{ editor.stageId ? '调整施工阶段' : '添加后续阶段' }}</text>
-          <text class="cp__sheet-close" @tap="editorVisible = false">关闭</text>
-        </view>
+    <JzSheet :visible="editorVisible" :title="editor.stageId ? '调整施工阶段' : '添加后续阶段'" @close="editorVisible = false">
+      <view class="cp__editor">
         <view class="cp__field">
           <text>阶段名称 *</text>
           <input v-model="editor.name" maxlength="128" placeholder="例如：泥瓦施工" />
@@ -336,27 +337,26 @@ function planActionText(action: CarryoverPlanChange['action']) {
           <text>阶段编码</text>
           <input v-model="editor.stageCode" maxlength="64" placeholder="选填，如 MASONRY" />
         </view>
-        <view class="cp__field">
-          <text>计划开始 *</text>
-          <picker mode="date" :value="editor.plannedStart" @change="editor.plannedStart = $event.detail.value">
-            <view class="cp__picker">{{ editor.plannedStart || '请选择' }}</view>
-          </picker>
-        </view>
-        <view class="cp__field">
-          <text>计划完成 *</text>
-          <picker mode="date" :value="editor.plannedEnd" @change="editor.plannedEnd = $event.detail.value">
-            <view class="cp__picker">{{ editor.plannedEnd || '请选择' }}</view>
-          </picker>
+        <view class="cp__dates">
+          <JzDateRangeField
+            v-model:start="editor.plannedStart"
+            v-model:end="editor.plannedEnd"
+            start-label="计划开始"
+            end-label="计划完成"
+          />
         </view>
         <view v-if="needReason" class="cp__field cp__field--col">
           <text>调整原因 *</text>
           <textarea v-model="editor.reason" maxlength="500" placeholder="已确认或已锁定计划的调整必须留痕" />
         </view>
-        <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="saving" @tap="saveStage">
-          {{ saving ? '保存中…' : '保存阶段' }}
-        </button>
+        <view class="cp__editor-actions">
+          <button class="jz-btn jz-btn--neutral jz-grow" :disabled="saving" @tap="editorVisible = false">取消</button>
+          <button class="jz-btn jz-btn--primary jz-grow" :loading="saving" :disabled="saving" @tap="saveStage">
+            {{ saving ? '保存中…' : '保存阶段' }}
+          </button>
+        </view>
       </view>
-    </view>
+    </JzSheet>
   </view>
     <JzInputDialog
       :visible="inputDialog.visible"
@@ -373,6 +373,7 @@ function planActionText(action: CarryoverPlanChange['action']) {
       @confirm="confirmInputDialog"
       @cancel="cancelInputDialog"
     />
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>
@@ -416,14 +417,12 @@ function planActionText(action: CarryoverPlanChange['action']) {
 .cp__change-desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.5; }
 .cp__actions { align-items: center; }
 .cp__action-secondary { width: 220rpx; margin-right: 16rpx; }
-.cp__mask { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-end; background: rgba(15,23,42,.42); }
-.cp__sheet { width: 100%; max-height: 86vh; overflow-y: auto; padding: 28rpx 28rpx calc(28rpx + env(safe-area-inset-bottom)); box-sizing: border-box; background: $jzb-text-inverse; border-radius: 28rpx 28rpx 0 0; }
-.cp__sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; }
-.cp__sheet-title { color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 760; }
-.cp__sheet-close { color: $jzb-text-3; font-size: $jzb-font-sm; }
+.cp__editor { display: flex; flex-direction: column; }
 .cp__field { display: flex; align-items: center; justify-content: space-between; min-height: 96rpx; border-bottom: 1rpx solid $jzb-border-light; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .cp__field input { flex: 1; margin-left: 20rpx; text-align: right; color: $jzb-text-1; }
 .cp__field--col { display: block; padding: 22rpx 0; }
 .cp__field--col textarea { width: 100%; height: 140rpx; margin-top: 14rpx; padding: 16rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
 .cp__picker { color: $jzb-text-1; }
+.cp__dates { padding: 24rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.cp__editor-actions { flex-shrink: 0; display: flex; gap: 16rpx; margin-top: 28rpx; }
 </style>

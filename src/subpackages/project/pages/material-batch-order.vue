@@ -9,6 +9,7 @@ import { supplyApi } from '@/domains/supply/api'
 import type { Partner } from '@/domains/supply/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
 interface Line {
@@ -65,6 +66,18 @@ async function load() {
 function changePartner(event: { detail: { value: number } }) {
   partnerIdx.value = Number(event.detail.value)
   void applySupplierPrices()
+}
+
+function pickPartner(name: string) {
+  const idx = partners.value.findIndex((item) => item.name === name)
+  if (idx >= 0) {
+    partnerIdx.value = idx
+    void applySupplierPrices()
+  }
+}
+
+function pickDelivery(label: string) {
+  deliveryMode.value = label === '入仓库' ? 'warehouse' : 'direct'
 }
 
 async function applySupplierPrices() {
@@ -137,21 +150,15 @@ async function submit() {
       <view class="jz-card mbo__card">
         <view class="mbo__field">
           <text class="mbo__label">供应商</text>
-          <picker :range="partners.map((item) => item.name)" :value="partnerIdx" @change="changePartner">
-            <view class="mbo__picker">{{ currentPartner?.name || '请选择供应商' }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="currentPartner?.name || ''" :range="partners.map(item => item.name)" :index="partnerIdx" placeholder="请选择供应商" @change="pickPartner" />
         </view>
         <view class="mbo__field">
           <text class="mbo__label">交付方式</text>
-          <picker :range="['供应商直送工地', '入仓库']" :value="deliveryMode === 'warehouse' ? 1 : 0" @change="changeDelivery">
-            <view class="mbo__picker">{{ deliveryMode === 'warehouse' ? '入仓库' : '供应商直送工地' }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="deliveryMode === 'warehouse' ? '入仓库' : '供应商直送工地'" :range="['供应商直送工地', '入仓库']" :index="deliveryMode === 'warehouse' ? 1 : 0" @change="pickDelivery" />
         </view>
         <view class="mbo__field">
           <text class="mbo__label">要求到场</text>
-          <picker mode="date" @change="(e: any) => (expectedAt = e.detail.value)">
-            <view class="mbo__picker">{{ expectedAt || '选择日期（可不填）' }}</view>
-          </picker>
+          <JzSelectField mode="date" variant="boxed" :value="expectedAt" :display="expectedAt" placeholder="选择日期（可不填）" @change="expectedAt = $event" />
         </view>
       </view>
 

@@ -12,6 +12,7 @@ import { confirm, hideLoading, loading, toast, toastError } from '@/composables/
 import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type AdjustAction = 'deduct' | 'upgrade' | 'replace' | 'add'
 
@@ -232,6 +233,7 @@ async function deductDifference(line: QuoteItem) {
       @select="onCatalogSelect"
     />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

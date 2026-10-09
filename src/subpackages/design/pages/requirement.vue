@@ -10,6 +10,7 @@ import { designApi, designMeta } from '@/domains/design/api'
 import { crmApi } from '@/domains/crm/api'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 
@@ -198,12 +199,9 @@ async function save() {
       <view class="jz-tabbar-gap" />
     </view>
 
-    <view v-if="formOpen" class="dr__mask" @tap="formOpen = false">
-      <view class="dr__sheet" @tap.stop>
-        <view class="dr__sheet-head">
-          <view><text class="dr__sheet-title jz-clamp-1">记录客户诉求</text><text class="dr__sheet-sub">尽量保留客户原话，设计回应后续补充</text></view>
-          <view class="dr__close" @tap="formOpen = false"><JzIcon name="close" :size="30" :color="TOKEN_COLOR.text3" /></view>
-        </view>
+    <JzSheet :visible="formOpen" title="记录客户诉求" @close="formOpen = false">
+      <view class="dr__editor">
+        <text class="dr__sheet-sub">尽量保留客户原话，设计回应后续补充</text>
         <scroll-view scroll-y class="dr__sheet-content">
           <text class="dr__field-label">诉求类型</text>
           <view class="jz-segment">
@@ -232,11 +230,11 @@ async function save() {
           </picker>
         </scroll-view>
         <view class="dr__sheet-foot">
-          <button class="jz-btn jz-btn--neutral" @tap="formOpen = false">取消</button>
-          <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" @tap="save">保存诉求</button>
+          <button class="jz-btn jz-btn--neutral" :disabled="submitting" @tap="formOpen = false">取消</button>
+          <button class="jz-btn jz-btn--primary jz-grow" :loading="submitting" :disabled="submitting" @tap="save">保存诉求</button>
         </view>
       </view>
-    </view>
+    </JzSheet>
   </view>
 </template>
 
@@ -282,13 +280,9 @@ async function save() {
 .dr__submit { width: 100%; }
 
 /* 弹出表单 */
-.dr__mask { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.dr__sheet { width: 100%; height: 88vh; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: $jzb-radius-xl $jzb-radius-xl 0 0; }
-.dr__sheet-head { padding: $jzb-space-5 $jzb-page-pad $jzb-space-4; display: flex; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
-.dr__sheet-title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.35; }
-.dr__sheet-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
-.dr__close { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 50%; }
-.dr__sheet-content { flex: 1; min-height: 0; height: 0; padding: $jzb-space-1 $jzb-page-pad $jzb-space-5; overflow: hidden; }
+.dr__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.dr__sheet-sub { display: block; margin-bottom: $jzb-space-2; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
+.dr__sheet-content { flex: 1; min-height: 0; height: 0; padding: $jzb-space-1 0 $jzb-space-4; }
 .dr__field-label { display: block; margin: $jzb-space-5 0 $jzb-space-3; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 /* input 直接使用 jz-form-input 时补充宽度和盒模型 */
 .dr__sheet-content input.jz-form-input {
@@ -300,7 +294,7 @@ async function save() {
 .dr__area-row input { min-width: 0; }
 .dr__area-picker { justify-content: space-between; }
 .dr__source { justify-content: space-between; }
-.dr__sheet-foot { padding: $jzb-space-3 $jzb-page-pad calc(#{$jzb-space-3} + #{$jzb-safe-bottom}); display: flex; gap: $jzb-space-3; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.05); }
+.dr__sheet-foot { flex-shrink: 0; padding-top: $jzb-space-3; display: flex; gap: $jzb-space-3; border-top: 1rpx solid $jzb-border-light; box-shadow: 0 -10rpx 30rpx rgba(15,23,42,.05); }
 .dr__sheet-foot .jz-btn { min-height: 88rpx; white-space: nowrap; }
-@media (min-width: 768px) { .dr__mask, .dr__sheet { left: 50%; right: auto; width: 560px; transform: translateX(-50%); } }
+
 </style>

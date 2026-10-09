@@ -9,6 +9,7 @@ import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from './JzIcon.vue'
 import JzEmpty from './JzEmpty.vue'
+import { openActionSheet } from '@/composables/dialog'
 
 const props = withDefaults(defineProps<{
   visible: boolean
@@ -139,13 +140,9 @@ function choose(item: CatalogItem) { emit('select', item); close() }
 /** 卡片“更多”操作菜单：启用/停用与删除（删除必须由父页面二次确认后执行）。 */
 function openManageActions(item: CatalogItem) {
   if (props.readonly) return
-  uni.showActionSheet({
-    itemList: [item.active ? '停用' : '启用', '删除项目'],
-    success: (res) => {
-      if (res.tapIndex === 0) emit('toggle', item, !item.active)
-      if (res.tapIndex === 1) emit('delete', item)
-    },
-    fail: () => { /* 用户取消 */ }
+  void openActionSheet({ itemList: [item.active ? '停用' : '启用', '删除项目'] }).then((index) => {
+    if (index === 0) emit('toggle', item, !item.active)
+    if (index === 1) emit('delete', item)
   })
 }
 

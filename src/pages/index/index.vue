@@ -26,7 +26,7 @@ import { crmApi } from '@/domains/crm/api'
 import { collabApi } from '@/domains/collab/api'
 import { statisticApi } from '@/domains/statistic/api'
 import { projectMetrics, visibleProjects } from '@/domains/project/scope'
-import { toastError } from '@/composables/toast'
+import { alert, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import OnboardingChecklist from '@/components/OnboardingChecklist.vue'
 import SuccessProgramCard from '@/components/SuccessProgramCard.vue'
@@ -44,6 +44,7 @@ import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 import { useSystem } from '@/composables/system'
 import { useShare } from '@/composables/share'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const role = computed(() => session.role || 'customer')
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
@@ -501,13 +502,7 @@ function indicatorCard(indicator: WorkbenchIndicator): StatCard {
 
 function showStatStatus(card: StatCard) {
   if (!card.status || !card.statusText) return
-  uni.showModal({
-    title: `${card.label} · ${card.statusText}`,
-    content: card.detail?.trim() || '当前无更多状态说明',
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: TOKEN_COLOR.primary
-  })
+  void alert(`${card.label} · ${card.statusText}`, card.detail?.trim() || '当前无更多状态说明')
 }
 
 function bossIndicator(key: string) {
@@ -1004,6 +999,7 @@ const projectSectionTitle = computed(() => {
       </view>
     </template>
   </view>
+    <JzConfirmDialog />
 </template>
 
 

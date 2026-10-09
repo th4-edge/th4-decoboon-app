@@ -15,8 +15,9 @@ import type {
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { fileApi } from '@/domains/file/api'
 import { chooseImages } from '@/domains/file/choose-media'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirmAction, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const batchId = ref('')
 const report = ref<CarryoverReconciliationReport | null>(null)
@@ -143,13 +144,10 @@ async function removeAttachment(item: CarryoverReconciliationAttachment) {
 async function changeStatus(status: CarryoverReconciliationStatus) {
   if (!report.value?.reconciliationId || actionBusy.value) return
   const label = status === 'pending' ? '提交待确认' : status === 'confirmed' ? 'BOSS 确认' : '关闭对账'
-  const ok = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: label,
-      content: status === 'closed' ? '关闭后如需调整，只能新建调整期，不修改本次对账结果。' : '确认执行该操作？',
-      success: (res) => resolve(!!res.confirm),
-      fail: () => resolve(false)
-    })
+  const ok = await confirmAction({
+    title: label,
+    content: status === 'closed' ? '关闭后如需调整，只能新建调整期，不修改本次对账结果。' : '确认执行该操作？',
+    tone: status === 'closed' ? 'danger' : 'primary'
   })
   if (!ok) return
   actionBusy.value = true
@@ -284,6 +282,7 @@ async function saveItem(item: CarryoverReconciliationItem) {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

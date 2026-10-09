@@ -22,6 +22,7 @@ import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import QuoteItemRow from '@/subpackages/quote/components/QuoteItemRow/QuoteItemRow.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const id = ref('')
 const quote = ref<Quote | null>(null)
@@ -798,6 +799,7 @@ async function confirmCustomerChange(change: ContractChange) {
     @confirm="confirmInputDialog"
     @cancel="cancelInputDialog"
   />
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

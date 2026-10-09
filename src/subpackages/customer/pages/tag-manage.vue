@@ -9,6 +9,7 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const customerId = ref('')
 const customer = ref<Customer | null>(null)
@@ -230,6 +231,7 @@ async function createTag() {
       @confirm="saveTagRename"
     />
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

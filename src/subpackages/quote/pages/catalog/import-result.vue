@@ -7,6 +7,7 @@ import { catalogApi } from '@/domains/catalog/api'
 import type { CatalogImportBatch, CatalogImportRow } from '@/domains/catalog/model'
 import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const batchId = ref('')
 const batch = ref<CatalogImportBatch | null>(null)
@@ -168,6 +169,7 @@ function copyErrors() {
     </view>
   </view>
   <view v-else class="page"><view class="card"><text class="muted">{{ loadingData ? '加载中…' : '暂无导入批次' }}</text></view></view>
+    <JzConfirmDialog />
 </template>
 
 <style scoped lang="scss">

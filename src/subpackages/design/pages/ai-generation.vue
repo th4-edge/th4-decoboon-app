@@ -13,11 +13,13 @@ import type {
   DesignScheme
 } from '@/domains/design/model'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { openActionSheet } from '@/composables/dialog'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const designId = ref('')
 const generationId = ref('')
@@ -173,13 +175,8 @@ async function confirmVersion(version: DesignRenderVersion) {
 }
 
 function chooseTarget(): Promise<'cover' | 'space' | null> {
-  return new Promise((resolve) => {
-    uni.showActionSheet({
-      itemList: ['设为方案封面', '设为区域图片'],
-      success: (res) => resolve(res.tapIndex === 0 ? 'cover' : 'space'),
-      fail: () => resolve(null)
-    })
-  })
+  return openActionSheet({ itemList: ['设为方案封面', '设为区域图片'] })
+    .then((index) => index === 0 ? 'cover' as const : index === 1 ? 'space' as const : null)
 }
 
 function chooseSpace(): Promise<string | undefined> {
@@ -188,13 +185,8 @@ function chooseSpace(): Promise<string | undefined> {
     toast('请先新增设计区域')
     return Promise.resolve(undefined)
   }
-  return new Promise((resolve) => {
-    uni.showActionSheet({
-      itemList: spaces.map((item) => item.name),
-      success: (res) => resolve(spaces[res.tapIndex]?.id),
-      fail: () => resolve(undefined)
-    })
-  })
+  return openActionSheet({ itemList: spaces.map((item) => item.name) })
+    .then((index) => index === null ? undefined : spaces[index]?.id)
 }
 
 function openScheme() {
@@ -323,6 +315,7 @@ function now(): string {
       </view>
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

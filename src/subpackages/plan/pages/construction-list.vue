@@ -13,6 +13,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const plans = ref<ConstructionPlanTemplate[]>([])
 const loading = ref(false)
@@ -168,6 +169,7 @@ async function setDefault(plan: ConstructionPlanTemplate) {
       </view>
     </template>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

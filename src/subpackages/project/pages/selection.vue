@@ -6,7 +6,7 @@ import { isLoggedIn } from '@/domains/identity/session'
 import { materialSelectionApi, materialSelectionItemApi } from '@/domains/material/api'
 import type { MaterialOrderStatus, MaterialSelectionItem, MaterialSelectionStatus } from '@/domains/material/model'
 import { dateTimeValue, selectionFields } from '@/core/format'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirmAction, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -14,6 +14,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type ItemFilter = 'all' | 'none' | 'selected' | 'delivered' | 'ordered'
 
@@ -146,14 +147,10 @@ async function deliverAll() {
   if (delivering.value) return
   const targets = items.value.filter((item) => item.status && item.orderStatus === 'none')
   if (!targets.length) { toast('没有可交付的已选材分项'); return }
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '交付财务下单',
-      content: `将把 ${targets.length} 项已选材交付财务下单，交付后由财务选择供应商、价格与数量。`,
-      confirmText: '确认交付',
-      success: (res) => resolve(!!res.confirm),
-      fail: () => resolve(false)
-    })
+  const confirmed = await confirmAction({
+    title: '交付财务下单',
+    content: `将把 ${targets.length} 项已选材交付财务下单，交付后由财务选择供应商、价格与数量。`,
+    confirmText: '确认交付'
   })
   if (!confirmed) return
   delivering.value = true
@@ -342,6 +339,7 @@ function updatedTime(item: MaterialSelectionItem) {
       </view>
     </template>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style scoped lang="scss">

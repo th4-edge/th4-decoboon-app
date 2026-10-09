@@ -15,6 +15,8 @@ import { scheduleApi } from '@/domains/schedule/api'
 import { ROLE_META } from '@/roles/catalog'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import JzDateRangeField from '@/components/JzDateRangeField/JzDateRangeField.vue'
 import { toastError, toast, loading, hideLoading } from '@/composables/toast'
 
 const id = ref('')
@@ -46,6 +48,18 @@ const stageLabel = computed(() => {
   return s ? `${s.sort}. ${s.name}` : ''
 })
 const zoneLabel = computed(() => zones.value.find((z) => z.id === zoneId.value)?.name || '')
+const stageOptions = computed(() => stages.value.map((s) => `${s.sort}. ${s.name}`))
+const stageIndex = computed(() => Math.max(0, stages.value.findIndex((s) => s.id === stageId.value)))
+const zoneOptions = computed(() => zones.value.map((z) => z.name))
+const zoneIndex = computed(() => Math.max(0, zones.value.findIndex((z) => z.id === zoneId.value)))
+function onStagePick(label: string) {
+  const hit = stages.value.find((s) => `${s.sort}. ${s.name}` === label)
+  if (hit) stageId.value = hit.id
+}
+function onZonePick(name: string) {
+  const hit = zones.value.find((z) => z.name === name)
+  if (hit) zoneId.value = hit.id
+}
 const ownerSelected = computed(() => owners.value.find((o) => o.id === ownerId.value))
 const ownerLabel = computed(() => ownerSelected.value?.name || '')
 /** 负责人下拉文案：岗位名缺失时回退角色短名，绝不再渲染 undefined。 */
@@ -99,9 +113,12 @@ async function load() {
   if (projectId.value) stages.value = await projectApi.stages(projectId.value)
 }
 
+const invalidDateRange = computed(() => Boolean(plannedStart.value && plannedEnd.value && plannedEnd.value < plannedStart.value))
+
 async function save() {
   if (!projectId.value) { toast('缺少项目'); return }
   if (!name.value.trim()) { toast('请填写任务名称'); return }
+  if (invalidDateRange.value) { toast('截止日期不能早于开始日期'); return }
   loading('保存中…')
   try {
     await scheduleApi.saveTask({
@@ -140,14 +157,10 @@ async function save() {
       <view class="te__row te__row--col"><text class="te__label">施工工艺</text><textarea v-model="craft" class="te__ta" placeholder="从工艺库带入，或补充工艺说明" maxlength="200" /></view>
       <view class="te__row te__row--col"><text class="te__label">规格要求</text><textarea v-model="spec" class="te__ta" placeholder="验收规格/标准要求" maxlength="200" /></view>
       <view class="te__row"><text class="te__label">所属阶段</text>
-        <picker :range="stages.map(s => s.sort + '. ' + s.name)" :value="Math.max(0, stages.findIndex(s => s.id === stageId))" @change="stageId = stages[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !stageLabel }"><text>{{ stageLabel || '选择阶段' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField :display="stageLabel" :range="stageOptions" :index="stageIndex" placeholder="选择阶段" @change="onStagePick" />
       </view>
       <view class="te__row"><text class="te__label">施工区域</text>
-        <picker :range="zones.map(z => z.name)" @change="zoneId = zones[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !zoneLabel }"><text>{{ zoneLabel || '选择区域（客厅/厨房…）' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField :display="zoneLabel" :range="zoneOptions" :index="zoneIndex" placeholder="选择区域（客厅/厨房…）" @change="onZonePick" />
       </view>
       <view class="te__row"><text class="te__label">施工总量</text>
         <input v-model="quantity" type="digit" class="jz-grow te__qty jz-numeric-input" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
@@ -167,11 +180,13 @@ async function save() {
           <view v-for="p in PRIOS" :key="p.key" class="te__prio" :class="{ 'te__prio--on': priority === p.key }" @tap="priority = p.key">{{ p.label }}</view>
         </view>
       </view>
-      <view class="te__row"><text class="te__label">开始日期</text>
-        <picker mode="date" :value="plannedStart" @change="plannedStart = $event.detail.value"><view class="te__picker"><text>{{ plannedStart || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view></picker>
-      </view>
-      <view class="te__row"><text class="te__label">截止日期</text>
-        <picker mode="date" :value="plannedEnd" @change="plannedEnd = $event.detail.value"><view class="te__picker"><text>{{ plannedEnd || '选择日期' }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view></picker>
+      <view class="te__row te__row--col te__row--dates">
+        <JzDateRangeField
+          v-model:start="plannedStart"
+          v-model:end="plannedEnd"
+          start-label="开始日期"
+          end-label="截止日期"
+        />
       </view>
       <view class="te__row te__row--col"><text class="te__label">备注</text><textarea v-model="remark" class="te__ta" maxlength="200" /></view>
     </view>
@@ -188,13 +203,15 @@ async function save() {
 .te__card { margin: 28rpx; padding: 0 28rpx; }
 .te__row { display: flex; align-items: center; min-height: 104rpx; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
 .te__row--col { flex-direction: column; align-items: flex-start; }
+.te__row--dates { padding: 24rpx 0; }
+.te__row--dates .jz-date-range { width: 100%; }
 .te__label { width: 170rpx; color: $jzb-text-2; font-size: $jzb-font-sm; flex-shrink: 0; }
 .req { color: $jzb-danger; }
 .te__row input { flex: 1; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
 .te__ta { width: 100%; height: 150rpx; margin-top: 12rpx; padding: 18rpx 20rpx; color: $jzb-text-1; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font; }
 .te__qty { max-width: 180rpx; }
 .te__unit { max-width: 200rpx; text-align: right; }
-/* picker 需撑满剩余宽度，内部 flex-end 才能让选中值靠右 */
+/* 选值控件需撑满剩余宽度 */
 .te__row picker { flex: 1; min-width: 0; }
 .te__picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; color: $jzb-text-1; font-size: $jzb-font; }
 .te__picker text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

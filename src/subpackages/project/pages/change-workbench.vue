@@ -19,6 +19,7 @@ import JzTag from '@/components/JzTag.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type ViewKey = 'all' | 'pending' | 'approved' | 'confirmed' | 'risk' | 'closed'
 
@@ -496,6 +497,7 @@ function addressText(group: BossContractChangeGroup) {
       <view class="jz-tabbar-gap" />
     </template>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

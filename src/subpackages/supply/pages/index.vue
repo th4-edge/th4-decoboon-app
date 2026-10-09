@@ -8,10 +8,12 @@ import type { MaterialPlan, PurchaseOrder, PurchaseStatus } from '@/domains/mate
 import { supplyApi } from '@/domains/supply/api'
 import type { InventoryStock, Partner, PartnerPrice, StockMovement } from '@/domains/supply/model'
 import { toast, toastError } from '@/composables/toast'
+import { openActionSheet } from '@/composables/dialog'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type Tab = 'purchase' | 'inventory' | 'partner' | 'price'
 const tab = ref<Tab>('purchase')
@@ -90,13 +92,14 @@ function addPurchase(planId?: string) { uni.navigateTo({ url: `${P.supplyPurchas
 function receive(purchase: PurchaseOrder) {
   const items = (purchase.items || []).filter((item) => item.receivedQuantity < item.quantity)
   if (items.length > 1) {
-    uni.showActionSheet({
-      itemList: items.map((item) => `${item.materialName || '材料明细'}（待到 ${Math.max(0, item.quantity - item.receivedQuantity)}${item.unit || ''}）`),
-      success: ({ tapIndex }) => {
-        const item = items[tapIndex]
-        if (!item) return
-        uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchase.id}&purchaseItemId=${item.id}` })
-      }
+    void openActionSheet({
+      title: '选择到货明细',
+      itemList: items.map((item) => `${item.materialName || '材料明细'}（待到 ${Math.max(0, item.quantity - item.receivedQuantity)}${item.unit || ''}）`)
+    }).then((index) => {
+      if (index === null) return
+      const item = items[index]
+      if (!item) return
+      uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchase.id}&purchaseItemId=${item.id}` })
     })
     return
   }
@@ -209,6 +212,7 @@ async function approve(item: PurchaseOrder) {
       <JzEmpty v-if="!inventory.length && !warnings.length && !movements.length" text="暂无库存" sub="只有选择入仓库的采购才进入库存" />
     </view>
   </view>
+  <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

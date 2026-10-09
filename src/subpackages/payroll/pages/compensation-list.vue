@@ -9,7 +9,7 @@ import { COMPENSATION_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { session } from '@/domains/identity/session'
-import { hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { alert, confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -17,6 +17,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.compensationPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
@@ -31,22 +32,13 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 function open(item: CompensationScheme) {
   if (editable.value) uni.navigateTo({ url: `${P.payrollCompensationEdit}?schemeId=${item.id}` })
-  else uni.showModal({ title: item.employee.name, content: `固定工资 ${money(item.baseSalary)}\n月应出勤 ${item.scheduledDays} 天\n生效期 ${item.effectiveFrom} 至 ${item.effectiveTo || '长期'}`, showCancel: false, confirmText: '知道了' })
+  else void alert(item.employee.name, `固定工资 ${money(item.baseSalary)}\n月应出勤 ${item.scheduledDays} 天\n生效期 ${item.effectiveFrom} 至 ${item.effectiveTo || '长期'}`)
 }
 function add() { if (editable.value) uni.navigateTo({ url: P.payrollCompensationEdit }) }
 
 async function remove(item: CompensationScheme) {
   if (!editable.value || deletingId.value) return
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '删除薪酬方案',
-      content: `确认删除 ${item.employee.name} 的薪酬方案？仅未形成考勤、提成或工资事实的方案可删除。`,
-      confirmText: '删除',
-      confirmColor: '#E5484D',
-      success: (result) => resolve(result.confirm),
-      fail: () => resolve(false)
-    })
-  })
+  const confirmed = await confirmDanger('删除薪酬方案', `确认删除 ${item.employee.name} 的薪酬方案？仅未形成考勤、提成或工资事实的方案可删除。`, '删除')
   if (!confirmed) return
   deletingId.value = item.id
   showLoading('删除中')
@@ -79,6 +71,7 @@ async function remove(item: CompensationScheme) {
       <JzEmpty v-if="!loading && !items.length" text="暂无薪酬方案" sub="先为员工建立固定工资方案" />
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

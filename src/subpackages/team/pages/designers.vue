@@ -23,6 +23,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
@@ -583,16 +584,10 @@ function measureText(value?: string) {
       </view>
     </template>
 
-    <view v-if="assignTarget" class="md__mask" @tap="assignTarget = null" />
-    <view v-if="assignTarget" class="md__sheet">
-      <view class="md__sheet-head">
-        <view class="jz-grow">
-          <text class="md__sheet-title">选择设计承接人</text>
-          <text class="md__sheet-sub">{{ assignTarget.name }} · 量房 {{ measureText(assignTarget.measureAt) }}</text>
-        </view>
-        <JzIcon name="close" :size="30" :color="TOKEN_COLOR.text4" @tap="assignTarget = null" />
-      </view>
-      <scroll-view scroll-y class="md__sheet-list">
+    <JzSheet :visible="Boolean(assignTarget)" title="选择设计承接人" @close="assignTarget = null">
+      <view class="md__editor">
+        <text v-if="assignTarget" class="md__sheet-sub">{{ assignTarget.name }} · 量房 {{ measureText(assignTarget.measureAt) }}</text>
+        <scroll-view scroll-y class="md__sheet-list">
         <view v-for="designer in designers" :key="designer.id" class="md__sheet-item" @tap="chooseDesigner(designer)">
           <JzEmployeeAvatar :src="designer.avatarUrl || ''" :name="designer.name" :role="designer.role" :status="designer.status" :size="72" />
           <view class="jz-grow md__sheet-who">
@@ -601,8 +596,9 @@ function measureText(value?: string) {
           </view>
           <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
-      </scroll-view>
-    </view>
+        </scroll-view>
+      </view>
+    </JzSheet>
   </view>
 </template>
 
@@ -722,12 +718,9 @@ function measureText(value?: string) {
 .md__designer-num { display: block; margin-bottom: 4rpx; color: $jzb-text-1; font-size: 34rpx; font-weight: 700; }
 .md__designer-num--danger { color: $jzb-danger; }
 .md__designer-foot { display: flex; justify-content: space-between; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.md__mask { position: fixed; inset: 0; z-index: 20; background: rgba(15, 23, 42, .38); }
-.md__sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; max-height: 72vh; padding: 28rpx 24rpx calc(24rpx + env(safe-area-inset-bottom)); background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
-.md__sheet-head { display: flex; align-items: center; padding-bottom: 20rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.md__sheet-title { display: block; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 700; }
-.md__sheet-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.md__sheet-list { max-height: 52vh; margin-top: 12rpx; }
+.md__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.md__sheet-sub { display: block; margin-bottom: 12rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.md__sheet-list { flex: 1; min-height: 0; height: 0; }
 .md__sheet-item { display: flex; align-items: center; min-height: 108rpx; padding: 14rpx 4rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .md__sheet-item:last-child { border-bottom: none; }
 .md__sheet-who { margin-left: 18rpx; }

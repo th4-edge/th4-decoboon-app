@@ -15,10 +15,12 @@ import CatalogPicker from '@/components/CatalogPicker.vue'
 import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzSheet from '@/components/JzSheet.vue'
 import JzActionSheet from '@/components/JzActionSheet.vue'
 import DesignEditorSheets from '@/subpackages/design/components/DesignEditorSheets/DesignEditorSheets.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 type TabKey = 'base' | 'space' | 'construction' | 'material' | 'other'
 type SchemeSheetAction = {
   key: 'save' | 'ai' | 'finish'
@@ -811,12 +813,8 @@ function handleMoreAction(index: number) {
       @delete-item="deleteItem(tabItems.find(i => i.id === editingItemId)!)"
       @save-item="saveItem"
     />
-    <view v-if="layoutPickerOpen" class="ds__mask" @tap="closeLayoutPicker">
-      <view class="ds__sheet" @tap.stop>
-        <view class="ds__sheet-head">
-          <text class="ds__sheet-title">选择户型</text>
-          <view class="ds__sheet-close" @tap="closeLayoutPicker"><JzIcon name="close" :size="28" :color="TOKEN_COLOR.text3" /></view>
-        </view>
+    <JzSheet :visible="layoutPickerOpen" title="选择户型" @close="closeLayoutPicker">
+      <view class="ds__editor">
         <scroll-view scroll-y class="ds__sheet-body">
           <input v-model="layoutDraft" class="ds__sheet-input" maxlength="60" placeholder="可直接输入自定义户型" />
           <text class="ds__sheet-label">常用户型</text>
@@ -825,18 +823,14 @@ function handleMoreAction(index: number) {
           </view>
         </scroll-view>
         <view class="ds__sheet-actions">
-          <button class="jz-btn jz-btn--neutral" @tap="closeLayoutPicker">取消</button>
+          <button class="jz-btn jz-btn--neutral jz-grow" @tap="closeLayoutPicker">取消</button>
           <button class="jz-btn jz-btn--primary jz-grow" @tap="confirmLayout">确定</button>
         </view>
       </view>
-    </view>
+    </JzSheet>
 
-    <view v-if="cadActionOpen" class="ds__mask" @tap="closeCadAction">
-      <view class="ds__sheet" @tap.stop>
-        <view class="ds__sheet-head">
-          <text class="ds__sheet-title">CAD 图纸</text>
-          <view class="ds__sheet-close" @tap="closeCadAction"><JzIcon name="close" :size="28" :color="TOKEN_COLOR.text3" /></view>
-        </view>
+    <JzSheet :visible="cadActionOpen" title="CAD 图纸" @close="closeCadAction">
+      <view class="ds__editor">
         <view class="ds__cad-actions">
           <view class="ds__cad-action" @tap="chooseCadFile">
             <view class="ds__cad-action-icon"><JzIcon name="folder" :size="32" :color="TOKEN_COLOR.primary" /></view>
@@ -855,28 +849,25 @@ function handleMoreAction(index: number) {
           </view>
         </view>
         <view class="ds__sheet-actions">
-          <button class="jz-btn jz-btn--neutral jz-grow" @tap="closeCadAction">取消</button>
+          <button class="jz-btn jz-btn--neutral jz-btn--block" @tap="closeCadAction">取消</button>
         </view>
       </view>
-    </view>
+    </JzSheet>
 
     <CatalogPicker v-if="catalogOpen" :visible="catalogOpen" :type="catalogType" :multiple="!editingItemId" :preselected="selectedCatalogs" @update:visible="catalogOpen = $event" @select="chooseCatalog" @select-many="chooseCatalogs" />
   </view>
+    <JzConfirmDialog />
 </template>
 <style lang="scss" scoped>@import '@/styles/design-scheme.scss';
 
-.ds__mask { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; background: rgba(15,23,42,.48); }
-.ds__sheet { width: 100%; display: flex; flex-direction: column; background: $jzb-text-inverse; border-radius: 32rpx 32rpx 0 0; }
-.ds__sheet-head { padding: 28rpx $jzb-page-pad 20rpx; display: flex; align-items: center; justify-content: space-between; border-bottom: 1rpx solid $jzb-border-light; }
-.ds__sheet-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
-.ds__sheet-close { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
-.ds__sheet-body { max-height: 60vh; padding: 24rpx $jzb-page-pad; box-sizing: border-box; }
+.ds__editor { display: flex; flex-direction: column; max-height: 60vh; }
+.ds__sheet-body { flex: 1; min-height: 0; height: 0; padding: 0 0 18rpx; }
 .ds__sheet-input { width: 100%; min-height: 80rpx; padding: 0 24rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .ds__sheet-label { display: block; margin: 24rpx 0 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ds__layout-options { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .ds__layout-option { min-height: 64rpx; padding: 0 24rpx; display: flex; align-items: center; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .ds__layout-option--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; font-weight: 650; }
-.ds__sheet-actions { padding: 16rpx $jzb-page-pad calc(16rpx + #{$jzb-safe-bottom}); display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
+.ds__sheet-actions { flex-shrink: 0; padding-top: 16rpx; display: flex; gap: 14rpx; border-top: 1rpx solid $jzb-border-light; }
 .jz-form-row--click { cursor: pointer; }
 .jz-form-row--click:active { background: $jzb-bg-hover; }
 .jz-form-control--picker { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; }
@@ -884,7 +875,7 @@ function handleMoreAction(index: number) {
 
 .ds__cad-file { display: flex; align-items: center; gap: 8rpx; min-width: 0; flex: 1; }
 .ds__cad-name { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 500; }
-.ds__cad-actions { padding: 16rpx $jzb-page-pad; }
+.ds__cad-actions { padding: 4rpx 0; }
 .ds__cad-action { display: flex; align-items: center; gap: 16rpx; padding: 24rpx 16rpx; border-radius: $jzb-radius-sm; }
 .ds__cad-action:active { background: $jzb-bg-hover; }
 .ds__cad-action--danger:active { background: $jzb-danger-soft; }

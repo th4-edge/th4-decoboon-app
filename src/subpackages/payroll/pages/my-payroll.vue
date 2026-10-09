@@ -5,12 +5,14 @@ import { money } from '@/core/format'
 import { payrollApi } from '@/domains/payroll/api'
 import type { Payslip } from '@/domains/payroll/model'
 import { isLoggedIn } from '@/domains/identity/session'
+import { alert } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.myPayslipPage(current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
@@ -21,12 +23,7 @@ onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 function open(item: Payslip) {
-  uni.showModal({
-    title: `${item.period} 工资条`,
-    content: `应发 ${money(item.grossAmount)}\n扣款 ${money(item.deductionAmount)}\n实发 ${money(item.netAmount)}`,
-    showCancel: false,
-    confirmText: '知道了'
-  })
+  void alert(`${item.period} 工资条`, `应发 ${money(item.grossAmount)}\n扣款 ${money(item.deductionAmount)}\n实发 ${money(item.netAmount)}`)
 }
 </script>
 
@@ -51,6 +48,7 @@ function open(item: Payslip) {
       <JzEmpty v-if="!loading && !items.length" text="暂无已发放工资条" sub="工资或提成实际发放完成后，系统才会发布工资条" />
     </view>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

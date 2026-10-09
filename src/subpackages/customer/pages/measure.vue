@@ -10,6 +10,7 @@ import { propertyApi } from '@/domains/property/api'
 import type { Property } from '@/domains/property/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const id = ref('')
 const propertyId = ref('')
@@ -151,15 +152,11 @@ async function save() {
     <view class="jz-card cm__form">
       <view class="cm__row">
         <text class="cm__label">量房日期</text>
-        <picker mode="date" :value="date" :start="startDate" :end="maxDate" @change="date = $event.detail.value">
-          <view class="cm__value" :class="{ 'cm__value--empty': !date }">{{ date || '请选择日期' }}</view>
-        </picker>
+        <JzSelectField mode="date" variant="boxed" :value="date" :display="date" :start="startDate" :end="maxDate" placeholder="请选择日期" @change="date = $event" />
       </view>
       <view class="cm__row">
         <text class="cm__label">量房时间</text>
-        <picker mode="time" :value="time" start="08:00" end="20:00" @change="time = $event.detail.value">
-          <view class="cm__value" :class="{ 'cm__value--empty': !time }">{{ time || '请选择时间' }}</view>
-        </picker>
+        <JzSelectField mode="time" variant="boxed" :value="time" :display="time" time-start="08:00" time-end="20:00" placeholder="请选择时间" @change="time = $event" />
       </view>
     </view>
 

@@ -14,6 +14,7 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzSheet from '@/components/JzSheet.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const direction = ref<LedgerDirection>('expense')
 const selectedId = ref('')
@@ -242,6 +243,7 @@ async function removeCategory(item: LedgerCategory) {
       </view>
     </JzSheet>
   </view>
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

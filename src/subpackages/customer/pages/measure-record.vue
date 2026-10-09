@@ -12,6 +12,7 @@ import { fileApi } from '@/domains/file/api'
 import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const MAX_PHOTOS = 9
 
@@ -131,8 +132,14 @@ async function save() {
 
     <view class="jz-card mr__form">
       <text class="mr__group">量房事实</text>
-      <view class="mr__row"><text class="mr__label">量房日期</text><picker mode="date" :value="measureDate" @change="measureDate = $event.detail.value"><view class="mr__value">{{ measureDate }}</view></picker></view>
-      <view class="mr__row"><text class="mr__label">量房时间</text><picker mode="time" :value="measureTime" @change="measureTime = $event.detail.value"><view class="mr__value">{{ measureTime }}</view></picker></view>
+      <view class="mr__row">
+        <text class="mr__label">量房日期</text>
+        <JzSelectField mode="date" variant="boxed" :value="measureDate" :display="measureDate" placeholder="请选择日期" @change="measureDate = $event" />
+      </view>
+      <view class="mr__row">
+        <text class="mr__label">量房时间</text>
+        <JzSelectField mode="time" variant="boxed" :value="measureTime" :display="measureTime" placeholder="请选择时间" @change="measureTime = $event" />
+      </view>
 
       <text class="mr__group mr__group--gap">现场照片（{{ sitePhotos.length }}/{{ MAX_PHOTOS }}）</text>
       <view class="mr__photos">

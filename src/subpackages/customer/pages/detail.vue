@@ -30,6 +30,7 @@ import SalesSteps, { type SalesStageKey } from '@/subpackages/customer/component
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { designApi } from '@/domains/design/api'
 import type { DesignScheme } from '@/domains/design/model'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type PrimaryActionKind = 'follow' | 'scheduleMeasure' | 'assignDesigner' | 'recordMeasure' | 'design' | 'quote' | 'project' | 'edit' | 'viewFlow'
 
@@ -865,6 +866,7 @@ function viewMeasure(property: Property) {
     @select="onOwnerSelect"
     @update:visible="ownerSheetOpen = $event"
   />
+    <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

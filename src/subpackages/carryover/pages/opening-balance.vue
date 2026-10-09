@@ -7,6 +7,7 @@ import { financeApi } from '@/domains/finance/api'
 import type { FundAccount } from '@/domains/finance/model'
 import { ACCOUNT_LABEL } from '@/domains/finance/meta'
 import { isLoggedIn } from '@/domains/identity/session'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 
@@ -93,9 +94,7 @@ async function submit() {
 
       <view class="ob-date jz-card">
         <text>接管日</text>
-        <picker mode="date" :value="asOfDate" @change="asOfDate = $event.detail.value">
-          <view class="ob-date__value">{{ asOfDate || '请选择' }}</view>
-        </picker>
+        <JzSelectField mode="date" variant="boxed" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
       </view>
 
       <view v-for="account in accounts" :key="account" class="ob-account jz-card">
