@@ -190,5 +190,5 @@ async function setDefault(plan: ConstructionPlanTemplate) {
 .cpt__actions { display: flex; justify-content: flex-end; gap: 10rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }
 .cpt__danger { color: $jzb-danger; }
 .cpt__state { margin: 0 $jzb-page-pad; }
-.cpt__section--baseline .cpt__card { background: linear-gradient(145deg, #FFFFFF, #F8FAFB); }
+.cpt__section--baseline .cpt__card { background: linear-gradient(145deg, $jzb-text-inverse, $jzb-bg-hover); }
 </style>

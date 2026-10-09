@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -201,14 +202,14 @@ async function submit() {
             <text class="qc__package-title">报价基线</text>
             <text class="qc__package-sub">选择套餐后，系统会匹配设计方案并生成待确认差异。</text>
           </view>
-          <JzIcon name="package" :size="32" :color="'#16A394'" />
+          <JzIcon name="package" :size="32" :color="TOKEN_COLOR.primaryBase" />
         </view>
         <view class="qc__package-picker" @tap="openPackagePicker">
           <view class="qc__package-picker-main">
             <text class="qc__package-picker-name">{{ selectedTemplate ? selectedTemplate.name : '仅设计方案报价' }}</text>
             <text class="qc__package-picker-meta">{{ selectedTemplate ? `标准${selectedTemplate.area}㎡ · ${money(selectedTemplate.price)}` : '按客户确认的差异选择套餐基线' }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" />
         </view>
         <view v-if="selectedTemplate" class="qc__package-meta">
           <text>套餐面积比例 {{ packageRatio.toFixed(3) }}</text>

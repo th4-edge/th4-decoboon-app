@@ -73,14 +73,14 @@ const totalTop = computed(() => `${(system.value.statusBarHeight || 20) + 8 + 54
   pointer-events: none;
 }
 .jz-header--gradient {
-  background: linear-gradient(135deg, #169C90 0%, $jzb-primary 48%, #0C776E 100%);
+  background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary 48%, $jzb-primary-deep 100%);
 }
 .jz-header--plain { background: $jzb-bg-card; }
 .jz-header__bar { position: absolute; left: 0; right: 0; top: 0; z-index: 10; }
 /* 顶部锚定模式：bar 固定，自带渐变底色与投影，避免滚动时内容穿透 */
 .jz-header--fixed .jz-header__bar {
   position: fixed;
-  background: linear-gradient(135deg, #169C90 0%, $jzb-primary 48%, #0C776E 100%);
+  background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary 48%, $jzb-primary-deep 100%);
   box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.08);
 }
 .jz-header__main {

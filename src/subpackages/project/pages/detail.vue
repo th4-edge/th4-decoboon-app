@@ -690,7 +690,7 @@ function avatarOf(m: ProjectMember) {
 .pd__entry-sub { font-size: 22rpx; color: $jzb-text-3; }
 .pd__selection { padding: 24rpx; margin-bottom: 20rpx; }
 .pd__selection-title { font-size: 30rpx; font-weight: 600; }
-.pd__selection-sub { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: #6B7280; }
+.pd__selection-sub { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: $jzb-text-3; }
 .pd__mine { padding: 24rpx; margin-bottom: 20rpx; }
 .pd__mine-title { font-size: $jzb-font; font-weight: 600; }
 .pd__mine-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }

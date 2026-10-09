@@ -125,7 +125,7 @@ async function submit() {
           <text class="ent__label">已有在建项目</text>
           <text class="ent__switch-note">开启后，创建企业将进入“业务承接”，逐个录入项目。</text>
         </view>
-        <switch :checked="hasRunningProjects" color="#16A394" @change="onRunningProjectsChange" />
+        <switch :checked="hasRunningProjects" :color="TOKEN_COLOR.primaryBase" @change="onRunningProjectsChange" />
       </view>
     </view>
 

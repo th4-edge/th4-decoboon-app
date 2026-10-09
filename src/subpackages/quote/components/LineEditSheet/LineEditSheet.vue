@@ -127,11 +127,11 @@ function handleSave() {
       <!-- 开关 -->
       <view class="les__switch-row">
         <text>默认包含</text>
-        <switch :checked="included" color="#16A394" @change="setIncluded" />
+        <switch :checked="included" :color="TOKEN_COLOR.primaryBase" @change="setIncluded" />
       </view>
       <view class="les__switch-row">
         <text>允许扣减</text>
-        <switch :checked="deductible" color="#16A394" @change="setDeductible" />
+        <switch :checked="deductible" :color="TOKEN_COLOR.primaryBase" @change="setDeductible" />
       </view>
 
       <!-- 规则说明 -->

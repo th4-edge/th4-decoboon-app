@@ -101,7 +101,7 @@ function onPickProject(index: number) {
 </template>
 
 <style lang="scss" scoped>
-.dy__scope { margin: 0 $jzb-page-pad 22rpx; padding: 24rpx; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #FFFFFF, #F4FBFA); }
+.dy__scope { margin: 0 $jzb-page-pad 22rpx; padding: 24rpx; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, $jzb-text-inverse, $jzb-primary-lightest); }
 .dy__scope-label { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .dy__scope-count { padding: 8rpx 18rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; font-weight: 650; }
 .dy__body { padding-bottom: calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }

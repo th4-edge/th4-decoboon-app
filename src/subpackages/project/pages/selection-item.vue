@@ -296,7 +296,7 @@ function updatedText() {
             <view v-for="path in photos" :key="path" class="msi__photo">
               <image class="msi__photo-img" :src="photoUrls[path] || path" mode="aspectFill" @tap="previewPhoto(path)" />
               <view v-if="canEditNow" class="msi__photo-remove" @tap.stop="removePhoto(path)">
-                <JzIcon name="close" :size="26" color="#FFFFFF" />
+                <JzIcon name="close" :size="26" :color="TOKEN_COLOR.white" />
               </view>
             </view>
             <view v-if="canEditNow && photos.length < MAX_PHOTOS" class="msi__photo-add" @tap="addPhotos">
@@ -344,7 +344,7 @@ function updatedText() {
               <text>保存</text>
             </button>
             <button class="jz-btn jz-btn--primary jz-grow" :disabled="saving || uploading" @tap="save(true)">
-              <JzIcon name="send" :size="30" color="#FFFFFF" />
+              <JzIcon name="send" :size="30" :color="TOKEN_COLOR.white" />
               <text>保存并交付</text>
             </button>
           </template>
@@ -354,7 +354,7 @@ function updatedText() {
               <text>材料计划</text>
             </button>
             <button class="jz-btn jz-btn--primary jz-grow" @tap="goChange">
-              <JzIcon name="edit" :size="30" color="#FFFFFF" />
+              <JzIcon name="edit" :size="30" :color="TOKEN_COLOR.white" />
               <text>去发起增减项</text>
             </button>
           </template>
@@ -387,10 +387,10 @@ function updatedText() {
 .msi__input, .msi__textarea { width: 100%; box-sizing: border-box; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; color: $jzb-text-1; background: $jzb-bg-page; font-size: $jzb-font-sm; }
 .msi__input { height: 80rpx; padding: 0 18rpx; }
 .msi__textarea { min-height: 160rpx; padding: 16rpx 18rpx; line-height: 1.6; }
-.msi__warning, .msi__hint { display: block; margin-top: 16rpx; padding: 14rpx 16rpx; border-radius: $jzb-radius-sm; color: #9A5B00; background: $jzb-warning-soft; font-size: $jzb-font-xs; line-height: 1.55; }
+.msi__warning, .msi__hint { display: block; margin-top: 16rpx; padding: 14rpx 16rpx; border-radius: $jzb-radius-sm; color: $jzb-warning; background: $jzb-warning-soft; font-size: $jzb-font-xs; line-height: 1.55; }
 .msi__hint { color: $jzb-text-2; background: $jzb-bg-page; }
 .msi__warning-text { display: block; font-weight: 600; }
-.msi__warning-sub { display: block; margin-top: 6rpx; color: #9A5B00; opacity: .9; }
+.msi__warning-sub { display: block; margin-top: 6rpx; color: $jzb-warning; opacity: .9; }
 .msi__photo-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12rpx; }
 .msi__photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12rpx; margin-top: 6rpx; }
 .msi__photo, .msi__photo-add { position: relative; width: 100%; height: 150rpx; border-radius: $jzb-radius-sm; overflow: hidden; }
@@ -402,7 +402,7 @@ function updatedText() {
 .msi__head-right { display: inline-flex; align-items: center; gap: 12rpx; flex-shrink: 0; }
 .msi__head-action { display: inline-flex; align-items: center; gap: 2rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
 .msi__foot-time { display: block; margin-top: 12rpx; color: $jzb-text-3; font-size: 20rpx; font-variant-numeric: tabular-nums; }
-.msi__error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-sm; color: #B42318; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
+.msi__error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-sm; color: $jzb-danger; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
 .msi__error text:nth-child(2) { flex: 1; }
 @media (min-width: 768px) { .msi { max-width: 760px; margin: 0 auto; } }
 </style>

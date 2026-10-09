@@ -16,7 +16,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 
 const info = ref<SubscriptionInfo | null>(null)
 const loading = ref(false)
@@ -38,8 +38,8 @@ const statusMeta = computed(() => {
   switch (info.value?.status) {
     case 'trial': return { text: '基础版试用中', short: '试用', color: TOKEN_COLOR.warning }
     case 'active': return { text: '订阅使用中', short: '使用中', color: TOKEN_COLOR.primaryBase }
-    case 'frozen': return { text: '订阅已冻结', short: '冻结', color: '#8A5CC7' }
-    case 'closed': return { text: '订阅已关闭', short: '关闭', color: '#7A7F87' }
+    case 'frozen': return { text: '订阅已冻结', short: '冻结', color: 'STATUS_COLOR.accent' }
+    case 'closed': return { text: '订阅已关闭', short: '关闭', color: 'STATUS_COLOR.closed' }
     default: return { text: '订阅已到期', short: '已到期', color: TOKEN_COLOR.danger }
   }
 })
@@ -229,9 +229,9 @@ function orderStatusMeta(status: BillingOrder['status']) {
     pending: { text: '待支付', color: TOKEN_COLOR.warning },
     paid: { text: '已支付', color: TOKEN_COLOR.primaryBase },
     granted: { text: '已开通', color: TOKEN_COLOR.primaryBase },
-    expired: { text: '已过期', color: '#7A7F87' },
-    cancelled: { text: '已取消', color: '#7A7F87' },
-    refunded: { text: '已退款', color: '#8A5CC7' }
+    expired: { text: '已过期', color: 'STATUS_COLOR.closed' },
+    cancelled: { text: '已取消', color: 'STATUS_COLOR.closed' },
+    refunded: { text: '已退款', color: 'STATUS_COLOR.accent' }
   })[status]
 }
 
@@ -378,7 +378,7 @@ async function loadStores() {
           <text class="subscription__benefit-desc">微信安全支付，无隐藏费用</text>
         </view>
         <view class="subscription__benefit">
-          <JzIcon name="wrench" :size="34" color="#5B6BD6" />
+          <JzIcon name="wrench" :size="34" color="STATUS_COLOR.info" />
           <text class="subscription__benefit-title">上线陪跑</text>
           <text class="subscription__benefit-desc">专业版、旗舰版远程支持</text>
         </view>
@@ -436,7 +436,7 @@ async function loadStores() {
           <text class="subscription__section-title">选择订阅方案</text>
           <text class="subscription__section-subtitle">点击卡片选择，年付有效期内不限业务单据量</text>
         </view>
-        <JzTag text="支持续费叠加" color="#5B6BD6" />
+        <JzTag text="支持续费叠加" color="STATUS_COLOR.info" />
       </view>
 
       <scroll-view class="subscription__plans" scroll-x :show-scrollbar="false">
@@ -500,9 +500,9 @@ async function loadStores() {
             <text class="subscription__addon-desc">{{ money(seatAddon.unitPrice) }} / 个 / 年</text>
           </view>
           <view class="subscription__stepper">
-            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', -1)"><JzIcon name="minus" :size="24" color="#4E5969" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', -1)"><JzIcon name="minus" :size="24" color="STATUS_COLOR.dark" /></view>
             <text class="subscription__stepper-value">{{ seatQuantity }}</text>
-            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', 1)"><JzIcon name="plus" :size="24" color="#4E5969" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', 1)"><JzIcon name="plus" :size="24" color="STATUS_COLOR.dark" /></view>
           </view>
         </view>
         <view v-if="storeAddon" class="subscription__addon-row">
@@ -512,9 +512,9 @@ async function loadStores() {
             <text class="subscription__addon-desc">{{ money(storeAddon.unitPrice) }} / 家 / 年</text>
           </view>
           <view class="subscription__stepper">
-            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', -1)"><JzIcon name="minus" :size="24" color="#4E5969" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', -1)"><JzIcon name="minus" :size="24" color="STATUS_COLOR.dark" /></view>
             <text class="subscription__stepper-value">{{ storeQuantity }}</text>
-            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', 1)"><JzIcon name="plus" :size="24" color="#4E5969" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', 1)"><JzIcon name="plus" :size="24" color="STATUS_COLOR.dark" /></view>
           </view>
         </view>
       </view>
@@ -616,7 +616,7 @@ async function loadStores() {
   overflow: hidden;
   color: $jzb-text-inverse;
   /* 头部已是深绿渐变，卡片改用更亮的中绿，配合上方 24rpx 间距形成层次，避免两块深绿相接 */
-  background: linear-gradient(135deg, #12A08F 0%, $jzb-primary-light 58%, #6FD3C6 100%);
+  background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary-light 58%, $jzb-primary-light 100%);
   border-radius: $jzb-radius-xl;
   box-shadow: 0 16rpx 36rpx rgba(14, 138, 125, .16);
 }
@@ -632,7 +632,7 @@ async function loadStores() {
 .subscription__hero-top { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 24rpx; }
 .subscription__hero-copy { flex: 1; min-width: 0; }
 .subscription__eyebrow { display: flex; align-items: center; gap: 12rpx; }
-.subscription__trial { padding: 4rpx 12rpx; color: #7A4100; background: #FFE8B3; border-radius: $jzb-radius-pill; font-size: 20rpx; font-weight: 700; }
+.subscription__trial { padding: 4rpx 12rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-pill; font-size: 20rpx; font-weight: 700; }
 .subscription__plan { display: block; margin-top: 22rpx; font-size: 44rpx; font-weight: 750; line-height: 1.2; }
 .subscription__renewal-tip { display: block; margin-top: 14rpx; color: rgba(255,255,255,.82); font-size: $jzb-font-sm; line-height: 1.55; }
 .subscription__days-card { width: 150rpx; padding: 20rpx 10rpx; text-align: center; background: rgba(255,255,255,.14); border: 1rpx solid rgba(255,255,255,.18); border-radius: $jzb-radius-lg; backdrop-filter: blur(12px); }
@@ -641,7 +641,7 @@ async function loadStores() {
 .subscription__timeline { position: relative; display: flex; gap: 40rpx; margin-top: 34rpx; padding-top: 24rpx; border-top: 1rpx solid rgba(255,255,255,.16); }
 .subscription__timeline-row { display: flex; flex-direction: column; gap: 6rpx; color: rgba(255,255,255,.72); font-size: $jzb-font-xs; }
 .subscription__timeline-row text:last-child { color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 600; }
-.subscription__expired-tip { position: relative; margin-top: 24rpx; padding: 18rpx 20rpx; color: #7A261F; background: #FFE9E6; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; line-height: 1.6; }
+.subscription__expired-tip { position: relative; margin-top: 24rpx; padding: 18rpx 20rpx; color: $jzb-danger; background: $jzb-danger-soft; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; line-height: 1.6; }
 .subscription__benefits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14rpx; margin: 20rpx 0; }
 .subscription__benefit { min-width: 0; padding: 22rpx 16rpx; text-align: center; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.05); border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
 .subscription__benefit-title { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-xs; font-weight: 650; }
@@ -655,7 +655,7 @@ async function loadStores() {
 .subscription__metric-head { display: flex; justify-content: space-between; gap: 16rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .subscription__metric-head text:last-child { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .subscription__progress { height: 12rpx; margin-top: 14rpx; overflow: hidden; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; }
-.subscription__progress-inner { height: 100%; background: linear-gradient(90deg, $jzb-primary, #65C7B9); border-radius: $jzb-radius-pill; }
+.subscription__progress-inner { height: 100%; background: linear-gradient(90deg, $jzb-primary, $jzb-primary-light); border-radius: $jzb-radius-pill; }
 .subscription__modules { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 28rpx; padding-top: 24rpx; border-top: 1rpx solid $jzb-border-light; }
 .subscription__plans { width: calc(100% + #{$jzb-page-pad}); margin-left: -$jzb-page-pad; white-space: nowrap; }
 .subscription__plan-track { display: inline-flex; gap: 20rpx; padding: 4rpx $jzb-page-pad 24rpx; }
@@ -671,14 +671,14 @@ async function loadStores() {
   box-shadow: $jzb-shadow-xs;
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
-.subscription__plan-card--recommended { border-color: rgba(230,126,34,.36); background: linear-gradient(180deg, #FFF9EF 0%, $jzb-text-inverse 34%); }
+.subscription__plan-card--recommended { border-color: rgba(230,126,34,.36); background: linear-gradient(180deg, $jzb-warning-soft 0%, $jzb-text-inverse 34%); }
 .subscription__plan-card--selected { border-color: $jzb-primary; box-shadow: 0 14rpx 34rpx rgba(22,163,148,.16); transform: translateY(-4rpx); }
-.subscription__plan-ribbon { position: absolute; top: 0; right: 0; padding: 8rpx 22rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, #E98A2C, #D86618); border-radius: 0 $jzb-radius-xl 0 $jzb-radius-lg; font-size: 22rpx; font-weight: 700; }
+.subscription__plan-ribbon { position: absolute; top: 0; right: 0; padding: 8rpx 22rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, $jzb-warning, $jzb-warning); border-radius: 0 $jzb-radius-xl 0 $jzb-radius-lg; font-size: 22rpx; font-weight: 700; }
 .subscription__plan-head { display: flex; justify-content: space-between; gap: 18rpx; padding-right: 70rpx; }
 .subscription__plan-name { display: block; color: $jzb-text-1; font-size: 38rpx; font-weight: 740; }
 .subscription__plan-tagline { display: block; min-height: 66rpx; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 .subscription__current-mark { align-self: flex-start; padding: 6rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: 20rpx; white-space: nowrap; }
-.subscription__price { display: flex; align-items: baseline; margin-top: 24rpx; color: #D86618; }
+.subscription__price { display: flex; align-items: baseline; margin-top: 24rpx; color: $jzb-warning; }
 .subscription__price-symbol { font-size: 28rpx; font-weight: 700; }
 .subscription__price-number { font-size: 66rpx; font-weight: 780; letter-spacing: -2rpx; line-height: 1; }
 .subscription__price-unit { margin-left: 6rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
@@ -695,13 +695,13 @@ async function loadStores() {
 .subscription__stepper { display: flex; align-items: center; overflow: hidden; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; }
 .subscription__stepper-btn { width: 64rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; }
 .subscription__stepper-value { width: 52rpx; text-align: center; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
-.subscription__checkout { display: flex; flex-wrap: wrap; align-items: center; gap: 18rpx; background: linear-gradient(135deg, $jzb-text-inverse, #F3FBF9); border-color: rgba(22,163,148,.14); }
+.subscription__checkout { display: flex; flex-wrap: wrap; align-items: center; gap: 18rpx; background: linear-gradient(135deg, $jzb-text-inverse, $jzb-primary-lightest); border-color: rgba(22,163,148,.14); }
 .subscription__checkout-main { flex: 1; min-width: 0; }
 .subscription__checkout-label { display: block; color: $jzb-text-3; font-size: 22rpx; }
 .subscription__checkout-plan { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .subscription__checkout-items { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .subscription__checkout-price { text-align: right; }
-.subscription__checkout-amount { display: block; color: #D86618; font-size: 42rpx; font-weight: 760; }
+.subscription__checkout-amount { display: block; color: $jzb-warning; font-size: 42rpx; font-weight: 760; }
 .subscription__checkout-caption { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 20rpx; }
 .subscription__pay-btn { width: 100%; margin-top: 8rpx; }
 .subscription__agreement { width: 100%; text-align: center; color: $jzb-text-3; font-size: 20rpx; line-height: 1.5; }

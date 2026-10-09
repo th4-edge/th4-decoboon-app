@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { ref } from 'vue'
 import type { MetricDefinition } from '@/domains/statistic/model'
 import JzIcon from '@/components/JzIcon.vue'
@@ -24,7 +25,7 @@ const show = ref(false)
         <text class="jz-glossary__entry-title">{{ title }}</text>
         <text class="jz-glossary__entry-sub">{{ subtitle }}</text>
       </view>
-      <JzIcon name="chevron-right" :size="24" color="#8A94A6" />
+      <JzIcon name="chevron-right" :size="24" color=TOKEN_COLOR.text3 />
     </view>
 
     <view v-if="show" class="jz-glossary__mask" @tap="show = false">
@@ -64,20 +65,20 @@ const show = ref(false)
 <style lang="scss" scoped>
 .jz-glossary__entry { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; padding: 24rpx 28rpx; border-radius: 20rpx; background: #fff; }
 .jz-glossary__entry-main { display: flex; flex-direction: column; gap: 8rpx; }
-.jz-glossary__entry-title { font-size: 28rpx; font-weight: 600; color: #1F2937; }
-.jz-glossary__entry-sub { font-size: 22rpx; color: #8A94A6; }
+.jz-glossary__entry-title { font-size: 28rpx; font-weight: 600; color: $jzb-text-1; }
+.jz-glossary__entry-sub { font-size: 22rpx; color: $jzb-text-3; }
 .jz-glossary__mask { position: fixed; inset: 0; z-index: 999; background: rgba(15, 23, 42, 0.45); display: flex; align-items: flex-end; }
-.jz-glossary__sheet { width: 100%; max-height: 82vh; border-radius: 28rpx 28rpx 0 0; background: #F7F8FA; padding: 28rpx 28rpx 0; box-sizing: border-box; }
+.jz-glossary__sheet { width: 100%; max-height: 82vh; border-radius: 28rpx 28rpx 0 0; background: $jzb-bg-hover; padding: 28rpx 28rpx 0; box-sizing: border-box; }
 .jz-glossary__head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16rpx; }
-.jz-glossary__title { font-size: 32rpx; font-weight: 700; color: #111827; }
-.jz-glossary__close { font-size: 26rpx; color: #2563EB; }
+.jz-glossary__title { font-size: 32rpx; font-weight: 700; color: $jzb-text-1; }
+.jz-glossary__close { font-size: 26rpx; color: $jzb-status-info; }
 .jz-glossary__scroll { max-height: 72vh; }
 .jz-glossary__metric { background: #fff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 18rpx; }
 .jz-glossary__metric-head { display: flex; flex-direction: column; gap: 6rpx; margin-bottom: 12rpx; }
-.jz-glossary__metric-name { font-size: 29rpx; font-weight: 700; color: #111827; }
-.jz-glossary__metric-user { font-size: 23rpx; color: #2563EB; }
-.jz-glossary__line { display: block; font-size: 23rpx; line-height: 1.7; color: #4B5563; }
-.jz-glossary__compare { background: #EFF6FF; border-radius: 20rpx; padding: 24rpx; margin-bottom: 18rpx; }
-.jz-glossary__compare-title { display: block; font-size: 27rpx; font-weight: 700; color: #1D4ED8; margin-bottom: 10rpx; }
+.jz-glossary__metric-name { font-size: 29rpx; font-weight: 700; color: $jzb-text-1; }
+.jz-glossary__metric-user { font-size: 23rpx; color: $jzb-status-info; }
+.jz-glossary__line { display: block; font-size: 23rpx; line-height: 1.7; color: $jzb-text-2; }
+.jz-glossary__compare { background: $jzb-info-soft; border-radius: 20rpx; padding: 24rpx; margin-bottom: 18rpx; }
+.jz-glossary__compare-title { display: block; font-size: 27rpx; font-weight: 700; color: $jzb-status-info; margin-bottom: 10rpx; }
 .jz-glossary__bottom { height: 40rpx; }
 </style>

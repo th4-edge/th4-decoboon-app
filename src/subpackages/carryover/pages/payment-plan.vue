@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -154,8 +155,8 @@ async function submit() {
       </view>
 
       <view class="pp-add">
-        <button class="jz-btn jz-btn--ghost" @tap="addPlan('receivable')"><JzIcon name="plus" :size="24" color="#16A394" /><text>新增收款计划</text></button>
-        <button class="jz-btn jz-btn--ghost" @tap="addPlan('payable')"><JzIcon name="plus" :size="24" color="#16A394" /><text>新增付款计划</text></button>
+        <button class="jz-btn jz-btn--ghost" @tap="addPlan('receivable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primaryBase" /><text>新增收款计划</text></button>
+        <button class="jz-btn jz-btn--ghost" @tap="addPlan('payable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primaryBase" /><text>新增付款计划</text></button>
       </view>
 
       <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="busy || loadingPage" @tap="submit">

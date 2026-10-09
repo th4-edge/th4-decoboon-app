@@ -550,12 +550,12 @@ async function doToggle(item: CatalogItem, active: boolean) {
 <style lang="scss" scoped>
 .cm { min-height: 100vh; background: $jzb-bg-page; }
 .cm__import { display: flex; flex-direction: column; gap: 12rpx; }
-.cm__import-title { font-size: 30rpx; font-weight: 600; color: #25313d; display: block; }
-.cm__import-sub { font-size: 24rpx; color: #8d98a5; display: block; margin-top: 6rpx; }
+.cm__import-title { font-size: 30rpx; font-weight: 600; color: $jzb-text-1; display: block; }
+.cm__import-sub { font-size: 24rpx; color: $jzb-text-3; display: block; margin-top: 6rpx; }
 .cm__import-actions { display: flex; gap: 16rpx; }
-.cm__import-recent { display: flex; flex-direction: column; gap: 12rpx; border-top: 1rpx solid #eef1f4; padding-top: 16rpx; }
-.cm__import-row { display: flex; justify-content: space-between; font-size: 24rpx; color: #667085; }
-.cm__import-status { color: #8d98a5; }
+.cm__import-recent { display: flex; flex-direction: column; gap: 12rpx; border-top: 1rpx solid $jzb-border-light; padding-top: 16rpx; }
+.cm__import-row { display: flex; justify-content: space-between; font-size: 24rpx; color: $jzb-text-3; }
+.cm__import-status { color: $jzb-text-3; }
 
 .cm__editor { display: flex; flex-direction: column; max-height: 78vh; }
 .cm__sub { display: block; margin-bottom: 14rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.5; }

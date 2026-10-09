@@ -147,7 +147,7 @@ function jumpTo(section: TalkSection, index: number) {
 
 <style lang="scss" scoped>
 .dt { min-height: 100vh; padding-bottom: 170rpx; background: $jzb-bg-page; width: 100%; overflow-x: hidden; }
-.dt__hero { margin: $jzb-page-gap $jzb-page-pad; padding: 32rpx 30rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, #1F2937, $jzb-purple); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
+.dt__hero { margin: $jzb-page-gap $jzb-page-pad; padding: 32rpx 30rpx; color: $jzb-text-inverse; background: linear-gradient(135deg, $jzb-text-1, $jzb-purple); border-radius: $jzb-radius-lg; box-shadow: $jzb-shadow-card; }
 .dt__label { font-size: $jzb-font-sm; opacity: .8; }
 .dt__status { padding: 6rpx 14rpx; background: rgba(255,255,255,.16); border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .dt__title { display: block; margin-top: 20rpx; font-size: 42rpx; font-weight: 750; line-height: 1.38; word-break: break-word; }

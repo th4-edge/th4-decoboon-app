@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import { P } from '@/config'
@@ -108,7 +109,7 @@ async function removeDraft(item: PayrollSheet) {
         </view>
         <view class="sheet-card__actions">
           <text v-if="session.role === 'boss' && item.status === 'draft'" class="sheet-card__delete" @tap.stop="removeDraft(item)">{{ deletingId === item.id ? '删除中' : '删除草稿' }}</text>
-          <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" color="#16A394" /></view>
+          <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primaryBase" /></view>
         </view>
       </view>
       <ListFooter v-if="!loadError && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />

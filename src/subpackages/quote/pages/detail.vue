@@ -11,7 +11,7 @@ import { projectApi } from '@/domains/project/api'
 import { documentApi } from '@/domains/document/api'
 import { designApi } from '@/domains/design/api'
 import { money } from '@/core/format'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { confirm, loading, hideLoading, toast, toastError } from '@/composables/toast'
 import { useInputDialog } from '@/composables/inputDialog'
 import { useShare } from '@/composables/share'
@@ -48,7 +48,7 @@ const STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
   submitted: { label: '待客户确认', color: TOKEN_COLOR.warning },
   accepted: { label: '客户已接受', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
-  superseded: { label: '已被替代', color: '#8B93A1' },
+  superseded: { label: '已被替代', color: 'STATUS_COLOR.muted' },
   converted: { label: '已转项目', color: TOKEN_COLOR.purple }
 }
 const MODE_META: Record<QuoteMode, string> = { package: '套餐报价', custom: '自定义报价', hybrid: '混合报价' }

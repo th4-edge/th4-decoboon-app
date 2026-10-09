@@ -66,7 +66,7 @@ defineExpose({ reload: load })
 </template>
 
 <style lang="scss" scoped>
-.success-card { margin: 0 $jzb-page-pad 24rpx; padding: 26rpx; border: 1rpx solid rgba(22,163,148,.18); background: linear-gradient(135deg, #F5FCFB 0%, $jzb-text-inverse 74%); }
+.success-card { margin: 0 $jzb-page-pad 24rpx; padding: 26rpx; border: 1rpx solid rgba(22,163,148,.18); background: linear-gradient(135deg, $jzb-primary-lightest 0%, $jzb-text-inverse 74%); }
 .success-card__head { display: flex; justify-content: space-between; gap: 20rpx; }
 .success-card__eyebrow { display: block; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 700; letter-spacing: 1rpx; }
 .success-card__title { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 760; }

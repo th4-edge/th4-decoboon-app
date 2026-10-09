@@ -594,7 +594,7 @@ function openChangeWorkbench() {
 .pl__metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; padding: 8rpx $jzb-page-pad 4rpx; }
 .pl__metric { position: relative; padding: 22rpx 22rpx 20rpx; overflow: hidden; }
 .pl__metric--attention { border-color: rgba(230,126,34,.28); }
-.pl__metric--danger { border-color: rgba(229,72,77,.30); background: linear-gradient(160deg, #FFFFFF 0%, $jzb-danger-soft 100%); }
+.pl__metric--danger { border-color: rgba(229,72,77,.30); background: linear-gradient(160deg, $jzb-text-inverse 0%, $jzb-danger-soft 100%); }
 .pl__metric-head { display: flex; align-items: center; justify-content: space-between; }
 .pl__change-entry { display: flex; align-items: center; justify-content: space-between; margin: $jzb-space-3 $jzb-page-pad 0; padding: $jzb-space-4; }
 .pl__change-entry-main { min-width: 0; }

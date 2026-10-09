@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -369,7 +370,7 @@ async function save() {
           <text class="tpl-block__title">样式</text>
           <view class="tpl-row">
             <text class="tpl-label">字号 {{ style.fontSize }} px</text>
-            <slider class="tpl-slider" :value="style.fontSize" :min="9" :max="14" :step="1" activeColor="#0E8A7D" @change="style.fontSize = Number(($event as any).detail.value)" />
+            <slider class="tpl-slider" :value="style.fontSize" :min="9" :max="14" :step="1" active:color="TOKEN_COLOR.primary" @change="style.fontSize = Number(($event as any).detail.value)" />
           </view>
           <view class="tpl-row">
             <text class="tpl-label">主色</text>
@@ -401,7 +402,7 @@ async function save() {
           </view>
           <view class="tpl-row">
             <text class="tpl-label">页边距 {{ layout.marginMm }} mm</text>
-            <slider class="tpl-slider" :value="layout.marginMm" :min="8" :max="20" :step="1" activeColor="#0E8A7D" @change="layout.marginMm = Number(($event as any).detail.value)" />
+            <slider class="tpl-slider" :value="layout.marginMm" :min="8" :max="20" :step="1" active:color="TOKEN_COLOR.primary" @change="layout.marginMm = Number(($event as any).detail.value)" />
           </view>
         </view>
 

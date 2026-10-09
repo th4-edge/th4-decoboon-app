@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 
 withDefaults(defineProps<{ text?: string; sub?: string }>(), {
@@ -9,7 +10,7 @@ withDefaults(defineProps<{ text?: string; sub?: string }>(), {
 <template>
   <view class="jz-empty">
     <view class="jz-empty__art">
-      <JzIcon name="inbox" :size="72" color="#A8B3BF" :stroke-width="1.5" />
+      <JzIcon name="inbox" :size="72" color=TOKEN_COLOR.text4 :stroke-width="1.5" />
     </view>
     <text class="jz-empty__text">{{ text }}</text>
     <text v-if="sub" class="jz-empty__sub">{{ sub }}</text>
@@ -29,7 +30,7 @@ withDefaults(defineProps<{ text?: string; sub?: string }>(), {
   width: 128rpx;
   height: 128rpx;
   border-radius: 36rpx;
-  background: linear-gradient(145deg, #F7FAFA, #EDF3F3);
+  background: linear-gradient(145deg, $jzb-bg-hover, $jzb-primary-lightest);
   border: 1rpx solid rgba(15, 23, 42, 0.04);
   display: flex;
   align-items: center;

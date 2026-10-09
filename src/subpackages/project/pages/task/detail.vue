@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -193,14 +193,14 @@ function openStageAccept() {
         <view v-if="i > 0" class="td__node-line" :class="{ 'td__node-line--done': nodes.find((n) => n.key === orderedKeys[i - 1])?.status === 'done' }" />
         <view class="td__node">
           <view class="td__node-head">
-            <view class="td__node-dot" :style="{ backgroundColor: (nodes.find((n) => n.key === key)?.status === 'done' ? NODE_META[key].color : '#C9CDD4') }">
+            <view class="td__node-dot" :style="{ backgroundColor: (nodes.find((n) => n.key === key)?.status === 'done' ? NODE_META[key].color : 'STATUS_COLOR.idle') }">
               <JzIcon v-if="nodes.find((n) => n.key === key)?.status === 'done'" name="check" :size="19" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
             </view>
             <view class="jz-grow">
               <text class="td__node-title">{{ NODE_META[key].label }}</text>
               <text class="td__node-tip">{{ NODE_META[key].tip }}</text>
             </view>
-            <JzTag v-if="nodes.find((n) => n.key === key)?.status === 'done'" text="已确认" color="#00B42A" />
+            <JzTag v-if="nodes.find((n) => n.key === key)?.status === 'done'" text="已确认" color=STATUS_COLOR.done />
             <text v-else-if="key === 'conceal' && !task.conceal" class="td__node-none">无</text>
           </view>
           <view v-if="nodes.find((n) => n.key === key)?.confirmBy" class="td__node-by">
@@ -266,7 +266,7 @@ function openStageAccept() {
 .td__node-medias { display: flex; flex-direction: row; flex-wrap: wrap; margin: 12rpx 0 0 44rpx; }
 .td__node-media { width: 140rpx; height: 140rpx; margin: 0 12rpx 12rpx 0; border-radius: $jzb-radius-sm; overflow: hidden; background: $jzb-bg-page; }
 .td__node-media image { width: 100%; height: 100%; }
-.td__node-video { width: 100%; height: 100%; background: #1D2129; display: flex; align-items: center; justify-content: center; }
+.td__node-video { width: 100%; height: 100%; background: $jzb-text-1; display: flex; align-items: center; justify-content: center; }
 .td__node-action { display: flex; align-items: center; justify-content: center; }
 .td__node-action text { margin-left: 8rpx; }
 .td__node-action { margin: 14rpx 0 0 44rpx; width: auto; }

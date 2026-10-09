@@ -133,7 +133,7 @@ async function submit() {
 .fin-refund-limit { margin-top:20rpx; color:var(--brand-500); font-size:24rpx; font-weight:650; }
 .fin-input,.fin-picker,.fin-textarea { box-sizing:border-box; width:100%; padding:24rpx; border:1rpx solid var(--line-2); border-radius:16rpx; background:#fff; color:var(--text-1); }
 .fin-field-tip { display:block; margin-top:10rpx; color:var(--text-3); font-size:22rpx; line-height:1.5; }
-.fin-field-error { display:block; margin-top:10rpx; color:var(--danger-500, #E5484D); font-size:22rpx; line-height:1.5; }
+.fin-field-error { display:block; margin-top:10rpx; color:var(--danger-500, $jzb-danger); font-size:22rpx; line-height:1.5; }
 .fin-picker { display:flex; justify-content:space-between; align-items:center; }
 .fin-textarea { min-height:180rpx; }
 .fin-submit { margin-top:32rpx; border-radius:16rpx; background:var(--brand-500); color:#fff; }

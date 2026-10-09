@@ -97,7 +97,7 @@ function stepIcon(step: GuideStep) {
 
 function stepColor(step: GuideStep) {
   if (step.status === 'done') return TOKEN_COLOR.primaryBase
-  if (step.status === 'unknown' || step.status === 'waiting') return '#9AA6B2'
+  if (step.status === 'unknown' || step.status === 'waiting') return TOKEN_COLOR.text3
   return TOKEN_COLOR.warning || TOKEN_COLOR.primary
 }
 
@@ -181,10 +181,10 @@ defineExpose({ reload: load })
 </template>
 
 <style lang="scss" scoped>
-.onboarding { margin: 0 $jzb-page-pad 24rpx; padding: 28rpx; border: 1rpx solid rgba(22,163,148,.18); background: linear-gradient(135deg, #F5FCFB 0%, $jzb-text-inverse 72%); }
-.onboarding--error { border-color: rgba(211,142,44,.24); background: linear-gradient(135deg, #FFFBF3 0%, $jzb-text-inverse 72%); }
+.onboarding { margin: 0 $jzb-page-pad 24rpx; padding: 28rpx; border: 1rpx solid rgba(22,163,148,.18); background: linear-gradient(135deg, $jzb-primary-lightest 0%, $jzb-text-inverse 72%); }
+.onboarding--error { border-color: rgba(211,142,44,.24); background: linear-gradient(135deg, $jzb-warning-soft 0%, $jzb-text-inverse 72%); }
 .onboarding--loading { display: flex; flex-direction: column; gap: 16rpx; }
-.onboarding__skeleton { width: 58%; height: 24rpx; background: #E8F1F0; border-radius: 99rpx; }
+.onboarding__skeleton { width: 58%; height: 24rpx; background: $jzb-primary-lightest; border-radius: 99rpx; }
 .onboarding__skeleton--title { width: 78%; height: 36rpx; }
 .onboarding__skeleton--short { width: 38%; }
 .onboarding__head { display: flex; justify-content: space-between; gap: 20rpx; }
@@ -194,8 +194,8 @@ defineExpose({ reload: load })
 .onboarding__progress { flex-shrink: 0; text-align: right; }
 .onboarding__progress text:first-child { display: block; color: $jzb-primary-dark; font-size: 38rpx; font-weight: 780; }
 .onboarding__progress text:last-child { color: $jzb-text-4; font-size: 20rpx; }
-.onboarding__bar { height: 10rpx; margin: 22rpx 0; overflow: hidden; background: #E8F1F0; border-radius: 99rpx; }
-.onboarding__bar view { height: 100%; background: linear-gradient(90deg, $jzb-primary-dark, #31B7A7); border-radius: inherit; }
+.onboarding__bar { height: 10rpx; margin: 22rpx 0; overflow: hidden; background: $jzb-primary-lightest; border-radius: 99rpx; }
+.onboarding__bar view { height: 100%; background: linear-gradient(90deg, $jzb-primary-dark, $jzb-primary); border-radius: inherit; }
 .onboarding__next { display: flex; align-items: center; padding: 20rpx 22rpx; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
 .onboarding__next-label { display: block; color: $jzb-primary-dark; font-size: 20rpx; font-weight: 700; }
 .onboarding__next-title { display: block; margin-top: 4rpx; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
@@ -210,9 +210,9 @@ defineExpose({ reload: load })
 .onboarding__scroll { width: 100%; margin-top: 18rpx; white-space: nowrap; }
 .onboarding__steps { display: inline-flex; gap: 14rpx; }
 .onboarding__step { position: relative; width: 220rpx; min-height: 136rpx; padding: 18rpx; box-sizing: border-box; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
-.onboarding__step--done { background: #F7FCFB; }
+.onboarding__step--done { background: $jzb-bg-hover; }
 .onboarding__step--optional { border-style: dashed; }
-.onboarding__step--unknown { border-color: rgba(211,142,44,.28); background: #FFFCF7; }
+.onboarding__step--unknown { border-color: rgba(211,142,44,.28); background: $jzb-warning-soft; }
 .onboarding__step-title { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .onboarding__step-sub { display: block; margin-top: 6rpx; color: $jzb-text-4; font-size: 20rpx; }
 .onboarding__optional { position: absolute; top: 12rpx; right: 12rpx; color: $jzb-text-4; font-size: 18rpx; }

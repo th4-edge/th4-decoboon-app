@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -186,7 +187,7 @@ function openResult() {
 <template>
   <view class="page">
     <view class="card intro">
-      <view class="intro__title"><JzIcon name="upload" :size="34" :color="'#0E8A7D'" /><text>按 V1.0 模板批量导入报价项目库</text></view>
+      <view class="intro__title"><JzIcon name="upload" :size="34" :color="TOKEN_COLOR.primary" /><text>按 V1.0 模板批量导入报价项目库</text></view>
       <text class="muted">电脑整理 → 手机选文件 → 确认导入。请勿修改表头、合并单元格或拼接多张表。</text>
       <view class="intro__actions">
         <button class="btn btn--ghost" :disabled="busy" @click="downloadTemplate">下载 V1.0 模板</button>
@@ -268,25 +269,25 @@ function openResult() {
 </template>
 
 <style scoped lang="scss">
-.page { padding: 24rpx; background: #F4F7F8; min-height: 100vh; }
+.page { padding: 24rpx; background: $jzb-bg-page; min-height: 100vh; }
 .card { background: #fff; border-radius: 20rpx; padding: 24rpx; margin-bottom: 20rpx; }
-.intro__title { display: flex; align-items: center; gap: 12rpx; font-size: 30rpx; font-weight: 600; color: #25313D; margin-bottom: 12rpx; }
+.intro__title { display: flex; align-items: center; gap: 12rpx; font-size: 30rpx; font-weight: 600; color: $jzb-text-1; margin-bottom: 12rpx; }
 .intro__actions { display: flex; flex-direction: column; gap: 16rpx; margin: 20rpx 0 12rpx; }
-.muted { color: #8D98A5; font-size: 24rpx; line-height: 1.6; display: block; }
-.file { margin-top: 10rpx; font-size: 24rpx; color: #0E8A7D; }
+.muted { color: $jzb-text-3; font-size: 24rpx; line-height: 1.6; display: block; }
+.file { margin-top: 10rpx; font-size: 24rpx; color: $jzb-primary-dark; }
 .row { display: flex; justify-content: space-between; padding: 8rpx 0; font-size: 26rpx; }
-.label { color: #667085; font-size: 26rpx; font-weight: 600; display: block; margin-bottom: 10rpx; }
+.label { color: $jzb-text-3; font-size: 26rpx; font-weight: 600; display: block; margin-bottom: 10rpx; }
 .stats { display: flex; gap: 12rpx; margin-top: 16rpx; }
-.stat { flex: 1; background: #E8F7F5; border-radius: 14rpx; padding: 14rpx 8rpx; text-align: center; }
-.stat__num { display: block; font-size: 32rpx; font-weight: 700; color: #0B6F66; }
-.stat__label { font-size: 22rpx; color: #8D98A5; }
+.stat { flex: 1; background: $jzb-primary-lighter; border-radius: 14rpx; padding: 14rpx 8rpx; text-align: center; }
+.stat__num { display: block; font-size: 32rpx; font-weight: 700; color: $jzb-primary-deep; }
+.stat__label { font-size: 22rpx; color: $jzb-text-3; }
 .policy { display: flex; gap: 16rpx; margin-top: 16rpx; }
-.policy__item { flex: 1; text-align: center; padding: 16rpx; border-radius: 14rpx; background: #F4F7F8; font-size: 24rpx; }
-.policy__item--active { background: #E8F7F5; color: #0B6F66; font-weight: 600; }
-.line { padding: 12rpx 0; border-bottom: 1rpx solid #EEF1F4; font-size: 26rpx; }
+.policy__item { flex: 1; text-align: center; padding: 16rpx; border-radius: 14rpx; background: $jzb-bg-page; font-size: 24rpx; }
+.policy__item--active { background: $jzb-primary-lighter; color: $jzb-primary-deep; font-weight: 600; }
+.line { padding: 12rpx 0; border-bottom: 1rpx solid $jzb-border-light; font-size: 26rpx; }
 .line:last-child { border-bottom: none; }
 .actions { display: flex; flex-direction: column; gap: 16rpx; }
 .actions__row { display: flex; gap: 16rpx; }
-.btn { background: #0E8A7D; color: #fff; border-radius: 44rpx; font-size: 28rpx; }
-.btn--ghost { background: #E8F7F5; color: #0B6F66; }
+.btn { background: $jzb-primary-dark; color: #fff; border-radius: 44rpx; font-size: 28rpx; }
+.btn--ghost { background: $jzb-primary-lighter; color: $jzb-primary-deep; }
 </style>

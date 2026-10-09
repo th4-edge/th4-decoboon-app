@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -25,7 +25,7 @@ const TYPE_ICON: Record<string, IconName> = {
 }
 const TYPE_COLOR: Record<string, string> = {
   customer: TOKEN_COLOR.success, project: TOKEN_COLOR.primary, quote: TOKEN_COLOR.purple, task: TOKEN_COLOR.purple, overdue: TOKEN_COLOR.danger,
-  dynamic: '#168A96', accept: TOKEN_COLOR.success, system: TOKEN_COLOR.text3, invite: TOKEN_COLOR.primary
+  dynamic: STATUS_COLOR.progress, accept: TOKEN_COLOR.success, system: TOKEN_COLOR.text3, invite: TOKEN_COLOR.primary
 }
 const shown = computed(() => {
   if (filter.value === 'all') return list.value
@@ -103,7 +103,7 @@ async function markAll() {
 
 <style lang="scss" scoped>
 .msg { padding: 24rpx 24rpx 60rpx; }
-.msg__head { padding: 28rpx; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; background: linear-gradient(135deg, $jzb-text-inverse, #F4FBFA); }
+.msg__head { padding: 28rpx; display: flex; align-items: center; justify-content: space-between; margin-bottom: 22rpx; background: linear-gradient(135deg, $jzb-text-inverse, $jzb-primary-lightest); }
 .msg__head-title { font-size: $jzb-font-lg; font-weight: 700; }
 .msg__head-sub { padding: 7rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
 .msg__head-actions { display: flex; align-items: center; }

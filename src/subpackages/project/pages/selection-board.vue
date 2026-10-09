@@ -101,10 +101,10 @@ const summary = computed(() => {
 })
 
 const metrics = computed<WorkbenchMetric[]>(() => [
-  { key: 'selected', label: '已选材', value: summary.value.selected, color: STATUS_COLOR.done, tone: '#EAF8F0' },
-  { key: 'notSelected', label: '待选材', value: summary.value.notSelected, color: STATUS_COLOR.todo, tone: '#F1F4F7' },
-  { key: 'delivered', label: '已交付', value: summary.value.delivered, color: STATUS_COLOR.pending, tone: '#FFF4E8' },
-  { key: 'ordered', label: '已下单', value: summary.value.ordered, color: STATUS_COLOR.progress, tone: '#E8F7F5' }
+  { key: 'selected', label: '已选材', value: summary.value.selected, color: STATUS_COLOR.done, tone: 'TOKEN_COLOR.successSoft' },
+  { key: 'notSelected', label: '待选材', value: summary.value.notSelected, color: STATUS_COLOR.todo, tone: 'TOKEN_COLOR.bgPage' },
+  { key: 'delivered', label: '已交付', value: summary.value.delivered, color: STATUS_COLOR.pending, tone: 'TOKEN_COLOR.warningSoft' },
+  { key: 'ordered', label: '已下单', value: summary.value.ordered, color: STATUS_COLOR.progress, tone: 'TOKEN_COLOR.primaryLighter' }
 ])
 
 const filterOptions = computed(() => [
@@ -314,7 +314,7 @@ function openProject(card: WorkbenchCard) {
             <text>{{ card.item.selectedItems || 0 }}/{{ card.item.totalItems || 0 }} 项已选材</text>
             <text>{{ card.item.orderedItems || 0 }} 项已下单</text>
           </view>
-          <JzProgress :percent="card.item.progress || 0" :height="10" color="#16A394" />
+          <JzProgress :percent="card.item.progress || 0" :height="10" :color="TOKEN_COLOR.primaryBase" />
           <view class="sw__item-numbers">
             <text>已交付 {{ card.item.deliveredItems || 0 }}</text>
             <text>待选材 {{ card.item.notSelectedItems || 0 }}</text>
@@ -355,7 +355,7 @@ function openProject(card: WorkbenchCard) {
               <text>项目</text>
             </button>
             <button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="open(card.item)">
-              <JzIcon :name="Number(card.item.progress || 0) >= 100 ? 'eye' : 'edit'" :size="26" color="#FFFFFF" />
+              <JzIcon :name="Number(card.item.progress || 0) >= 100 ? 'eye' : 'edit'" :size="26" :color="TOKEN_COLOR.white" />
               <text>{{ Number(card.item.progress || 0) >= 100 ? '查看' : '去处理' }}</text>
             </button>
           </view>
@@ -380,8 +380,8 @@ function openProject(card: WorkbenchCard) {
 .sw__metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10rpx; margin-top: 24rpx; }
 .sw__metric { min-width: 0; padding: 16rpx 8rpx; border-radius: $jzb-radius-sm; text-align: center; }
 .sw__metric-value { display: block; font-size: 34rpx; font-weight: 750; font-variant-numeric: tabular-nums; }
-.sw__metric-label { display: block; margin-top: 4rpx; color: #465260; font-size: 20rpx; white-space: nowrap; }
-.sw__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border: 1rpx solid rgba(229,72,77,.18); border-radius: $jzb-radius-sm; color: #B42318; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
+.sw__metric-label { display: block; margin-top: 4rpx; color: $jzb-text-2; font-size: 20rpx; white-space: nowrap; }
+.sw__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border: 1rpx solid rgba(229,72,77,.18); border-radius: $jzb-radius-sm; color: $jzb-danger; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
 .sw__inline-error text:nth-child(2) { flex: 1; min-width: 0; }
 .sw__inline-retry { color: $jzb-danger; font-weight: 650; }
 .sw__filters { width: 100%; margin: 0 0 18rpx; white-space: nowrap; }

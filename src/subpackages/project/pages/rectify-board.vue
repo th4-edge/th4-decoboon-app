@@ -89,18 +89,18 @@ function open(item: RectifyItem) {
 .rb { padding: 20rpx; }
 .rb__summary { padding: 24rpx; margin-bottom: 20rpx; }
 .rb__summary-title { font-size: 32rpx; font-weight: 600; }
-.rb__summary-sub { display: block; margin-top: 10rpx; font-size: 24rpx; line-height: 1.6; color: #6B7280; }
-.rb__summary-row { display: flex; gap: 24rpx; margin-top: 16rpx; font-size: 24rpx; color: #465260; }
+.rb__summary-sub { display: block; margin-top: 10rpx; font-size: 24rpx; line-height: 1.6; color: $jzb-text-3; }
+.rb__summary-row { display: flex; gap: 24rpx; margin-top: 16rpx; font-size: 24rpx; color: $jzb-text-2; }
 .rb__item { padding: 24rpx; margin-bottom: 20rpx; }
 .rb__name { font-size: 30rpx; font-weight: 600; }
-.rb__project { display: block; margin-top: 10rpx; font-size: 26rpx; color: #465260; }
-.rb__conclusion { display: block; margin-top: 10rpx; font-size: 26rpx; color: #17212B; line-height: 1.6; }
+.rb__project { display: block; margin-top: 10rpx; font-size: 26rpx; color: $jzb-text-2; }
+.rb__conclusion { display: block; margin-top: 10rpx; font-size: 26rpx; color: $jzb-text-1; line-height: 1.6; }
 .rb__issues { margin-top: 10rpx; }
-.rb__issue { display: block; font-size: 24rpx; color: #E67E22; line-height: 1.9; }
-.rb__meta { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 12rpx; font-size: 24rpx; color: #6B7280; }
-.rb__foot { display: flex; align-items: center; gap: 16rpx; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid #EEF2F4; }
-.rb__overdue { font-size: 24rpx; color: #F53F3F; font-weight: 600; }
-.rb__ontime { font-size: 24rpx; color: #07A35A; }
-.rb__time { flex: 1; font-size: 22rpx; color: #AEB8C2; }
-.rb__action { display: block; margin-top: 10rpx; font-size: 24rpx; color: #0E7490; }
+.rb__issue { display: block; font-size: 24rpx; color: $jzb-warning; line-height: 1.9; }
+.rb__meta { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 12rpx; font-size: 24rpx; color: $jzb-text-3; }
+.rb__foot { display: flex; align-items: center; gap: 16rpx; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }
+.rb__overdue { font-size: 24rpx; color: $jzb-status-blocked; font-weight: 600; }
+.rb__ontime { font-size: 24rpx; color: $jzb-success; }
+.rb__time { flex: 1; font-size: 22rpx; color: $jzb-text-4; }
+.rb__action { display: block; margin-top: 10rpx; font-size: 24rpx; color: $jzb-status-progress; }
 </style>

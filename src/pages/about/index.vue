@@ -151,7 +151,7 @@ function go(url: string) {
 <style lang="scss" scoped>
 .about-page { min-height: 100vh; background: $jzb-bg-page; }
 .about-body { padding: 24rpx $jzb-page-pad calc($jzb-safe-bottom + 48rpx); }
-.about-hero { position: relative; padding: 42rpx 34rpx; overflow: hidden; background: linear-gradient(145deg, $jzb-primary-dark, #147D73 62%, #0B665F); color: $jzb-text-inverse; }
+.about-hero { position: relative; padding: 42rpx 34rpx; overflow: hidden; background: linear-gradient(145deg, $jzb-primary-dark, $jzb-primary-deep 62%, $jzb-primary-deep); color: $jzb-text-inverse; }
 .about-hero__glow { position: absolute; right: -90rpx; top: -110rpx; width: 300rpx; height: 300rpx; border-radius: 50%; background: rgba(255,255,255,.14); }
 .about-hero__logo { border-radius: 34rpx; }
 .about-hero__name { display: block; margin-top: 24rpx; font-size: 52rpx; font-weight: 800; letter-spacing: 2rpx; }

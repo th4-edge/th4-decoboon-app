@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -285,7 +286,7 @@ function planActionText(action: CarryoverPlanChange['action']) {
         <text class="cp__add" @tap="openCreate">+ 添加阶段</text>
       </view>
       <view v-if="!futureStages.length" class="jz-card cp__empty">
-        <JzIcon name="clipboard" :size="42" color="#94A3B8" />
+        <JzIcon name="clipboard" :size="42" color="TOKEN_COLOR.text4" />
         <text class="cp__empty-title">还没有后续施工阶段</text>
         <text class="cp__empty-desc">从当前阶段之后开始添加，不需要补历史阶段。</text>
       </view>

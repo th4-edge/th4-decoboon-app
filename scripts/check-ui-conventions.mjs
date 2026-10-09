@@ -5,6 +5,7 @@
  * 1. 禁止 uni.showModal / uni.showActionSheet —— 统一走 composables/dialog.ts 与 JzActionSheet。
  * 2. 禁止页面手写遮罩浮层（`__mask` 类）—— 统一走 JzSheet / JzConfirmDialog。
  * 3. 禁止页面直写 <picker> —— 统一走 JzSelectField / JzDateRangeField。
+ * 4. 禁止 <style> 内写裸色值（#hex）—— 统一走 $jzb-* Token。
  *
  * 允许清单仅包含统一浮层自身与「非模态解释气泡」。
  */
@@ -41,7 +42,10 @@ for (const dir of SCAN_DIRS) {
     const rel = relative(ROOT, file)
     const text = readFileSync(file, 'utf8')
     const lines = text.split('\n')
+    let inStyle = false
     lines.forEach((line, index) => {
+      if (/<style[\s>]/.test(line)) { inStyle = true; return }
+      if (/<\/style>/.test(line)) { inStyle = false; return }
       // 注释中的说明不计入
       if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
       if (/uni\.showModal|uni\.showActionSheet/.test(line)) {
@@ -53,6 +57,9 @@ for (const dir of SCAN_DIRS) {
       if (/<picker[\s>]/.test(line) && !PICKER_ALLOWLIST.has(rel)) {
         failures.push(`${rel}:${index + 1} 禁止页面直写 <picker>，请使用 JzSelectField / JzDateRangeField`)
       }
+      if (inStyle && /#[0-9A-Fa-f]{6}\b/.test(line)) {
+        failures.push(`${rel}:${index + 1} 样式内禁止裸色值，请使用 $jzb-* Token`)
+      }
     })
   }
 }
@@ -62,4 +69,4 @@ if (failures.length) {
   for (const item of failures) console.error('  - ' + item)
   process.exit(1)
 }
-console.log('UI 统一化规范检查通过（无原生确认弹窗、无手写遮罩浮层、无页面级 picker）')
+console.log('UI 统一化规范检查通过（无原生确认弹窗、无手写遮罩浮层、无页面级 picker、样式无裸色值）')

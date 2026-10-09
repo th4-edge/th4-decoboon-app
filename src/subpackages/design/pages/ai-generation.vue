@@ -359,7 +359,7 @@ function now(): string {
 .ag__prompt-tabs view { padding: 12rpx 18rpx; border-radius: 999rpx; background: $jzb-bg-hover; font-size: $jzb-font-xs; color: $jzb-text-2; }
 .ag__prompt-tabs view.active { background: $jzb-primary-lightest; color: $jzb-primary; font-weight: 600; }
 .ag__prompt-box { margin-top: 16rpx; padding: 20rpx; border-radius: 18rpx; background: $jzb-bg-hover; white-space: pre-wrap; word-break: break-word; font-size: $jzb-font-xs; line-height: 1.75; color: $jzb-text-2; }
-.ag__prompt-box--talk { background: #FFF8E8; color: #8A650F; }
+.ag__prompt-box--talk { background: $jzb-warning-soft; color: $jzb-warning; }
 .ag__talk-title { display: block; margin-bottom: 10rpx; font-weight: 600; }
 .ag__versions { margin-top: 8rpx; }
 .ag__version-scroll { white-space: nowrap; margin-top: 18rpx; }

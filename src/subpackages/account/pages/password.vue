@@ -94,7 +94,7 @@ async function submit() {
           <text class="password-field__label">新密码</text>
           <input v-model="newPassword" :password="!showNew" maxlength="64" placeholder="8-64 位，同时包含字母和数字" />
           <view class="password-field__toggle" @tap="showNew = !showNew">
-            <JzIcon :name="showNew ? 'eye-off' : 'eye'" :size="34" color="#8A95A1" />
+            <JzIcon :name="showNew ? 'eye-off' : 'eye'" :size="34" color="TOKEN_COLOR.text3" />
           </view>
         </view>
 
@@ -102,7 +102,7 @@ async function submit() {
           <text class="password-field__label">确认密码</text>
           <input v-model="confirmPassword" :password="!showConfirm" maxlength="64" placeholder="请再次输入新密码" />
           <view class="password-field__toggle" @tap="showConfirm = !showConfirm">
-            <JzIcon :name="showConfirm ? 'eye-off' : 'eye'" :size="34" color="#8A95A1" />
+            <JzIcon :name="showConfirm ? 'eye-off' : 'eye'" :size="34" color="TOKEN_COLOR.text3" />
           </view>
         </view>
       </view>

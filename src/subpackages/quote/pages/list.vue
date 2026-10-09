@@ -9,7 +9,7 @@ import type { BossQuoteCustomer, BossQuoteDesignerGroup, BossQuoteProperty, Boss
 import { tradeApi } from '@/domains/trade/api'
 import { workbenchApi } from '@/domains/workbench/api'
 import { money } from '@/core/format'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -57,7 +57,7 @@ const STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
   submitted: { label: '待客户确认', color: TOKEN_COLOR.warning },
   accepted: { label: '客户已接受', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
-  superseded: { label: '已被替代', color: '#8B93A1' },
+  superseded: { label: '已被替代', color: 'STATUS_COLOR.muted' },
   converted: { label: '已转项目', color: TOKEN_COLOR.purple }
 }
 const MODE_META: Record<QuoteMode, { label: string; color: string }> = {
@@ -565,7 +565,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
 .ql__customer-anchor-label { color: rgba(255,255,255,.7); font-size: 18rpx; }
 .ql__customer-anchor-name { color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ql__customer-anchor-status { flex: 1; min-width: 0; text-align: right; color: rgba(255,255,255,.82); font-size: 20rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ql__customer-anchor-amount { flex-shrink: 0; color: #A8F0E5; font-size: $jzb-font-sm; font-weight: 750; }
+.ql__customer-anchor-amount { flex-shrink: 0; color: $jzb-primary-light; font-size: $jzb-font-sm; font-weight: 750; }
 .ql__customer-scroll { flex: 1; min-height: 0; box-sizing: border-box; padding: 0 16rpx; }
 .ql__panel-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 740; }
 .ql__panel-sub { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: 20rpx; }
@@ -601,8 +601,8 @@ function canEdit() { return can(role.value, 'edit:quote') }
 .ql__sort--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; font-weight: 650; }
 .ql__risk-text { color: $jzb-danger; }
 .ql__customer-card { padding: 24rpx; margin-bottom: 18rpx; border: 2rpx solid transparent; transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, border-color $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
-.ql__customer-card:active { transform: scale(.992); background: #FCFEFD; }
-.ql__customer-card--current { border-color: $jzb-primary; background: #FAFDFC; box-shadow: 0 0 0 5rpx rgba(14,138,125,.10), $jzb-shadow-card; }
+.ql__customer-card:active { transform: scale(.992); background: $jzb-bg-card; }
+.ql__customer-card--current { border-color: $jzb-primary; background: $jzb-primary-lightest; box-shadow: 0 0 0 5rpx rgba(14,138,125,.10), $jzb-shadow-card; }
 .ql__customer-head { display: flex; align-items: center; }
 .ql__customer-ident { flex: 1; min-width: 0; margin-left: 20rpx; }
 .ql__customer-name-row { display: flex; align-items: center; gap: 8rpx; }

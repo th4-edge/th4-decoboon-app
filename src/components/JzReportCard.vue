@@ -4,7 +4,7 @@ import type { SiteReport } from '@/domains/site/model'
 import { REPORT_TYPE_META } from '@/domains/site/meta'
 import { ROLE_META } from '@/roles/catalog'
 import { timeText } from '@/core/format'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import JzTag from './JzTag.vue'
 import JzAvatar from './JzAvatar.vue'
 import JzEmployeeAvatar from './JzEmployeeAvatar.vue'
@@ -12,7 +12,7 @@ import JzIcon from './JzIcon.vue'
 
 const props = defineProps<{ report: SiteReport; showProject?: boolean }>()
 
-const typeMeta = computed(() => REPORT_TYPE_META[props.report.type] || { label: '动态', color: '#86909C' })
+const typeMeta = computed(() => REPORT_TYPE_META[props.report.type] || { label: '动态', color: 'STATUS_COLOR.todo' })
 const isEmployeeAuthor = computed(() => !!props.report.author && 'role' in props.report.author)
 const authorName = computed(() => props.report.author?.name || '系统')
 const authorAvatar = computed(() => props.report.author && 'avatarUrl' in props.report.author ? props.report.author.avatarUrl || '' : '')
@@ -84,7 +84,7 @@ function preview(url: string) {
   overflow: hidden;
   transition: transform $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out;
 }
-.jz-report:active { transform: scale(.992); background: #FAFDFC; }
+.jz-report:active { transform: scale(.992); background: $jzb-primary-lightest; }
 .jz-report__accent { position: absolute; left: 0; top: 24rpx; bottom: 24rpx; width: 6rpx; border-radius: 0 6rpx 6rpx 0; background: $jzb-gradient; }
 .jz-report__inner { padding: 26rpx 26rpx 24rpx 30rpx; }
 .jz-report__head { display: flex; align-items: center; }

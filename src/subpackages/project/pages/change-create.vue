@@ -450,11 +450,11 @@ async function submit() {
 .cc__confirm-row { display: flex; gap: 16rpx; margin-bottom: 16rpx; }
 .cc__confirm-row .cc__pick { flex: 1; }
 .cc__hint { display: block; margin-top: 10rpx; font-size: 20rpx; color: $jzb-text-3; line-height: 1.5; }
-.cc__money { margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-5; background: linear-gradient(150deg, #103a3a 0%, #0f2f31 100%); }
+.cc__money { margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-5; background: linear-gradient(150deg, $jzb-brand-ink 0%, $jzb-brand-ink-deep 100%); }
 .cc__money-row { display: flex; justify-content: space-between; align-items: center; padding: 12rpx 0; font-size: $jzb-font-sm; color: rgba(255, 255, 255, 0.72); }
-.cc__money-row--hero .cc__money-num { font-size: 40rpx; color: #5fe3cf; font-weight: 800; }
+.cc__money-row--hero .cc__money-num { font-size: 40rpx; color: $jzb-primary-light; font-weight: 800; }
 .cc__money-num { color: $jzb-text-inverse; font-weight: 700; font-variant-numeric: tabular-nums; }
-.cc__danger { margin-top: 12rpx; font-size: $jzb-font-xs; color: #ffb4b4; }
+.cc__danger { margin-top: 12rpx; font-size: $jzb-font-xs; color: $jzb-danger-soft; }
 .cc__ta { width: 100%; min-height: 160rpx; padding: 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-md; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .cc__photos { display: flex; flex-wrap: wrap; gap: 14rpx; }
 .cc__photo { position: relative; width: 150rpx; height: 150rpx; border-radius: $jzb-radius-sm; overflow: hidden; background: $jzb-bg-hover; }

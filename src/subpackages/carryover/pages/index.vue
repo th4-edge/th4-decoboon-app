@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -116,7 +117,7 @@ function statusClass(status: CarryoverProject['status']) {
   <view class="carryover">
     <JzPageHeader back title="业务承接" subtitle="把在跑项目接进装得清，继续管理工地和账务" />
     <view v-if="!hasBatch" class="carryover__hero jz-card">
-      <view class="carryover__hero-icon"><JzIcon name="briefcase" :size="42" color="#16A394" /></view>
+      <view class="carryover__hero-icon"><JzIcon name="briefcase" :size="42" :color="TOKEN_COLOR.primaryBase" /></view>
       <text class="carryover__hero-title">开始承接在跑项目</text>
       <text class="carryover__hero-desc">确定接管日期后，逐个录入项目，BOSS 可以代财务和项目经理确认。</text>
       <view class="carryover__date">
@@ -127,7 +128,7 @@ function statusClass(status: CarryoverProject['status']) {
         <text class="carryover__note-label">账本摸底说明（选填）</text>
         <textarea v-model="bookkeepingNote" maxlength="2000" auto-height placeholder="例如：原账用Excel+代账公司，内账按项目、外账按科目，资金账户3个" />
       </view>
-      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" color="#FFFFFF" /><text>建立承接任务，开始录入</text></button>
+      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" :color="TOKEN_COLOR.white" /><text>建立承接任务，开始录入</text></button>
     </view>
 
     <template v-else>
@@ -241,7 +242,7 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__status--draft { color: $jzb-warning; background: rgba(211,142,44,.12); }
 .carryover__status--ready { color: $jzb-primary-dark; background: $jzb-primary-lightest; }
 .carryover__status--done { color: $jzb-success; background: rgba(22,163,148,.12); }
-.carryover__facts { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 12rpx; margin-top: 24rpx; padding: 18rpx 16rpx; background: linear-gradient(135deg, #F8FBFA 0%, #F4F7F8 100%); border-radius: $jzb-radius; }
+.carryover__facts { display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 12rpx; margin-top: 24rpx; padding: 18rpx 16rpx; background: linear-gradient(135deg, $jzb-bg-hover 0%, $jzb-bg-page 100%); border-radius: $jzb-radius; }
 .carryover__fact { min-width: 0; }
 .carryover__fact-label { display: block; color: $jzb-text-4; font-size: 19rpx; }
 .carryover__fact-value { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: 23rpx; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -249,7 +250,7 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__plan-status--done { color: $jzb-success; background: $jzb-success-soft; }
 .carryover__plan-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: currentColor; }
 .carryover__plan-link { margin-left: auto; font-weight: 700; }
-.carryover__blockers { margin-top: 18rpx; padding: 16rpx 18rpx; color: $jzb-warning; background: #FFF9EE; border-radius: $jzb-radius-sm; font-size: 22rpx; line-height: 1.5; }
+.carryover__blockers { margin-top: 18rpx; padding: 16rpx 18rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-sm; font-size: 22rpx; line-height: 1.5; }
 .carryover__blockers--ready { color: $jzb-primary-dark; background: $jzb-primary-lightest; }
 
 .carryover__opening { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18rpx; padding: 22rpx; }

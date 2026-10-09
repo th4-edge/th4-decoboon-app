@@ -195,5 +195,5 @@ async function setDefault(plan: PaymentPlanTemplate) {
 .ppt__actions { display: flex; justify-content: flex-end; gap: 10rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }
 .ppt__danger { color: $jzb-danger; }
 .ppt__state { margin: 0 $jzb-page-pad; }
-.ppt__section--baseline .ppt__card { background: linear-gradient(145deg, #FFFFFF, #F8FAFB); }
+.ppt__section--baseline .ppt__card { background: linear-gradient(145deg, $jzb-text-inverse, $jzb-bg-hover); }
 </style>

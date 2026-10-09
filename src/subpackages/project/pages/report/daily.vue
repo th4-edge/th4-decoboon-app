@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -50,7 +50,7 @@ function reportAuthorRole(report: SiteReport) {
   if (report.authorRole) return report.authorRole
   return report.author && 'role' in report.author ? report.author.role : 'pm'
 }
-function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || '#86909C' }
+function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || 'STATUS_COLOR.todo' }
 function nodeLabel(key: string) { return NODE_META[key as keyof typeof NODE_META]?.label || key }
 
 function preview(m: TaskMedia) {
@@ -148,7 +148,7 @@ function write() {
 .dr__medias { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 12rpx; }
 .dr__media { width: 150rpx; height: 150rpx; margin: 0 12rpx 12rpx 0; border-radius: $jzb-radius-sm; overflow: hidden; background: $jzb-bg-page; }
 .dr__media image { width: 100%; height: 100%; }
-.dr__video { width: 100%; height: 100%; background: #1D2129; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.dr__video { width: 100%; height: 100%; background: $jzb-text-1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .dr__video-tip { color: rgba(255,255,255,0.8); font-size: 18rpx; margin-top: 4rpx; }
 .dr__report { margin-top: 20rpx; border-top: 1rpx solid $jzb-border-light; padding-top: 18rpx; }
 .dr__report-head { }

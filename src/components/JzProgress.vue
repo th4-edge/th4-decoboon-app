@@ -26,7 +26,7 @@ const barStyle = computed(() => ({
 .jz-progress {
   flex: 1;
   overflow: hidden;
-  background: #EAF0F1;
+  background: $jzb-primary-lightest;
 }
 .jz-progress__bar {
   height: 100%;

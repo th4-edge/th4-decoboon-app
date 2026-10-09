@@ -176,7 +176,7 @@ async function deductDifference(line: QuoteItem) {
             <text class="qa__biz-name">{{ baseLine?.name || '选择基础项目' }}</text>
             <text class="qa__biz-meta">{{ baseLine ? [baseLine.category, baseLine.space?.name, `${baseLine.quantity}${baseLine.unit}`, money(baseLine.amount || 0)].filter(Boolean).join(' · ') : '按分类、空间、品牌和金额定位套餐基线' }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" />
         </view>
       </template>
 
@@ -188,7 +188,7 @@ async function deductDifference(line: QuoteItem) {
             <text class="qa__biz-name">{{ selectedCatalog?.name || '选择报价项目' }}</text>
             <text class="qa__biz-meta">{{ selectedCatalog ? [selectedCatalog.brand || '无品牌', selectedCatalog.spec, selectedCatalog.unit, money(selectedCatalog.materialPrice + selectedCatalog.manualPrice)].filter(Boolean).join(' · ') : '从企业报价项目库按分类、品牌和规格选择' }}</text>
           </view>
-          <JzIcon name="chevron-right" :size="24" :color="'#8B93A1'" />
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" />
         </view>
         <text class="qa__label">数量</text>
         <input v-model="quantity" type="digit" class="qa__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />

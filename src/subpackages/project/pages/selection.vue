@@ -254,7 +254,7 @@ function updatedTime(item: MaterialSelectionItem) {
             <text>材料计划</text>
           </button>
           <button class="jz-btn jz-btn--primary jz-grow" :disabled="delivering || !summary.deliverable" @tap="deliverAll">
-            <JzIcon name="send" :size="30" color="#FFFFFF" />
+            <JzIcon name="send" :size="30" :color="TOKEN_COLOR.white" />
             <text>{{ summary.deliverable ? `交付财务下单（${summary.deliverable}）` : '交付财务下单' }}</text>
           </button>
         </view>
@@ -364,7 +364,7 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__ov--pending { color: $jzb-status-pending; }
 .msd__ov--todo { color: $jzb-status-todo; }
 .msd__ov--done { color: $jzb-status-done; }
-.msd__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-sm; color: #B42318; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
+.msd__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-sm; color: $jzb-danger; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
 .msd__inline-error text:nth-child(2) { flex: 1; }
 .msd__filters { margin-bottom: 18rpx; white-space: nowrap; }
 .msd__chips { display: inline-flex; gap: 12rpx; padding: 2rpx 0; }

@@ -413,7 +413,7 @@ function primaryAction(item: BossMeasureItem) {
 .mw__hero-grid > view { padding: 16rpx 8rpx; text-align: center; background: rgba(255,255,255,.10); border-radius: $jzb-radius-sm; }
 .mw__hero-grid text { display: block; font-size: 20rpx; opacity: .82; }
 .mw__hero-grid text:last-child { margin-top: 4rpx; font-size: 30rpx; font-weight: 750; opacity: 1; }
-.mw__hero-grid .is-danger { color: #FFD1D1; }
+.mw__hero-grid .is-danger { color: $jzb-danger-soft; }
 .mw__periods { flex-shrink: 0; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
 .mw__periods--global { margin-bottom: 18rpx; }
 .mw__period-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; padding: 16rpx; }

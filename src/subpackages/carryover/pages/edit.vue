@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -387,9 +388,9 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>小区</text><input v-model="community" maxlength="128" placeholder="选填" /></view>
       <view class="co-edit__row"><text>房屋地址 *</text><input v-model="address" maxlength="256" placeholder="完整地址" /></view>
       <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" color="#94A3B8" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
     </view>
 
     <view class="co-edit__section jz-card">
@@ -405,7 +406,7 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>项目名称</text><input v-model="projectName" maxlength="128" placeholder="默认客户 + 地址" /></view>
       <view class="co-edit__row"><text>项目状态 *</text><JzSelectField variant="boxed" :display="PROJECT_STATUSES[projectStatusIndex].label" :range="projectStatusLabels" :index="projectStatusIndex" @change="pickProjectStatus" /></view>
       <view class="co-edit__row"><text>当前阶段 *</text><input v-model="currentStageName" maxlength="128" placeholder="例：泥木阶段" /></view>
-      <view class="co-edit__progress"><text>当前进度 {{ progress }}%</text><slider :value="progress" min="0" max="100" activeColor="#16A394" @changing="onProgressChange" @change="onProgressChange" /></view>
+      <view class="co-edit__progress"><text>当前进度 {{ progress }}%</text><slider :value="progress" min="0" max="100" active:color="TOKEN_COLOR.primaryBase" @changing="onProgressChange" @change="onProgressChange" /></view>
       <view class="co-edit__row co-edit__row--col"><text>剩余工作摘要 *</text><textarea v-model="remainingWork" maxlength="1000" placeholder="当前还需要完成哪些施工、材料、验收事项" /></view>
       <view class="co-edit__row co-edit__row--col"><text>当前问题</text><textarea v-model="currentIssue" maxlength="1000" placeholder="选填：风险、待协调事项" /></view>
     </view>
@@ -414,7 +415,7 @@ async function submitCarryover() {
       <view class="co-edit__finance-head">
         <text class="co-edit__title co-edit__title--inline">4. 期初财务与接管前成本</text>
         <view class="co-edit__help-toggle" @tap="financialHelpVisible = !financialHelpVisible">
-          <JzIcon name="info" :size="26" color="#16A394" />
+          <JzIcon name="info" :size="26" :color="TOKEN_COLOR.primaryBase" />
           <text>{{ financialHelpVisible ? '收起说明' : '财务名词说明' }}</text>
         </view>
       </view>
@@ -444,7 +445,7 @@ async function submitCarryover() {
         <view v-if="receivableExceedsContract" class="co-edit__field-warning">未收金额超过当前合同金额，请检查是否将累计已收填成了未收余额。</view>
         <view class="co-edit__row"><text>约定收款日</text><JzSelectField mode="date" variant="boxed" :value="receivableDueDate" :display="receivableDueDate" placeholder="选填" @change="receivableDueDate = $event" /></view>
         <view class="co-edit__row"><text>原应收单号</text><input v-model="receivableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
-        <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对客户未收工程款</text><text class="co-edit__switch-note">无未收款也必须点击左侧“无未收款”或填写 0 并确认</text></view><switch :checked="receivableConfirmed" color="#16A394" @change="onReceivableConfirmedChange" /></view>
+        <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对客户未收工程款</text><text class="co-edit__switch-note">无未收款也必须点击左侧“无未收款”或填写 0 并确认</text></view><switch :checked="receivableConfirmed" :color="TOKEN_COLOR.primaryBase" @change="onReceivableConfirmedChange" /></view>
       </view>
 
       <view class="co-edit__finance-block">
@@ -456,7 +457,7 @@ async function submitCarryover() {
         <view class="co-edit__row"><text>约定付款日</text><JzSelectField mode="date" variant="boxed" :value="payableDueDate" :display="payableDueDate" placeholder="选填" @change="payableDueDate = $event" /></view>
         <view class="co-edit__row"><text>收款方</text><input v-model="payablePayeeName" maxlength="128" placeholder="供应商、工人或项目班组" /></view>
         <view class="co-edit__row"><text>原应付单号</text><input v-model="payableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
-        <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对当前未付款</text><text class="co-edit__switch-note">无未付款也必须点击左侧“无未付款”或填写 0 并确认</text></view><switch :checked="payableConfirmed" color="#16A394" @change="onPayableConfirmedChange" /></view>
+        <view class="co-edit__switch co-edit__switch--check"><view><text>我已核对当前未付款</text><text class="co-edit__switch-note">无未付款也必须点击左侧“无未付款”或填写 0 并确认</text></view><switch :checked="payableConfirmed" :color="TOKEN_COLOR.primaryBase" @change="onPayableConfirmedChange" /></view>
       </view>
 
       <view class="co-edit__finance-block">
@@ -492,7 +493,7 @@ async function submitCarryover() {
       <text class="co-edit__title">附件资料</text>
       <view class="co-edit__attachments">
         <view v-for="item in attachments" :key="item.id" class="co-edit__attachment">
-          <JzIcon name="file-text" :size="30" color="#16A394" />
+          <JzIcon name="file-text" :size="30" :color="TOKEN_COLOR.primaryBase" />
           <text class="jz-grow">{{ item.originalName || item.category }}</text>
           <text v-if="status === 'draft' || status === 'ready' || status === 'confirmed'" class="co-edit__attachment-del" @tap="removeAttachment(item)">删除</text>
         </view>
@@ -554,7 +555,7 @@ async function submitCarryover() {
 .co-edit__help-toggle { display: flex; align-items: center; gap: 6rpx; color: $jzb-primary-dark; font-size: 22rpx; }
 .co-edit__finance-intro { margin: 12rpx 0 20rpx; padding: 20rpx 22rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.65; }
 .co-edit__finance-intro text { color: $jzb-primary-dark; font-weight: 650; }
-.co-edit__finance-help { margin-bottom: 20rpx; padding: 18rpx 20rpx; border: 1rpx dashed rgba(22,163,148,.28); border-radius: $jzb-radius-sm; background: #FAFDFC; }
+.co-edit__finance-help { margin-bottom: 20rpx; padding: 18rpx 20rpx; border: 1rpx dashed rgba(22,163,148,.28); border-radius: $jzb-radius-sm; background: $jzb-primary-lightest; }
 .co-edit__help-item { display: block; margin-bottom: 12rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.6; }
 .co-edit__help-item:last-child { margin-bottom: 0; }
 .co-edit__help-item text { color: $jzb-text-1; font-weight: 650; }

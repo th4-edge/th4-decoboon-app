@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
@@ -137,7 +137,7 @@ function openCarryoverPlan() {
     <view v-if="pendingDeviation" class="jz-card plan__deviation">
       <view class="jz-between">
         <text class="plan__deviation-title">计划偏差待确认</text>
-        <JzTag text="待确认" color="#FF7D00" />
+        <JzTag text="待确认" color="STATUS_COLOR.pending" />
       </view>
       <text class="plan__deviation-line">合同基准完工：{{ pendingDeviation.baseEndDate || '-' }}</text>
       <text class="plan__deviation-line">当前预计完工：{{ pendingDeviation.expectedEndDate || '-' }}（超 {{ pendingDeviation.deviationDays ?? 0 }} 天）</text>
@@ -225,7 +225,7 @@ function openCarryoverPlan() {
 .plan__sum-item + .plan__sum-item { border-left: 1rpx solid $jzb-border-light; }
 .plan__sum-val { font-size: $jzb-font; font-weight: 700; color: $jzb-primary-dark; }
 .plan__sum-label { margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.plan__deviation { margin: 0 24rpx 20rpx; padding: 24rpx; border-left: 6rpx solid #FF7D00; }
+.plan__deviation { margin: 0 24rpx 20rpx; padding: 24rpx; border-left: 6rpx solid $jzb-status-pending; }
 .plan__deviation--ok { border-left-color: $jzb-success; }
 .plan__deviation-title { font-size: $jzb-font-md; font-weight: 700; }
 .plan__deviation-line { display: block; margin-top: 10rpx; font-size: $jzb-font-sm; color: $jzb-text-2; }

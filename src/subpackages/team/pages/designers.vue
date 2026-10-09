@@ -604,7 +604,7 @@ function measureText(value?: string) {
 
 <style lang="scss" scoped>
 .md { padding: 24rpx 24rpx 60rpx; }
-.md__summary { display: flex; padding: 28rpx; background: linear-gradient(135deg, $jzb-text-inverse, #EAF9F6); }
+.md__summary { display: flex; padding: 28rpx; background: linear-gradient(135deg, $jzb-text-inverse, $jzb-primary-lightest); }
 .md__summary-main { flex: 1; }
 .md__summary-label { display: block; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .md__summary-value { display: block; margin-top: 4rpx; color: $jzb-primary-dark; font-size: 58rpx; font-weight: 750; }
@@ -649,10 +649,10 @@ function measureText(value?: string) {
 .md__design-anchor-label { color: rgba(255,255,255,.68); font-size: 18rpx; }
 .md__design-anchor-name { color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 700; }
 .md__design-anchor-status { flex: 1; min-width: 0; text-align: right; color: rgba(255,255,255,.82); font-size: 20rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.md__design-anchor-amount { flex-shrink: 0; color: #A8F0E5; font-size: $jzb-font-sm; font-weight: 750; }
+.md__design-anchor-amount { flex-shrink: 0; color: $jzb-primary-light; font-size: $jzb-font-sm; font-weight: 750; }
 .md__design-customer-scroll { flex: 1; min-height: 0; box-sizing: border-box; padding: 0 14rpx; }
 .md__design-customer-card { padding: 20rpx; margin-bottom: 14rpx; border: 2rpx solid transparent; }
-.md__design-customer-card--current { border-color: $jzb-primary; background: #FAFDFC; box-shadow: 0 0 0 5rpx rgba(14,138,125,.10), $jzb-shadow-card; }
+.md__design-customer-card--current { border-color: $jzb-primary; background: $jzb-primary-lightest; box-shadow: 0 0 0 5rpx rgba(14,138,125,.10), $jzb-shadow-card; }
 .md__design-customer-head { display: flex; align-items: center; gap: 14rpx; }
 .md__design-customer-ident { min-width: 0; }
 .md__design-customer-name-row { display: flex; align-items: center; gap: 8rpx; }

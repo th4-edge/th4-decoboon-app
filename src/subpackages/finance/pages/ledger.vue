@@ -246,7 +246,7 @@ function openVouchers() {
           <view class="fin-card__title">{{ item.summary }}<text class="fin-card__sub">{{ item.occurredAt }} · {{ item.project?.name || '企业通用账务' }}</text></view>
           <view class="fin-card__right">
             <view v-if="selecting" class="fin-check" :class="{ 'fin-check--on': isSelected(item) }">
-              <JzIcon v-if="isSelected(item)" name="check" :size="20" color="#FFFFFF" />
+              <JzIcon v-if="isSelected(item)" name="check" :size="20" :color="TOKEN_COLOR.white" />
             </view>
             <text class="fin-card__amount" :class="item.direction === 'income' ? 'fin-card__amount--income' : 'fin-card__amount--expense'">
               {{ item.direction === 'income' ? '+' : '-' }}{{ money(item.amount) }}
