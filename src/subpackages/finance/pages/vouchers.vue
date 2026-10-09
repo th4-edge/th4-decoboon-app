@@ -19,6 +19,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 type PeriodKey = 'all' | 'd3' | 'd7' | 'd15' | 'd30' | 'month' | 'lastMonth' | 'year' | 'custom'
 type ProjectStatusFilter = 'all' | 'active' | 'done' | 'paused'
@@ -304,9 +305,8 @@ function selectPeriod(value: PeriodKey) {
   void load()
 }
 
-function onCustomMonth(event: Event) {
-  const payload = event as unknown as { detail?: { value?: string } }
-  customMonth.value = payload?.detail?.value || ''
+function onCustomMonth(value: string) {
+  customMonth.value = value || ''
   period.value = 'custom'
   saveFilter()
   void load()
@@ -500,9 +500,7 @@ void bootSheetSources()
                 @tap="selectPeriod(option.value)"
               >{{ option.label }}</view>
               <!-- 自定义年月随其他 chip 一起换行，避免挤出屏幕 -->
-              <picker v-if="period === 'custom'" mode="date" fields="month" :value="customMonth" @change="onCustomMonth">
-                <view class="vc-chip vc-chip--pick">{{ customMonth || '选择年月' }}<JzIcon name="chevron-down" :size="20" :color="TOKEN_COLOR.text4" /></view>
-              </picker>
+              <JzSelectField v-if="period === 'custom'" mode="date" fields="month" variant="boxed" :value="customMonth" :display="customMonth" placeholder="选择年月" @change="onCustomMonth" />
             </view>
           </view>
 

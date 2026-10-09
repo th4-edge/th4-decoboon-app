@@ -7,6 +7,7 @@ import { designMeta } from '@/domains/design/api'
 import { money } from '@/core/format'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSheet from '@/components/JzSheet.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const spaceOpen = defineModel<boolean>('spaceOpen', { default: false })
 const spaceType = defineModel<SpaceType>('spaceType', { required: true })
@@ -145,7 +146,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         </view>
 
         <text class="ds__field-label">施工区域</text>
-        <picker :range="spaces.map(i => i.name).concat(['综合项目'])" @change="itemSpaceId = spaces[Number($event.detail.value)]?.id || ''"><view class="jz-form-input ds__picker"><text>{{ itemSpaceLabel }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view></picker>
+        <JzSelectField variant="boxed" :display="itemSpaceLabel" :range="spaces.map(i => i.name).concat(['综合项目'])" :index="Math.max(0, spaces.findIndex(i => i.id === itemSpaceId))" @change="itemSpaceId = spaces.find(i => i.name === $event)?.id || ''" />
         <template v-if="!selectedCatalogs.length && editingItemId">
           <text class="ds__field-label">工程量（0为赠送）*</text>
           <input v-model="quantity" type="digit" class="jz-form-input jz-numeric-input" placeholder="请输入实际工程量，0为赠送" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />

@@ -14,6 +14,7 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import JzMoneyInput from '@/components/JzMoneyInput/JzMoneyInput.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const receiptId = ref('')
 const receipt = ref<Receipt | null>(null)
@@ -113,9 +114,9 @@ async function submit() {
         <text v-if="amountError" class="fin-field-error">{{ amountError }}</text>
         <text v-else-if="receipt && refundableAmount <= 0" class="fin-field-error">该笔收款已全额退款，不能再次登记退款。</text>
         <label class="fin-field-label">退款日期</label>
-        <picker mode="date" :value="form.refundAt" @change="form.refundAt = $event.detail.value"><view class="fin-picker"><text>{{ form.refundAt }}</text><JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" /></view></picker>
+        <JzSelectField mode="date" variant="boxed" :value="form.refundAt" :display="form.refundAt" placeholder="选择退款日期" @change="form.refundAt = $event" />
         <label class="fin-field-label">退款账户</label>
-        <picker :range="accounts.map((item) => ACCOUNT_LABEL[item])" @change="form.account = accounts[Number($event.detail.value)]"><view class="fin-picker"><text>{{ ACCOUNT_LABEL[form.account] }}</text><JzIcon name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" /></view></picker>
+        <JzSelectField variant="boxed" :display="ACCOUNT_LABEL[form.account]" :range="accounts.map((item) => ACCOUNT_LABEL[item])" :index="Math.max(0, accounts.indexOf(form.account))" @change="form.account = accounts[accounts.findIndex((item) => ACCOUNT_LABEL[item] === $event)] || form.account" />
         <label class="fin-field-label">退款原因</label>
         <textarea v-model="form.reason" class="fin-textarea" maxlength="500" placeholder="填写退款/退单原因" />
       </view>

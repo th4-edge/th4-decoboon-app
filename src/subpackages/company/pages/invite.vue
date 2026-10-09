@@ -10,6 +10,7 @@ import { useShare } from '@/composables/share'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const inviteName = ref('')
 const telNo = ref('')
@@ -57,12 +58,15 @@ async function create() {
   } finally { submitting.value = false }
 }
 
-function pickRole(event: { detail: { value: string } }) {
-  role.value = roles[Number(event.detail.value)].value
+function pickRole(label: string) {
+  const hit = roles.find((item) => item.label === label)
+  if (hit) role.value = hit.value
 }
 
-function pickTeam(event: { detail: { value: string } }) {
-  teamId.value = teams.value[Number(event.detail.value)]?.id || ''
+function pickTeam(label: string) {
+  if (label === '未分配') { teamId.value = ''; return }
+  const hit = teams.value.find((item) => item.name === label)
+  if (hit) teamId.value = hit.id
 }
 </script>
 
@@ -76,16 +80,12 @@ function pickTeam(event: { detail: { value: string } }) {
         <view class="ci-field"><text>归属门店</text><text class="ci-field__readonly">{{ storeLabel }}</text></view>
         <view class="ci-field">
           <text>岗位</text>
-          <picker :range="roles.map(item => item.label)" :value="roleIndex" @change="pickRole">
-            <view class="ci-picker">{{ roles[roleIndex]?.label || '请选择' }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
-          </picker>
+          <JzSelectField variant="boxed" :display="roles[roleIndex]?.label || ''" :range="roles.map(item => item.label)" :index="roleIndex" placeholder="请选择" @change="pickRole" />
         </view>
         <view v-if="role === 'teamLeader' && !teamId" class="ci-field"><text>新团队</text><input v-model="teamName" maxlength="128" placeholder="团队负责人新团队名称" /></view>
         <view v-if="teams.length" class="ci-field">
           <text>团队</text>
-          <picker :range="['未分配', ...teams.map(item => item.name)]" :value="teamIndex + 1" @change="pickTeam">
-            <view class="ci-picker">{{ teamId ? teams[teamIndex]?.name : '未分配' }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
-          </picker>
+          <JzSelectField variant="boxed" :display="teamId ? teams[teamIndex]?.name : '未分配'" :range="['未分配', ...teams.map(item => item.name)]" :index="teamIndex + 1" @change="pickTeam" />
         </view>
       </view>
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="submitting" @tap="create">生成邀请</button>

@@ -12,6 +12,7 @@ import { baseApi } from '@/domains/base/api'
 import { scheduleApi } from '@/domains/schedule/api'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSheet from '@/components/JzSheet.vue'
+import JzDateRangeField from '@/components/JzDateRangeField/JzDateRangeField.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 
 const projectId = ref('')
@@ -82,12 +83,6 @@ const stageTasks = computed(() => {
 const pendingCount = computed(() => tasks.value.filter((t) => t.status === 'todo').length)
 
 const editingTask = computed(() => tasks.value.find((t) => t.id === editingId.value) || null)
-const scheduleDays = computed(() => {
-  if (!editStart.value || !editEnd.value || editEnd.value < editStart.value) return 0
-  const start = new Date(`${editStart.value}T00:00:00`).getTime()
-  const end = new Date(`${editEnd.value}T00:00:00`).getTime()
-  return Math.floor((end - start) / 86400000) + 1
-})
 const invalidScheduleRange = computed(() => Boolean(editStart.value && editEnd.value && editEnd.value < editStart.value))
 
 function onStage(i: number) {
@@ -104,14 +99,6 @@ function beginEdit(task: Task) {
 
 function cancelEdit() {
   editingId.value = ''
-}
-
-function onStartChange(e: any) {
-  editStart.value = e.detail.value
-}
-
-function onEndChange(e: any) {
-  editEnd.value = e.detail.value
 }
 
 async function saveEdit(task: Task) {
@@ -223,31 +210,13 @@ async function refresh() {
         </view>
 
         <view class="pe__sheet-block">
-          <view class="pe__sheet-block-head">
-            <text class="pe__sheet-block-title">计划工期</text>
-            <text class="pe__sheet-duration" :class="{ 'pe__sheet-duration--error': invalidScheduleRange }">
-              {{ invalidScheduleRange ? '日期有误' : scheduleDays ? `共 ${scheduleDays} 天` : '待选择' }}
-            </text>
-          </view>
-          <view class="pe__date-range">
-            <picker mode="date" :value="editStart" :end="editEnd || stage?.plannedEnd || ''" @change="onStartChange">
-              <view class="pe__date-card" :class="{ 'pe__date-card--error': invalidScheduleRange }">
-                <view class="pe__date-card-head"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>计划开工</text></view>
-                <text class="pe__date-card-value">{{ editStart || '请选择日期' }}</text>
-              </view>
-            </picker>
-            <view class="pe__date-connector">
-              <view class="pe__date-line"></view>
-              <text>{{ scheduleDays || 0 }}天</text>
-            </view>
-            <picker mode="date" :value="editEnd" :start="editStart || stage?.plannedStart || ''" @change="onEndChange">
-              <view class="pe__date-card" :class="{ 'pe__date-card--error': invalidScheduleRange }">
-                <view class="pe__date-card-head"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>计划完工</text></view>
-                <text class="pe__date-card-value">{{ editEnd || '请选择日期' }}</text>
-              </view>
-            </picker>
-          </view>
-          <text v-if="invalidScheduleRange" class="pe__sheet-error">计划完工不能早于计划开工，请重新选择。</text>
+          <JzDateRangeField
+            v-model:start="editStart"
+            v-model:end="editEnd"
+            start-label="计划开工"
+            end-label="计划完工"
+            :max="stage?.plannedEnd || ''"
+          />
         </view>
 
         <view class="pe__sheet-note">
@@ -319,19 +288,8 @@ async function refresh() {
 .pe__sheet-block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16rpx; }
 .pe__sheet-block-title { font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; }
 .pe__sheet-block-tip { font-size: $jzb-font-xs; color: $jzb-text-3; }
-.pe__sheet-duration { padding: 4rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
-.pe__sheet-duration--error { color: $jzb-danger; background: $jzb-danger-soft; }
 .pe__zone-grid { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .pe__zone-grid .pe__zone { margin: 0; padding: 12rpx 22rpx; }
-.pe__date-range { display: flex; align-items: center; gap: 12rpx; }
-.pe__date-range > picker { flex: 1; min-width: 0; }
-.pe__date-card { display: flex; flex-direction: column; gap: 12rpx; padding: 20rpx; background: $jzb-bg-page; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius; }
-.pe__date-card--error { border-color: $jzb-danger; background: $jzb-danger-soft; }
-.pe__date-card-head { display: flex; align-items: center; gap: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.pe__date-card-value { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 650; }
-.pe__date-connector { display: flex; flex-direction: column; align-items: center; gap: 6rpx; flex: 0 0 72rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.pe__date-line { width: 48rpx; height: 2rpx; background: $jzb-border; }
-.pe__sheet-error { display: block; margin-top: 12rpx; color: $jzb-danger; font-size: $jzb-font-xs; line-height: 1.5; }
 .pe__sheet-note { display: flex; align-items: flex-start; gap: 10rpx; padding: 18rpx 20rpx; background: $jzb-bg-page; border-radius: $jzb-radius-sm; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 .pe__sheet-actions { position: sticky; bottom: 0; display: flex; gap: 16rpx; padding-top: 14rpx; background: $jzb-bg-card; }
 </style>

@@ -9,6 +9,7 @@ import { crmApi } from '@/domains/crm/api'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const id = ref('')
 const way = ref<CustomerFollow['way']>('wechat')
@@ -96,9 +97,7 @@ async function save() {
       <textarea v-model="content" class="cf__textarea" placeholder="记录这次沟通：客户关注点、异议、下一步动作…" maxlength="500" />
 
       <text class="cf__label">下次跟进时间</text>
-      <picker mode="date" :value="nextFollowAt" start="2026-01-01" end="2027-12-31" @change="nextFollowAt = $event.detail.value">
-        <view class="cf__date" :class="{ 'cf__date--empty': !nextFollowAt }">{{ nextFollowAt || '选择下次跟进日期（可选）' }}</view>
-      </picker>
+      <JzSelectField mode="date" variant="boxed" :value="nextFollowAt" start="2026-01-01" end="2027-12-31" :display="nextFollowAt" placeholder="选择下次跟进日期（可选）" @change="nextFollowAt = $event" />
 
       <button class="jz-btn jz-btn--primary jz-btn--block cf__save" @tap="save">保存跟进</button>
     </view>

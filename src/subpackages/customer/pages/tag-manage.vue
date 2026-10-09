@@ -10,6 +10,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const customerId = ref('')
 const customer = ref<Customer | null>(null)
@@ -38,8 +39,8 @@ function categoryIndex() {
   const index = categoryOptions.findIndex((item) => item.value === newTagCategory.value)
   return index < 0 ? 0 : index
 }
-function onPickCategory(event: { detail: { value: number | string } }) {
-  newTagCategory.value = categoryOptions[Number(event.detail.value)]?.value || 'intent'
+function onPickCategory(label: string) {
+  newTagCategory.value = categoryOptions.find((o) => o.label === label)?.value || 'intent'
 }
 
 async function reload() {
@@ -196,9 +197,7 @@ async function createTag() {
       <text class="tm__title">新建标签（仅企业负责人 / 店长）</text>
       <view class="tm__create">
         <input v-model="newTagName" class="tm__input" maxlength="20" placeholder="标签名称" />
-        <picker mode="selector" :range="categoryOptions" range-key="label" :value="categoryIndex()" @change="onPickCategory($event)">
-          <view class="tm__picker">{{ categoryOptions[categoryIndex()].label }}</view>
-        </picker>
+        <JzSelectField variant="boxed" :display="categoryOptions[categoryIndex()].label" :range="categoryOptions.map(o => o.label)" :index="categoryIndex()" @change="onPickCategory" />
       </view>
       <button class="jz-btn jz-btn--primary tm__submit" :disabled="saving" @tap="createTag">创建标签</button>
     </view>

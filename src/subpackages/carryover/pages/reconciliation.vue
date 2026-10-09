@@ -18,6 +18,7 @@ import { chooseImages } from '@/domains/file/choose-media'
 import { confirmAction, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const batchId = ref('')
 const report = ref<CarryoverReconciliationReport | null>(null)
@@ -81,13 +82,13 @@ function statusIndex(item: CarryoverReconciliationItem) {
   return Math.max(diffStatuses.findIndex(option => option.value === item.differenceStatus), 0)
 }
 
-function onType(item: CarryoverReconciliationItem, event: any) {
-  const option = diffTypes[Number(event.detail.value)]
+function onType(item: CarryoverReconciliationItem, label: string) {
+  const option = diffTypes.find((o) => o.label === label)
   item.differenceType = option?.value || undefined
 }
 
-function onStatus(item: CarryoverReconciliationItem, event: any) {
-  const option = diffStatuses[Number(event.detail.value)]
+function onStatus(item: CarryoverReconciliationItem, label: string) {
+  const option = diffStatuses.find((o) => o.label === label)
   item.differenceStatus = option?.value || 'pending'
 }
 
@@ -263,15 +264,11 @@ async function saveItem(item: CarryoverReconciliationItem) {
         <view class="rc-row"><text class="rc-row__label">差异</text><text class="rc-row__value" :class="{ 'rc-row__value--diff': item.difference }">{{ item.difference == null ? '待录入原账金额' : `${item.difference.toFixed(2)} 元` }}</text></view>
         <view class="rc-row">
           <text class="rc-row__label">差异分类</text>
-          <picker :range="diffTypes" range-key="label" :value="typeIndex(item)" @change="onType(item, $event)">
-            <view class="rc-row__value">{{ diffTypes[typeIndex(item)].label }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="diffTypes[typeIndex(item)].label" :range="diffTypes.map(o => o.label)" :index="typeIndex(item)" @change="onType(item, $event)" />
         </view>
         <view class="rc-row">
           <text class="rc-row__label">差异状态</text>
-          <picker :range="diffStatuses" range-key="label" :value="statusIndex(item)" @change="onStatus(item, $event)">
-            <view class="rc-row__value">{{ diffStatuses[statusIndex(item)].label }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="diffStatuses[statusIndex(item)].label" :range="diffStatuses.map(o => o.label)" :index="statusIndex(item)" @change="onStatus(item, $event)" />
         </view>
         <view class="rc-row"><text class="rc-row__label">差异原因</text><input v-model="item.reason" maxlength="500" placeholder="例如：客户已付款未入账" /></view>
         <view class="rc-row"><text class="rc-row__label">处理动作</text><input v-model="item.action" maxlength="500" placeholder="例如：补录收款/继续观察" /></view>

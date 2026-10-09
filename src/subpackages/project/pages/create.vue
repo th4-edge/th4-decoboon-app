@@ -175,9 +175,9 @@ async function selectQuote(quote: Quote) {
   if (quote.property?.id) propertyId.value = quote.property.id
 }
 
-async function pickQuote(index: number) {
-  const quote = quotes.value[index]
-  if (quote) await selectQuote(quote)
+async function pickQuoteByLabel(label: string) {
+  const hit = quotes.value.find((item) => `${item.customer?.name || '客户'} · ${money(item.amount)}` === label)
+  if (hit) await selectQuote(hit)
 }
 
 async function submit() {
@@ -340,15 +340,18 @@ function validateEffectiveInputs() {
         <text class="pc__group">一、客户确认报价</text>
         <text class="pc__required">必选</text>
       </view>
-      <picker v-if="quotes.length" :disabled="!!contract || !canPrepareContract" :range="quotes.map(item => `${item.customer?.name || '客户'} · ${money(item.amount)}`)" @change="pickQuote(Number($event.detail.value))">
-        <view class="pc__row">
-          <text class="pc__label">客户报价</text>
-          <view class="jz-grow pc__value" :class="{ 'pc__value--empty': !quoteId }">
-            {{ selectedQuote ? `${selectedQuote.customer?.name} · ${selectedQuote.no}` : '选择报价' }}
-          </view>
-          <JzIcon class="pc__arrow" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
-        </view>
-      </picker>
+      <view v-if="quotes.length" class="pc__row">
+        <text class="pc__label">客户报价</text>
+        <JzSelectField
+          variant="plain"
+          :display="selectedQuote ? `${selectedQuote.customer?.name} · ${selectedQuote.no}` : ''"
+          :range="quotes.map(item => `${item.customer?.name || '客户'} · ${money(item.amount)}`)"
+          :index="Math.max(0, quotes.findIndex(item => item.id === quoteId))"
+          :disabled="!!contract || !canPrepareContract"
+          placeholder="选择报价"
+          @change="pickQuoteByLabel"
+        />
+      </view>
       <view v-else-if="loadingData" class="pc__loading">正在加载客户已确认报价…</view>
       <view v-else class="pc__empty">
         <JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.purple" />

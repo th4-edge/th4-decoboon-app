@@ -16,6 +16,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 type RoleFilter = 'all' | EmployeePerformance['role']
 
@@ -75,8 +76,8 @@ function changeRole(role: RoleFilter) {
   void load()
 }
 
-function onMonthChange(event: { detail: { value: string } }) {
-  month.value = event.detail.value.slice(0, 7)
+function onMonthChange(value: string) {
+  month.value = value.slice(0, 7)
   void load()
 }
 
@@ -146,9 +147,7 @@ function currentMonth() {
       <JzStoreFilter v-model="storeId" @change="load" />
 
       <view class="assess-toolbar jz-card">
-        <picker mode="date" fields="month" :value="month" @change="onMonthChange">
-          <view class="assess-month"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ month }}</text></view>
-        </picker>
+        <JzSelectField mode="date" fields="month" variant="boxed" icon="calendar" :value="month" :display="month" @change="onMonthChange" />
         <view class="assess-tabs">
           <text v-for="tab in tabs" :key="tab.key" class="assess-tab" :class="{ 'assess-tab--on': roleFilter === tab.key }" @tap="changeRole(tab.key)">{{ tab.label }}</text>
         </view>

@@ -60,6 +60,10 @@ function onZonePick(name: string) {
   const hit = zones.value.find((z) => z.name === name)
   if (hit) zoneId.value = hit.id
 }
+function pickOwner(label: string) {
+  const hit = owners.value.find((o) => ownerDisplay(o) === label)
+  if (hit) ownerId.value = hit.id
+}
 const ownerSelected = computed(() => owners.value.find((o) => o.id === ownerId.value))
 const ownerLabel = computed(() => ownerSelected.value?.name || '')
 /** 负责人下拉文案：岗位名缺失时回退角色短名，绝不再渲染 undefined。 */
@@ -167,13 +171,14 @@ async function save() {
         <input v-model="unit" class="te__unit" placeholder="单位(㎡/m/项…)" />
       </view>
       <view class="te__row"><text class="te__label">负责人</text>
-        <picker :range="owners.map(ownerDisplay)" @change="ownerId = owners[Number($event.detail.value)].id">
-          <view class="te__picker" :class="{ 'te__picker--empty': !ownerLabel }">
-            <JzEmployeeAvatar v-if="ownerSelected" :src="ownerSelected.avatarUrl || ''" :name="ownerSelected.name" :role="ownerSelected.role" :status="ownerSelected.status" :size="52" />
-            <text>{{ ownerLabel || '选择负责人' }}</text>
-            <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
-          </view>
-        </picker>
+        <JzSelectField
+          variant="plain"
+          :display="ownerSelected ? ownerDisplay(ownerSelected) : ''"
+          :range="owners.map(ownerDisplay)"
+          :index="Math.max(0, owners.findIndex(o => o.id === ownerId))"
+          placeholder="选择负责人"
+          @change="pickOwner"
+        />
       </view>
       <view class="te__row"><text class="te__label">优先级</text>
         <view class="jz-row te__prios">

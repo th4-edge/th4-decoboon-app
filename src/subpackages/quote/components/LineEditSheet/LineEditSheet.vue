@@ -6,6 +6,7 @@ import { money } from '@/core/format'
 import JzSheet from '@/components/JzSheet.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const props = withDefaults(defineProps<{
   visible: boolean
@@ -97,12 +98,7 @@ function handleSave() {
 
       <!-- 分区选择 -->
       <text class="les__label">所属分区</text>
-      <picker :range="sections.map(s => s.name)" @change="sectionId = sections[Number($event.detail.value)]?.id || ''">
-        <view class="les__picker">
-          <text>{{ sections.find(s => s.id === sectionId)?.name || '选择分区' }}</text>
-          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
-        </view>
-      </picker>
+      <JzSelectField variant="boxed" :display="sections.find(s => s.id === sectionId)?.name || ''" :range="sections.map(s => s.name)" :index="Math.max(0, sections.findIndex(s => s.id === sectionId))" placeholder="选择分区" @change="sectionId = sections.find(s => s.name === $event)?.id || ''" />
 
       <!-- 数量系数 + 计价方式 -->
       <view class="les__grid">
@@ -112,11 +108,7 @@ function handleSave() {
         </view>
         <view>
           <text class="les__label">计价方式</text>
-          <picker :range="pricingOptions.map(o => o.label)" @change="pricingMode = pricingOptions[Number($event.detail.value)]?.value || 'materialAndManual'">
-            <view class="les__picker">
-              <text>{{ pricingOptions.find(o => o.value === pricingMode)?.label }}</text>
-            </view>
-          </picker>
+          <JzSelectField variant="boxed" :display="pricingOptions.find(o => o.value === pricingMode)?.label || ''" :range="pricingOptions.map(o => o.label)" :index="Math.max(0, pricingOptions.findIndex(o => o.value === pricingMode))" @change="pricingMode = pricingOptions.find(o => o.label === $event)?.value || 'materialAndManual'" />
         </view>
       </view>
 

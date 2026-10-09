@@ -19,6 +19,7 @@ import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
 import JzTag from '@/components/JzTag.vue'
 import { requestSubscribe, SUBSCRIBE_SCENARIO } from '@/composables/subscribeMessage'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const stageId = ref('')
 const stage = ref<ProjectStage | null>(null)
@@ -102,8 +103,8 @@ function openReject() {
   rejectOpen.value = true
 }
 function closeReject() { rejectOpen.value = false }
-function pickRectificationType(event: { detail: { value: string | number } }) {
-  const option = RECTIFICATION_TYPES[Number(event.detail.value)]
+function pickRectificationType(label: string) {
+  const option = RECTIFICATION_TYPES.find((item) => `${item.label}（${item.dueDays}天）` === label)
   rectificationType.value = option?.value || 'construction'
 }
 function rejectIssues() {
@@ -280,12 +281,7 @@ async function submit() {
           <text>{{ rectificationOwnerLabel }}</text>
         </view>
         <text class="ac__label">整改类型 <text class="req">*</text></text>
-        <picker :range="RECTIFICATION_TYPES.map(item => `${item.label}（${item.dueDays}天）`)" :value="rectificationTypeIndex" @change="pickRectificationType">
-          <view class="ac__picker">
-            <text>{{ rectificationTypeMeta.label }}（{{ rectificationTypeMeta.dueDays }}天）</text>
-            <JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" />
-          </view>
-        </picker>
+        <JzSelectField variant="boxed" :display="`${rectificationTypeMeta.label}（${rectificationTypeMeta.dueDays}天）`" :range="RECTIFICATION_TYPES.map(item => `${item.label}（${item.dueDays}天）`)" :index="rectificationTypeIndex" @change="pickRectificationType" />
         <text class="ac__auto-hint">截止日期由系统按整改类型自动设置，当前预计 {{ rectificationTypeMeta.dueDays }} 天，业主和业务人员不可修改。</text>
         <text class="ac__label">整改问题图片（{{ rectificationIssueImages.length }}/9）</text>
         <view class="ac__imgs">

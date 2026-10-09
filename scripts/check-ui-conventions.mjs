@@ -4,6 +4,7 @@
  * 规则：
  * 1. 禁止 uni.showModal / uni.showActionSheet —— 统一走 composables/dialog.ts 与 JzActionSheet。
  * 2. 禁止页面手写遮罩浮层（`__mask` 类）—— 统一走 JzSheet / JzConfirmDialog。
+ * 3. 禁止页面直写 <picker> —— 统一走 JzSelectField / JzDateRangeField。
  *
  * 允许清单仅包含统一浮层自身与「非模态解释气泡」。
  */
@@ -16,6 +17,12 @@ const MASK_ALLOWLIST = new Set([
   'src/components/JzSheet.vue',
   'src/components/JzConfirmDialog.vue',
   'src/components/JzMetricGlossary.vue'
+])
+/** 只有选值控件自身可以持有原生 picker；页面一律用 JzSelectField / JzDateRangeField。 */
+const PICKER_ALLOWLIST = new Set([
+  'src/components/JzSelectField/JzSelectField.vue',
+  'src/components/JzDateRangeField/JzDateRangeField.vue',
+  'src/components/JzStoreFilter.vue'
 ])
 
 function walk(dir) {
@@ -43,6 +50,9 @@ for (const dir of SCAN_DIRS) {
       if (/class="[^"]*__mask/.test(line) && !MASK_ALLOWLIST.has(rel)) {
         failures.push(`${rel}:${index + 1} 禁止手写遮罩浮层，请使用 JzSheet / JzConfirmDialog`)
       }
+      if (/<picker[\s>]/.test(line) && !PICKER_ALLOWLIST.has(rel)) {
+        failures.push(`${rel}:${index + 1} 禁止页面直写 <picker>，请使用 JzSelectField / JzDateRangeField`)
+      }
     })
   }
 }
@@ -52,4 +62,4 @@ if (failures.length) {
   for (const item of failures) console.error('  - ' + item)
   process.exit(1)
 }
-console.log('UI 统一化规范检查通过（无原生确认弹窗、无手写遮罩浮层）')
+console.log('UI 统一化规范检查通过（无原生确认弹窗、无手写遮罩浮层、无页面级 picker）')

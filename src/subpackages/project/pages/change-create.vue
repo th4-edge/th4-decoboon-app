@@ -341,9 +341,7 @@ async function submit() {
             <input v-if="requireLine && (type === 'quantity' || type === 'replace')" v-model="row.newQuantity" class="cc__input jz-numeric-input" type="digit" placeholder="新数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <input v-if="requireLine && (type === 'replace' || type === 'price')" v-model="row.newPrice" class="cc__input jz-numeric-input" type="digit" placeholder="新单价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
             <input v-if="canViewCost" v-model="row.cost" class="cc__input jz-numeric-input" type="digit" placeholder="成本" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
-            <picker :range="ITEM_TYPES" range-key="label" @change="row.itemType = ITEM_TYPES[Number(($event.detail as any).value)].key">
-              <view class="cc__pick">{{ ITEM_TYPES.find((i) => i.key === row.itemType)?.label || '类型' }}</view>
-            </picker>
+            <JzSelectField variant="boxed" :display="ITEM_TYPES.find((i) => i.key === row.itemType)?.label || ''" :range="ITEM_TYPES.map(i => i.label)" :index="Math.max(0, ITEM_TYPES.findIndex(i => i.key === row.itemType))" placeholder="类型" @change="row.itemType = ITEM_TYPES.find(i => i.label === $event)?.key || row.itemType" />
           </view>
         </view>
       </view>
@@ -366,9 +364,7 @@ async function submit() {
           <JzSelectField mode="time" variant="boxed" :value="customerConfirmedTime" :display="customerConfirmedTime" placeholder="确认时间" @change="customerConfirmedTime = $event" />
         </view>
         <input v-model="customerConfirmedBy" class="cc__input cc__input--full" placeholder="客户确认人姓名" />
-        <picker :range="CONFIRM_METHODS" @change="customerConfirmMethod = CONFIRM_METHODS[Number($event.detail.value)]">
-          <view class="cc__pick">{{ customerConfirmMethod }}</view>
-        </picker>
+        <JzSelectField variant="boxed" :display="customerConfirmMethod" :range="CONFIRM_METHODS" :index="Math.max(0, CONFIRM_METHODS.indexOf(customerConfirmMethod))" @change="customerConfirmMethod = $event" />
         <text class="cc__hint">客户线下确认时间、确认人、确认方式与下方签认/签证照片是形成变更单的前置条件。</text>
       </view>
 

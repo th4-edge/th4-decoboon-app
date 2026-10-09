@@ -11,6 +11,7 @@ import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const member = ref<Employee | null>(null)
 const empId = ref('')
@@ -29,8 +30,8 @@ onLoad(async (query) => {
   }
   catch (error) { toastError(error, '员工详情加载失败') }
 })
-async function changeRole(event: { detail: { value: string } }) {
-  roleIndex.value = Number(event.detail.value)
+async function changeRole(label: string) {
+  roleIndex.value = Math.max(0, editableRoles.findIndex((item) => item.label === label))
   if (!member.value) return
   try {
     member.value = await identityApi.updateMember(member.value.id, editableRoles[roleIndex.value].value)
@@ -48,7 +49,7 @@ function handover() { uni.navigateTo({ url: `${P.companyHandover}?empId=${empId.
       <view class="jz-card md-card">
         <view class="md-head"><JzEmployeeAvatar :src="member.avatarUrl || ''" :name="member.name" :role="member.role" :status="member.status" :size="104" /><view><text class="md-name">{{ member.name }}</text><text class="md-role">{{ ROLE_META[member.role]?.label || member.role }}</text></view><JzTag :text="status[member.status || 'active'][0]" :color="status[member.status || 'active'][1]" /></view>
         <view class="md-row"><text>手机号</text><text>{{ member.phone }}</text></view>
-        <view v-if="member.role !== 'boss'" class="md-row"><text>岗位</text><picker :range="editableRoles.map(item => item.label)" :value="roleIndex" @change="changeRole"><text>{{ editableRoles[roleIndex]?.label }}</text></picker></view>
+        <view v-if="member.role !== 'boss'" class="md-row"><text>岗位</text><JzSelectField variant="boxed" :display="editableRoles[roleIndex]?.label || ''" :range="editableRoles.map(item => item.label)" :index="roleIndex" @change="changeRole" /></view>
         <view class="md-row"><text>所属企业</text><text>{{ member.company?.name || '-' }}</text></view>
         <view class="md-row"><text>门店</text><text>{{ member.store?.name || '-' }}</text></view>
         <view class="md-row"><text>团队</text><text>{{ member.team?.name || '-' }}</text></view>

@@ -13,6 +13,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzSheet from '@/components/JzSheet.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 type Filter = 'all' | 'demand' | 'reject' | 'high'
 const customerId = ref('')
@@ -217,7 +218,7 @@ async function save() {
           </view>
           <text class="dr__field-label">关联区域</text>
           <view class="dr__area-row">
-            <picker :range="spaceOptions.map(i => i.label)" @change="spaceType = spaceOptions[Number($event.detail.value)].value"><view class="jz-form-input dr__area-picker"><text>{{ spaceLabel }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view></picker>
+            <JzSelectField variant="boxed" :display="spaceLabel" :range="spaceOptions.map(i => i.label)" :index="Math.max(0, spaceOptions.findIndex(i => i.value === spaceType))" @change="spaceType = spaceOptions.find(i => i.label === $event)?.value || spaceType" />
             <input v-model="spaceName" class="jz-form-input" placeholder="客户叫法，如北卧" />
           </view>
           <text class="dr__field-label">诉求标题 *</text>
@@ -225,9 +226,7 @@ async function save() {
           <text class="dr__field-label">客户原话 / 补充</text>
           <textarea v-model="detail" class="jz-form-textarea" maxlength="500" placeholder="记录客户为什么这样要求，后续谈单才能准确回应" />
           <text class="dr__field-label">沟通来源</text>
-          <picker :range="['电话', '到店沟通', '量房现场', '微信', '视频会议']" @change="source = ['电话', '到店沟通', '量房现场', '微信', '视频会议'][Number($event.detail.value)]">
-            <view class="jz-form-input dr__source"><text>{{ source }}</text><JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text3" /></view>
-          </picker>
+          <JzSelectField variant="boxed" :display="source" :range="['电话', '到店沟通', '量房现场', '微信', '视频会议']" :index="Math.max(0, ['电话', '到店沟通', '量房现场', '微信', '视频会议'].indexOf(source))" @change="source = $event" />
         </scroll-view>
         <view class="dr__sheet-foot">
           <button class="jz-btn jz-btn--neutral" :disabled="submitting" @tap="formOpen = false">取消</button>

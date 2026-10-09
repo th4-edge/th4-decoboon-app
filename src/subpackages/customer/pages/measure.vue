@@ -82,6 +82,11 @@ async function loadScheduledForProperty() {
   }
 }
 
+function onPropertyLabel(label: string) {
+  const index = propertyRange.value.indexOf(label)
+  if (index >= 0) void onPropertyChange({ detail: { value: index } })
+}
+
 async function onPropertyChange(e: { detail: { value: number } }) {
   const idx = Number(e.detail.value)
   if (idx < 0 || idx >= properties.value.length) return
@@ -122,12 +127,15 @@ async function save() {
     <view class="jz-card cm__property">
       <view class="cm__property-head">
         <text class="cm__property-label">量房房屋</text>
-        <picker v-if="hasMultipleProperties" :range="propertyRange" :value="propertyIdx" @change="onPropertyChange">
-          <view class="cm__property-switch">
-            <text>切换房屋</text>
-            <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" />
-          </view>
-        </picker>
+        <JzSelectField
+          v-if="hasMultipleProperties"
+          variant="plain"
+          icon="home"
+          display="切换房屋"
+          :range="propertyRange"
+          :index="propertyIdx"
+          @change="onPropertyLabel"
+        />
         <text v-else class="cm__property-count">共 {{ properties.length }} 套</text>
       </view>
       <view v-if="currentProperty" class="cm__property-body">

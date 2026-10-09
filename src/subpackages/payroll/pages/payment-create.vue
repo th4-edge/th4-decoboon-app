@@ -13,10 +13,13 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const selected = ref<EmployeePayable | null>(null)
 const account = ref<'companyBank' | 'cash' | 'wechat' | 'alipay' | 'other'>('companyBank')
 const accountOptions = ['公司账户', '现金', '微信', '支付宝', '其他']
+const accountCodes = ['companyBank', 'cash', 'wechat', 'alipay', 'other'] as const
+const accountIndex = computed(() => Math.max(0, accountCodes.indexOf(account.value)))
 const today = new Date().toISOString().slice(0, 10)
 const submitting = ref(false)
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
@@ -30,7 +33,7 @@ onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 function accountCode(index: number) {
-  return (['companyBank', 'cash', 'wechat', 'alipay', 'other'] as const)[index]
+  return accountCodes[index] || 'companyBank'
 }
 
 async function submit() {
@@ -78,9 +81,7 @@ async function submit() {
       <ListFooter v-if="items.length" :loading="loadingMore" :has-more="hasMore" @retry="loadMore" />
       <JzEmpty v-if="!loading && !items.length" text="暂无待发员工应付" sub="工资单确认或提成计提后，会显示待发应付" />
       <view v-if="selected" class="confirm-bar">
-        <picker :range="accountOptions" :value="accountOptions.indexOf(accountOptions[0])" @change="(e:any) => account = accountCode(Number(e.detail.value))">
-          <view class="confirm-bar__account">付款账户</view>
-        </picker>
+        <JzSelectField variant="boxed" :display="accountOptions[accountIndex]" :range="accountOptions" :index="accountIndex" @change="account = accountCode(Math.max(0, accountOptions.indexOf($event)))" />
         <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="submitting" @tap="submit">确认发放 {{ money(selected.outstandingAmount) }}</button>
       </view>
     </view>

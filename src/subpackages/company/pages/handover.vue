@@ -11,6 +11,7 @@ import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const fromEmpId = ref('')
 const from = ref<Employee | null>(null)
@@ -43,8 +44,8 @@ onLoad(async (query) => {
   } catch (error) { toastError(error, '交接数据加载失败') }
 })
 
-function pick(event: { detail: { value: string } }) {
-  toEmpId.value = candidates.value[Number(event.detail.value)]?.id || ''
+function pick(label: string) {
+  toEmpId.value = candidates.value.find((item) => `${item.name}（${ROLE_META[item.role]?.short || item.role}）` === label)?.id || ''
 }
 
 async function submit() {
@@ -74,9 +75,7 @@ async function submit() {
       <view class="jz-card hand-form">
         <view class="hand-field">
           <text>接收人</text>
-          <picker :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :value="selectedIndex" @change="pick">
-            <view class="hand-picker">{{ toEmpId ? candidates[selectedIndex]?.name : '请选择在职员工' }}</view>
-          </picker>
+          <JzSelectField variant="boxed" :display="toEmpId ? candidates[selectedIndex]?.name : ''" :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :index="selectedIndex" placeholder="请选择在职员工" @change="pick" />
         </view>
         <view v-if="selectedCandidate" class="hand-receiver">
           <JzEmployeeAvatar :src="selectedCandidate.avatarUrl || ''" :name="selectedCandidate.name" :role="selectedCandidate.role" :status="selectedCandidate.status" :size="88" />

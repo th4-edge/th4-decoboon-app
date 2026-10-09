@@ -17,6 +17,7 @@ import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const month = ref(currentMonth())
 const dashboard = ref<BossDashboard | null>(null)
@@ -127,8 +128,8 @@ function metricCard(label: string, metric: BossDashboard['signedAmount'] | undef
   }
 }
 
-function onMonthChange(event: { detail: { value: string } }) {
-  month.value = event.detail.value.slice(0, 7)
+function onMonthChange(value: string) {
+  month.value = value.slice(0, 7)
   void load()
 }
 
@@ -191,9 +192,7 @@ function currentMonth() {
       <JzStoreFilter v-model="storeId" @change="load" />
 
       <view class="ana-query jz-card">
-        <picker mode="date" fields="month" :value="month" @change="onMonthChange">
-          <view class="ana-query__month"><JzIcon name="calendar" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ month }}</text></view>
-        </picker>
+        <JzSelectField mode="date" fields="month" variant="boxed" icon="calendar" :value="month" :display="month" @change="onMonthChange" />
         <button class="jz-btn jz-btn--ghost ana-query__target" @tap="showTarget = !showTarget">设置目标</button>
       </view>
 

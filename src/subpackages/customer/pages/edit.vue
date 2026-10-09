@@ -8,6 +8,7 @@ import type { Customer, CustomerSource } from '@/domains/crm/model'
 import { crmApi } from '@/domains/crm/api'
 import JzIcon from '@/components/JzIcon.vue'
 import { toast, toastError, loading, hideLoading } from '@/composables/toast'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const id = ref('')
 const name = ref('')
@@ -91,15 +92,11 @@ async function save() {
       </view>
       <view class="ce__row">
         <text class="ce__label">性别</text>
-        <picker :range="GENDERS" :value="genderIdx" @change="genderIdx = Number($event.detail.value); gender = genderIdx === 1 ? 'F' : 'M'">
-          <view class="ce__picker"><text>{{ GENDERS[genderIdx] }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="GENDERS[genderIdx]" :range="GENDERS" :index="genderIdx" @change="genderIdx = Math.max(0, GENDERS.indexOf($event)); gender = genderIdx === 1 ? 'F' : 'M'" />
       </view>
       <view class="ce__row">
         <text class="ce__label">客户来源</text>
-        <picker :range="SOURCES.map(s => s.label)" @change="source = SOURCES[Number($event.detail.value)].key">
-          <view class="ce__picker"><text>{{ SOURCES.find(s => s.key === source)?.label }}</text><JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" /></view>
-        </picker>
+        <JzSelectField variant="boxed" :display="SOURCES.find(s => s.key === source)?.label || ''" :range="SOURCES.map(s => s.label)" :index="Math.max(0, SOURCES.findIndex(s => s.key === source))" @change="source = SOURCES.find(s => s.label === $event)?.key || source" />
       </view>
       <view class="ce__row">
         <text class="ce__label">意向小区</text>

@@ -9,6 +9,7 @@ import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 type TemplateType = 'Receipt' | 'Payment'
 
@@ -389,9 +390,7 @@ async function save() {
           <text class="tpl-block__title">版式设置</text>
           <view class="tpl-row">
             <text class="tpl-label">纸张</text>
-            <picker :range="['A3','A4','A5']" @change="setPageSize(['A3','A4','A5'][Number(($event as any).detail.value)])">
-              <view class="tpl-input">{{ layout.pageSize }}</view>
-            </picker>
+            <JzSelectField variant="boxed" :display="layout.pageSize" :range="['A3','A4','A5']" :index="Math.max(0, ['A3','A4','A5'].indexOf(layout.pageSize))" @change="setPageSize" />
           </view>
           <view class="tpl-row">
             <text class="tpl-label">方向</text>

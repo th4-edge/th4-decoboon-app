@@ -7,6 +7,7 @@ import type { Customer } from '@/domains/crm/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 interface PortraitField {
   key: string
@@ -64,11 +65,10 @@ function optionIndex(field: PortraitField) {
 function optionLabel(field: PortraitField) {
   return field.options.find((item) => item.value === form.value[field.key])?.label || '未填写'
 }
-function onPick(key: string, event: { detail: { value: number | string } }) {
+function onPick(key: string, label: string) {
   const field = fields.find((item) => item.key === key)
   if (!field) return
-  const index = Number(event.detail.value)
-  form.value[key] = field.options[index]?.value || ''
+  form.value[key] = field.options.find((option) => option.label === label)?.value || ''
 }
 function toggleConcern(value: string) {
   const index = concerns.value.indexOf(value)
@@ -141,12 +141,7 @@ async function save() {
           <text class="pe__label">{{ field.label }}</text>
           <text class="pe__hint">{{ field.hint }}</text>
         </view>
-        <picker mode="selector" :range="field.options" range-key="label" :value="optionIndex(field)" @change="onPick(field.key, $event)">
-          <view class="pe__picker" :class="{ 'pe__picker--empty': !form[field.key] }">
-            <text>{{ optionLabel(field) }}</text>
-            <JzIcon name="chevron-down" :size="24" :color="TOKEN_COLOR.text4" />
-          </view>
-        </picker>
+        <JzSelectField variant="boxed" :display="form[field.key] ? optionLabel(field) : ''" :range="field.options.map(o => o.label)" :index="optionIndex(field)" placeholder="请选择" @change="onPick(field.key, $event)" />
       </view>
 
       <view class="pe__field">

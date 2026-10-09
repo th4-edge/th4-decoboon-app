@@ -11,6 +11,7 @@ import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
+import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const projectId = ref('')
 const stageId = ref('')
@@ -123,13 +124,9 @@ async function submitEmployee() {
     <view class="jz-card fe__card" v-if="isOwner && mode !== 'employee'">
       <text class="fe__title">提交意见或投诉</text>
       <text class="fe__label">性质</text>
-      <picker :range="KIND_OPTIONS.map(x => x.label)" :value="kindIndex" @change="kind = KIND_OPTIONS[Number($event.detail.value)].value">
-        <view class="fe__picker">{{ KIND_OPTIONS[kindIndex].label }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
-      </picker>
+      <JzSelectField variant="boxed" :display="KIND_OPTIONS[kindIndex].label" :range="KIND_OPTIONS.map(x => x.label)" :index="kindIndex" @change="kind = KIND_OPTIONS.find(x => x.label === $event)?.value || kind" />
       <text class="fe__label">类型</text>
-      <picker :range="TYPE_OPTIONS.map(x => x.label)" :value="typeIndex" @change="type = TYPE_OPTIONS[Number($event.detail.value)].value">
-        <view class="fe__picker">{{ TYPE_OPTIONS[typeIndex].label }}<JzIcon name="chevron-down" :size="26" :color="TOKEN_COLOR.text3" /></view>
-      </picker>
+      <JzSelectField variant="boxed" :display="TYPE_OPTIONS[typeIndex].label" :range="TYPE_OPTIONS.map(x => x.label)" :index="typeIndex" @change="type = TYPE_OPTIONS.find(x => x.label === $event)?.value || type" />
       <text class="fe__label">标题 <text class="fe__req">*</text></text>
       <input v-model="title" class="fe__input" maxlength="128" placeholder="一句话说明问题或诉求" />
       <text class="fe__label">详细说明 <text class="fe__req">*</text></text>
