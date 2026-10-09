@@ -183,7 +183,7 @@ async function submit() {
 .pp-item__delete { color: $jzb-danger; font-size: $jzb-font-xs; }
 .pp-row { display: flex; align-items: center; gap: 16rpx; min-height: 76rpx; border-top: 1rpx solid $jzb-border-light; }
 .pp-row__label { width: 140rpx; flex: none; color: $jzb-text-2; font-size: $jzb-font-sm; }
-.pp-row input, .pp-row picker { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; }
+.pp-row input, .pp-row picker { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
 .pp-row__value { color: $jzb-text-1; font-size: $jzb-font; }
 .pp-add { display: flex; gap: 16rpx; margin: 8rpx 0 24rpx; }
 .pp-add button { flex: 1; }

@@ -177,6 +177,7 @@ async function save(publish = false) {
 .cpe__field--textarea textarea { flex: 1; min-height: 90rpx; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .cpe__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; }
 .cpe__grid .cpe__field { border-bottom: none; }
+.cpe__field input { flex: 1; min-width: 0; text-align: right; }
 .cpe__unit { position: absolute; right: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cpe__summary { display: flex; align-items: center; justify-content: space-between; padding: 22rpx 24rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .cpe__summary text:last-child { color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; }

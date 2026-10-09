@@ -109,7 +109,7 @@ useShare(() => ({
 .pi__sub { display: block; margin-top: 8rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.6; }
 .pi__field { display: flex; flex-direction: row; align-items: center; border: 1rpx solid $jzb-border; border-radius: $jzb-radius; padding: 0 22rpx; height: 92rpx; margin: 24rpx 0 16rpx; }
 .pi__label { width: 170rpx; font-size: $jzb-font; color: $jzb-text-2; }
-.pi__field input { flex: 1; font-size: $jzb-font-md; }
+.pi__field input { flex: 1; font-size: $jzb-font-md; text-align: right; }
 .pi__code-box { margin-top: 30rpx; background: $jzb-gradient-soft; border-radius: $jzb-radius; padding: 28rpx; display: flex; flex-direction: column; align-items: center; }
 .pi__code-label { font-size: $jzb-font-sm; color: $jzb-text-2; }
 .pi__code { margin: 16rpx 0; font-size: 64rpx; font-weight: 800; letter-spacing: 10rpx; color: $jzb-primary-dark; }

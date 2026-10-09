@@ -107,7 +107,7 @@ function pickTeam(label: string) {
 .ci-field { display: flex; align-items: center; min-height: 96rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .ci-field:last-child { border-bottom: none; }
 .ci-field > text { width: 130rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
-.ci-field input { flex: 1; height: 76rpx; color: $jzb-text-1; }
+.ci-field input { flex: 1; height: 76rpx; color: $jzb-text-1; text-align: right; }
 .ci-field picker { flex: 1; }
 .ci-picker { display: flex; align-items: center; justify-content: space-between; height: 76rpx; color: $jzb-text-1; }
 .ci-body > button { margin-top: 28rpx; }

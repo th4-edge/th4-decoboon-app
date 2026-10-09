@@ -221,6 +221,7 @@ async function save(publish = false) {
 .ppe__field--textarea textarea { flex: 1; min-height: 90rpx; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .ppe__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; }
 .ppe__grid .ppe__field { border-bottom: none; }
+.ppe__field input { flex: 1; min-width: 0; text-align: right; }
 .ppe__unit { position: absolute; right: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ppe__summary { display: flex; align-items: center; justify-content: space-between; padding: 22rpx 24rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .ppe__summary text:last-child { color: $jzb-success; font-size: $jzb-font-lg; font-weight: 750; }
