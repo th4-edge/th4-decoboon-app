@@ -59,7 +59,7 @@ const effectiveFieldsEditable = computed(() => {
 })
 const contractStatusText = computed(() => {
   if (!contract.value) return '待生成'
-  return CONTRACT_STATUS_META[contract.value.status] || contract.value.status
+  return CONTRACT_STATUS_META[contract.value.status] || '未知状态'
 })
 const actionText = computed(() => {
   if (!canEnterContract.value) return '合同签约需设计师发起并由负责人确认'

@@ -267,7 +267,7 @@ function projectStatusTone(status?: string) {
 
 function projectStatusLabel(status?: string) {
   if (!status) return '待业务确认'
-  return PROJECT_STATUS_META[status as keyof typeof PROJECT_STATUS_META]?.label || status
+  return PROJECT_STATUS_META[status as keyof typeof PROJECT_STATUS_META]?.label || '未知状态'
 }
 
 function progressWidth(value?: number) {
@@ -416,7 +416,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
           <view class="perf__record-main">
             <view class="perf__record-head">
               <text class="perf__record-title">{{ customer.name }}</text>
-              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || '未知阶段' }}</text>
             </view>
             <text class="perf__record-sub">负责人 {{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
           </view>
@@ -547,7 +547,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
           <view class="perf__record-main">
             <view class="perf__record-head">
               <text class="perf__record-title">{{ customer.name }}</text>
-              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || '未知阶段' }}</text>
             </view>
             <text class="perf__record-sub">负责人 {{ customer.owner?.name || '未分配' }} · {{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
           </view>
@@ -728,7 +728,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
           <view class="perf__record-main">
             <view class="perf__record-head">
               <text class="perf__record-title">{{ customer.name }}</text>
-              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || customer.stage }}</text>
+              <text class="perf__record-tag" :class="customerStageTone(customer.stage)">{{ CUSTOMER_STAGE_META[customer.stage]?.label || '未知阶段' }}</text>
             </view>
             <text class="perf__record-sub">{{ customer.community || '未填小区' }} · {{ customer.phone || '未留电话' }}</text>
           </view>

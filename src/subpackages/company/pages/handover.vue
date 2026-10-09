@@ -81,7 +81,7 @@ async function submit() {
           <JzEmployeeAvatar :src="selectedCandidate.avatarUrl || ''" :name="selectedCandidate.name" :role="selectedCandidate.role" :status="selectedCandidate.status" :size="88" />
           <view class="jz-grow">
             <text class="hand-receiver__name">{{ selectedCandidate.name }}</text>
-            <text class="hand-receiver__meta">{{ ROLE_META[selectedCandidate.role]?.label || selectedCandidate.role }} · {{ selectedCandidate.store?.name || '未分配门店' }}</text>
+            <text class="hand-receiver__meta">{{ ROLE_META[selectedCandidate.role]?.label || '未知岗位' }} · {{ selectedCandidate.store?.name || '未分配门店' }}</text>
           </view>
         </view>
         <label v-if="isBoss" class="hand-check"><checkbox :checked="transferProjects" @tap="transferProjects = !transferProjects" /><text>同步转移客户、房屋及项目负责人</text></label>

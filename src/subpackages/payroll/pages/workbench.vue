@@ -38,7 +38,7 @@ const showLatestSheet = computed(() => {
 
 const latestSheetStatusLabel = computed(() => {
   const status = report.value?.latestSheetStatus
-  return status ? PAYROLL_SHEET_STATUS_META[status]?.label || status : '暂不可确认'
+  return status ? PAYROLL_SHEET_STATUS_META[status]?.label || '未知状态' : '暂不可确认'
 })
 
 onShow(() => { if (isLoggedIn()) void refresh(selectedPeriod.value) })

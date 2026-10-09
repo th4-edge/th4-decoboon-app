@@ -103,24 +103,15 @@ async function chooseDeadlineDate(event: string) { deadlineDate.value = event }
 <template>
   <view class="cte">
     <view class="cte__card jz-card">
-      <text class="cte__label">任务标题 *</text>
-      <input v-model="title" class="cte__input" maxlength="255" placeholder="例如：水电隐蔽工程为什么必须留证" />
-      <text class="cte__label">目标人群 *</text>
-      <input v-model="targetAudience" class="cte__input" maxlength="200" placeholder="正在对比装修公司的业主" />
-      <text class="cte__label">传播目标</text>
-      <input v-model="goal" class="cte__input" maxlength="32" />
-      <text class="cte__label">发布平台</text>
-      <JzSelectField variant="boxed" :display="platforms.find(x => x.key === platform)?.label || '抖音'" :range="platforms.map(x => x.label)" :index="Math.max(0, platforms.findIndex(x => x.key === platform))" @change="choosePlatform" />
-      <text class="cte__label">内容模板 *</text>
-      <JzSelectField variant="boxed" :display="selectedTemplate?.name || '请选择模板'" :range="templates.map(x => x.name)" :index="templateIndex" @change="templateIndex = Math.max(0, templates.findIndex(x => x.name === $event))" />
-      <text class="cte__label">截止日期</text>
-      <JzSelectField mode="date" variant="boxed" :value="deadlineDate" :display="deadlineDate" @change="chooseDeadlineDate" />
-      <text class="cte__label">截止时间</text>
-      <JzSelectField mode="time" variant="boxed" :value="deadlineTime" :display="deadlineTime" @change="deadlineTime = $event" />
-      <text class="cte__label">必须表达 *</text>
-      <textarea v-model="requiredClaims" class="cte__textarea" maxlength="1000" placeholder="写下本条内容必须表达的事实和边界" />
-      <text class="cte__label">禁止表达 *</text>
-      <textarea v-model="forbiddenClaims" class="cte__textarea" maxlength="1000" />
+      <view class="jz-form-row"><text class="jz-form-label">任务标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：水电隐蔽工程为什么必须留证" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">目标人群 *</text><input v-model="targetAudience" class="jz-form-control" maxlength="200" placeholder="正在对比装修公司的业主" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">传播目标</text><input v-model="goal" class="jz-form-control" maxlength="32" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">发布平台</text><JzSelectField variant="plain" :display="platforms.find(x => x.key === platform)?.label || '抖音'" :range="platforms.map(x => x.label)" :index="Math.max(0, platforms.findIndex(x => x.key === platform))" @change="choosePlatform" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">内容模板 *</text><JzSelectField variant="plain" :display="selectedTemplate?.name || '请选择模板'" :range="templates.map(x => x.name)" :index="templateIndex" @change="templateIndex = Math.max(0, templates.findIndex(x => x.name === $event))" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">截止日期</text><JzSelectField mode="date" variant="plain" :value="deadlineDate" :display="deadlineDate" @change="chooseDeadlineDate" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">截止时间</text><JzSelectField mode="time" variant="plain" :value="deadlineTime" :display="deadlineTime" @change="deadlineTime = $event" /></view>
+      <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">必须表达 *</text><textarea v-model="requiredClaims" class="cte__textarea" maxlength="1000" placeholder="写下本条内容必须表达的事实和边界" /></view>
+      <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">禁止表达 *</text><textarea v-model="forbiddenClaims" class="cte__textarea" maxlength="1000" /></view>
     </view>
     <view class="cte__card jz-card">
       <view class="jz-between"><text class="cte__section">可用素材 *</text><text class="cte__count">已选 {{ selectedAssetIds.length }}</text></view>
@@ -141,10 +132,7 @@ async function chooseDeadlineDate(event: string) { deadlineDate.value = event }
 <style lang="scss" scoped>
 .cte { min-height: 100vh; padding: 24rpx; background: $jzb-bg-page; }
 .cte__card { padding: 28rpx; margin-bottom: 18rpx; }
-.cte__label { display: block; margin: 22rpx 0 10rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
-.cte__input, .cte__textarea { width: 100%; box-sizing: border-box; padding: 0 22rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
-.cte__input { min-height: 84rpx; }
-.cte__textarea { min-height: 170rpx; padding-top: 20rpx; }
+.cte__textarea { width: 100%; box-sizing: border-box; min-height: 170rpx; margin-top: 12rpx; padding: 20rpx 22rpx 0; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
 .cte__section { font-size: $jzb-font; font-weight: 700; }
 .cte__count { color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .cte__assets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 18rpx; }

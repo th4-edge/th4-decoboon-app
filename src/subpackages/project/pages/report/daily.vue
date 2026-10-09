@@ -51,7 +51,7 @@ function reportAuthorRole(report: SiteReport) {
   return report.author && 'role' in report.author ? report.author.role : 'pm'
 }
 function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || STATUS_COLOR.todo }
-function nodeLabel(key: string) { return NODE_META[key as keyof typeof NODE_META]?.label || key }
+function nodeLabel(key: string) { return NODE_META[key as keyof typeof NODE_META]?.label || '未知节点' }
 
 function preview(m: TaskMedia) {
   if (m.type === 'video') {

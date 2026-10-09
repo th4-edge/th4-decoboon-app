@@ -128,10 +128,8 @@ async function submit() {
           <button class="cau__segment-btn" :class="{ 'cau__segment-btn--active': subjectType === 'customer' }" :disabled="!canUseCustomer" @tap="chooseSubject('customer')">客户</button>
           <button class="cau__segment-btn" :class="{ 'cau__segment-btn--active': subjectType === 'employee' }" @tap="chooseSubject('employee')">员工本人</button>
         </view>
-        <text class="cau__label">授权渠道</text>
-        <input v-model="channels" class="cau__input" placeholder="抖音, 视频号, 小红书" />
-        <text class="cau__label">授权地域</text>
-        <input v-model="region" class="cau__input" placeholder="中国大陆" />
+        <view class="jz-form-row"><text class="jz-form-label">授权渠道</text><input v-model="channels" class="jz-form-control" placeholder="抖音, 视频号, 小红书" placeholder-style="text-align: left" /></view>
+        <view class="jz-form-row"><text class="jz-form-label">授权地域</text><input v-model="region" class="jz-form-control" placeholder="中国大陆" placeholder-style="text-align: left" /></view>
         <view class="cau__dates">
           <view class="cau__date"><text class="cau__label">生效日期</text><JzSelectField mode="date" variant="boxed" :value="validFrom" :display="validFrom" @change="validFrom = $event" /></view>
           <view class="cau__date"><text class="cau__label">失效日期</text><JzSelectField mode="date" variant="boxed" :value="validTo" :display="validTo" :start="validFrom" @change="validTo = $event" /></view>
@@ -144,8 +142,7 @@ async function submit() {
         </view>
         <text class="cau__label">授权证据</text>
         <view class="cau__evidence" @tap="chooseEvidence"><text>{{ evidenceName || '上传授权书或客户/员工确认证据' }}</text></view>
-        <text class="cau__label">备注</text>
-        <textarea v-model="remark" class="cau__textarea" maxlength="1000" placeholder="记录授权背景、使用边界和撤回方式" />
+        <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">备注</text><textarea v-model="remark" class="cau__textarea" maxlength="1000" placeholder="记录授权背景、使用边界和撤回方式" /></view>
       </view>
       <view class="cau__tip jz-card"><JzTag text="装得清宣传默认关闭" :color="TOKEN_COLOR.text3" /><text>公开发布与宣传授权必须分别配置；涉及客户或员工资料时，还需对应主体授权。</text></view>
       <button class="jz-btn jz-btn--primary jz-btn--block cau__submit" :loading="busy" :disabled="!isManager" @tap="submit">保存授权</button>

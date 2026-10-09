@@ -126,8 +126,7 @@ async function submit() {
         <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text3" />
       </view>
 
-      <text class="cu__label">素材标题 <text class="cu__required">*</text></text>
-      <input v-model="title" class="cu__input" maxlength="255" placeholder="例如：主卧水电隐蔽前留证" />
+      <view class="jz-form-row"><text class="jz-form-label">素材标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：主卧水电隐蔽前留证" placeholder-style="text-align: left" /></view>
 
       <text class="cu__label">素材内容 <text class="cu__required">*</text></text>
       <view class="cu__media" @tap="chooseAsset">
@@ -145,10 +144,8 @@ async function submit() {
         <button v-for="item in [{ key: 'native', label: '真实' }, { key: 'test', label: '测试' }, { key: 'demo', label: '演示' }]" :key="item.key" class="cu__segment-btn" :class="{ 'cu__segment-btn--active': truthType === item.key }" @tap="truthType = item.key as ContentTruthType">{{ item.label }}</button>
       </view>
 
-      <text class="cu__label">标签</text>
-      <input v-model="tags" class="cu__input" maxlength="500" placeholder="水电, 隐蔽工程, 现场留证" />
-      <text class="cu__label">备注</text>
-      <textarea v-model="remark" class="cu__textarea" maxlength="1000" placeholder="补充拍摄位置、阶段或后续用途" />
+      <view class="jz-form-row"><text class="jz-form-label">标签</text><input v-model="tags" class="jz-form-control" maxlength="500" placeholder="水电, 隐蔽工程, 现场留证" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">备注</text><textarea v-model="remark" class="cu__textarea" maxlength="1000" placeholder="补充拍摄位置、阶段或后续用途" /></view>
       <label v-if="canMarkDesensitized" class="cu__check"><input v-model="desensitized" type="checkbox" /><text>已完成脱敏（公开前必须完成）</text></label>
     </view>
     <button class="jz-btn jz-btn--primary jz-btn--block cu__submit" :loading="busy" @tap="submit">保存到素材库</button>
