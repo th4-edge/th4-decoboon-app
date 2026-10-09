@@ -105,6 +105,8 @@ function onChange(e: any) {
 }
 /* 与 jz-form-row 同排：无底色、贴近行高，保持原有表格观感 */
 .jz-select-field--plain { min-height: 64rpx; padding: 0; }
+/* 行内形态：值必须右对齐，与同排 input 的 text-align:right 对齐 */
+.jz-select-field--plain .jz-select-field__text { text-align: right; }
 /* 独立字段区：浅底卡片，用于抽屉/整块表单 */
 .jz-select-field--boxed {
   padding: 0 22rpx;

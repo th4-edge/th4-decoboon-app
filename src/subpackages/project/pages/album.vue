@@ -6,6 +6,7 @@ import { isLoggedIn } from '@/domains/identity/session'
 import type { ProjectAlbumEntry } from '@/domains/project/model'
 import { projectApi } from '@/domains/project/api'
 import { dateTimeText } from '@/core/format'
+import { ROLE_META } from '@/roles/catalog'
 import { toastError } from '@/composables/toast'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
@@ -86,7 +87,11 @@ function typeColorOf(entry: ProjectAlbumEntry) {
 }
 
 function authorOf(entry: ProjectAlbumEntry) {
-  return entry.authorName || entry.authorRole || '项目团队'
+  return entry.authorName || '项目团队'
+}
+
+function roleLabel(value?: string) {
+  return value ? ROLE_META[value as keyof typeof ROLE_META]?.label || '成员' : '成员'
 }
 
 /**
@@ -209,7 +214,7 @@ function gridClass(count: number) {
               <view class="jz-grow">
                 <view class="album__author-row">
                   <text class="album__author">{{ authorOf(entry) }}</text>
-                  <text v-if="entry.authorRole" class="album__role">{{ entry.authorRole }}</text>
+                  <text v-if="entry.authorRole" class="album__role">{{ roleLabel(entry.authorRole) }}</text>
                 </view>
                 <view class="album__meta-row">
                   <text class="album__type" :style="{ color: typeColorOf(entry), backgroundColor: `${typeColorOf(entry)}14` }">
