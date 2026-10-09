@@ -137,7 +137,7 @@ function openCarryoverPlan() {
     <view v-if="pendingDeviation" class="jz-card plan__deviation">
       <view class="jz-between">
         <text class="plan__deviation-title">计划偏差待确认</text>
-        <JzTag text="待确认" color="STATUS_COLOR.pending" />
+        <JzTag text="待确认" :color="STATUS_COLOR.pending" />
       </view>
       <text class="plan__deviation-line">合同基准完工：{{ pendingDeviation.baseEndDate || '-' }}</text>
       <text class="plan__deviation-line">当前预计完工：{{ pendingDeviation.expectedEndDate || '-' }}（超 {{ pendingDeviation.deviationDays ?? 0 }} 天）</text>

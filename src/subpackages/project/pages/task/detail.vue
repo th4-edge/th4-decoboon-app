@@ -193,7 +193,7 @@ function openStageAccept() {
         <view v-if="i > 0" class="td__node-line" :class="{ 'td__node-line--done': nodes.find((n) => n.key === orderedKeys[i - 1])?.status === 'done' }" />
         <view class="td__node">
           <view class="td__node-head">
-            <view class="td__node-dot" :style="{ backgroundColor: (nodes.find((n) => n.key === key)?.status === 'done' ? NODE_META[key].color : 'STATUS_COLOR.idle') }">
+            <view class="td__node-dot" :style="{ backgroundColor: (nodes.find((n) => n.key === key)?.status === 'done' ? NODE_META[key].color : STATUS_COLOR.idle) }">
               <JzIcon v-if="nodes.find((n) => n.key === key)?.status === 'done'" name="check" :size="19" :color="TOKEN_COLOR.white" :stroke-width="2.6" />
             </view>
             <view class="jz-grow">

@@ -29,7 +29,7 @@ const tab = ref<Tab>('overview')
 const editable = computed(() => can(session.role, 'edit:finance'))
 const p = computed(() => report.value?.project)
 const costRows = computed(() => report.value ? [
-  { label: '材料成本', value: report.value.materialCost, color: 'STATUS_COLOR.accent' },
+  { label: '材料成本', value: report.value.materialCost, color: STATUS_COLOR.accent },
   { label: '人工成本', value: report.value.laborCost, color: TOKEN_COLOR.warning },
   { label: '项目款', value: report.value.projectCost, color: TOKEN_COLOR.primary },
   { label: '费用分摊', value: report.value.expenseAllocation, color: TOKEN_COLOR.text3 }

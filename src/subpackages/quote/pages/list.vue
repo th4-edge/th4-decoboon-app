@@ -57,7 +57,7 @@ const STATUS_META: Record<QuoteStatus, { label: string; color: string }> = {
   submitted: { label: '待客户确认', color: TOKEN_COLOR.warning },
   accepted: { label: '客户已接受', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
-  superseded: { label: '已被替代', color: 'STATUS_COLOR.muted' },
+  superseded: { label: '已被替代', color: STATUS_COLOR.muted },
   converted: { label: '已转项目', color: TOKEN_COLOR.purple }
 }
 const MODE_META: Record<QuoteMode, { label: string; color: string }> = {

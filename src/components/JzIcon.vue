@@ -21,7 +21,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   size: 40,
   // 图标兜底色：未进入 $jzb 色板的中性灰，保留默认值，仅作未传 color 时回退（历史坑：勿擅自改色）
-  color: 'STATUS_COLOR.dark',
+  color: STATUS_COLOR.dark,
   strokeWidth: 1.8
 })
 

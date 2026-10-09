@@ -101,10 +101,10 @@ const summary = computed(() => {
 })
 
 const metrics = computed<WorkbenchMetric[]>(() => [
-  { key: 'selected', label: '已选材', value: summary.value.selected, color: STATUS_COLOR.done, tone: 'TOKEN_COLOR.successSoft' },
-  { key: 'notSelected', label: '待选材', value: summary.value.notSelected, color: STATUS_COLOR.todo, tone: 'TOKEN_COLOR.bgPage' },
-  { key: 'delivered', label: '已交付', value: summary.value.delivered, color: STATUS_COLOR.pending, tone: 'TOKEN_COLOR.warningSoft' },
-  { key: 'ordered', label: '已下单', value: summary.value.ordered, color: STATUS_COLOR.progress, tone: 'TOKEN_COLOR.primaryLighter' }
+  { key: 'selected', label: '已选材', value: summary.value.selected, color: STATUS_COLOR.done, tone: TOKEN_COLOR.successSoft },
+  { key: 'notSelected', label: '待选材', value: summary.value.notSelected, color: STATUS_COLOR.todo, tone: TOKEN_COLOR.bgPage },
+  { key: 'delivered', label: '已交付', value: summary.value.delivered, color: STATUS_COLOR.pending, tone: TOKEN_COLOR.warningSoft },
+  { key: 'ordered', label: '已下单', value: summary.value.ordered, color: STATUS_COLOR.progress, tone: TOKEN_COLOR.primaryLighter }
 ])
 
 const filterOptions = computed(() => [

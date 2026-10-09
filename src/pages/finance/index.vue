@@ -114,7 +114,7 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
       { key: 'receipt', label: '登记收款', icon: 'wallet', tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt`, requiresEdit: true },
       { key: 'refund', label: '客户退款', icon: 'file-text', tone: TOKEN_COLOR.dangerSoft, path: P.financeRefunds },
       { key: 'payment', label: '登记付款', icon: 'arrow-right', tone: TOKEN_COLOR.dangerSoft, path: `${P.financeEntry}?type=payment`, requiresEdit: true },
-      { key: 'manual', label: '手工记账', icon: 'edit', tone: 'TOKEN_COLOR.bgPage', path: `${P.financeEntry}?type=ledger`, requiresEdit: true }
+      { key: 'manual', label: '手工记账', icon: 'edit', tone: TOKEN_COLOR.bgPage, path: `${P.financeEntry}?type=ledger`, requiresEdit: true }
     ]
   },
   {
@@ -124,7 +124,7 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     items: [
       { key: 'receivables', label: '应收计划', icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, path: P.financeReceivables },
       { key: 'payables', label: '应付账款', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
-      { key: 'salary', label: '工人工资', icon: 'users', tone: 'TOKEN_COLOR.purpleSoft', path: `${P.financePayables}?type=salary` },
+      { key: 'salary', label: '工人工资', icon: 'users', tone: TOKEN_COLOR.purpleSoft, path: `${P.financePayables}?type=salary` },
       { key: 'partners', label: '供应商往来', icon: 'users', tone: TOKEN_COLOR.warningSoft, path: P.financePartners }
     ]
   },
@@ -135,7 +135,7 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     items: [
       { key: 'payrollWorkbench', label: '员工薪酬', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollWorkbench },
       { key: 'employeeSalary', label: '员工工资', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollSheetList },
-      { key: 'employeeCommission', label: '员工提成', icon: 'chart', tone: 'TOKEN_COLOR.primaryLighter', path: P.payrollCommissionList }
+      { key: 'employeeCommission', label: '员工提成', icon: 'chart', tone: TOKEN_COLOR.primaryLighter, path: P.payrollCommissionList }
     ]
   },
   {
@@ -143,9 +143,9 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     title: '账务核算',
     description: '统一查看资金流水、项目盈利和收付凭证',
     items: [
-      { key: 'ledger', label: '资金台账', icon: 'chart', tone: 'TOKEN_COLOR.primaryLighter', path: P.financeLedger },
+      { key: 'ledger', label: '资金台账', icon: 'chart', tone: TOKEN_COLOR.primaryLighter, path: P.financeLedger },
       { key: 'projects', label: '项目账本', icon: 'briefcase', tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
-      { key: 'vouchers', label: '收付凭证', icon: 'doc', tone: 'TOKEN_COLOR.bgPage', path: P.financeVouchers }
+      { key: 'vouchers', label: '收付凭证', icon: 'doc', tone: TOKEN_COLOR.bgPage, path: P.financeVouchers }
     ]
   }
 ])

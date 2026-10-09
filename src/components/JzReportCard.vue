@@ -12,7 +12,7 @@ import JzIcon from './JzIcon.vue'
 
 const props = defineProps<{ report: SiteReport; showProject?: boolean }>()
 
-const typeMeta = computed(() => REPORT_TYPE_META[props.report.type] || { label: '动态', color: 'STATUS_COLOR.todo' })
+const typeMeta = computed(() => REPORT_TYPE_META[props.report.type] || { label: '动态', color: STATUS_COLOR.todo })
 const isEmployeeAuthor = computed(() => !!props.report.author && 'role' in props.report.author)
 const authorName = computed(() => props.report.author?.name || '系统')
 const authorAvatar = computed(() => props.report.author && 'avatarUrl' in props.report.author ? props.report.author.avatarUrl || '' : '')

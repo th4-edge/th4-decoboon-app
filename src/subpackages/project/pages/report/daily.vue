@@ -50,7 +50,7 @@ function reportAuthorRole(report: SiteReport) {
   if (report.authorRole) return report.authorRole
   return report.author && 'role' in report.author ? report.author.role : 'pm'
 }
-function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || 'STATUS_COLOR.todo' }
+function nodeColor(key: string) { return NODE_META[key as keyof typeof NODE_META]?.color || STATUS_COLOR.todo }
 function nodeLabel(key: string) { return NODE_META[key as keyof typeof NODE_META]?.label || key }
 
 function preview(m: TaskMedia) {

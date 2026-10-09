@@ -38,8 +38,8 @@ const statusMeta = computed(() => {
   switch (info.value?.status) {
     case 'trial': return { text: '基础版试用中', short: '试用', color: TOKEN_COLOR.warning }
     case 'active': return { text: '订阅使用中', short: '使用中', color: TOKEN_COLOR.primaryBase }
-    case 'frozen': return { text: '订阅已冻结', short: '冻结', color: 'STATUS_COLOR.accent' }
-    case 'closed': return { text: '订阅已关闭', short: '关闭', color: 'STATUS_COLOR.closed' }
+    case 'frozen': return { text: '订阅已冻结', short: '冻结', color: STATUS_COLOR.accent }
+    case 'closed': return { text: '订阅已关闭', short: '关闭', color: STATUS_COLOR.closed }
     default: return { text: '订阅已到期', short: '已到期', color: TOKEN_COLOR.danger }
   }
 })
@@ -229,9 +229,9 @@ function orderStatusMeta(status: BillingOrder['status']) {
     pending: { text: '待支付', color: TOKEN_COLOR.warning },
     paid: { text: '已支付', color: TOKEN_COLOR.primaryBase },
     granted: { text: '已开通', color: TOKEN_COLOR.primaryBase },
-    expired: { text: '已过期', color: 'STATUS_COLOR.closed' },
-    cancelled: { text: '已取消', color: 'STATUS_COLOR.closed' },
-    refunded: { text: '已退款', color: 'STATUS_COLOR.accent' }
+    expired: { text: '已过期', color: STATUS_COLOR.closed },
+    cancelled: { text: '已取消', color: STATUS_COLOR.closed },
+    refunded: { text: '已退款', color: STATUS_COLOR.accent }
   })[status]
 }
 
@@ -378,7 +378,7 @@ async function loadStores() {
           <text class="subscription__benefit-desc">微信安全支付，无隐藏费用</text>
         </view>
         <view class="subscription__benefit">
-          <JzIcon name="wrench" :size="34" color="STATUS_COLOR.info" />
+          <JzIcon name="wrench" :size="34" :color="STATUS_COLOR.info" />
           <text class="subscription__benefit-title">上线陪跑</text>
           <text class="subscription__benefit-desc">专业版、旗舰版远程支持</text>
         </view>
@@ -436,7 +436,7 @@ async function loadStores() {
           <text class="subscription__section-title">选择订阅方案</text>
           <text class="subscription__section-subtitle">点击卡片选择，年付有效期内不限业务单据量</text>
         </view>
-        <JzTag text="支持续费叠加" color="STATUS_COLOR.info" />
+        <JzTag text="支持续费叠加" :color="STATUS_COLOR.info" />
       </view>
 
       <scroll-view class="subscription__plans" scroll-x :show-scrollbar="false">
@@ -500,9 +500,9 @@ async function loadStores() {
             <text class="subscription__addon-desc">{{ money(seatAddon.unitPrice) }} / 个 / 年</text>
           </view>
           <view class="subscription__stepper">
-            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', -1)"><JzIcon name="minus" :size="24" color="STATUS_COLOR.dark" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', -1)"><JzIcon name="minus" :size="24" :color="STATUS_COLOR.dark" /></view>
             <text class="subscription__stepper-value">{{ seatQuantity }}</text>
-            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', 1)"><JzIcon name="plus" :size="24" color="STATUS_COLOR.dark" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('seats', 1)"><JzIcon name="plus" :size="24" :color="STATUS_COLOR.dark" /></view>
           </view>
         </view>
         <view v-if="storeAddon" class="subscription__addon-row">
@@ -512,9 +512,9 @@ async function loadStores() {
             <text class="subscription__addon-desc">{{ money(storeAddon.unitPrice) }} / 家 / 年</text>
           </view>
           <view class="subscription__stepper">
-            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', -1)"><JzIcon name="minus" :size="24" color="STATUS_COLOR.dark" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', -1)"><JzIcon name="minus" :size="24" :color="STATUS_COLOR.dark" /></view>
             <text class="subscription__stepper-value">{{ storeQuantity }}</text>
-            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', 1)"><JzIcon name="plus" :size="24" color="STATUS_COLOR.dark" /></view>
+            <view class="subscription__stepper-btn" @tap="changeQuantity('stores', 1)"><JzIcon name="plus" :size="24" :color="STATUS_COLOR.dark" /></view>
           </view>
         </view>
       </view>

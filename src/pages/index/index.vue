@@ -263,7 +263,7 @@ const statCards = computed((): StatCard[] => {
     return [
       { label: '在管项目', val: r.projectCount, color: TOKEN_COLOR.warning, icon: 'briefcase', tone: TOKEN_COLOR.warningSoft },
       { label: '待推进任务', val: r.taskTodoCount + r.taskDoingCount, color: TOKEN_COLOR.purple, icon: 'clipboard', tone: TOKEN_COLOR.purpleSoft },
-      { label: '待确认验收', val: r.pendingAcceptanceCount, color: TOKEN_COLOR.success, icon: 'check-circle', tone: 'TOKEN_COLOR.primaryLighter' },
+      { label: '待确认验收', val: r.pendingAcceptanceCount, color: TOKEN_COLOR.success, icon: 'check-circle', tone: TOKEN_COLOR.primaryLighter },
       { label: '履约风险', val: r.taskOverdueCount + r.materialDelayedCount + r.suspendedProjectCount, color: TOKEN_COLOR.danger, icon: 'alert-circle', tone: TOKEN_COLOR.dangerSoft }
     ]
   }
@@ -279,7 +279,7 @@ const statCards = computed((): StatCard[] => {
   if (role.value === 'teamLeader' && teamLeaderReport.value) {
     const r = teamLeaderReport.value
     return [
-      { label: '团队客户', val: r.customerCount, color: 'STATUS_COLOR.info', icon: 'users', tone: TOKEN_COLOR.primaryLighter },
+      { label: '团队客户', val: r.customerCount, color: STATUS_COLOR.info, icon: 'users', tone: TOKEN_COLOR.primaryLighter },
       { label: '待跟进/量房', val: r.followDueCount + r.followOverdueCount + r.pendingMeasureCount, color: TOKEN_COLOR.warning, icon: 'calendar', tone: TOKEN_COLOR.warningSoft },
       { label: '待推进报价', val: r.pendingQuoteCount, color: TOKEN_COLOR.purple, icon: 'file-text', tone: TOKEN_COLOR.purpleSoft },
       { label: '施工风险', val: r.suspendedProjectCount + r.taskOverdueCount, color: TOKEN_COLOR.danger, icon: 'alert-circle', tone: TOKEN_COLOR.dangerSoft }
@@ -746,7 +746,7 @@ const projectSectionTitle = computed(() => {
           <text class="home__performance-value">{{ money(teamLeaderReport.signedAmount) }}</text>
           <text class="home__performance-sub">{{ teamLeaderReport.memberCount }} 位成员 · {{ teamLeaderReport.ongoingProjectCount }} 个在施项目 · {{ teamLeaderReport.unassignedDesignerCount }} 位客户待派单 · 最终报价接受率 {{ teamLeaderReport.finalQuoteAcceptanceRate }}%</text>
         </view>
-        <JzIcon name="chart" :size="42" color="STATUS_COLOR.info" />
+        <JzIcon name="chart" :size="42" :color="STATUS_COLOR.info" />
       </view>
 
       <view v-if="role === 'designer' && designerReport" class="jz-card home__performance" @tap="openPerformance">

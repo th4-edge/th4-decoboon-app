@@ -388,9 +388,9 @@ async function submitCarryover() {
       <view class="co-edit__row"><text>小区</text><input v-model="community" maxlength="128" placeholder="选填" /></view>
       <view class="co-edit__row"><text>房屋地址 *</text><input v-model="address" maxlength="256" placeholder="完整地址" /></view>
       <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
-      <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" color="TOKEN_COLOR.text4" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
+      <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
     </view>
 
     <view class="co-edit__section jz-card">

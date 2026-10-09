@@ -25,7 +25,7 @@ function onTap(item: RoleTab) {
       @tap="onTap(item)"
     >
       <view class="jz-tabbar__icon-wrap">
-        <JzIcon :name="iconName(item.icon)" :size="42" :color="activeKey === item.key ? TOKEN_COLOR.primary : 'STATUS_COLOR.todo'" :stroke-width="activeKey === item.key ? 2.2 : 1.8" />
+        <JzIcon :name="iconName(item.icon)" :size="42" :color="activeKey === item.key ? TOKEN_COLOR.primary : STATUS_COLOR.todo" :stroke-width="activeKey === item.key ? 2.2 : 1.8" />
       </view>
       <text class="jz-tabbar__label">{{ item.label }}</text>
     </view>

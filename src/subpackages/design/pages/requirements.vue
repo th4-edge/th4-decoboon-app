@@ -101,7 +101,7 @@ function customerMeta(customer: Customer) {
 
     <!-- FIX-011：搜索框更紧凑 -->
     <view class="drp__search">
-      <JzIcon name="search" :size="26" color="TOKEN_COLOR.text3" />
+      <JzIcon name="search" :size="26" :color="TOKEN_COLOR.text3" />
       <input v-model="keyword" placeholder="搜索客户姓名、手机号或小区" />
     </view>
 
@@ -124,7 +124,7 @@ function customerMeta(customer: Customer) {
             <text v-if="highOf(customer.id) > 0" class="drp__tag drp__tag--high">高优先 {{ highOf(customer.id) }}</text>
           </view>
         </view>
-        <JzIcon name="chevron-right" :size="28" color="TOKEN_COLOR.text4" />
+        <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
       </view>
     </view>
     <view v-else class="drp__empty"><JzEmpty text="暂无可记录诉求的客户" sub="客户指定设计师后，会出现在这个列表" /></view>
