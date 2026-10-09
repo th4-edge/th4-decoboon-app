@@ -1,0 +1,95 @@
+{
+  "at": "2026-10-09T16:08:34.752Z",
+  "who": {
+    "name": "董夏鹏",
+    "role": "designer"
+  },
+  "target": {
+    "projectId": "233710289445453824",
+    "contractLineId": "233710002844467203",
+    "containerName": "石材--管仲新三层地板（1.4）"
+  },
+  "log": [
+    {
+      "step": "session",
+      "name": "董夏鹏",
+      "role": "designer"
+    },
+    {
+      "step": "diag",
+      "projects": 11,
+      "withItems": 1
+    },
+    {
+      "step": "diag-item",
+      "pid": "233710289445453824",
+      "name": "彭静（演示30） · 高新云谷1栋1101（主房）",
+      "items": 1,
+      "editable": 1,
+      "sample": [
+        {
+          "m": "石材--管仲新三层地板（1.4）",
+          "o": "none"
+        }
+      ]
+    },
+    {
+      "step": "target",
+      "item": "石材--管仲新三层地板（1.4）",
+      "project": "彭静（演示30） · 高新云谷1栋1101（主房）",
+      "contractLineId": "233710002844467203"
+    },
+    {
+      "step": "list",
+      "path": "subpackages/project/pages/selection",
+      "listButtons": [
+        "材料计划",
+        "一键交付财务下单"
+      ],
+      "firstItem": "石材--管仲新三层地板（1.4）"
+    },
+    {
+      "step": "item-open",
+      "path": "subpackages/project/pages/selection-item",
+      "status": [
+        " 待选材 未下单"
+      ],
+      "actions": [
+        "保存",
+        "保存并交付"
+      ]
+    },
+    {
+      "step": "after-save",
+      "status": [
+        " 已选材 未下单"
+      ],
+      "preview": "颜色/花色：暖灰石纹；规格/型号：750×1500；品牌/系列：马可波罗；工艺：哑光防滑；备注：DevTools 走查"
+    },
+    {
+      "step": "after-deliver",
+      "status": [
+        " 已选材 待财务下单"
+      ],
+      "hint": " 已交付财务下单，等待财务确认；如需调整可在下单前修改后重新保存。 "
+    },
+    {
+      "step": "list-again",
+      "path": "subpackages/project/pages/selection",
+      "listButtons": [
+        "材料计划",
+        "一键交付财务下单"
+      ],
+      "overview": [
+        "1",
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "step": "photo-upload",
+      "status": "BLOCKED_NATIVE_PICKER"
+    }
+  ]
+}

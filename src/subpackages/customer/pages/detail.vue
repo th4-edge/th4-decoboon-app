@@ -83,7 +83,8 @@ const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
 const isBoss = computed(() => session.role === 'boss')
-const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value)
+const isDesigner = computed(() => session.role === 'designer')
+const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value || isDesigner.value)
 const canSetDormant = computed(() => Boolean(customer.value && canManageDormant.value && !['sign', 'construction', 'done', 'lost', 'dormant'].includes(customer.value.stage)))
 const dormantReasonActions = [
   { label: '装修计划延期', value: 'PlanPostponed' },

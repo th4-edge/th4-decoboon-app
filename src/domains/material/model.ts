@@ -85,8 +85,8 @@ export interface GoodsReceipt {
   remark?: string
 }
 
-/** 主材选材状态：文本化确认，按版本保留历史。 */
-export type MaterialSelectionStatus = 'draft' | 'pendingConfirm' | 'confirmed'
+/** 主材选材状态（DEC-056）：现场代录，保存即已选材，进入采购前可修改。 */
+export type MaterialSelectionStatus = 'selected'
 
 /** 签约后主材选材确认记录。 */
 export interface MaterialSelection {
@@ -104,13 +104,10 @@ export interface MaterialSelection {
   projectId?: string
   projectName?: string
   designer?: import('@/domains/identity/model').Employee
-  confirmerName?: string
-  confirmedBy?: import('@/domains/identity/model').Employee
-  confirmedAt?: string
   createdAt?: string
 }
 
-export type MaterialOrderStatus = 'none' | 'ordering' | 'partiallyOrdered' | 'ordered' | 'partiallyArrived' | 'arrived'
+export type MaterialOrderStatus = 'none' | 'ready' | 'ordering' | 'partiallyOrdered' | 'ordered' | 'partiallyArrived' | 'arrived'
 
 /** 项目内主材分项：来源合同 Material 行，合并最新选材结果与材料计划下单状态。 */
 export interface MaterialSelectionItem {
@@ -139,9 +136,7 @@ export interface MaterialSelectionItem {
   statusName?: string
   selectionText?: string
   selectionJson?: string
-  confirmerName?: string
-  confirmedByName?: string
-  confirmedAt?: string
+  attachments?: string[]
   updatedAt?: string
   orderStatus: MaterialOrderStatus
   orderStatusName: string
@@ -166,8 +161,7 @@ export interface SelectionBoardItem {
   selectionStatusName: string
   totalItems?: number
   selectedItems?: number
-  confirmedItems?: number
-  pendingConfirmItems?: number
+  deliveredItems?: number
   notSelectedItems?: number
   orderedItems?: number
   progress?: number

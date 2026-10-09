@@ -208,9 +208,7 @@ export const materialApi = {
 }
 
 const SELECTION_STATUS: Record<string, import('./model').MaterialSelectionStatus> = {
-  Draft: 'draft',
-  PendingConfirm: 'pendingConfirm',
-  Confirmed: 'confirmed'
+  Selected: 'selected'
 }
 
 function normalizeSelection(raw: RawRecord): import('./model').MaterialSelection {
@@ -220,7 +218,7 @@ function normalizeSelection(raw: RawRecord): import('./model').MaterialSelection
   return {
     id: String(raw.id ?? raw.selectionId ?? ''),
     version: Number(raw.version ?? 1),
-    status: SELECTION_STATUS[enumValue(raw.status)] || 'draft',
+    status: SELECTION_STATUS[enumValue(raw.status)] || 'selected',
     title: raw.title,
     content: raw.content ?? '',
     attachments: raw.attachments || [],
@@ -232,16 +230,13 @@ function normalizeSelection(raw: RawRecord): import('./model').MaterialSelection
     projectId: raw.projectId ? String(raw.projectId) : project.projectId ? String(project.projectId) : undefined,
     projectName: project.name ?? '',
     designer: raw.designer ? normalizeEmployee(raw.designer) : undefined,
-    confirmerName: raw.confirmerName,
-    confirmedBy: raw.confirmedBy ? normalizeEmployee(raw.confirmedBy) : undefined,
-    confirmedAt: dateTimeValue(raw.confirmedAt),
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime)
   }
 }
 
 /**
- * 签约后主材选材确认。
- * 文本化保存、按版本保留历史、不改报价合同成本，采购前是否强制以已确认选材为准由装企流程另行配置。
+ * 签约后主材选材（DEC-056 现场代录）。
+ * 保存即"已选材"；deliver=true 时交付财务下单（材料计划推进为可下单）。不改报价合同成本。
  */
 export const materialSelectionApi = {
   versions: async (propertyId: string, projectId?: string) =>
@@ -257,12 +252,10 @@ export const materialSelectionApi = {
     content: string
     attachments?: string[]
     remark?: string
-    status?: 'draft' | 'pendingConfirm'
+    deliver?: boolean
     contractLineId?: string
     selectionJson?: string
-  }) => post<RawRecord>('material/selection/save', input).then(normalizeSelection),
-  confirm: (selectionId: string, confirmerName: string, confirmedAt?: string) =>
-    post<RawRecord>('material/selection/confirm', { selectionId, confirmerName, confirmedAt }).then(normalizeSelection)
+  }) => post<RawRecord>('material/selection/save', input).then(normalizeSelection)
 }
 
 function normalizeSelectionItem(raw: RawRecord): import('./model').MaterialSelectionItem {
@@ -293,9 +286,7 @@ function normalizeSelectionItem(raw: RawRecord): import('./model').MaterialSelec
     statusName: raw.statusName,
     selectionText: raw.selectionText,
     selectionJson: raw.selectionJson,
-    confirmerName: raw.confirmerName,
-    confirmedByName: raw.confirmedByName,
-    confirmedAt: dateTimeValue(raw.confirmedAt),
+    attachments: raw.attachments || [],
     updatedAt: dateTimeValue(raw.updatedAt),
     orderStatus,
     orderStatusName: raw.orderStatusName || '未下单',
@@ -330,8 +321,7 @@ function normalizeBoardItem(raw: RawRecord): import('./model').SelectionBoardIte
     selectionStatusName: raw.selectionStatusName || '未创建',
     totalItems: raw.totalItems === undefined || raw.totalItems === null ? undefined : Number(raw.totalItems),
     selectedItems: raw.selectedItems === undefined || raw.selectedItems === null ? undefined : Number(raw.selectedItems),
-    confirmedItems: raw.confirmedItems === undefined || raw.confirmedItems === null ? undefined : Number(raw.confirmedItems),
-    pendingConfirmItems: raw.pendingConfirmItems === undefined || raw.pendingConfirmItems === null ? undefined : Number(raw.pendingConfirmItems),
+    deliveredItems: raw.deliveredItems === undefined || raw.deliveredItems === null ? undefined : Number(raw.deliveredItems),
     notSelectedItems: raw.notSelectedItems === undefined || raw.notSelectedItems === null ? undefined : Number(raw.notSelectedItems),
     orderedItems: raw.orderedItems === undefined || raw.orderedItems === null ? undefined : Number(raw.orderedItems),
     progress: raw.progress === undefined || raw.progress === null ? undefined : Number(raw.progress),
@@ -341,7 +331,7 @@ function normalizeBoardItem(raw: RawRecord): import('./model').SelectionBoardIte
   }
 }
 
-/** 主材选材跟进：数据范围内尚未客户确认选材的在跑项目（App 优先，Web 版待补）。 */
+/** 主材选材跟进：数据范围内尚未完成逐项选材的在跑项目（App 优先，Web 版待补）。 */
 export const materialSelectionBoardApi = {
   list: async () =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/selection/board', {}))

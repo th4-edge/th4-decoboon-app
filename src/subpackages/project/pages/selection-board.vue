@@ -9,7 +9,7 @@ import { PROJECT_STATUS_META } from '@/domains/project/meta'
 import type { Project } from '@/domains/project/model'
 import { dateTimeValue } from '@/core/format'
 import { toastError } from '@/composables/toast'
-import { STATUS_COLOR } from '@/styles/tokens'
+import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -17,7 +17,7 @@ import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
-type WorkbenchFilter = 'all' | 'notSelected' | 'pendingConfirm' | 'ordered' | 'confirmed' | 'attention'
+type WorkbenchFilter = 'all' | 'notSelected' | 'selected' | 'ordered' | 'attention'
 type RiskLevel = 'normal' | 'attention' | 'high'
 
 interface RiskMeta {
@@ -43,14 +43,12 @@ interface WorkbenchMetric {
 }
 
 /**
- * 选材状态：已确认用对勾图标，其余（未发起/草稿/待确认）统一用等待时钟图标。
+ * 选材状态（DEC-056）：已选材用对勾图标，未发起用等待时钟图标。
  * 图标走 JzIcon 线性图标，不使用 emoji 字符。
  */
 const SELECTION_META: Record<string, { label: string; color: string; icon: IconName }> = {
   none: { label: '未发起', color: STATUS_COLOR.todo, icon: 'clock' },
-  draft: { label: '选材草稿', color: STATUS_COLOR.muted, icon: 'clock' },
-  pendingConfirm: { label: '待客户确认', color: STATUS_COLOR.pending, icon: 'clock' },
-  confirmed: { label: '已确认', color: STATUS_COLOR.done, icon: 'check-circle' }
+  selected: { label: '已选材', color: STATUS_COLOR.done, icon: 'check-circle' }
 }
 
 const items = ref<SelectionBoardItem[]>([])
@@ -87,35 +85,32 @@ const summary = computed(() => {
   const sum = (value: (item: SelectionBoardItem) => number | undefined) =>
     cards.value.reduce((total, card) => total + Number(value(card.item) || 0), 0)
   const total = sum((item) => item.totalItems)
-  const confirmed = sum((item) => item.confirmedItems)
   const selected = sum((item) => item.selectedItems)
-  const pendingConfirm = sum((item) => item.pendingConfirmItems)
+  const delivered = sum((item) => item.deliveredItems)
   const notSelected = sum((item) => item.notSelectedItems)
   const ordered = sum((item) => item.orderedItems)
   return {
     total,
-    confirmed,
     selected,
-    pendingConfirm,
+    delivered,
     notSelected,
     ordered,
     attention: cards.value.filter((card) => card.risk.level !== 'normal').length,
-    progress: total ? Math.round((confirmed / total) * 100) : 0
+    progress: total ? Math.round((selected / total) * 100) : 0
   }
 })
 
 const metrics = computed<WorkbenchMetric[]>(() => [
-  { key: 'confirmed', label: '已确认', value: summary.value.confirmed, color: STATUS_COLOR.done, tone: '#EAF8F0' },
-  { key: 'pendingConfirm', label: '待确认', value: summary.value.pendingConfirm, color: STATUS_COLOR.pending, tone: '#FFF4E8' },
+  { key: 'selected', label: '已选材', value: summary.value.selected, color: STATUS_COLOR.done, tone: '#EAF8F0' },
   { key: 'notSelected', label: '待选材', value: summary.value.notSelected, color: STATUS_COLOR.todo, tone: '#F1F4F7' },
+  { key: 'delivered', label: '已交付', value: summary.value.delivered, color: STATUS_COLOR.pending, tone: '#FFF4E8' },
   { key: 'ordered', label: '已下单', value: summary.value.ordered, color: STATUS_COLOR.progress, tone: '#E8F7F5' }
 ])
 
 const filterOptions = computed(() => [
   { key: 'all' as WorkbenchFilter, label: `全部 ${cards.value.length}` },
   { key: 'notSelected' as WorkbenchFilter, label: `待选材 ${summary.value.notSelected}` },
-  { key: 'pendingConfirm' as WorkbenchFilter, label: `待确认 ${summary.value.pendingConfirm}` },
-  { key: 'confirmed' as WorkbenchFilter, label: `已确认 ${summary.value.confirmed}` },
+  { key: 'selected' as WorkbenchFilter, label: `已选材 ${summary.value.selected}` },
   { key: 'ordered' as WorkbenchFilter, label: `已下单 ${summary.value.ordered}` },
   { key: 'attention' as WorkbenchFilter, label: `需关注 ${summary.value.attention}` }
 ])
@@ -124,10 +119,10 @@ const filteredCards = computed(() => {
   if (activeFilter.value === 'all') return cards.value
   if (activeFilter.value === 'attention') return cards.value.filter((card) => card.risk.level !== 'normal')
   if (activeFilter.value === 'notSelected') return cards.value.filter((card) => Number(card.item.notSelectedItems || 0) > 0)
-  if (activeFilter.value === 'pendingConfirm') return cards.value.filter((card) => Number(card.item.pendingConfirmItems || 0) > 0)
+  if (activeFilter.value === 'selected') return cards.value.filter((card) => Number(card.item.selectedItems || 0) > 0)
   if (activeFilter.value === 'ordered') return cards.value.filter((card) => Number(card.item.orderedItems || 0) > 0)
   return cards.value.filter((card) => Number(card.item.totalItems || 0) > 0
-    && Number(card.item.confirmedItems || 0) >= Number(card.item.totalItems || 0))
+    && Number(card.item.selectedItems || 0) >= Number(card.item.totalItems || 0))
 })
 
 const emptyText = computed(() => {
@@ -143,8 +138,8 @@ function toCard(item: SelectionBoardItem, project?: Project): WorkbenchCard {
 
 function riskOf(item: SelectionBoardItem, project: Project | undefined, staleDays?: number): RiskMeta {
   if (Number(item.totalItems || 0) > 0
-      && Number(item.confirmedItems || 0) >= Number(item.totalItems || 0)) {
-    return { level: 'normal', label: '已完成', color: STATUS_COLOR.done, reason: '项目全部主材分项已客户确认' }
+      && Number(item.selectedItems || 0) >= Number(item.totalItems || 0)) {
+    return { level: 'normal', label: '已完成', color: STATUS_COLOR.done, reason: '项目全部主材分项已完成选材' }
   }
   if (project?.status === 'suspended') {
     return { level: 'high', label: '项目停工', color: STATUS_COLOR.blocked, reason: '项目已停工，选材推进需同步确认复工安排' }
@@ -154,12 +149,6 @@ function riskOf(item: SelectionBoardItem, project: Project | undefined, staleDay
   }
   if (Number(item.selectedItems || 0) === 0) {
     return { level: 'high', label: '未发起', color: STATUS_COLOR.blocked, reason: `尚有 ${item.notSelectedItems || item.totalItems || 0} 项主材未开始选材` }
-  }
-  if (Number(item.pendingConfirmItems || 0) > 0) {
-    if ((staleDays ?? 0) >= 3) {
-      return { level: 'high', label: '待确认', color: STATUS_COLOR.blocked, reason: `${item.pendingConfirmItems} 项待客户确认，已滞留 ${staleDays} 天` }
-    }
-    return { level: 'attention', label: '待确认', color: STATUS_COLOR.pending, reason: `${item.pendingConfirmItems} 项等待客户现场确认` }
   }
   if ((staleDays ?? 0) >= 3) {
     return { level: 'attention', label: '推进中', color: STATUS_COLOR.pending, reason: `选材已 ${staleDays} 天无更新` }
@@ -189,7 +178,7 @@ function displayAddress(card: WorkbenchCard) {
 function updatedText(card: WorkbenchCard) {
   const timestamp = timestampOf(card.item.updatedAt)
   if (timestamp !== null) return formatDateTime(timestamp)
-  return dateTimeValue(card.item.updatedAt) || (card.item.selectionStatus === 'confirmed' ? '已完成确认' : '暂无更新时间')
+  return dateTimeValue(card.item.updatedAt) || (card.item.selectionStatus === 'selected' ? '已完成选材' : '暂无更新时间')
 }
 
 function formatDateTime(timestamp: number) {
@@ -239,13 +228,13 @@ function openProject(card: WorkbenchCard) {
         <text class="sw__live">实时</text>
       </view>
       <text class="sw__sub">
-        按合同主材分项统计客户确认进度；下单状态来自材料计划，不在选材页手工修改。
+        按合同主材分项统计逐项选材与交付财务进度；下单状态来自材料计划，不在选材页手工修改。
       </text>
 
       <template v-if="summary.total">
         <view class="sw__progress-head">
-          <text>主材客户确认进度</text>
-          <text class="sw__progress-value">{{ summary.confirmed }}/{{ summary.total }} 项 · {{ summary.progress }}%</text>
+          <text>主材选材进度</text>
+          <text class="sw__progress-value">{{ summary.selected }}/{{ summary.total }} 项 · {{ summary.progress }}%</text>
         </view>
         <JzProgress :percent="summary.progress" :height="12" />
       </template>
@@ -322,12 +311,12 @@ function openProject(card: WorkbenchCard) {
 
         <view class="sw__item-progress">
           <view class="sw__item-progress-head">
-            <text>{{ card.item.confirmedItems || 0 }}/{{ card.item.totalItems || 0 }} 项已客户确认</text>
+            <text>{{ card.item.selectedItems || 0 }}/{{ card.item.totalItems || 0 }} 项已选材</text>
             <text>{{ card.item.orderedItems || 0 }} 项已下单</text>
           </view>
           <JzProgress :percent="card.item.progress || 0" :height="10" color="#16A394" />
           <view class="sw__item-numbers">
-            <text>待确认 {{ card.item.pendingConfirmItems || 0 }}</text>
+            <text>已交付 {{ card.item.deliveredItems || 0 }}</text>
             <text>待选材 {{ card.item.notSelectedItems || 0 }}</text>
           </view>
         </view>
@@ -353,7 +342,7 @@ function openProject(card: WorkbenchCard) {
         <view class="sw__next">
           <view class="jz-grow">
             <text class="sw__next-label">下一步</text>
-            <text class="sw__next-text">{{ card.item.nextAction || '发起主材选材并提交客户确认' }}</text>
+            <text class="sw__next-text">{{ card.item.nextAction || '开始逐项主材选材' }}</text>
           </view>
           <JzIcon name="chevron-right" :size="26" :color="STATUS_COLOR.todo" />
         </view>
@@ -361,9 +350,13 @@ function openProject(card: WorkbenchCard) {
         <view class="sw__foot">
           <text class="sw__updated">最近更新：{{ updatedText(card) }}</text>
           <view class="sw__actions">
-            <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap.stop="openProject(card)">项目</button>
+            <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap.stop="openProject(card)">
+              <JzIcon name="folder" :size="26" :color="TOKEN_COLOR.primary" />
+              <text>项目</text>
+            </button>
             <button class="jz-btn jz-btn--primary jz-btn--sm" @tap.stop="open(card.item)">
-              {{ Number(card.item.progress || 0) >= 100 ? '查看' : '去处理' }}
+              <JzIcon :name="Number(card.item.progress || 0) >= 100 ? 'eye' : 'edit'" :size="26" color="#FFFFFF" />
+              <text>{{ Number(card.item.progress || 0) >= 100 ? '查看' : '去处理' }}</text>
             </button>
           </view>
         </view>
@@ -426,8 +419,8 @@ function openProject(card: WorkbenchCard) {
 .sw__next-text { display: block; margin-top: 4rpx; color: $jzb-primary-deep; font-size: $jzb-font-sm; font-weight: 650; }
 .sw__foot { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
 .sw__updated { min-width: 0; overflow: hidden; color: $jzb-text-3; font-size: 20rpx; white-space: nowrap; text-overflow: ellipsis; }
-.sw__actions { display: flex; gap: 10rpx; flex-shrink: 0; }
-.sw__actions .jz-btn { min-width: 116rpx; margin: 0; }
+.sw__actions { display: flex; gap: 12rpx; flex-shrink: 0; }
+.sw__actions .jz-btn { min-width: 132rpx; margin: 0; }
 @media (min-width: 768px) {
   .sw { max-width: 900px; margin: 0 auto; }
   .sw__metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }

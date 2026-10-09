@@ -10,6 +10,7 @@ export type PrivateFileScope =
   | 'Talk'
   | 'Measure'
   | 'Task'
+  | 'MaterialSelection'
   | 'GoodsReceipt'
   | 'StockMovement'
   | 'Catalog'

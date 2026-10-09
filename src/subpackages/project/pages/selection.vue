@@ -3,10 +3,10 @@ import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
-import { materialSelectionItemApi } from '@/domains/material/api'
+import { materialSelectionApi, materialSelectionItemApi } from '@/domains/material/api'
 import type { MaterialOrderStatus, MaterialSelectionItem, MaterialSelectionStatus } from '@/domains/material/model'
-import { dateTimeValue, selectionFields, type SelectionField } from '@/core/format'
-import { toastError } from '@/composables/toast'
+import { dateTimeValue, selectionFields } from '@/core/format'
+import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -15,33 +15,33 @@ import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import PageState from '@/components/PageState/PageState.vue'
 
-type ItemFilter = 'all' | 'none' | 'draft' | 'pendingConfirm' | 'confirmed' | 'ordered'
+type ItemFilter = 'all' | 'none' | 'selected' | 'delivered' | 'ordered'
 
 /**
- * 选材状态：已确认用对勾图标，其余（待选材/草稿/待确认）统一用等待时钟图标。
- * 图标走 JzIcon 线性图标，不使用 emoji 字符。
+ * 选材状态（DEC-056）：待选材 / 已选材。已选材用对勾图标，待选材用等待时钟图标。
  */
 const STATUS_META: Record<string, { label: string; color: string; icon: IconName }> = {
   none: { label: '待选材', color: STATUS_COLOR.todo, icon: 'clock' },
-  draft: { label: '选材草稿', color: STATUS_COLOR.muted, icon: 'clock' },
-  pendingConfirm: { label: '待客户确认', color: STATUS_COLOR.pending, icon: 'clock' },
-  confirmed: { label: '已确认', color: STATUS_COLOR.done, icon: 'check-circle' }
+  selected: { label: '已选材', color: STATUS_COLOR.done, icon: 'check-circle' }
 }
 const ORDER_META: Record<MaterialOrderStatus, { label: string; color: string }> = {
-  none: { label: '未下单', color: STATUS_COLOR.todo },
+  none: { label: '未交付', color: STATUS_COLOR.todo },
+  ready: { label: '待财务下单', color: STATUS_COLOR.pending },
   ordering: { label: '已请购', color: STATUS_COLOR.pending },
   partiallyOrdered: { label: '部分下单', color: STATUS_COLOR.pending },
   ordered: { label: '已下单', color: STATUS_COLOR.progress },
   partiallyArrived: { label: '部分到场', color: STATUS_COLOR.pending },
   arrived: { label: '已到场', color: STATUS_COLOR.done }
 }
+const PURCHASING: MaterialOrderStatus[] = ['ordering', 'partiallyOrdered', 'ordered', 'partiallyArrived', 'arrived']
 
 const projectId = ref('')
 const propertyId = ref('')
 const contractId = ref('')
 const items = ref<MaterialSelectionItem[]>([])
 const activeFilter = ref<ItemFilter>('all')
-const loading = ref(true)
+const loadingState = ref(true)
+const delivering = ref(false)
 const loadError = ref('')
 
 onLoad((query) => {
@@ -54,7 +54,7 @@ onShow(() => { if (projectId.value) load() })
 onPullDownRefresh(async () => { await load(); uni.stopPullDownRefresh() })
 
 async function load() {
-  loading.value = true
+  loadingState.value = true
   loadError.value = ''
   try {
     items.value = await materialSelectionItemApi.page(projectId.value)
@@ -62,28 +62,25 @@ async function load() {
     loadError.value = '主材清单暂不可确认，请下拉重试'
     toastError(error)
   } finally {
-    loading.value = false
+    loadingState.value = false
   }
 }
 
 const summary = computed(() => {
   const total = items.value.length
-  const count = (status: MaterialSelectionStatus | undefined) =>
-    items.value.filter((item) => item.status === status).length
-  const confirmed = count('confirmed')
   const selected = items.value.filter((item) => !!item.status).length
-  // 已进入采购（含已请购/部分下单/已下单/到场）——与后端 selectionLocked 同口径
-  const ordered = items.value.filter((item) => item.orderStatus !== 'none').length
+  const delivered = items.value.filter((item) => item.orderStatus !== 'none').length
+  const ordered = items.value.filter((item) => PURCHASING.includes(item.orderStatus)).length
+  const deliverable = items.value.filter((item) => item.status && item.orderStatus === 'none').length
   return {
     total,
     selected,
-    confirmed,
-    draft: count('draft'),
-    pendingConfirm: count('pendingConfirm'),
-    none: count(undefined),
+    delivered,
     ordered,
-    confirmProgress: total ? Math.round((confirmed / total) * 100) : 0,
-    orderProgress: confirmed ? Math.round((ordered / confirmed) * 100) : 0
+    none: total - selected,
+    deliverable,
+    selectedProgress: total ? Math.round((selected / total) * 100) : 0,
+    deliveredProgress: total ? Math.round((delivered / total) * 100) : 0
   }
 })
 
@@ -91,29 +88,21 @@ const project = computed(() => items.value[0])
 const filterOptions = computed(() => [
   { key: 'all' as ItemFilter, label: `全部 ${summary.value.total}` },
   { key: 'none' as ItemFilter, label: `待选材 ${summary.value.none}` },
-  { key: 'draft' as ItemFilter, label: `草稿 ${summary.value.draft}` },
-  { key: 'pendingConfirm' as ItemFilter, label: `待确认 ${summary.value.pendingConfirm}` },
-  { key: 'confirmed' as ItemFilter, label: `已确认 ${summary.value.confirmed}` },
+  { key: 'selected' as ItemFilter, label: `已选材 ${summary.value.selected}` },
+  { key: 'delivered' as ItemFilter, label: `已交付 ${summary.value.delivered}` },
   { key: 'ordered' as ItemFilter, label: `已进入采购 ${summary.value.ordered}` }
 ])
 
 const filteredItems = computed(() => {
   if (activeFilter.value === 'all') return items.value
   if (activeFilter.value === 'none') return items.value.filter((item) => !item.status)
-  if (activeFilter.value === 'ordered') {
-    return items.value.filter((item) => item.orderStatus !== 'none')
-  }
-  return items.value.filter((item) => item.status === activeFilter.value)
+  if (activeFilter.value === 'selected') return items.value.filter((item) => !!item.status)
+  if (activeFilter.value === 'delivered') return items.value.filter((item) => item.orderStatus !== 'none')
+  return items.value.filter((item) => PURCHASING.includes(item.orderStatus))
 })
 
-interface SelectionEntry {
-  item: MaterialSelectionItem
-  /** 选材结果结构化字段：优先 selectionJson，其次可读文本（历史坑：JSON 曾原样透出） */
-  fields: SelectionField[]
-}
-
 const groups = computed(() => {
-  const map = new Map<string, SelectionEntry[]>()
+  const map = new Map<string, Array<{ item: MaterialSelectionItem; fields: ReturnType<typeof selectionFields> }>>()
   for (const item of filteredItems.value) {
     const key = item.spaceName || '未分空间'
     const list = map.get(key) || []
@@ -146,8 +135,50 @@ function openItem(item: MaterialSelectionItem) {
 }
 
 function continueNext() {
-  const target = items.value.find((item) => item.status !== 'confirmed') || items.value[0]
+  const target = items.value.find((item) => !item.status)
+    || items.value.find((item) => item.orderStatus === 'none')
+    || items.value[0]
   if (target) openItem(target)
+}
+
+/** 列表页一键交付：把已选材但未交付的分项批量推进为待财务下单。 */
+async function deliverAll() {
+  if (delivering.value) return
+  const targets = items.value.filter((item) => item.status && item.orderStatus === 'none')
+  if (!targets.length) { toast('没有可交付的已选材分项'); return }
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '交付财务下单',
+      content: `将把 ${targets.length} 项已选材交付财务下单，交付后由财务选择供应商、价格与数量。`,
+      confirmText: '确认交付',
+      success: (res) => resolve(!!res.confirm),
+      fail: () => resolve(false)
+    })
+  })
+  if (!confirmed) return
+  delivering.value = true
+  loading('交付中')
+  try {
+    for (const item of targets) {
+      await materialSelectionApi.save({
+        propertyId: item.propertyId,
+        projectId: item.projectId,
+        contractLineId: item.itemId,
+        title: item.materialName,
+        content: item.selectionText || '',
+        selectionJson: item.selectionJson,
+        attachments: item.attachments || [],
+        deliver: true
+      })
+    }
+    toast(`已交付 ${targets.length} 项`)
+    await load()
+  } catch (error) {
+    toastError(error)
+  } finally {
+    delivering.value = false
+    hideLoading()
+  }
 }
 
 function openMaterialPlan() {
@@ -167,7 +198,6 @@ function updatedTime(item: MaterialSelectionItem) {
         <view class="jz-grow">
           <text class="msd__project-name">{{ project?.projectName || '项目主材选材' }}</text>
           <view class="msd__project-sub">
-            <text>{{ project?.customerName || '客户待完善' }}</text>
             <view class="msd__person"><JzEmployeeAvatar :name="project?.designerName || '设计师'" :role="'designer'" :size="40" /><text>{{ project?.designerName || '设计师待指派' }}</text></view>
           </view>
         </view>
@@ -178,7 +208,7 @@ function updatedTime(item: MaterialSelectionItem) {
       </view>
     </view>
 
-    <PageState v-if="loading && !items.length" state="loading" :rows="5" />
+    <PageState v-if="loadingState && !items.length" state="loading" :rows="5" />
     <PageState v-else-if="loadError && !items.length" state="error" :title="loadError" @retry="load" />
     <JzEmpty
       v-else-if="!items.length"
@@ -191,32 +221,45 @@ function updatedTime(item: MaterialSelectionItem) {
         <view class="msd__progress-top">
           <view>
             <text class="msd__progress-title">项目选材进度</text>
-            <text class="msd__progress-sub">客户确认与材料下单分别统计</text>
+            <text class="msd__progress-sub">逐项选材与交付财务分别统计</text>
           </view>
-          <text class="msd__progress-value">{{ summary.confirmed }}/{{ summary.total }}</text>
+          <text class="msd__progress-value">{{ summary.selected }}/{{ summary.total }}</text>
         </view>
 
         <view class="msd__bar-row">
-          <text>客户确认</text>
-          <JzProgress :percent="summary.confirmProgress" :height="12" />
-          <text class="msd__bar-value">{{ summary.confirmProgress }}%</text>
+          <text>已选材</text>
+          <JzProgress :percent="summary.selectedProgress" :height="12" />
+          <text class="msd__bar-value">{{ summary.selectedProgress }}%</text>
         </view>
         <view class="msd__bar-row">
-          <text>材料下单</text>
-          <JzProgress :percent="summary.orderProgress" :height="12" color="#168A96" />
-          <text class="msd__bar-value">{{ summary.ordered }} 项</text>
+          <text>已交付</text>
+          <JzProgress :percent="summary.deliveredProgress" :height="12" :color="STATUS_COLOR.progress" />
+          <text class="msd__bar-value">{{ summary.delivered }} 项</text>
         </view>
 
         <view class="msd__overview">
-          <view><text class="msd__overview-value">{{ summary.selected }}</text><text>已选择</text></view>
-          <view><text class="msd__overview-value" style="color:#FF7D00">{{ summary.pendingConfirm }}</text><text>待确认</text></view>
-          <view><text class="msd__overview-value" style="color:#86909C">{{ summary.none }}</text><text>待选材</text></view>
-          <view><text class="msd__overview-value" style="color:#00B42A">{{ summary.ordered }}</text><text>已下单</text></view>
+          <view><text class="msd__overview-value">{{ summary.selected }}</text><text>已选材</text></view>
+          <view><text class="msd__overview-value msd__ov--pending">{{ summary.deliverable }}</text><text>待交付</text></view>
+          <view><text class="msd__overview-value msd__ov--todo">{{ summary.none }}</text><text>待选材</text></view>
+          <view><text class="msd__overview-value msd__ov--done">{{ summary.ordered }}</text><text>已进入采购</text></view>
         </view>
 
-        <view class="msd__actions">
-          <button class="jz-btn jz-btn--ghost" @tap="openMaterialPlan">材料计划</button>
-          <button class="jz-btn jz-btn--primary" @tap="continueNext">继续选下一项</button>
+        <view class="msd__continue" @tap="continueNext">
+          <text>继续选下一项</text>
+          <JzIcon name="arrow-right" :size="26" :color="TOKEN_COLOR.primary" />
+        </view>
+      </view>
+
+      <view class="jz-actionbar">
+        <view class="jz-actionbar__inner">
+          <button class="jz-btn jz-btn--ghost" @tap="openMaterialPlan">
+            <JzIcon name="package" :size="30" :color="TOKEN_COLOR.primary" />
+            <text>材料计划</text>
+          </button>
+          <button class="jz-btn jz-btn--primary jz-grow" :disabled="delivering || !summary.deliverable" @tap="deliverAll">
+            <JzIcon name="send" :size="30" color="#FFFFFF" />
+            <text>{{ summary.deliverable ? `交付财务下单（${summary.deliverable}）` : '交付财务下单' }}</text>
+          </button>
         </view>
       </view>
 
@@ -262,40 +305,35 @@ function updatedTime(item: MaterialSelectionItem) {
                   </view>
                 </view>
                 <view class="msd__item-status">
-                  <JzTag
-                    :text="entry.item.statusName || statusMeta(entry.item).label"
-                    :color="statusMeta(entry.item).color"
-                    :icon="statusMeta(entry.item).icon"
-                  />
-                  <JzTag :text="entry.item.orderStatusName || orderMeta(entry.item).label" :color="orderMeta(entry.item).color" />
+                  <JzTag :text="entry.item.statusName || statusMeta(entry.item).label" :color="statusMeta(entry.item).color" />
+                  <JzTag v-if="entry.item.orderStatus !== 'none'" :text="entry.item.orderStatusName || orderMeta(entry.item).label" :color="orderMeta(entry.item).color" />
                 </view>
               </view>
 
-              <!-- 选材结果：结构化字段逐行展示，绝不把 selectionJson 原样渲染成 JSON -->
               <view class="msd__result" :class="{ 'msd__result--empty': !entry.fields.length }">
                 <view class="msd__result-head">
-                  <JzIcon
-                    name="check-circle"
-                    :size="22"
-                    :color="entry.fields.length ? STATUS_COLOR.done : TOKEN_COLOR.text4"
-                  />
-                  <text class="msd__result-label">选材结果</text>
+                  <JzIcon :name="statusMeta(entry.item).icon" :size="28" :color="statusMeta(entry.item).color" :stroke-width="2.2" />
+                  <text class="msd__result-label">{{ entry.fields.length ? '选材结果' : '尚未选材' }}</text>
                   <text v-if="entry.item.version" class="msd__result-version">v{{ entry.item.version }}</text>
                 </view>
                 <view v-if="entry.fields.length" class="msd__result-rows">
                   <view v-for="field in entry.fields" :key="field.key" class="msd__result-row">
-                    <text class="msd__result-key">{{ field.label || '选材' }}</text>
+                    <text class="msd__result-key">{{ field.label }}</text>
                     <text class="msd__result-val">{{ field.value }}</text>
                   </view>
                 </view>
-                <text v-else class="msd__result-empty">尚未选材，点击录入颜色、规格、型号等结果</text>
+                <text v-else class="msd__result-empty">点击进入，与客户现场确认颜色、规格、型号后填写</text>
               </view>
 
               <view class="msd__item-foot">
                 <text class="msd__foot-time">{{ updatedTime(entry.item) }}</text>
                 <view class="msd__next">
-                  <text>{{ entry.item.nextAction || '开始选材' }}</text>
-                  <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" />
+                  <view v-if="entry.item.attachments && entry.item.attachments.length" class="msd__photos">
+                    <JzIcon name="camera" :size="26" :color="STATUS_COLOR.todo" />
+                    <text>{{ entry.item.attachments.length }}</text>
+                  </view>
+                  <text>{{ entry.item.nextAction || '前往填写' }}</text>
+                  <JzIcon name="chevron-right" :size="26" :color="STATUS_COLOR.todo" />
                 </view>
               </view>
             </view>
@@ -307,12 +345,12 @@ function updatedTime(item: MaterialSelectionItem) {
 </template>
 
 <style scoped lang="scss">
-.msd { padding: $jzb-space-4 $jzb-page-pad 44rpx; }
+.msd { padding: $jzb-space-4 $jzb-page-pad 220rpx; }
 .msd__project, .msd__progress { padding: 26rpx 24rpx; margin-bottom: $jzb-page-gap; }
 .msd__project-head { display: flex; align-items: flex-start; gap: 16rpx; }
 .msd__project-name { display: block; color: $jzb-text-1; font-size: 36rpx; font-weight: 750; }
 .msd__project-sub { display: block; margin-top: 8rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
-.msd__person { display: inline-flex; align-items: center; gap: 6rpx; margin-left: 10rpx; }
+.msd__person { display: inline-flex; align-items: center; gap: 6rpx; }
 .msd__contract { flex-shrink: 0; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .msd__project-meta { margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .msd__progress-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
@@ -324,8 +362,10 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8rpx; margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; text-align: center; }
 .msd__overview view { min-width: 0; color: $jzb-text-3; font-size: 20rpx; }
 .msd__overview-value { display: block; margin-bottom: 4rpx; color: $jzb-text-1; font-size: 32rpx; font-weight: 750; font-variant-numeric: tabular-nums; }
-.msd__actions { display: flex; gap: 12rpx; margin-top: 22rpx; }
-.msd__actions button { flex: 1; margin: 0; }
+.msd__continue { display: flex; align-items: center; justify-content: flex-end; gap: 4rpx; margin-top: 18rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 600; }
+.msd__ov--pending { color: $jzb-status-pending; }
+.msd__ov--todo { color: $jzb-status-todo; }
+.msd__ov--done { color: $jzb-status-done; }
 .msd__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 16rpx 20rpx; border-radius: $jzb-radius-sm; color: #B42318; background: $jzb-danger-soft; font-size: $jzb-font-sm; }
 .msd__inline-error text:nth-child(2) { flex: 1; }
 .msd__filters { margin-bottom: 18rpx; white-space: nowrap; }
@@ -346,8 +386,6 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__req-label { flex-shrink: 0; color: $jzb-text-4; font-size: 20rpx; }
 .msd__req-value { flex: 1; min-width: 0; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.5; word-break: break-word; }
 .msd__item-status { display: flex; flex-direction: column; align-items: flex-end; gap: 8rpx; flex-shrink: 0; }
-
-/* 选材结果：结构化字段 + 品牌色左条，作为卡片的信息主体 */
 .msd__result { margin-top: 16rpx; padding: 16rpx 18rpx; border-radius: $jzb-radius-sm; background: $jzb-primary-lightest; border-left: 6rpx solid $jzb-primary; }
 .msd__result--empty { background: $jzb-bg-hover; border-left-color: $jzb-text-4; }
 .msd__result-head { display: flex; align-items: center; gap: 8rpx; }
@@ -359,9 +397,9 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__result-key { width: 140rpx; flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 .msd__result-val { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 600; line-height: 1.6; word-break: break-word; }
 .msd__result-empty { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
-
 .msd__item-foot { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 14rpx; padding-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
 .msd__foot-time { color: $jzb-text-3; font-size: 20rpx; font-variant-numeric: tabular-nums; }
 .msd__next { display: flex; align-items: center; gap: 4rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
+.msd__photos { display: inline-flex; align-items: center; gap: 2rpx; margin-right: 6rpx; color: $jzb-text-3; }
 @media (min-width: 768px) { .msd { max-width: 900px; margin: 0 auto; } }
 </style>

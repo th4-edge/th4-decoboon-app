@@ -24,11 +24,11 @@ function factValue(value: string, type: string) {
   return type === 'money' ? `¥${value}` : value
 }
 
-/** 最新一版选材（后端按版本倒序下发，第一条即最新）。 */
+/** 最新一版选材（后端按版本倒序下发，第一条即最新）；业主端只读留档。 */
 const selectionStatus = computed(() =>
   items.value.find((item) => item.key.startsWith('selection-'))?.status || ''
 )
-const selectionConfirmed = computed(() => ['Confirmed', 'confirmed'].includes(selectionStatus.value))
+const selectionConfirmed = computed(() => ['Selected', 'selected'].includes(selectionStatus.value))
 /** 选材状态：已确认用对勾图标，未确认统一用等待时钟图标（JzIcon 线性图标，非 emoji）。 */
 const selectionStatusIcon = computed<IconName>(() => (selectionConfirmed.value ? 'check-circle' : 'clock'))
 const selectionStatusColor = computed(() => (selectionConfirmed.value ? STATUS_COLOR.done : STATUS_COLOR.pending))
@@ -76,7 +76,7 @@ async function refresh() {
       <view v-if="pending" class="oselect__empty jz-card">
         <JzIcon name="package" :size="72" :color="TOKEN_COLOR.text4" />
         <text class="oselect__empty-title">还没有选材记录</text>
-        <text class="oselect__empty-sub">签约后设计师会与您确认主材品牌、规格和型号，确认结果会在这里留档。</text>
+        <text class="oselect__empty-sub">签约后设计师会与您现场沟通主材品牌、规格和型号，选材结果会在这里留档。</text>
       </view>
 
       <view v-else class="oselect__block">
