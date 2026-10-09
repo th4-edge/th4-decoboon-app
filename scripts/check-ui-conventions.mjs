@@ -7,6 +7,8 @@
  * 3. 禁止页面直写 <picker> —— 统一走 JzSelectField / JzDateRangeField。
  * 4. 禁止 <style> 内写裸色值（#hex）—— 统一走 $jzb-* Token。
  * 5. 禁止 <style> 内写裸数字 z-index —— 统一走 $jzb-z-* 层级 Token。
+ * 6. 禁止把 Token 引用写进字符串（'TOKEN_COLOR.x'）—— 必须作为表达式使用，
+ *    否则会当作颜色字面量传进 SVG，导致图标无描边（1.0.38 事故）。
  *
  * 允许清单仅包含统一浮层自身与「非模态解释气泡」。
  */
@@ -64,6 +66,9 @@ for (const dir of SCAN_DIRS) {
       if (inStyle && /z-index:\s*-?\d/.test(line)) {
         failures.push(`${rel}:${index + 1} 样式内禁止裸数字 z-index，请使用 $jzb-z-* 层级 Token`)
       }
+      if (/['"](TOKEN_COLOR|STATUS_COLOR)\.[A-Za-z0-9_]+['"]/.test(line)) {
+        failures.push(`${rel}:${index + 1} Token 引用被写进字符串，请去掉引号作为表达式使用`)
+      }
     })
   }
 }
@@ -73,4 +78,4 @@ if (failures.length) {
   for (const item of failures) console.error('  - ' + item)
   process.exit(1)
 }
-console.log('UI 统一化规范检查通过（确认弹窗/浮层/picker/色值/层级 均已 Token 化）')
+console.log('UI 统一化规范检查通过（确认弹窗/浮层/picker/色值/层级/Token 引用 均已规范）')
