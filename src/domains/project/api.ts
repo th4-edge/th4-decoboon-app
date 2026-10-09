@@ -25,7 +25,7 @@ const BUSINESS_ORIGIN_API: Record<BusinessOrigin, string> = {
 }
 
 const STAGE_STATUS: Record<string, ProjectStage['status']> = {
-  Todo: 'todo', Doing: 'doing', Accepting: 'accepting', Done: 'done'
+  Todo: 'todo', Doing: 'doing', Accepting: 'accepting', Done: 'done', NotApplicable: 'notApplicable'
 }
 
 const RISK_LEVEL: Record<string, ProjectRiskLevel> = {
@@ -131,7 +131,10 @@ function normalizeStage(raw: RawRecord): ProjectStage {
     plannedStart: raw.plannedStart,
     plannedEnd: raw.plannedEnd,
     actualStart: raw.actualStart,
-    actualEnd: raw.actualEnd
+    actualEnd: raw.actualEnd,
+    notApplicableReason: raw.notApplicableReason,
+    notApplicableBy: raw.notApplicableBy ? { id: String(raw.notApplicableBy.id ?? raw.notApplicableBy.empId ?? ''), name: raw.notApplicableBy.name ?? '' } as Employee : undefined,
+    notApplicableAt: raw.notApplicableAt
   }
 }
 
@@ -326,6 +329,14 @@ export const projectApi = {
       owner: { id: employee.id },
       remark: content
     }),
+
+  /** GAP-039 / DEC-057：把无施工任务的阶段判定为「本项不涉及」。 */
+  markStageNotApplicable: (stageId: string, reason: string) =>
+    post<ProjectStage>('project/stage/update', { stageId, status: 'notApplicable', reason }),
+
+  /** 撤销「本项不涉及」判定，阶段回到未开始。 */
+  restoreStage: (stageId: string) =>
+    post<ProjectStage>('project/stage/update', { stageId, status: 'todo' }),
 
   members: async (projectId: string) => {
     if (session.role === 'customer') return []

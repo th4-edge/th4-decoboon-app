@@ -69,14 +69,18 @@ async function load() {
   }
 }
 
-const canOpen = computed(() => can(role.value, 'act:startStage') && stage.value?.status === 'todo')
+const isNotApplicable = computed(() => stage.value?.status === 'notApplicable')
+const stageHasTasks = computed(() => tasks.value.length > 0)
+const canOpen = computed(() => can(role.value, 'act:startStage') && stage.value?.status === 'todo' && stageHasTasks.value)
 const canReport = computed(() => can(role.value, 'act:report') && (stage.value?.status === 'doing' || stage.value?.status === 'accepting'))
 const canAcceptRequest = computed(() => {
   if (!stage.value || isCustomer(role.value)) return false
   return can(role.value, 'act:acceptRequest') && (stage.value.status === 'doing' || stage.value.status === 'accepting')
 })
-const canAddTask = computed(() => can(role.value, 'edit:task') && stage.value?.status !== 'done')
-const hasStageActions = computed(() => canOpen.value || canReport.value || canAcceptRequest.value || canAddTask.value)
+const canAddTask = computed(() => can(role.value, 'edit:task') && (stage.value?.status === 'todo' || stage.value?.status === 'doing'))
+const canMarkNotApplicable = computed(() => can(role.value, 'act:stageNotApplicable') && stage.value?.status === 'todo' && !stageHasTasks.value)
+const canRestore = computed(() => can(role.value, 'act:stageNotApplicable') && isNotApplicable.value)
+const hasStageActions = computed(() => canOpen.value || canReport.value || canAcceptRequest.value || canAddTask.value || canMarkNotApplicable.value || canRestore.value)
 const isWaitingCustomer = computed(() => acceptance.value?.customerStatus === 'waiting' && isCustomer(role.value))
 const stageStatusMeta = computed(() => acceptance.value?.customerStatus === 'rejected'
   ? { label: '整改中', color: STATUS_COLOR.blocked }
@@ -99,6 +103,42 @@ function addTask() {
   uni.navigateTo({ url: `${P.projectPlanEdit}?projectId=${stage.value?.projectId}&stageId=${id.value}` })
 }
 function openTask(tid: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${tid}` }) }
+
+async function markNotApplicable() {
+  const res = await new Promise<any>((resolve) => {
+    uni.showModal({
+      title: '判定本项不涉及',
+      editable: true,
+      placeholderText: '请填写判定依据，例如：本项目不含水电改造，依据报价分项',
+      success: resolve,
+      fail: () => resolve({ confirm: false })
+    })
+  })
+  if (!res?.confirm) return
+  const reason = String(res.content || '').trim()
+  if (!reason) { uni.showToast({ title: '请填写判定依据', icon: 'none' }); return }
+  try {
+    await projectApi.markStageNotApplicable(id.value, reason)
+    uni.showToast({ title: '已判定本项不涉及', icon: 'success' })
+    load()
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '判定失败，请重试', icon: 'none' })
+  }
+}
+
+async function restoreStage() {
+  const ok = await new Promise<boolean>((resolve) => {
+    uni.showModal({ title: '撤销判定', content: '撤销后该阶段回到未开始，需要按报价/合同施工行补齐任务后才能开工。', success: (r) => resolve(!!r.confirm), fail: () => resolve(false) })
+  })
+  if (!ok) return
+  try {
+    await projectApi.restoreStage(id.value)
+    uni.showToast({ title: '已撤销判定', icon: 'success' })
+    load()
+  } catch (error: any) {
+    uni.showToast({ title: error?.message || '撤销失败，请重试', icon: 'none' })
+  }
+}
 function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDetail}?id=${project.value.id}` }) }
 </script>
 
@@ -117,10 +157,11 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
         </view>
         <JzTag :text="stageStatusMeta.label" :color="stageStatusMeta.color" />
       </view>
-      <view class="jz-between sd__prog">
+      <view v-if="!isNotApplicable" class="jz-between sd__prog">
         <text class="sd__prog-pct">{{ stage.progress }}%</text>
         <JzProgress :percent="stage.progress" :height="14" :color="stageStatusMeta.color" />
       </view>
+      <view v-else class="sd__na-hero"><text>已判定本项不涉及，不占项目进度分母</text></view>
       <view class="sd__meta-grid">
         <view class="sd__meta"><text class="sd__meta-label">计划</text><text class="sd__meta-val">{{ stage.plannedStart?.slice(5) }}~{{ stage.plannedEnd?.slice(5) }}</text></view>
         <view class="sd__meta"><text class="sd__meta-label">实际</text><text class="sd__meta-val">{{ stage.actualStart?.slice(5) || '未开始' }}{{ stage.actualEnd ? '~' + stage.actualEnd.slice(5) : '' }}</text></view>
@@ -131,6 +172,14 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
         </view>
         <view class="sd__meta"><text class="sd__meta-label">权重</text><text class="sd__meta-val">{{ stage.weight }}%</text></view>
       </view>
+    </view>
+
+    <view v-if="isNotApplicable" class="jz-card sd__na">
+      <view class="jz-row sd__na-head"><JzIcon name="info" :size="30" :color="STATUS_COLOR.muted" /><text class="sd__na-title">本项不涉及</text></view>
+      <text class="sd__na-line">判定依据：{{ stage.notApplicableReason || '-' }}</text>
+      <text class="sd__na-line">判定：{{ stage.notApplicableBy?.name || '系统自动判定' }} · {{ stage.notApplicableAt?.slice(0, 16) || '-' }}</text>
+      <text class="sd__na-tip">该阶段不参与项目进度分母，也不走阶段开工与验收。</text>
+      <button v-if="canRestore" class="jz-btn jz-btn--plain jz-btn--sm sd__na-restore" @tap="restoreStage">撤销判定</button>
     </view>
 
     <!-- 验收横幅 -->
@@ -166,6 +215,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
     <view v-if="!isCustomer(role) && hasStageActions" class="jz-card sd__ops">
       <text class="sd__ops-note">阶段开工、现场汇报和验收会同步到项目动态，便于项目经理与业主同频。</text>
       <button v-if="canOpen" class="jz-btn jz-btn--primary jz-btn--block sd__action-btn" @tap="start"><JzIcon name="arrow-right" :size="28" :color="TOKEN_COLOR.white" /><text>开始「{{ stage.name }}」</text></button>
+      <button v-if="canMarkNotApplicable" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="markNotApplicable"><JzIcon name="info" :size="28" :color="TOKEN_COLOR.primary" /><text>判定本项不涉及</text></button>
       <button v-if="canReport" class="jz-btn jz-btn--ghost jz-btn--block sd__op sd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报（打卡/照片）</text></button>
       <button v-if="canAcceptRequest" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="acceptPage"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.primary" /><text>{{ acceptance ? '查看验收单' : '提交阶段验收' }}</text></button>
       <button v-if="canAddTask" class="jz-btn jz-btn--text jz-btn--block sd__op sd__action-btn" @tap="addTask"><JzIcon name="plus" :size="26" :color="TOKEN_COLOR.text2" /><text>添加施工任务</text></button>
@@ -187,7 +237,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
         </view>
         <JzTag :text="TASK_STATUS_META[t.status].label" :color="TASK_STATUS_META[t.status].color" />
       </view>
-      <JzEmpty v-if="!tasks.length" text="本阶段暂无任务" sub="项目经理可拆解为具体施工任务" />
+      <JzEmpty v-if="!tasks.length" text="本阶段暂无合同施工任务" sub="任务来自本项目报价/合同施工行。如缺失请核对报价与合同；若本项确实不在合同范围，由项目经理判定为本项不涉及" />
     </view>
 
     <view class="jz-section"><text class="jz-section__title">阶段动态</text></view>
@@ -198,6 +248,13 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
 
 <style lang="scss" scoped>
 .sd { padding-bottom: 60rpx; }
+.sd__na-hero { padding: 12rpx 0 4rpx; font-size: $jzb-font-sm; color: $jzb-text-3; }
+.sd__na { margin: 0 24rpx 20rpx; padding: 26rpx; border-left: 6rpx solid $jzb-text-4; }
+.sd__na-head { align-items: center; margin-bottom: 12rpx; }
+.sd__na-title { margin-left: 10rpx; font-size: $jzb-font-md; font-weight: 700; }
+.sd__na-line { display: block; margin-top: 8rpx; font-size: $jzb-font-sm; color: $jzb-text-2; }
+.sd__na-tip { display: block; margin-top: 12rpx; font-size: $jzb-font-xs; color: $jzb-text-3; line-height: 1.6; }
+.sd__na-restore { margin-top: 18rpx; align-self: flex-start; }
 .sd__hero { margin: 24rpx; padding: 28rpx; }
 .sd__sort { width: 56rpx; height: 56rpx; border-radius: 16rpx; background: $jzb-gradient; color: $jzb-text-inverse; font-size: $jzb-font-md; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-right: 18rpx; }
 .sd__name { display: block; font-size: $jzb-font-xl; font-weight: 700; }

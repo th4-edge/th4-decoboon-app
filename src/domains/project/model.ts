@@ -4,7 +4,7 @@ import type { Company, Employee } from '@/domains/identity/model'
 
 export type BusinessOrigin = 'new' | 'carryover'
 export type ProjectStatus = 'preparing' | 'ongoing' | 'suspended' | 'accepting' | 'finished' | 'settled'
-export type StageStatus = 'todo' | 'doing' | 'accepting' | 'done' | 'overdue'
+export type StageStatus = 'todo' | 'doing' | 'accepting' | 'done' | 'overdue' | 'notApplicable'
 
 export interface Project {
   id: string
@@ -101,6 +101,10 @@ export interface ProjectStage {
   actualEnd?: string
   owner?: Employee
   color?: string
+  /** GAP-039 / DEC-057：本项不涉及判定留痕 */
+  notApplicableReason?: string
+  notApplicableBy?: Employee
+  notApplicableAt?: string
 }
 
 export interface SchedulePlan {

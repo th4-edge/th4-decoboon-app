@@ -16,7 +16,8 @@ export const STAGE_STATUS_META: Record<StageStatus, { label: string; color: stri
   doing:    { label: '进行中', color: TOKEN_COLOR.primaryBase },
   accepting:{ label: '待验收', color: STATUS_COLOR.pending },
   done:     { label: '已验收', color: STATUS_COLOR.done },
-  overdue:  { label: '已逾期', color: STATUS_COLOR.blocked }
+  overdue:  { label: '已逾期', color: STATUS_COLOR.blocked },
+  notApplicable: { label: '本项不涉及', color: STATUS_COLOR.muted }
 }
 
 /**

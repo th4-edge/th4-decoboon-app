@@ -47,6 +47,7 @@ export type Capability =
   | 'act:report'
   | 'act:startStage'
   | 'act:acceptRequest'
+  | 'act:stageNotApplicable'
   | 'act:quote'
   | 'act:contractPrepare'
   | 'act:contractConfirm'
@@ -115,7 +116,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'act:startStage',
     'act:quote', 'act:contractPrepare', 'act:contractConfirm', 'act:projectCreate',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
-    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench',
+    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'act:stageNotApplicable',
     'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
   teamLeader: [
@@ -153,7 +154,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:selection-board', 'view:rectify',
     'view:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:material', 'view:supply', 'view:quote',
-    'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest',
+    'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest', 'act:stageNotApplicable',
     'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   finance: [

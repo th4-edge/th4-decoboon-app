@@ -185,7 +185,8 @@ function openCarryoverPlan() {
             <view class="plan__idx" :style="{ backgroundColor: STAGE_STATUS_META[s.status].color }">{{ s.sort }}</view>
             <view>
               <text class="plan__name">{{ s.name }}</text>
-              <text class="plan__date">计划 {{ s.plannedStart?.slice(5) }} ~ {{ s.plannedEnd?.slice(5) }}</text>
+              <text v-if="s.status !== 'notApplicable'" class="plan__date">计划 {{ s.plannedStart?.slice(5) }} ~ {{ s.plannedEnd?.slice(5) }}</text>
+              <text v-else class="plan__date">本项不涉及 · 不占项目进度</text>
             </view>
           </view>
           <JzTag :text="STAGE_STATUS_META[s.status].label" :color="STAGE_STATUS_META[s.status].color" />
