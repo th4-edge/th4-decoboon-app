@@ -15,6 +15,8 @@ const spaceName = defineModel<string>('spaceName', { default: '' })
 const length = defineModel<string>('length', { default: '' })
 const width = defineModel<string>('width', { default: '' })
 const height = defineModel<string>('height', { default: '' })
+const measuredArea = defineModel<string>('measuredArea', { default: '' })
+const measuredPerimeter = defineModel<string>('measuredPerimeter', { default: '' })
 const itemOpen = defineModel<boolean>('itemOpen', { default: false })
 const itemSpaceId = defineModel<string>('itemSpaceId', { default: '' })
 const quantity = defineModel<string>('quantity', { default: '' })
@@ -73,7 +75,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
 <template>
   <JzSheet :visible="spaceOpen" :title="editingSpaceId ? '编辑区域' : '新增区域'" @close="spaceOpen = false">
     <view class="ds__editor">
-      <text class="ds__sheet-sub">选择空间类型后自动填充名称，输入实测尺寸</text>
+      <text class="ds__sheet-sub">选择空间类型后自动填充名称；长宽只记现场粗测，面积与周长按 CAD 计算结果录入</text>
       <view class="ds__sheet-body">
         <text class="ds__field-label">空间类型</text>
         <view class="ds__space-types">
@@ -81,7 +83,8 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         </view>
         <text class="ds__field-label">区域名称 *</text>
         <input v-model="spaceName" class="jz-form-input ds__space-name-input" placeholder="如主卧、次卧、北卧、生活阳台" />
-        <text class="ds__field-label">实测尺寸</text>
+        <text class="ds__field-label">区域尺寸（长/宽为量房快照）</text>
+        <text class="ds__field-hint">长宽只记录现场粗测用于对照，系统不据此推算面积和周长。</text>
         <view class="ds__dim-grid">
           <view class="ds__dim-item">
             <text class="ds__dim-label">长</text>
@@ -99,9 +102,23 @@ function itemTypeFor(type: CatalogType): DesignItemType {
             <text class="ds__dim-unit">m</text>
           </view>
         </view>
-        <view v-if="length && width" class="ds__dim-preview">
+        <text class="ds__field-label">实测工程量基数 *</text>
+        <text class="ds__field-hint">实测量房后用 CAD 计算得出；区域多为不规则形状，不能用长宽推算。</text>
+        <view class="ds__dim-grid">
+          <view class="ds__dim-item">
+            <text class="ds__dim-label">实测面积</text>
+            <input v-model="measuredArea" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 15.30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <text class="ds__dim-unit">㎡</text>
+          </view>
+          <view class="ds__dim-item">
+            <text class="ds__dim-label">实测周长</text>
+            <input v-model="measuredPerimeter" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 16.20" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <text class="ds__dim-unit">m</text>
+          </view>
+        </view>
+        <view v-if="!measuredArea && !measuredPerimeter" class="ds__dim-preview">
           <JzIcon name="info" :size="24" :color="TOKEN_COLOR.primary" />
-          <text>面积约 {{ (Number(length) * Number(width)).toFixed(2) }}㎡ · 周长约 {{ (2 * (Number(length) + Number(width))).toFixed(2) }}m</text>
+          <text>未录入实测面积/周长时，依赖它们的分项显示「待补」，不计入工程量。</text>
         </view>
       </view>
       <view class="ds__editor-foot"><button class="jz-btn jz-btn--neutral jz-grow" @tap="spaceOpen = false">取消</button><button class="jz-btn jz-btn--primary jz-grow" @tap="emit('save-space')">保存区域</button></view>
@@ -167,6 +184,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
 .ds__editor { display: flex; flex-direction: column; }
 .ds__editor--tall { height: calc(92vh - 32rpx); }
 .ds__sheet-sub { display: block; margin-bottom: 14rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.45; }
+.ds__field-hint { display: block; margin: -4rpx 0 12rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.5; }
 .ds__sheet-body { padding: 0 0 20rpx; box-sizing: border-box; }
 .ds__sheet-content { flex: 1; min-height: 0; padding: 2rpx 0 20rpx; box-sizing: border-box; }
 .ds__editor-foot { flex-shrink: 0; display: flex; gap: 14rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }

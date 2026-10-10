@@ -23,27 +23,27 @@ function preview(urls: string[], current: string) {
 
       <view class="orr__dims">
         <view class="orr__dim">
-          <text class="orr__dim-label">长</text>
+          <text class="orr__dim-label">快照长</text>
           <text class="orr__dim-value">{{ region.length || '—' }}<text class="orr__unit">m</text></text>
         </view>
         <view class="orr__dim">
-          <text class="orr__dim-label">宽</text>
+          <text class="orr__dim-label">快照宽</text>
           <text class="orr__dim-value">{{ region.width || '—' }}<text class="orr__unit">m</text></text>
         </view>
         <view class="orr__dim">
-          <text class="orr__dim-label">高</text>
+          <text class="orr__dim-label">层高</text>
           <text class="orr__dim-value">{{ region.height || '—' }}<text class="orr__unit">m</text></text>
         </view>
       </view>
 
       <view class="orr__metrics">
         <view class="orr__metric">
-          <text class="orr__metric-label">使用面积</text>
-          <text class="orr__metric-value orr__metric-value--area">{{ region.area || '—' }}<text class="orr__unit">㎡</text></text>
+          <text class="orr__metric-label">实测面积{{ region.areaSource === '估算' ? '（估算·待复核）' : '' }}</text>
+          <text class="orr__metric-value orr__metric-value--area">{{ region.area || '待补' }}<text class="orr__unit">{{ region.area ? '㎡' : '' }}</text></text>
         </view>
         <view class="orr__metric">
-          <text class="orr__metric-label">周长</text>
-          <text class="orr__metric-value">{{ region.perimeter || '—' }}<text class="orr__unit">m</text></text>
+          <text class="orr__metric-label">实测周长</text>
+          <text class="orr__metric-value">{{ region.perimeter || '待补' }}<text class="orr__unit">{{ region.perimeter ? 'm' : '' }}</text></text>
         </view>
       </view>
 

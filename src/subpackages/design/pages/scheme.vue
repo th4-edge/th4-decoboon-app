@@ -62,6 +62,8 @@ const spaceName = ref('')
 const length = ref('')
 const width = ref('')
 const height = ref('')
+const measuredArea = ref('')
+const measuredPerimeter = ref('')
 const itemOpen = ref(false)
 const catalogOpen = ref(false)
 const catalogType = ref<CatalogType>('construction')
@@ -208,7 +210,7 @@ function cadDisplayName(): string {
 
 const tabs: { key: TabKey; label: string; count: number }[] = [
   { key: 'base', label: '方案资料', count: 0 },
-  { key: 'space', label: '区域尺寸', count: 0 },
+  { key: 'space', label: '区域工程量', count: 0 },
   { key: 'construction', label: '施工分项', count: 0 },
   { key: 'material', label: '主材分项', count: 0 },
   { key: 'other', label: '其他项目', count: 0 }
@@ -383,12 +385,16 @@ function openSpace(space?: DesignSpace) {
   length.value = space?.length ? String(space.length) : ''
   width.value = space?.width ? String(space.width) : ''
   height.value = space?.height ? String(space.height) : ''
+  measuredArea.value = space?.area != null ? String(space.area) : ''
+  measuredPerimeter.value = space?.perimeter != null ? String(space.perimeter) : ''
   spaceOpen.value = true
 }
 async function saveSpace() {
   if (!designId.value) { await saveBase(); if (!designId.value) return }
   if (!spaceName.value.trim()) { toast('请填写区域名称'); return }
-  if (!length.value || !width.value || Number(length.value) <= 0 || Number(width.value) <= 0) { toast('请填写有效长宽'); return }
+  // DEC-062：面积与周长是实测工程量基数，必须由设计师按 CAD 录入；长宽只是量房快照，可留空。
+  if (!(Number(measuredArea.value) > 0)) { toast('请填写实测面积（㎡）'); return }
+  if (!(Number(measuredPerimeter.value) > 0)) { toast('请填写实测周长（m）'); return }
   loading('保存区域…')
   try {
     await designApi.saveSpace({
@@ -396,15 +402,17 @@ async function saveSpace() {
       spaceId: editingSpaceId.value || undefined,
       type: spaceType.value,
       name: spaceName.value.trim(),
-      length: Number(length.value),
-      width: Number(width.value),
+      length: length.value ? Number(length.value) : undefined,
+      width: width.value ? Number(width.value) : undefined,
       height: height.value ? Number(height.value) : undefined,
+      area: Number(measuredArea.value),
+      perimeter: Number(measuredPerimeter.value),
       sort: spaces.value.length
     })
     await reloadDetail()
     spaceOpen.value = false
     activeTab.value = 'space'
-    toast('区域尺寸已保存', 'success')
+    toast('区域实测工程量已保存', 'success')
   } catch (error) {
     toastError(error, '区域保存失败')
   } finally { hideLoading() }
@@ -697,19 +705,23 @@ function handleMoreAction(index: number) {
       <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">设计说明</text><textarea v-model="description" class="jz-form-textarea" maxlength="500" placeholder="说明户型优化、动线、收纳和家庭成员适配" /></view>
     </view>
     <view v-else-if="activeTab === 'space'" class="ds__section">
-      <view class="ds__section-head"><view><text class="ds__section-title">区域尺寸</text><text class="ds__section-sub">长宽高录入后自动计算面积和周长</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openSpace()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增区域</text></button></view>
+      <view class="ds__section-head"><view><text class="ds__section-title">区域工程量</text><text class="ds__section-sub">实测面积与周长按 CAD 录入；长宽为量房快照</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openSpace()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增区域</text></button></view>
       <view v-if="spaces.length" class="ds__space-list">
         <view v-for="space in spaces" :key="space.id" class="jz-card ds__space-card">
           <view class="ds__space-head" @tap="openSpace(space)">
             <view class="ds__space-type-tag">{{ designMeta.spaceType[space.type] }}</view>
             <view class="jz-grow"><text class="ds__space-name jz-clamp-1">{{ space.name }}</text></view>
-            <view class="ds__space-area"><text class="ds__space-area-num">{{ space.area }}</text><text class="ds__space-area-unit">㎡</text></view>
+            <view class="ds__space-area">
+              <text v-if="space.area != null" class="ds__space-area-num">{{ space.area }}</text>
+              <text v-else class="ds__space-area-num ds__space-area-num--pending">待补</text>
+              <text class="ds__space-area-unit">{{ space.area != null ? '㎡' : '' }}</text>
+            </view>
           </view>
           <view class="ds__space-dims">
-            <view class="ds__space-dim"><text class="ds__space-dim-label">长</text><text class="ds__space-dim-value">{{ space.length || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
-            <view class="ds__space-dim"><text class="ds__space-dim-label">宽</text><text class="ds__space-dim-value">{{ space.width || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
+            <view class="ds__space-dim"><text class="ds__space-dim-label">快照长</text><text class="ds__space-dim-value">{{ space.length || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
+            <view class="ds__space-dim"><text class="ds__space-dim-label">快照宽</text><text class="ds__space-dim-value">{{ space.width || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
             <view class="ds__space-dim"><text class="ds__space-dim-label">层高</text><text class="ds__space-dim-value">{{ space.height || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
-            <view class="ds__space-dim ds__space-dim--perimeter"><text class="ds__space-dim-label">周长</text><text class="ds__space-dim-value">{{ space.perimeter || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
+            <view class="ds__space-dim ds__space-dim--perimeter"><text class="ds__space-dim-label">实测周长</text><text class="ds__space-dim-value">{{ space.perimeter != null ? space.perimeter : '待补' }}</text><text class="ds__space-dim-unit">{{ space.perimeter != null ? 'm' : '' }}</text></view>
           </view>
           <view class="ds__space-foot">
             <view class="jz-btn jz-btn--ghost jz-btn--sm" @tap.stop="openSpace(space)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.text2" /><text>编辑</text></view>
@@ -717,7 +729,7 @@ function handleMoreAction(index: number) {
           </view>
         </view>
       </view>
-      <view v-else class="jz-card"><JzEmpty text="尚未录入区域尺寸" sub="点击“新增区域”开始量房录入" /></view>
+      <view v-else class="jz-card"><JzEmpty text="尚未录入区域工程量" sub="点击“新增区域”录入量房快照与实测面积/周长" /></view>
     </view>
     <view v-else class="ds__section ds__section--split">
       <view class="ds__section-head"><view><text class="ds__section-title jz-clamp-1">{{ currentTabMeta.label }}</text><text class="ds__section-sub">{{ currentTabMeta.count }} 个分项 · 合计 {{ money(totalItemAmountByTab) }}</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openItem()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增分项</text></button></view>
@@ -741,7 +753,7 @@ function handleMoreAction(index: number) {
               <text class="ds__item-name jz-clamp-2">{{ item.name }}</text>
               <text class="ds__item-price">{{ money(item.amount) }}</text>
             </view>
-            <text class="ds__item-meta jz-clamp-2">{{ item.category }} · {{ item.quantity === 0 ? '赠送' : `${item.quantity}${item.unit}` }} · {{ designMeta.pricingMode[item.pricingMode] }}</text>
+            <text class="ds__item-meta jz-clamp-2">{{ item.category }} · {{ item.pendingMeasure ? '待补尺寸' : item.quantity === 0 ? '赠送' : `${item.quantity}${item.unit}` }} · {{ designMeta.pricingMode[item.pricingMode] }}</text>
             <!-- 施工工艺：设计师/店长核对与客户讲解的关键依据，随分项从材料库冻结 -->
             <view v-if="item.craft" class="ds__item-craft">
               <JzIcon name="wrench" :size="20" :color="TOKEN_COLOR.primary" />
@@ -763,7 +775,7 @@ function handleMoreAction(index: number) {
           </view>
         </view>
       </view>
-      <view v-else class="jz-card"><JzEmpty text="尚未录入区域尺寸" sub="请先在“区域尺寸”中录入空间，再添加分项" /></view>
+      <view v-else class="jz-card"><JzEmpty text="尚未录入区域工程量" sub="请先在“区域工程量”中录入空间实测面积/周长，再添加分项" /></view>
     </view>
     <view class="jz-actionbar">
       <view class="jz-actionbar__inner ds__actionbar">
@@ -789,6 +801,8 @@ function handleMoreAction(index: number) {
       v-model:length="length"
       v-model:width="width"
       v-model:height="height"
+      v-model:measured-area="measuredArea"
+      v-model:measured-perimeter="measuredPerimeter"
       v-model:item-open="itemOpen"
       v-model:item-space-id="itemSpaceId"
       v-model:quantity="quantity"

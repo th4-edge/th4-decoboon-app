@@ -40,11 +40,16 @@ export interface DesignSpace {
   id: string
   type: SpaceType
   name: string
+  /** 量房快照：现场粗测长/宽/层高，只作记录与偏差参考，不是工程量依据（DEC-062）。 */
   length?: number
   width?: number
   height?: number
-  area: number
-  perimeter: number
+  /** 实测面积（㎡）：设计师实测量房后按 CAD 录入；未录入为 null（不是 0）。 */
+  area: number | null
+  /** 实测周长（m）：未录入为 null。 */
+  perimeter: number | null
+  /** 面积口径来源：measured=实测（可作工程量基数）；estimated=历史估算（仅提示复核）。 */
+  areaSource?: 'measured' | 'estimated' | null
   sort: number
   remark?: string
   images?: string[]
@@ -63,6 +68,8 @@ export interface DesignItem {
   spec?: string
   unit: string
   quantity: number
+  /** 实例化或重算时实测尺寸未录入：quantity=0 表示「待补」，与「0=赠送」由服务端标记区分（DEC-058）。 */
+  pendingMeasure?: boolean
   materialPrice: number
   manualPrice: number
   /** null = 成本待维护，0 = 明确零成本 */

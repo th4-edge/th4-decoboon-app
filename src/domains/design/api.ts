@@ -126,8 +126,9 @@ function normalizeSpace(raw: RawRecord): DesignSpace {
     length: raw.length == null ? undefined : number(raw.length),
     width: raw.width == null ? undefined : number(raw.width),
     height: raw.height == null ? undefined : number(raw.height),
-    area: number(raw.area),
-    perimeter: number(raw.perimeter),
+    area: raw.area == null ? null : number(raw.area),
+    perimeter: raw.perimeter == null ? null : number(raw.perimeter),
+    areaSource: raw.areaSource == null ? null : String(raw.areaSource).toLowerCase() as 'measured' | 'estimated',
     sort: number(raw.sort),
     remark: raw.remark,
     images: raw.images
@@ -149,6 +150,9 @@ function normalizeDesignItem(raw: RawRecord): DesignItem {
     spec: raw.spec,
     unit: unitName(raw.unit),
     quantity: number(raw.quantity),
+    pendingMeasure: raw.pendingMeasure == null
+      ? String(raw.formula ?? '').startsWith('__PENDING_MEASURE__')
+      : Boolean(raw.pendingMeasure),
     materialPrice: number(raw.materialPrice),
     manualPrice: number(raw.manualPrice),
     costPrice: raw.costPrice === undefined || raw.costPrice === null ? null : number(raw.costPrice),
@@ -429,9 +433,14 @@ export interface SpaceInput {
   spaceId?: string
   type: SpaceType
   name: string
+  /** 量房快照长/宽/层高（m）：只记录现场粗测，不用于推算面积与周长。 */
   length?: number
   width?: number
   height?: number
+  /** 实测面积（㎡）：设计师按 CAD 录入，必填且 > 0（DEC-062）。 */
+  area?: number
+  /** 实测周长（m）：设计师按 CAD 录入，必填且 > 0。 */
+  perimeter?: number
   sort?: number
   remark?: string
 }
@@ -557,6 +566,8 @@ export const designApi = {
       length: input.length,
       width: input.width,
       height: input.height,
+      area: input.area,
+      perimeter: input.perimeter,
       sort: input.sort,
       remark: input.remark
     }).then(normalizeSpace),

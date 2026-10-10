@@ -48,6 +48,7 @@ function normalizeRegion(raw: RawRecord): JourneyRegion {
     height: raw.height == null ? undefined : String(raw.height),
     area: raw.area == null ? undefined : String(raw.area),
     perimeter: raw.perimeter == null ? undefined : String(raw.perimeter),
+    areaSource: raw.areaSource == null ? undefined : String(raw.areaSource),
     itemCount: Number(raw.itemCount ?? 0),
     images: Array.isArray(raw.images) ? raw.images.map((x: unknown) => String(x)) : [],
     remark: raw.remark == null ? undefined : String(raw.remark)

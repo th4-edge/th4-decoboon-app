@@ -44,8 +44,12 @@ export interface JourneyRegion {
   length?: string
   width?: string
   height?: string
+  /** 实测面积（㎡）；未录入为空。 */
   area?: string
+  /** 实测周长（m）；未录入为空。 */
   perimeter?: string
+  /** 面积口径来源：实测 / 估算（历史推算值，仅作参考）。 */
+  areaSource?: string
   itemCount: number
   images: string[]
   remark?: string
