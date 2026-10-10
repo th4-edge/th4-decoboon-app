@@ -759,7 +759,7 @@ function handleMoreAction(index: number) {
               <JzIcon name="wrench" :size="20" :color="TOKEN_COLOR.primary" />
               <text class="ds__item-craft-text jz-clamp-3">{{ item.craft }}</text>
             </view>
-            <view class="ds__item-foot"><text class="jz-clamp-2">{{ item.formula || '企业计价公式' }}</text><text>成本 {{ money(item.cost) }}</text></view>
+            <view class="ds__item-foot"><text class="jz-clamp-2">{{ item.formulaRevisionNeeded ? '公式待修订（沿用原工程量）' : (item.formula || '企业计价公式') }}</text><text>成本 {{ money(item.cost) }}</text></view>
           </view>
           <view v-if="!activeSpaceItems.length" class="ds__item-side-empty"><text>该区域暂无分项</text></view>
         </scroll-view>

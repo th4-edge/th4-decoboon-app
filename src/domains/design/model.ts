@@ -70,6 +70,8 @@ export interface DesignItem {
   quantity: number
   /** 实例化或重算时实测尺寸未录入：quantity=0 表示「待补」，与「0=赠送」由服务端标记区分（DEC-058）。 */
   pendingMeasure?: boolean
+  /** 历史中文公式等非专业变量公式：不参与重算、保留既有工程量，待修订（GAP-042）。 */
+  formulaRevisionNeeded?: boolean
   materialPrice: number
   manualPrice: number
   /** null = 成本待维护，0 = 明确零成本 */

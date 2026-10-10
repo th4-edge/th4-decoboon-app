@@ -153,6 +153,7 @@ function normalizeDesignItem(raw: RawRecord): DesignItem {
     pendingMeasure: raw.pendingMeasure == null
       ? String(raw.formula ?? '').startsWith('__PENDING_MEASURE__')
       : Boolean(raw.pendingMeasure),
+    formulaRevisionNeeded: Boolean(raw.formulaRevisionNeeded),
     materialPrice: number(raw.materialPrice),
     manualPrice: number(raw.manualPrice),
     costPrice: raw.costPrice === undefined || raw.costPrice === null ? null : number(raw.costPrice),
