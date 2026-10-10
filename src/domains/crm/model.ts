@@ -180,6 +180,10 @@ export interface CustomerFollow {
   way: 'phone' | 'visit' | 'wechat' | 'video' | 'other'
   content: string
   nextFollowAt?: string
+  images?: string[]
+  imageUrls?: string[]
+  imageCount?: number
+  requestId?: string
   createdAt?: string
 }
 

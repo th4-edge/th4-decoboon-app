@@ -30,6 +30,7 @@ import JzTag from '@/components/JzTag.vue'
 import HouseCard from '@/subpackages/customer/components/HouseCard/HouseCard.vue'
 import SalesSteps, { type SalesStageKey } from '@/subpackages/customer/components/SalesSteps/SalesSteps.vue'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { followImageUrls, previewFollowImage } from '@/composables/useFollowImages'
 import { designApi } from '@/domains/design/api'
 import type { DesignScheme } from '@/domains/design/model'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
@@ -305,6 +306,11 @@ onLoad((query) => {
 onShow(() => {
   if (id.value) void load()
 })
+
+async function onFollowImageError(item: CustomerFollow) {
+  const urls = await followImageUrls(item, true)
+  if (urls.length) item.imageUrls = urls
+}
 
 async function load() {
   loadError.value = ''
@@ -812,6 +818,17 @@ function viewMeasure(property: Property) {
           <text class="cd__follow-time">{{ formatDateTime(item.createdAt) }}</text>
         </view>
         <text class="cd__follow-content">{{ item.content || '—' }}</text>
+        <view v-if="item.imageUrls?.length" class="cd__follow-images">
+          <image
+            v-for="(url, index) in item.imageUrls"
+            :key="url"
+            class="cd__follow-image"
+            :src="url"
+            mode="aspectFill"
+            @tap="previewFollowImage(item, index)"
+            @error="onFollowImageError(item)"
+          />
+        </view>
         <text v-if="item.nextFollowAt" class="cd__follow-next">下次跟进：{{ item.nextFollowAt.slice(0, 10) }}</text>
       </view>
       <JzEmpty v-if="!follows.length" text="暂无跟进记录" sub="记录每次沟通，保持客户转化上下文" />
@@ -999,6 +1016,8 @@ function viewMeasure(property: Property) {
 .cd__follow-way { padding: 4rpx 16rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; font-weight: 600; }
 .cd__follow-time { color: $jzb-text-4; font-size: $jzb-font-xs; }
 .cd__follow-content { display: block; margin-top: 14rpx; color: $jzb-text-1; font-size: $jzb-font-sm; line-height: 1.6; }
+.cd__follow-images { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 14rpx; }
+.cd__follow-image { width: 156rpx; height: 156rpx; border-radius: 12rpx; background: $jzb-bg-page; }
 .cd__follow-next { display: block; margin-top: 12rpx; color: $jzb-warning; font-size: $jzb-font-xs; }
 .cd__error { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20rpx; padding: 40rpx; }
 .cd__error-title { color: $jzb-text-2; font-size: $jzb-font-md; font-weight: 600; text-align: center; }

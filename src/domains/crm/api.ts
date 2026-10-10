@@ -1,4 +1,5 @@
 import { post, listOf } from '@/core/http'
+import { fileApi } from '@/domains/file/api'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
@@ -207,6 +208,10 @@ function normalizeFollow(raw: RawRecord): CustomerFollow {
     way: String(enumValue(raw.way)).toLowerCase() as CustomerFollow['way'],
     content: raw.content ?? '',
     nextFollowAt: raw.nextFollowAt,
+    images: Array.isArray(raw.images) ? raw.images.map((item: unknown) => String(item)) : [],
+    imageUrls: Array.isArray(raw.imageUrls) ? raw.imageUrls.map((item: unknown) => fileApi.absolute(String(item))).filter(Boolean) : [],
+    imageCount: Number(raw.imageCount ?? (Array.isArray(raw.images) ? raw.images.length : 0)),
+    requestId: raw.requestId,
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime)
   }
 }
@@ -325,7 +330,9 @@ export const crmApi = {
       customerId: follow.customerId || undefined,
       way: follow.way ? FOLLOW_WAY_API[follow.way] : undefined,
       content: follow.content,
-      nextFollowAt: follow.nextFollowAt
+      nextFollowAt: follow.nextFollowAt,
+      images: follow.images || [],
+      requestId: follow.requestId
     }).then(normalizeFollow),
 
   measure: (customerId: string, measureAt: string, propertyId: string) =>
