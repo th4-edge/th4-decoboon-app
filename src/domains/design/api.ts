@@ -128,7 +128,7 @@ function normalizeSpace(raw: RawRecord): DesignSpace {
     height: raw.height == null ? undefined : number(raw.height),
     area: raw.area == null ? null : number(raw.area),
     perimeter: raw.perimeter == null ? null : number(raw.perimeter),
-    areaSource: raw.areaSource == null ? null : String(raw.areaSource).toLowerCase() as 'measured' | 'estimated',
+    areaSource: raw.areaSource == null ? null : (enumValue(raw.areaSource).toLowerCase() as 'measured' | 'estimated') || null,
     sort: number(raw.sort),
     remark: raw.remark,
     images: raw.images
