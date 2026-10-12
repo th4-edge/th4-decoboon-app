@@ -387,6 +387,44 @@ export const tradeApi = {
         costDelta: item.costDelta,
         remark: item.remark
       }))
+    }).then(normalizeContractChange),
+
+  /** 增减项草稿预览：与服务端 batch-save 同一套校验/目标快照/差额口径，不落库（预览即所得）。 */
+  previewContractChange: (input: {
+    contractId: string
+    type?: NonNullable<ContractChange['type']>
+    items: Array<{
+      changeType?: NonNullable<ContractChange['type']>
+      sourceLineId?: string
+      sourceChangeItemId?: string
+      targetCatalogItemId?: string
+      reduceQuantity?: number
+      newQuantity?: number
+      newPrice?: number
+      amountDelta?: number
+      costDelta?: number
+      name?: string
+      itemType?: string
+      remark?: string
+    }>
+  }) =>
+    post<RawRecord>('project/contract-change/preview', {
+      contractId: input.contractId,
+      type: input.type ? CHANGE_TYPE_API[input.type] : undefined,
+      items: input.items.map((item) => ({
+        changeType: item.changeType ? CHANGE_TYPE_API[item.changeType] : undefined,
+        sourceLineId: item.sourceLineId,
+        sourceChangeItemId: item.sourceChangeItemId,
+        targetCatalogItemId: item.targetCatalogItemId,
+        reduceQuantity: item.reduceQuantity,
+        newQuantity: item.newQuantity,
+        newPrice: item.newPrice,
+        amountDelta: item.amountDelta,
+        costDelta: item.costDelta,
+        name: item.name,
+        itemType: item.itemType,
+        remark: item.remark
+      }))
     }).then(normalizeContractChange)
 }
 

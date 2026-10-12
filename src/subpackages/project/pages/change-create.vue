@@ -37,6 +37,9 @@ const lines = ref<ContractLine[]>([])
 const loading = ref(true)
 const loadError = ref('')
 const submitting = ref(false)
+const preview = ref<{ amount?: number; costDelta?: number; items?: Array<{ costDelta?: number }> } | null>(null)
+const previewLoading = ref(false)
+const previewError = ref('')
 
 const mode = ref<'single' | 'batch'>('single')
 const type = ref<ContractChangeType>('add')
@@ -167,10 +170,66 @@ function removeRow(index: number) {
   batchRows.value = batchRows.value.filter((_, i) => i !== index)
 }
 
+const costIncomplete = computed(() => {
+  if (!preview.value) return false
+  if (preview.value.costDelta === undefined) return true
+  return (preview.value.items || []).some((item) => item.costDelta === undefined)
+})
+
+/** 与服务端 batch-save 同口径的明细载荷，供预览复用（禁止前端另算一套）。 */
+function buildPreviewItems() {
+  if (mode.value === 'batch') {
+    return batchRows.value.filter(batchRowReady).map((row) => ({
+      changeType: type.value,
+      name: row.name.trim(),
+      itemType: row.itemType,
+      sourceLineId: row.sourceLineId || undefined,
+      newQuantity: row.newQuantity === '' ? undefined : Number(row.newQuantity),
+      newPrice: row.newPrice === '' ? undefined : Number(row.newPrice),
+      amountDelta: requireLine.value ? undefined : Number(row.amount),
+      costDelta: Number(row.cost) || 0,
+      remark: row.remark.trim() || undefined
+    }))
+  }
+  return [{
+    changeType: type.value,
+    sourceLineId: sourceLineId.value || undefined,
+    newQuantity: quantity.value === '' ? undefined : Number(quantity.value),
+    newPrice: newPrice.value === '' ? undefined : Number(newPrice.value),
+    amountDelta: type.value === 'add' || type.value === 'remove'
+      ? (type.value === 'remove' ? -(Number(amount.value) || 0) : Number(amount.value) || 0)
+      : undefined,
+    costDelta: canViewCost.value ? (Number(costDelta.value) || 0) : undefined
+  }]
+}
+
+/** 服务端试算：预览与提交同源；失败时禁止提交（不以前端兜底掩盖未确认）。 */
+async function refreshPreview() {
+  if (previewLoading.value) return
+  previewLoading.value = true
+  previewError.value = ''
+  try {
+    preview.value = await tradeApi.previewContractChange({
+      contractId: contractId.value,
+      type: type.value,
+      items: buildPreviewItems()
+    })
+  } catch (error) {
+    preview.value = null
+    previewError.value = error instanceof Error ? error.message : '暂不可确认，请检查变更明细'
+  } finally {
+    previewLoading.value = false
+  }
+}
+
 async function submit() {
   if (submitting.value) return
   if (!canSubmit.value) {
     toast(requireLine.value && !sourceLineId.value ? '请选择原合同行' : '请完善本次变更信息', 'none')
+    return
+  }
+  if (previewError.value) {
+    toast('变更明细暂不可确认，请先修正后重新试算', 'none')
     return
   }
   submitting.value = true
@@ -329,6 +388,21 @@ async function submit() {
 
     </template>
 
+    <view class="jz-card cc__block" v-if="contract && !loading && !loadError">
+      <view class="jz-between cc__block-head">
+        <text class="cc__block-title">服务端试算</text>
+        <text class="cc__block-add" @tap="refreshPreview">{{ previewLoading ? '试算中…' : '试算' }}</text>
+      </view>
+      <text v-if="previewError" class="cc__warn">{{ previewError }}</text>
+      <template v-else>
+        <view class="jz-between cc__preview-line">
+          <text class="cc__block-hint">本次变更（服务端口径）</text>
+          <text class="cc__preview-num">{{ preview ? money(preview.amount || 0) : '未试算' }}</text>
+        </view>
+        <text v-if="costIncomplete" class="cc__hint">成本未完整：利润与毛利率暂不可确认。</text>
+      </template>
+    </view>
+
     <view class="jz-actionbar" v-if="contract && !loading && !loadError">
       <view class="jz-actionbar__inner">
         <button class="jz-btn jz-btn--primary jz-grow" :disabled="submitting || !canSubmit" @tap="submit">
@@ -394,6 +468,8 @@ async function submit() {
 .cc__money-row--hero .cc__money-num { font-size: 40rpx; color: $jzb-primary-light; font-weight: 800; }
 .cc__money-num { color: $jzb-text-inverse; font-weight: 700; font-variant-numeric: tabular-nums; }
 .cc__danger { margin-top: 12rpx; font-size: $jzb-font-xs; color: $jzb-danger-soft; }
+.cc__preview-line { padding: 8rpx 0; }
+.cc__preview-num { font-size: $jzb-font-sm; font-weight: 700; font-variant-numeric: tabular-nums; }
 .cc__ta { width: 100%; min-height: 160rpx; padding: 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-md; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .cc__photos { display: flex; flex-wrap: wrap; gap: 14rpx; }
 .cc__photo { position: relative; width: 150rpx; height: 150rpx; border-radius: $jzb-radius-sm; overflow: hidden; background: $jzb-bg-hover; }

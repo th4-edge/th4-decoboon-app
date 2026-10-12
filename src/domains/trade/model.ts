@@ -122,7 +122,23 @@ export interface ContractChangeItem {
   oldPrice: number
   newPrice: number
   amountDelta: number
-  costDelta: number
+  costDelta?: number
+  sourceLineId?: string
+  sourceChangeItemId?: string
+  targetCatalogItemId?: string
+  reduceQuantity?: number
+  sourceRemainingQuantity?: number
+  sourceRemainingAmount?: number
+  sourceUnitPrice?: number
+  targetName?: string
+  targetCategory?: string
+  targetBrand?: string
+  targetSpec?: string
+  targetUnit?: string
+  targetQuantity?: number
+  targetAmount?: number
+  targetCostAmount?: number
+  targetCostComplete?: boolean
   remark?: string
 }
 
