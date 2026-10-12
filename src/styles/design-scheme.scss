@@ -29,6 +29,10 @@
 .ds__space-card:active { transform: scale(0.99); }
 .ds__space-head { display: flex; align-items: center; gap: 12rpx; }
 .ds__space-type-tag { flex-shrink: 0; padding: 4rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
+.ds__space-origin { flex-shrink: 0; padding: 4rpx 14rpx; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
+.ds__space-origin--measure { color: $jzb-success; background: $jzb-success-soft; }
+.ds__space-origin--override { color: $jzb-primary-dark; background: $jzb-primary-lightest; }
+.ds__space-origin--templateReference { color: $jzb-warning; background: $jzb-warning-soft; }
 .ds__space-name { font-size: $jzb-font-md; font-weight: 700; line-height: 1.4; color: $jzb-text-1; }
 .ds__space-area { flex-shrink: 0; display: flex; align-items: baseline; gap: 2rpx; }
 .ds__space-area-num { color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; font-variant-numeric: tabular-nums; }

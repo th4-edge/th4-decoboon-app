@@ -48,8 +48,15 @@ export interface DesignSpace {
   area: number | null
   /** 实测周长（m）：未录入为 null。 */
   perimeter: number | null
-  /** 面积口径来源：measured=实测（可作工程量基数）；estimated=历史估算（仅提示复核）。 */
+  /** 面积口径来源：measured=实测（可作工程量基数）；estimated=历史估算/模版参考（仅提示复核，不进金额）。 */
   areaSource?: 'measured' | 'estimated' | null
+  /**
+   * 区域取值来源（DEC-069）：
+   * measure=继承量房原始区域（结构起点）；override=方案内录入/改造；templateReference=模版参考值（待实测，不进金额）。
+   */
+  valueOrigin?: 'measure' | 'override' | 'templateReference' | null
+  /** 来源量房原始区域（仅来源标识，方案与量房原始区域不联动）。 */
+  sourceMeasureRegionId?: string
   sort: number
   remark?: string
   images?: string[]

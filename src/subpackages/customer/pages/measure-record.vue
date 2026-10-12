@@ -5,9 +5,9 @@ import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
 import type { Customer } from '@/domains/crm/model'
-import type { Property } from '@/domains/property/model'
+import type { MeasureRegion, Property, SpaceTypeName } from '@/domains/property/model'
 import { crmApi } from '@/domains/crm/api'
-import { propertyApi } from '@/domains/property/api'
+import { measureRegionApi, propertyApi, SPACE_TYPE_LABEL, SPACE_TYPE_OPTIONS } from '@/domains/property/api'
 import { fileApi } from '@/domains/file/api'
 import { chooseImages } from '@/domains/file/choose-media'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
@@ -25,6 +25,52 @@ const measureTime = ref(new Date().toTimeString().slice(0, 5))
 /** 现场照片：元素为临时路径（未上传）或托管 URL（回显） */
 const sitePhotos = ref<string[]>([])
 const submitting = ref(false)
+
+/**
+ * 量房原始区域（DEC-069）：量房测的是房屋原始结构，原始区域挂在量房单下；
+ * 量房完成后**冻结**（需修正必须重新量房/复尺），设计方案只继承作起点、二者不联动。
+ */
+interface RegionDraft {
+  key: string
+  regionId: string
+  type: SpaceTypeName
+  name: string
+  area: string
+  perimeter: string
+}
+
+const MEASURE_REGION_TYPES = SPACE_TYPE_OPTIONS.map((value) => SPACE_TYPE_LABEL[value])
+let regionSeq = 0
+const regionDrafts = ref<RegionDraft[]>([])
+const existingRegions = ref<MeasureRegion[]>([])
+/** 最近一次量房是否已完成（已完成 = 原始结构冻结，只读回显）。 */
+const measureFrozen = ref(false)
+
+function regionTypeIndex(draft: RegionDraft): number {
+  const index = SPACE_TYPE_OPTIONS.indexOf(draft.type)
+  return index < 0 ? 0 : index
+}
+
+function onRegionTypeChange(draft: RegionDraft, label: string): void {
+  const index = MEASURE_REGION_TYPES.indexOf(label)
+  if (index >= 0) draft.type = SPACE_TYPE_OPTIONS[index]
+}
+
+function addRegion(): void {
+  regionSeq += 1
+  regionDrafts.value.push({
+    key: `region-${regionSeq}`,
+    regionId: '',
+    type: 'bedroom',
+    name: '',
+    area: '',
+    perimeter: ''
+  })
+}
+
+function removeRegion(index: number): void {
+  regionDrafts.value.splice(index, 1)
+}
 
 const subtitle = computed(() => property.value
   ? `${property.value.address} · ${property.value.area || 0}㎡`
@@ -53,6 +99,26 @@ onLoad(async (query) => {
       if (scheduledAt) {
         measureDate.value = scheduledAt.slice(0, 10)
         measureTime.value = scheduledAt.slice(11, 16)
+      }
+      measureFrozen.value = latest.status === 'completed'
+      try {
+        existingRegions.value = await measureRegionApi.list(latest.id)
+        if (!measureFrozen.value) {
+          // 量房未完成：已录原始区域回填为可编辑草稿（带 regionId，保存时原地更新）
+          regionDrafts.value = existingRegions.value.map((region) => {
+            regionSeq += 1
+            return {
+              key: `region-${regionSeq}`,
+              regionId: region.id,
+              type: region.type,
+              name: region.name,
+              area: region.area == null ? '' : String(region.area),
+              perimeter: region.perimeter == null ? '' : String(region.perimeter)
+            }
+          })
+        }
+      } catch (error) {
+        toastError(error, '量房原始区域加载失败')
       }
     }
   } catch (error) {
@@ -101,15 +167,41 @@ async function save() {
       if (!needsUpload(path)) return fileApi.storagePath(path) || path
       return (await fileApi.upload('Measure', path)).path
     }))
-    await propertyApi.saveMeasure({
+    const drafts = regionDrafts.value.filter((draft) => draft.name.trim())
+    const invalid = drafts.find((draft) =>
+      (draft.area !== '' && Number(draft.area) <= 0) || (draft.perimeter !== '' && Number(draft.perimeter) <= 0))
+    if (invalid) {
+      hideLoading()
+      toast(`${invalid.name} 的实测面积/周长必须大于 0，留空表示未录入`)
+      return
+    }
+    const measureAt = `${measureDate.value}T${measureTime.value}:00`
+    const payload = {
       propertyId: propertyId.value,
-      measureTime: `${measureDate.value}T${measureTime.value}:00`,
-      completedAt: `${measureDate.value}T${measureTime.value}:00`,
-      status: 'completed',
+      measureTime: measureAt,
+      completedAt: measureAt,
       sitePhotos: uploadedPaths
-    })
+    }
+    // DEC-069：原始区域只能在量房完成前录入（完成后冻结），因此带原始区域时分三步保存：
+    // ① 先落量房单为「量房中」→ ② 逐条落原始区域 → ③ 再登记量房完成。
+    const measure = await propertyApi.saveMeasure({ ...payload, status: drafts.length ? 'scheduled' : 'completed' })
+    if (drafts.length && measure?.id) {
+      for (const draft of drafts) {
+        await measureRegionApi.save({
+          measureId: measure.id,
+          regionId: draft.regionId || undefined,
+          type: draft.type,
+          name: draft.name.trim(),
+          area: draft.area === '' ? undefined : Number(draft.area),
+          perimeter: draft.perimeter === '' ? undefined : Number(draft.perimeter)
+        })
+      }
+      await propertyApi.saveMeasure({ ...payload, status: 'completed' })
+    }
     hideLoading()
-    toast('量房记录已保存，房屋进入已量房状态', 'success')
+    toast(drafts.length
+      ? `量房记录已保存，并登记 ${drafts.length} 个原始区域（量房已完成，原始结构冻结）`
+      : '量房记录已保存，房屋进入已量房状态', 'success')
     setTimeout(() => uni.navigateBack(), 450)
   } catch (error) {
     hideLoading()
@@ -155,9 +247,63 @@ async function save() {
         </view>
       </view>
 
+      <text class="mr__group mr__group--gap">原始区域实测（原始结构）</text>
+      <text class="mr__hint">
+        量房测的是房屋原始结构。原始区域面积/周长按 CAD 计算结果录入；保存后量房完成即冻结，
+        需要修正必须重新量房（复尺）。新建方案会继承它作结构起点，之后可在方案内改造，二者不联动（DEC-069）。
+      </text>
+      <view v-if="existingRegions.length" class="mr__regions">
+        <view v-for="region in existingRegions" :key="region.id" class="mr__region-chip">
+          <text class="mr__region-chip-name">{{ region.name }} · {{ SPACE_TYPE_LABEL[region.type] }}</text>
+          <text class="mr__region-chip-value">{{ region.area == null ? '未录入' : region.area }}㎡ / {{ region.perimeter == null ? '未录入' : region.perimeter }}m</text>
+        </view>
+      </view>
+      <template v-if="!measureFrozen">
+        <view v-for="(draft, index) in regionDrafts" :key="draft.key" class="mr__region-row">
+          <view class="mr__region-cell mr__region-cell--type">
+            <JzSelectField
+              mode="selector"
+              variant="boxed"
+              :display="SPACE_TYPE_LABEL[draft.type]"
+              :range="MEASURE_REGION_TYPES"
+              :index="regionTypeIndex(draft)"
+              @change="onRegionTypeChange(draft, $event)"
+            />
+          </view>
+          <input v-model="draft.name" class="jz-form-input mr__region-cell" placeholder="区域名称" />
+          <input
+            v-model="draft.area"
+            type="digit"
+            class="jz-form-input mr__region-cell jz-numeric-input"
+            placeholder="面积㎡"
+            placeholder-class="jz-number-placeholder"
+            placeholder-style="text-align: left"
+          />
+          <input
+            v-model="draft.perimeter"
+            type="digit"
+            class="jz-form-input mr__region-cell jz-numeric-input"
+            placeholder="周长m"
+            placeholder-class="jz-number-placeholder"
+            placeholder-style="text-align: left"
+          />
+          <view class="mr__region-del" @tap.stop="removeRegion(index)">
+            <JzIcon name="trash" :size="24" :color="TOKEN_COLOR.danger" />
+          </view>
+        </view>
+        <view class="jz-btn jz-btn--plain jz-btn--sm mr__region-add" @tap="addRegion">
+          <JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" />
+          <text>添加原始区域</text>
+        </view>
+      </template>
+      <view v-else class="mr__freeze">
+        <JzIcon name="info" :size="26" :color="TOKEN_COLOR.text3" />
+        <text>该量房已完成，原始结构已冻结、不可再修改；如需修正请重新登记一次量房（复尺）。</text>
+      </view>
+
       <view class="mr__notice">
         <JzIcon name="info" :size="26" :color="TOKEN_COLOR.text3" />
-        <text>量房记录只留「谁在什么时候完成了量房」这一事实。原始结构、区域尺寸、客户诉求与设计结论统一在「方案设计」中沉淀，避免两处维护。</text>
+        <text>量房记录留「谁在什么时候完成了量房」与「房屋原始结构的逐区域实测」两项事实：原始区域在本页录入、量房完成后冻结；客户诉求与设计结论仍在「方案设计」中沉淀。</text>
       </view>
     </view>
 
@@ -179,6 +325,17 @@ async function save() {
 .mr__label { width: 170rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
 .mr__value { color: $jzb-text-1; font-size: $jzb-font; }
 .mr__notice { display: flex; align-items: flex-start; gap: 12rpx; margin-top: 20rpx; padding: 20rpx; color: $jzb-text-3; background: $jzb-bg-hover; border-radius: $jzb-radius; font-size: $jzb-font-xs; line-height: 1.65; }
+.mr__hint { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
+.mr__regions { display: flex; flex-direction: row; flex-wrap: wrap; gap: 12rpx; margin-top: 16rpx; }
+.mr__region-chip { display: flex; flex-direction: column; padding: 12rpx 18rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.mr__region-chip-name { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.mr__region-chip-value { margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.mr__region-row { display: flex; flex-direction: row; align-items: center; gap: 10rpx; margin-top: 16rpx; }
+.mr__region-cell { flex: 1; min-width: 0; }
+.mr__region-cell--type { flex: 0 0 190rpx; }
+.mr__region-del { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; }
+.mr__region-add { margin-top: 16rpx; }
+.mr__freeze { display: flex; align-items: flex-start; gap: 12rpx; margin-top: 16rpx; padding: 20rpx; color: $jzb-text-3; background: $jzb-bg-hover; border-radius: $jzb-radius; font-size: $jzb-font-xs; line-height: 1.65; }
 .mr__photos { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 14rpx; }
 .mr__photo { width: 196rpx; height: 196rpx; border-radius: $jzb-radius-sm; margin: 0 12rpx 12rpx 0; position: relative; overflow: hidden; }
 .mr__photo image { width: 100%; height: 100%; }

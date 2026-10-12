@@ -7,6 +7,7 @@ import type { Customer } from '@/domains/crm/model'
 import type { DesignItem, DesignItemType, DesignScheme, DesignSpace, PricingMode, SpaceType } from '@/domains/design/model'
 import type { CatalogItem, CatalogType } from '@/domains/catalog/model'
 import { designApi, designMeta } from '@/domains/design/api'
+
 import { crmApi } from '@/domains/crm/api'
 import { propertyApi } from '@/domains/property/api'
 import { fileApi } from '@/domains/file/api'
@@ -21,6 +22,19 @@ import DesignEditorSheets from '@/subpackages/design/components/DesignEditorShee
 import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+
+/**
+ * 区域取值来源标签（DEC-069）：量房原始区域继承 / 方案内录入（含结构改造）/ 模版参考值（待实测，不进金额）。
+ */
+const SPACE_ORIGIN_LABEL: Record<'measure' | 'override' | 'templateReference', string> = {
+  measure: '原始结构继承',
+  override: '方案内录入',
+  templateReference: '模版参考（待实测）'
+}
+
+function spaceOriginLabel(origin: 'measure' | 'override' | 'templateReference'): string {
+  return SPACE_ORIGIN_LABEL[origin] ?? ''
+}
 type TabKey = 'base' | 'space' | 'construction' | 'material' | 'other'
 type SchemeSheetAction = {
   key: 'save' | 'ai' | 'finish'
@@ -710,6 +724,11 @@ function handleMoreAction(index: number) {
         <view v-for="space in spaces" :key="space.id" class="jz-card ds__space-card">
           <view class="ds__space-head" @tap="openSpace(space)">
             <view class="ds__space-type-tag">{{ designMeta.spaceType[space.type] }}</view>
+            <view
+              v-if="space.valueOrigin"
+              class="ds__space-origin"
+              :class="`ds__space-origin--${space.valueOrigin}`"
+            >{{ spaceOriginLabel(space.valueOrigin) }}</view>
             <view class="jz-grow"><text class="ds__space-name jz-clamp-1">{{ space.name }}</text></view>
             <view class="ds__space-area">
               <text v-if="space.area != null" class="ds__space-area-num">{{ space.area }}</text>

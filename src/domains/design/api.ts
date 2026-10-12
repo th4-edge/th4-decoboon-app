@@ -117,6 +117,16 @@ export function unitValue(value: string): string {
   return UNIT_VALUES[value] || value || 'Item'
 }
 
+/** 区域取值来源（DEC-069）：measure=量房原始区域继承，override=方案内录入，templateReference=模版参考值。 */
+function spaceValueOrigin(raw: unknown): 'measure' | 'override' | 'templateReference' | null {
+  if (raw == null) return null
+  const value = String(enumValue(raw)).toLowerCase()
+  if (value === 'measure') return 'measure'
+  if (value === 'override') return 'override'
+  if (value === 'templatereference') return 'templateReference'
+  return null
+}
+
 function normalizeSpace(raw: RawRecord): DesignSpace {
   return {
     ...raw,
@@ -129,6 +139,8 @@ function normalizeSpace(raw: RawRecord): DesignSpace {
     area: raw.area == null ? null : number(raw.area),
     perimeter: raw.perimeter == null ? null : number(raw.perimeter),
     areaSource: raw.areaSource == null ? null : (enumValue(raw.areaSource).toLowerCase() as 'measured' | 'estimated') || null,
+    valueOrigin: spaceValueOrigin(raw.valueOrigin),
+    sourceMeasureRegionId: raw.sourceMeasureRegionId == null ? undefined : String(raw.sourceMeasureRegionId),
     sort: number(raw.sort),
     remark: raw.remark,
     images: raw.images
