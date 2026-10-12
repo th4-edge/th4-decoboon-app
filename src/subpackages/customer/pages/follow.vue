@@ -34,6 +34,23 @@ const lastFollow = ref<CustomerFollow | null>(null)
 const lastImages = ref<string[]>([])
 const images = ref<SelectedImage[]>([])
 const requestId = ref(`app-follow-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+
+/**
+ * 本地日期（yyyy-MM-dd）。后端 `customer-follow/save` 以 Asia/Shanghai 的"今天"判定
+ * "下次跟进时间不能早于今天"，客户端即本地时区，直接取本地日期即为同一口径。
+ */
+function localDate(offsetDays = 0) {
+  const d = new Date(Date.now() + offsetDays * 86400000)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+/** 下次跟进可选范围下限＝今天；上限＝一年后。 */
+const todayDate = localDate()
+const maxFollowDate = localDate(365)
+/** 上次约定的下次跟进日期（仅提示用）。 */
+const lastAgreedNextAt = computed(() => (lastFollow.value?.nextFollowAt || '').slice(0, 10))
+/** 上次约定日期已过期：不得回填到输入框，否则保存必被后端拒绝。 */
+const lastAgreedOverdue = computed(() => !!lastAgreedNextAt.value && lastAgreedNextAt.value < todayDate)
 const uploading = computed(() => images.value.some((item) => item.status === 'uploading'))
 const uploadFailed = computed(() => images.value.some((item) => item.status === 'failed'))
 const WAYS = [
@@ -58,7 +75,10 @@ onLoad(async (q) => {
     lastFollow.value = follows[0] || null
     if (lastFollow.value) lastImages.value = await followImageUrls(lastFollow.value)
     if (!nextFollowAt.value && lastFollow.value?.nextFollowAt) {
-      nextFollowAt.value = lastFollow.value.nextFollowAt.slice(0, 10)
+      const agreed = lastFollow.value.nextFollowAt.slice(0, 10)
+      // INC-20261006-05ad2b36fb：上次约定日期若已过期，回填后保存必被后端拒绝
+      // （「下次跟进时间不能早于今天」，2 天内 162 次失败）。已过期只作提示，不回填。
+      if (agreed >= todayDate) nextFollowAt.value = agreed
     }
   } catch {
     // 客户上下文加载失败不阻断写跟进
@@ -117,6 +137,10 @@ function previewSelectedImage(index: number) {
 
 async function save() {
   if (!content.value.trim()) { toast('请填写跟进内容'); return }
+  if (nextFollowAt.value && nextFollowAt.value < todayDate) {
+    toast(`下次跟进时间不能早于今天（${todayDate}）`)
+    return
+  }
   if (uploading.value) { toast('图片上传中，请稍候'); return }
   if (uploadFailed.value) { toast('有图片上传失败，请重试或移除后保存'); return }
   loading('保存中…')
@@ -171,7 +195,7 @@ async function save() {
           @tap="previewFollowImage(lastFollow, index)"
         />
       </view>
-      <text v-if="lastFollow.nextFollowAt" class="cf__last-next">上次约定：{{ lastFollow.nextFollowAt.slice(0, 10) }} 前跟进</text>
+      <text v-if="lastFollow.nextFollowAt" class="cf__last-next">上次约定：{{ lastAgreedNextAt }} 前跟进{{ lastAgreedOverdue ? '（已逾期，本次请重新选择日期）' : '' }}</text>
     </view>
 
     <view class="cf__card jz-card">
@@ -198,7 +222,7 @@ async function save() {
       </view>
 
       <text class="cf__label">下次跟进时间</text>
-      <JzSelectField mode="date" variant="plain" :value="nextFollowAt" start="2026-01-01" end="2027-12-31" :display="nextFollowAt" placeholder="选择下次跟进日期（可选）" @change="nextFollowAt = $event" />
+      <JzSelectField mode="date" variant="plain" :value="nextFollowAt" :start="todayDate" :end="maxFollowDate" :display="nextFollowAt" placeholder="选择下次跟进日期（可选，不早于今天）" @change="nextFollowAt = $event" />
 
       <button class="jz-btn jz-btn--primary jz-btn--block cf__save" :disabled="uploading" @tap="save">
         {{ uploading ? '图片上传中…' : '保存跟进' }}
