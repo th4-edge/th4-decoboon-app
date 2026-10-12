@@ -15,15 +15,23 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 type RoleFilter = 'all' | EmployeePerformance['role']
 
 const month = ref(currentMonth())
-const storeId = ref('')
 const roleFilter = ref<RoleFilter>('all')
 const report = ref<PerformanceReport | null>(null)
+
+/** 服务端门店范围注记：全部门店口径下的未归属条数（`DEC-067` BOSS-STORE-03，文案与 Web 一致）。 */
+const scopeNote = computed(() => {
+  const scope = report.value?.storeScope
+  return scope && scope.scopeType === 'AllStores' && scope.unassignedCount > 0
+    ? `含未归属门店 ${scope.unassignedCount} 条`
+    : ''
+})
 const measureReport = ref<BossMeasureReport | null>(null)
 const loading = ref(false)
 const loadError = ref('')
@@ -46,8 +54,14 @@ const summary = computed(() => {
 })
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) void load() })
+onShow(() => { if (isLoggedIn()) { void loadStoreScope(); void load() } })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+
+/** 门店维度切换：写共享上下文（含持久化）后重新取数。 */
+function onStoreScopeChange(value: string) {
+  setStoreScope(value)
+  void load()
+}
 
 async function load() {
   if (!['boss', 'storeManager', 'teamLeader'].includes(session.role || '')) {
@@ -58,8 +72,8 @@ async function load() {
   loadError.value = ''
   try {
     const [performance, measure] = await Promise.all([
-      statisticApi.performance(`${month.value}-01`, roleFilter.value === 'all' ? undefined : roleFilter.value, storeId.value || undefined),
-      workbenchApi.bossMeasure({ month: `${month.value}-01`, storeId: storeId.value || undefined })
+      statisticApi.performance(`${month.value}-01`, roleFilter.value === 'all' ? undefined : roleFilter.value, storeScopeRequestId.value),
+      workbenchApi.bossMeasure({ month: `${month.value}-01`, storeId: storeScopeRequestId.value })
     ])
     report.value = performance
     measureReport.value = measure
@@ -144,7 +158,12 @@ function currentMonth() {
   <view class="assess-page">
     <JzPageHeader title="员工绩效业绩" subtitle="按员工汇总转化、签约、准时交付与验收通过" right-icon="refresh" @right="load" />
     <view class="assess-body">
-      <JzStoreFilter v-model="storeId" @change="load" />
+      <JzStoreFilter
+      :model-value="storeScope.storeId"
+      :stores="storeScope.stores"
+      :visible="storeScopeVisible"
+      :note="scopeNote"
+      @change="onStoreScopeChange" />
 
       <view class="assess-toolbar jz-card">
         <JzSelectField mode="date" fields="month" variant="boxed" icon="calendar" :value="month" :display="month" @change="onMonthChange" />

@@ -475,25 +475,13 @@ async function reviewChange(change: ContractChange, approved: boolean) {
   try {
     await tradeApi.confirmContractChange(change.id, approved)
     await loadDownstream()
-    toast(approved ? '变更审批已通过，等待客户确认' : '变更已驳回', 'success')
+    // DEC-068：审批通过即生效，不再有“等待客户确认”环节。
+    toast(approved ? '变更审批已通过并生效' : '变更已驳回', 'success')
   } catch (error) {
     toastError(error, '变更审批失败')
   } finally { busy.value = false }
 }
 
-async function confirmCustomerChange(change: ContractChange) {
-  if (busy.value) return
-  const ok = await confirm('客户确认变更', `${change.no} · ${change.reason}\n确认客户已认可本次变更报价？`, '确认已认可')
-  if (!ok) return
-  busy.value = true
-  try {
-    await tradeApi.customerConfirmContractChange(change.id)
-    await loadDownstream()
-    toast('客户确认已登记，合同与应收已同步', 'success')
-  } catch (error) {
-    toastError(error, '客户确认登记失败')
-  } finally { busy.value = false }
-}
 </script>
 
 <template>
@@ -659,13 +647,10 @@ async function confirmCustomerChange(change: ContractChange) {
         <view class="jz-between"><text class="qd__down-title">合同变更单</text><text class="qd__down-sub">{{ pendingChanges.length }} 份待审批</text></view>
         <view v-if="changes.length" class="qd__change-list">
           <view v-for="change in changes.slice(0, 3)" :key="change.id" class="qd__change">
-            <view class="jz-grow"><text class="qd__change-reason jz-clamp-2">{{ change.reason }}</text><text class="qd__down-sub">{{ change.no }} · {{ change.status === 'pending' ? '待审批' : change.status === 'approved' ? '待客户确认' : change.status === 'customerConfirmed' ? '客户已确认' : change.status === 'cancelled' ? '已取消' : '已驳回' }}</text></view>
+            <view class="jz-grow"><text class="qd__change-reason jz-clamp-2">{{ change.reason }}</text><text class="qd__down-sub">{{ change.no }} · {{ change.status === 'pending' || change.status === 'approved' ? '待审批' : change.status === 'customerConfirmed' ? '已生效' : change.status === 'cancelled' ? '已取消' : '已驳回' }}</text></view>
             <text class="qd__change-amount" :class="{ 'qd__change-amount--down': change.amount < 0 }">{{ change.amount > 0 ? '+' : '' }}{{ money(change.amount) }}</text>
             <view v-if="change.status === 'pending' && canApproveChange" class="qd__change-actions">
               <text @tap.stop="reviewChange(change, true)">通过</text><text @tap.stop="reviewChange(change, false)">驳回</text>
-            </view>
-            <view v-else-if="change.status === 'approved' && (session.role === 'boss' || session.role === 'pm' || session.role === 'designer')" class="qd__change-actions">
-              <text @tap.stop="confirmCustomerChange(change)">客户确认</text>
             </view>
           </view>
         </view>

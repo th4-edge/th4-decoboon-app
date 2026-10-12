@@ -309,12 +309,22 @@ export interface DashboardMetric {
   warning?: string
 }
 
+/** 门店维度范围标注（`DEC-067` BOSS-STORE-03）：全部门店带未归属条数，单店恒 0。 */
+export interface StoreScopeInfo {
+  scopeType: 'AllStores' | 'Store'
+  storeId?: string
+  storeName?: string
+  unassignedCount: number
+}
+
 export interface BossDashboard {
   month: string
   signedAmount: DashboardMetric
   receivedAmount: DashboardMetric
   grossProfit: DashboardMetric
   activeProjectCount: DashboardMetric
+  /** 门店维度范围标注（服务端口径，前端不得兜底计数）。 */
+  storeScope?: StoreScopeInfo
 }
 
 export type BusinessAlertType = 'overdueReceivable' | 'projectSuspensionRisk' | 'materialOverIssue' | 'abnormalChangeRate'
@@ -439,6 +449,8 @@ export interface PerformanceReport {
   averagePmOnTimeDeliveryRate: number
   averagePmAcceptancePassRate: number
   performances: EmployeePerformance[]
+  /** 门店维度范围标注（服务端口径；本报表为未归属**员工**数）。 */
+  storeScope?: StoreScopeInfo
 }
 
 export interface BusinessTarget {

@@ -181,6 +181,8 @@ export function logout() {
   })
   uni.removeStorageSync(KEY)
   uni.removeStorageSync(runtime.tokenKey)
+  // DEC-067 P0A-03：退出登录清理门店维度记忆
+  uni.removeStorageSync('zdq.storeScope.v1')
   persist()
 }
 

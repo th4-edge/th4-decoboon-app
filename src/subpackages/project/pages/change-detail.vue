@@ -5,12 +5,9 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
 import type { Contract, ContractChange, ContractChangeStatus } from '@/domains/trade/model'
-import { fileApi } from '@/domains/file/api'
-import { chooseImages } from '@/domains/file/choose-media'
 import { money } from '@/core/format'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
-import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -19,7 +16,8 @@ import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const STATUS_META: Record<ContractChangeStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  // DEC-068：approved 为历史遗留状态（旧“待客户确认”），展示收敛为“待审批”。
+  approved: { label: '待审批', color: TOKEN_COLOR.warning },
   customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
@@ -37,18 +35,12 @@ const loading = ref(true)
 const loadError = ref('')
 const busy = ref(false)
 const conclusion = ref('')
-const showConfirm = ref(false)
-const signature = ref('')
-const evidence = ref<string[]>([])
 
 const role = computed(() => (session.role || 'customer') as string)
 /** 审批仅企业负责人与财务（服务端同等校验）。 */
 const canApprove = computed(() => ['boss', 'finance'].includes(role.value))
-/** 客户确认代登记：企业负责人 / 项目经理 / 设计师（服务端同等校验）。 */
-const canConfirm = computed(() => ['boss', 'pm', 'designer'].includes(role.value))
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(role.value))
 const isConfirmed = computed(() => change.value?.status === 'customerConfirmed')
-const needsLegacyCustomerConfirm = computed(() => change.value?.status === 'approved' && change.value?.customerConfirmed === false)
 const currentAmount = computed(() => Number(contract.value?.currentAmount || 0))
 const delta = computed(() => Number(change.value?.amount || 0))
 const beforeAmount = computed(() => (isConfirmed.value ? currentAmount.value - delta.value : currentAmount.value))
@@ -101,42 +93,6 @@ async function reject() {
     await load()
   } catch (error) {
     toastError(error, '驳回失败')
-  } finally { busy.value = false }
-}
-
-async function choosePhoto(target: 'signature' | 'evidence') {
-  const count = target === 'signature' ? 1 : 9 - evidence.value.length
-  if (count <= 0) return
-  try {
-    const paths = await chooseImages({ count })
-    const path = paths[0]
-    if (!path) return
-    if (target === 'signature') signature.value = path
-    else evidence.value = [...evidence.value, ...paths]
-  } catch (error) {
-    toast(error instanceof Error ? error.message : '照片选择失败，请重试')
-  }
-}
-
-async function upload(path: string): Promise<string> {
-  if (fileApi.isManaged(path)) return path
-  const res = await fileApi.upload('ContractChange', path, { projectId: projectId.value })
-  return res.path
-}
-
-async function submitConfirm() {
-  if (busy.value || !change.value) return
-  busy.value = true
-  try {
-    const input: { signatureUrl?: string; evidenceImages?: string[] } = {}
-    if (signature.value) input.signatureUrl = await upload(signature.value)
-    if (evidence.value.length) input.evidenceImages = await Promise.all(evidence.value.map(upload))
-    await tradeApi.customerConfirmContractChange(change.value.id, input)
-    toast('客户确认已登记，合同与应收已同步', 'success')
-    showConfirm.value = false
-    await load()
-  } catch (error) {
-    toastError(error, '客户确认登记失败')
   } finally { busy.value = false }
 }
 
@@ -193,10 +149,8 @@ async function cancel() {
         <view class="cd__kv"><text>本次成本变化</text><text>{{ money(change.costDelta) }}</text></view>
       </view>
 
-      <view class="jz-card cd__block" v-if="change.evidenceImages?.length || change.signatureUrl || change.customerConfirmed">
-        <text class="cd__block-title">客户线下确认与签认</text>
-        <view class="cd__kv" v-if="change.customerConfirmed"><text>确认事实</text><text>{{ change.customerConfirmedBy || '客户' }} · {{ change.customerConfirmMethod || '线下确认' }}</text></view>
-        <view class="cd__kv" v-if="change.customerConfirmedAt"><text>确认时间</text><text>{{ change.customerConfirmedAt }}</text></view>
+      <view class="jz-card cd__block" v-if="change.evidenceImages?.length || change.signatureUrl">
+        <text class="cd__block-title">现场证据</text>
         <view class="cd__photos">
           <image v-for="img in change.evidenceImages" :key="img" :src="img" mode="aspectFill" class="cd__photo" />
           <image v-if="change.signatureUrl" :src="change.signatureUrl" mode="aspectFill" class="cd__photo" />
@@ -220,17 +174,17 @@ async function cancel() {
               <text class="cd__node-sub">{{ change.approvedAt }}<template v-if="change.conclusion"> · {{ change.conclusion }}</template></text>
             </view>
           </view>
-          <view v-if="change.customerConfirmedAt" class="cd__node">
-            <text class="cd__node-title">已生效（客户线下已确认 + 企业审批通过）</text>
-            <text class="cd__node-sub">{{ change.customerConfirmedAt }} · 合同金额、应收、任务、材料已同步</text>
+          <view v-if="change.status === 'customerConfirmed'" class="cd__node">
+            <text class="cd__node-title">已生效（企业审批通过）</text>
+            <text class="cd__node-sub">{{ change.approvedAt || '' }} · 合同金额、应收、任务、材料已同步</text>
           </view>
           <view v-if="change.status === 'pending'" class="cd__node cd__node--todo">
             <text class="cd__node-title">等待企业负责人或财务审批</text>
-            <text class="cd__node-sub">未审批前不能进行客户确认</text>
+            <text class="cd__node-sub">审批通过即生效，并即时同频业主端只读可见</text>
           </view>
           <view v-if="change.status === 'approved'" class="cd__node cd__node--todo">
-            <text class="cd__node-title">等待客户签认</text>
-            <text class="cd__node-sub">由项目经理现场代登记客户确认</text>
+            <text class="cd__node-title">历史单据：待企业一次性收口</text>
+            <text class="cd__node-sub">请联系企业负责人处理</text>
           </view>
         </view>
       </view>
@@ -238,28 +192,6 @@ async function cancel() {
       <view class="jz-card cd__block" v-if="change.status === 'pending' && canApprove">
         <text class="cd__block-title">审批意见</text>
         <textarea v-model="conclusion" class="cd__ta" maxlength="200" placeholder="填写审批意见（驳回时必填）" />
-      </view>
-
-      <view class="jz-card cd__block" v-if="needsLegacyCustomerConfirm && canConfirm">
-        <view class="jz-between">
-          <text class="cd__block-title">客户签认</text>
-          <text class="cd__link" @tap="showConfirm = !showConfirm">{{ showConfirm ? '收起' : '展开登记' }}</text>
-        </view>
-        <template v-if="showConfirm">
-          <view class="cd__photos">
-            <image v-if="signature" :src="signature" mode="aspectFill" class="cd__photo" />
-            <view v-else class="cd__photo cd__photo--add" @tap="choosePhoto('signature')">
-              <JzIcon name="camera" :size="34" :color="TOKEN_COLOR.text3" /><text class="cd__photo-tip">客户签认单</text>
-            </view>
-            <view v-for="img in evidence" :key="img" class="cd__photo-wrap">
-              <image :src="img" mode="aspectFill" class="cd__photo" />
-            </view>
-            <view v-if="evidence.length < 9" class="cd__photo cd__photo--add" @tap="choosePhoto('evidence')">
-              <JzIcon name="camera" :size="34" :color="TOKEN_COLOR.text3" /><text class="cd__photo-tip">补充签证</text>
-            </view>
-          </view>
-          <text class="cd__hint">确认后系统同步更新合同金额、应收、施工任务、材料计划和项目成本；原报价与原合同行不变。</text>
-        </template>
       </view>
 
       <view class="jz-card cd__block">
@@ -272,9 +204,6 @@ async function cancel() {
         <template v-if="change.status === 'pending' && canApprove">
           <button class="jz-btn jz-btn--ghost" :disabled="busy" @tap="reject">驳回</button>
           <button class="jz-btn jz-btn--primary jz-grow" :disabled="busy" @tap="approve">审批通过</button>
-        </template>
-        <template v-else-if="needsLegacyCustomerConfirm && canConfirm">
-          <button class="jz-btn jz-btn--primary jz-grow" :disabled="busy" @tap="submitConfirm">确认客户已认可</button>
         </template>
         <template v-else-if="change.status === 'pending'">
           <button class="jz-btn jz-btn--ghost jz-grow" :disabled="busy" @tap="cancel">撤回变更单</button>

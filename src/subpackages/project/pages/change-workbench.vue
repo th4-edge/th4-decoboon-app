@@ -26,7 +26,7 @@ type ViewKey = 'all' | 'pending' | 'approved' | 'confirmed' | 'risk' | 'closed'
 const VIEWS: { key: ViewKey; label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'pending', label: '待审批' },
-  { key: 'approved', label: '待客户确认（历史）' },
+  { key: 'approved', label: '待审批' },
   { key: 'confirmed', label: '已生效' },
   { key: 'risk', label: '风险优先' },
   { key: 'closed', label: '已关闭' }
@@ -34,7 +34,8 @@ const VIEWS: { key: ViewKey; label: string }[] = [
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  // DEC-068：历史遗留状态（旧“待客户确认”）展示收敛为“待审批”。
+  approved: { label: '待审批', color: TOKEN_COLOR.warning },
   customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
@@ -58,8 +59,6 @@ const role = computed(() => session.role || 'customer')
 const canEnter = computed(() => ['boss', 'storeManager', 'finance', 'teamLeader'].includes(role.value as string))
 /** 后端审批只允许 BOSS/财务；店长可查看本店但不能审批。 */
 const canApprove = computed(() => ['boss', 'finance'].includes(role.value as string))
-/** 客户确认仅 BOSS/PM/设计师；企业级工作台只由 BOSS 代登记。 */
-const canCustomerConfirm = computed(() => role.value === 'boss')
 /** 发起增减项：与后端 requireChangeInitiator 对齐，经营工作台内仅负责人与本店店长可直接发起。 */
 const canCreate = computed(() => ['boss', 'storeManager'].includes(role.value as string))
 
@@ -147,11 +146,11 @@ function focusRisk() {
 
 async function approve(item: BossContractChangeItem) {
   if (busy.value) return
-  if (!await confirm('审批变更单', `确认审批通过「${item.changeNo}」？通过后进入客户确认。`, '通过')) return
+  if (!await confirm('审批变更单', `确认审批通过「${item.changeNo}」？通过后即生效并同步合同金额、应收与材料计划。`, '通过')) return
   busy.value = item.changeId
   try {
     await tradeApi.confirmContractChange(item.changeId, true)
-    toast('变更已审批，等待客户确认', 'success')
+    toast('变更已审批并生效', 'success')
     await load()
   } catch (error) {
     toastError(error, '审批失败')
@@ -170,21 +169,6 @@ async function reject(item: BossContractChangeItem) {
     await load()
   } catch (error) {
     toastError(error, '驳回失败')
-  } finally {
-    busy.value = ''
-  }
-}
-
-async function customerConfirm(item: BossContractChangeItem) {
-  if (busy.value) return
-  if (!await confirm('登记客户确认', `确认客户已确认「${item.changeNo}」？确认后同步合同金额、应收与材料计划。`, '确认')) return
-  busy.value = item.changeId
-  try {
-    await tradeApi.customerConfirmContractChange(item.changeId)
-    toast('客户确认已登记，合同与应收已同步', 'success')
-    await load()
-  } catch (error) {
-    toastError(error, '客户确认登记失败')
   } finally {
     busy.value = ''
   }
@@ -285,9 +269,9 @@ function addressText(group: BossContractChangeGroup) {
           <text class="ccw__metric-sub">{{ report.pendingCount ? `金额 ${money(report.pendingAmount)}` : '当前无待审批' }}</text>
         </view>
         <view class="jz-card ccw__metric">
-          <text class="ccw__metric-label">待客户确认</text>
+          <text class="ccw__metric-label">历史待收口</text>
           <text class="ccw__metric-value" :class="{ 'ccw__metric-value--wait': report.approvedCount > 0 }">{{ report.approvedCount }}</text>
-          <text class="ccw__metric-sub">{{ report.approvedCount ? `金额 ${money(report.approvedAmount)}` : '当前无待确认' }}</text>
+          <text class="ccw__metric-sub">{{ report.approvedCount ? `金额 ${money(report.approvedAmount)}` : '当前无待收口' }}</text>
         </view>
         <view class="jz-card ccw__metric">
           <text class="ccw__metric-label">本月已确认</text>
@@ -402,7 +386,7 @@ function addressText(group: BossContractChangeGroup) {
         <JzEmpty
           v-if="!groups.length"
           :text="view === 'all' ? '还没有变更单' : '当前筛选下暂无变更单'"
-          sub="合同签订后发生的施工项、主材增减，发起并经客户确认后会汇总到这里"
+          sub="合同签订后发生的施工项、主材增减，发起并经企业审批通过后会汇总到这里"
         />
         <view v-for="group in groups" :key="group.projectId" class="jz-card ccw__group">
           <view class="ccw__group-head" @tap="openDetail(group.items[0])">
@@ -464,7 +448,7 @@ function addressText(group: BossContractChangeGroup) {
                 <text v-if="item.status === 'pending' || item.status === 'approved'">已等待 {{ waitText(item.waitingHours) }}</text>
                 <text v-if="item.materialItemCount">主材 {{ item.materialItemCount }} 项 · 待下单 {{ item.materialPendingCount }}</text>
                 <text v-if="report.costVisible && item.costDelta != null">成本 {{ signed(item.costDelta) }}</text>
-                <text v-if="item.customerConfirmedAt">确认 {{ item.customerConfirmedAt.slice(0, 10) }}</text>
+                <text v-if="item.customerConfirmedAt">生效 {{ item.customerConfirmedAt.slice(0, 10) }}</text>
               </view>
               <view class="ccw__item-risk" :class="`ccw__item-risk--${item.riskLevel}`" @tap="openDetail(item)">
                 <JzIcon
@@ -486,9 +470,6 @@ function addressText(group: BossContractChangeGroup) {
               <view v-if="item.status === 'pending' && canApprove" class="ccw__item-actions" @tap.stop>
                 <button class="jz-btn jz-btn--ghost jz-btn--sm" :disabled="busy === item.changeId" @tap="reject(item)">驳回</button>
                 <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.changeId" @tap="approve(item)">审批通过</button>
-              </view>
-              <view v-else-if="item.status === 'approved' && canCustomerConfirm" class="ccw__item-actions" @tap.stop>
-                <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.changeId" @tap="customerConfirm(item)">登记客户确认</button>
               </view>
             </view>
           </view>

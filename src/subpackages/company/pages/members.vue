@@ -13,12 +13,12 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 type Filter = 'Active' | 'Suspended' | 'Resigned'
 const filter = ref<Filter>('Active')
 const members = ref<Employee[]>([])
-const storeId = ref('')
 const filters: { value: Filter; label: string }[] = [
   { value: 'Active', label: '在职' },
   { value: 'Suspended', label: '停用' },
@@ -31,12 +31,18 @@ const statusMeta = {
 }
 const currentCount = computed(() => members.value.length)
 
-onShow(() => void load())
+onShow(() => { void loadStoreScope(); void load() })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+
+/** 门店维度切换：写共享上下文（含持久化）后重新取数。 */
+function onStoreScopeChange(value: string) {
+  setStoreScope(value)
+  void load()
+}
 
 async function load() {
   try {
-    const page = await identityApi.memberPage({ status: filter.value, storeId: storeId.value || undefined, current: 1, size: 200 })
+    const page = await identityApi.memberPage({ status: filter.value, storeId: storeScopeRequestId.value, current: 1, size: 200 })
     members.value = page.list
   } catch (error) { toastError(error, '成员列表加载失败') }
 }
@@ -83,7 +89,11 @@ async function resign(member: Employee) {
   <view class="member-page">
     <JzPageHeader title="成员管理" subtitle="员工、角色、状态与离职管理" right-text="邀请员工" @right="openInvite" />
     <view class="member-body">
-      <JzStoreFilter v-model="storeId" @change="load" />
+      <JzStoreFilter
+      :model-value="storeScope.storeId"
+      :stores="storeScope.stores"
+      :visible="storeScopeVisible"
+      @change="onStoreScopeChange" />
 
       <view class="member-tabs">
         <view

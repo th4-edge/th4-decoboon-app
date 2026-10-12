@@ -319,7 +319,6 @@ export const tradeApi = {
       contractId: string; reason: string; amount?: number; type?: NonNullable<ContractChange['type']>
       contractLineId?: string; newQuantity?: number; newPrice?: number; newCost?: number; costDelta?: number
       evidenceImages?: string[]; signatureUrl?: string; reportId?: string
-      customerConfirmedAt?: string; customerConfirmedBy?: string; customerConfirmMethod?: string
     } | string,
     amount?: number,
     reason?: string
@@ -331,14 +330,15 @@ export const tradeApi = {
       ...value,
       type: value.type ? CHANGE_TYPE_API[value.type] : undefined,
       evidenceImages: value.evidenceImages?.map((path) => fileApi.storagePath(path) || path),
-      signatureUrl: fileApi.storagePath(value.signatureUrl),
-      customerConfirmedAt: value.customerConfirmedAt,
-      customerConfirmedBy: value.customerConfirmedBy,
-      customerConfirmMethod: value.customerConfirmMethod
+      signatureUrl: fileApi.storagePath(value.signatureUrl)
     }).then(normalizeContractChange)
   },
   confirmContractChange: (changeId: string, approved: boolean, conclusion?: string) =>
     post<RawRecord>('project/contract-change/update', { changeId, approved, conclusion }).then(normalizeContractChange),
+  /**
+   * 历史兼容（DEC-068）：仅用于存量 Approved（旧“待客户确认”）单据的一次性收口。
+   * 新流程审批通过即生效，App 不再暴露“登记客户确认”动作。
+   */
   customerConfirmContractChange: (changeId: string, input: { signatureUrl?: string; evidenceImages?: string[] } = {}) =>
     post<RawRecord>('project/contract-change/customer-confirm', {
       changeId,
@@ -356,9 +356,6 @@ export const tradeApi = {
     type?: NonNullable<ContractChange['type']>
     evidenceImages?: string[]
     signatureUrl?: string
-    customerConfirmedAt?: string
-    customerConfirmedBy?: string
-    customerConfirmMethod?: string
     items: Array<{
       name: string
       itemType?: string
@@ -378,9 +375,6 @@ export const tradeApi = {
       type: input.type ? CHANGE_TYPE_API[input.type] : undefined,
       evidenceImages: input.evidenceImages?.map((path) => fileApi.storagePath(path) || path),
       signatureUrl: fileApi.storagePath(input.signatureUrl),
-      customerConfirmedAt: input.customerConfirmedAt,
-      customerConfirmedBy: input.customerConfirmedBy,
-      customerConfirmMethod: input.customerConfirmMethod,
       items: input.items.map((item) => ({
         name: item.name,
         itemType: item.itemType,

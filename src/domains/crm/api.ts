@@ -3,7 +3,7 @@ import { fileApi } from '@/domains/file/api'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Customer, CustomerBatchItem, CustomerBatchPreview, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag } from './model'
+import type { Customer, CustomerBatchItem, CustomerBatchPreview, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag, StoreScopeInfo } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 
@@ -227,6 +227,17 @@ export interface CustomerPageQuery {
   storeId?: string
 }
 
+function normalizeStoreScope(raw: unknown): StoreScopeInfo | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const i = raw as RawRecord
+  return {
+    scopeType: i.scopeType === 'Store' ? 'Store' : 'AllStores',
+    storeId: i.storeId == null ? undefined : String(i.storeId),
+    storeName: i.storeName == null ? undefined : String(i.storeName),
+    unassignedCount: Number(i.unassignedCount ?? 0)
+  }
+}
+
 export const crmApi = {
   overview: async (query: { current?: number; size?: number; keyword?: string; stage?: string; sort?: string; storeId?: string; ownerId?: string } = {}): Promise<CustomerOverviewReport> => {
     const raw = await post<RawRecord>('customer/customer/overview', {
@@ -241,6 +252,7 @@ export const crmApi = {
     return {
       asOf: raw.asOf ? String(raw.asOf) : undefined,
       month: raw.month ? String(raw.month) : undefined,
+      storeScope: normalizeStoreScope(raw.storeScope),
       metrics: (Array.isArray(raw.metrics) ? raw.metrics : []).map((item) => normalizeMetric(item as RawRecord)),
       stageCounts: (Array.isArray(raw.stageCounts) ? raw.stageCounts : []).map((item) => normalizeStageCount(item as RawRecord)),
       ownerGroups: (Array.isArray(raw.ownerGroups) ? raw.ownerGroups : []).map((item) => {

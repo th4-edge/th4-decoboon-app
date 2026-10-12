@@ -37,6 +37,22 @@ const loading = ref(false)
 const urgentTab = ref<'overdue' | 'dueSoon' | 'pay'>('overdue')
 const editable = computed(() => can(session.role, 'edit:finance'))
 
+/**
+ * 门店范围主体（店长、门店财务）只看本店，页面呈现为「本店财务记账台」；
+ * 总部财务（归属默认总店）与 BOSS 仍为企业范围（DEC-065）。
+ */
+const storeScoped = computed(() => {
+  const role = session.role
+  if (role === 'storeManager') return true
+  if (role !== 'finance') return false
+  return session.emp?.store?.defaultStore !== true
+})
+const storeName = computed(() => session.emp?.store?.name || '本店')
+const pageTitle = computed(() => (storeScoped.value ? '本店财务记账台' : '财务工作台'))
+const pageSubtitle = computed(() => (storeScoped.value
+  ? `${session.company?.name || '当前企业'} · ${storeName.value} · 本店经营资金与项目账务`
+  : `${session.company?.name || '当前企业'} · 经营资金与项目账务`))
+
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
 onShow(() => {
   if (!isLoggedIn()) return
@@ -161,7 +177,7 @@ function openQuick(item: FinanceQuickItem) {
 
 <template>
   <view class="fin-page fin-page--tab">
-    <JzPageHeader title="财务工作台" :subtitle="`${session.company?.name || '当前企业'} · 经营资金与项目账务`" right-icon="refresh" @right="refresh" />
+    <JzPageHeader :title="pageTitle" :subtitle="pageSubtitle" right-icon="refresh" @right="refresh" />
 
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">当前账面现金余额</text>

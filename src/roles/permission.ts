@@ -110,6 +110,8 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
+    // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
+    'edit:finance',
     'view:cost',
     'view:schedule', 'view:task', 'edit:quote',
     // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成

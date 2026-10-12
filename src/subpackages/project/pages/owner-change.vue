@@ -60,7 +60,7 @@ async function refresh() {
       <view v-if="pending" class="ochange__empty jz-card">
         <JzIcon name="history" :size="72" :color="TOKEN_COLOR.text4" />
         <text class="ochange__empty-title">暂无增减项</text>
-        <text class="ochange__empty-sub">施工过程中如需增加或减少项目，由您与设计师线下确认后形成正式变更单；企业审批通过即生效，您可在此查看客户确认事实与签认证据。</text>
+        <text class="ochange__empty-sub">施工过程中如需增加或减少项目，由您与设计师线下确认后形成正式变更单；企业审批通过即生效，本页只读展示变更结果。</text>
       </view>
 
       <view v-else class="ochange__block">

@@ -16,9 +16,11 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
+// DEC-068：系统不再建模业主确认，展示口径只有“待审批 / 已生效 / 已驳回 / 已取消”。
+// approved 为历史遗留状态（旧口径“待客户确认”），新单据不再产生，展示收敛为“待审批”。
 const STATUS_META: Record<ContractChangeStatus, { label: string; color: string }> = {
   pending: { label: '待审批', color: TOKEN_COLOR.warning },
-  approved: { label: '待客户确认（历史）', color: TOKEN_COLOR.purple },
+  approved: { label: '待审批', color: TOKEN_COLOR.warning },
   customerConfirmed: { label: '已生效', color: TOKEN_COLOR.success },
   rejected: { label: '已驳回', color: TOKEN_COLOR.danger },
   cancelled: { label: '已取消', color: TOKEN_COLOR.text3 }
@@ -37,7 +39,6 @@ const activeFilter = ref<'all' | 'open' | 'done'>('all')
 
 const role = computed(() => session.role || 'customer')
 const canApprove = computed(() => ['boss', 'finance'].includes(role.value as string))
-const canCustomerConfirm = computed(() => ['boss', 'pm', 'designer'].includes(role.value as string))
 /** 发起增减项：与后端 ProjectAccessContext.requireChangeInitiator 对齐。
  *  仅企业负责人/店长/项目经理/本项目设计师可发起；业务员、财务、团队负责人、业主不可。 */
 const canCreate = computed(() => ['boss', 'storeManager', 'pm', 'designer'].includes(role.value as string))
@@ -92,11 +93,11 @@ async function load() {
 
 async function approve(item: ContractChange) {
   if (busy.value) return
-  if (!await confirm('审批变更单', `确认审批通过「${item.no}」？通过后由客户确认。`, '通过')) return
+  if (!await confirm('审批变更单', `确认审批通过「${item.no}」？通过后即生效并同步合同金额、应收与材料计划。`, '通过')) return
   busy.value = item.id
   try {
     await tradeApi.confirmContractChange(item.id, true)
-    toast('变更已审批，等待客户确认', 'success')
+    toast('变更已审批并生效', 'success')
     await load()
   } catch (error) {
     toastError(error, '审批失败')
@@ -115,21 +116,6 @@ async function reject(item: ContractChange) {
     await load()
   } catch (error) {
     toastError(error, '驳回失败')
-  } finally {
-    busy.value = ''
-  }
-}
-
-async function customerConfirm(item: ContractChange) {
-  if (busy.value) return
-  if (!await confirm('登记客户确认', `确认客户已确认「${item.no}」？确认后将同步合同金额、应收与材料计划。`, '确认')) return
-  busy.value = item.id
-  try {
-    await tradeApi.customerConfirmContractChange(item.id)
-    toast('客户确认已登记，合同与应收已同步', 'success')
-    await load()
-  } catch (error) {
-    toastError(error, '客户确认登记失败')
   } finally {
     busy.value = ''
   }
@@ -208,11 +194,8 @@ function openContract() {
             <button class="jz-btn jz-btn--ghost jz-btn--sm" :disabled="busy === item.id" @tap="reject(item)">驳回</button>
             <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.id" @tap="approve(item)">审批通过</button>
           </view>
-          <view v-else-if="item.status === 'approved' && item.customerConfirmed === false && canCustomerConfirm" class="chg__actions" @tap.stop>
-            <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busy === item.id" @tap="customerConfirm(item)">登记客户确认</button>
-          </view>
           <view v-else-if="item.status === 'pending'" class="chg__hint">等待有审批权限的负责人处理</view>
-          <view v-else-if="item.status === 'approved'" class="chg__hint">历史单据：已审批通过，等待客户确认后同步金额与履约计划</view>
+          <view v-else-if="item.status === 'approved'" class="chg__hint">历史单据：待企业一次性收口，请联系企业负责人处理</view>
         </view>
       </view>
     </template>

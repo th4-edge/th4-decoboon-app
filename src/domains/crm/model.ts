@@ -142,6 +142,14 @@ export interface CustomerOwnerGroup {
   signedAmount: number
 }
 
+/** 门店维度范围标注（`DEC-067` BOSS-STORE-03）。 */
+export interface StoreScopeInfo {
+  scopeType: 'AllStores' | 'Store'
+  storeId?: string
+  storeName?: string
+  unassignedCount: number
+}
+
 export interface CustomerOverviewReport {
   asOf?: string
   month?: string
@@ -153,6 +161,8 @@ export interface CustomerOverviewReport {
   size: number
   total: number
   hasMore: boolean
+  /** 门店维度范围标注（服务端口径）。 */
+  storeScope?: StoreScopeInfo
 }
 
 /** 批量手机号解析明细。 */

@@ -2,6 +2,19 @@ import { post } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
 import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus, MetricDefinition } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
+import type { StoreScopeInfo } from './model'
+
+/** 服务端门店范围标注（`DEC-067` BOSS-STORE-03）：前端只展示，不兜底计数。 */
+function normalizeStoreScope(raw: unknown): StoreScopeInfo | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const i = raw as RawRecord
+  return {
+    scopeType: i.scopeType === 'Store' ? 'Store' : 'AllStores',
+    storeId: i.storeId == null ? undefined : String(i.storeId),
+    storeName: i.storeName == null ? undefined : String(i.storeName),
+    unassignedCount: Number(i.unassignedCount ?? 0)
+  }
+}
 import { normalizeCustomer } from '../crm/api'
 import { normalizeQuote } from '../trade/api'
 import { normalizeProject } from '../project/api'
@@ -409,6 +422,7 @@ export const statisticApi = {
     const raw = await post<RawRecord>('statistic/boss/dashboard', { month, storeId: storeId || undefined })
     return {
       month: raw.month ?? month ?? '',
+      storeScope: normalizeStoreScope(raw.storeScope),
       signedAmount: normalizeMetric(raw.signedAmount),
       receivedAmount: normalizeMetric(raw.receivedAmount),
       grossProfit: normalizeMetric(raw.grossProfit),
@@ -423,6 +437,7 @@ export const statisticApi = {
     const raw = await post<RawRecord>('statistic/performance/report', { month, role, storeId: storeId || undefined })
     return {
       month: raw.month ?? month ?? '',
+      storeScope: normalizeStoreScope(raw.storeScope),
       designerCount: Number(raw.designerCount ?? 0),
       marketerCount: Number(raw.marketerCount ?? 0),
       pmCount: Number(raw.pmCount ?? 0),

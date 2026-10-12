@@ -16,11 +16,20 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const month = ref(currentMonth())
 const dashboard = ref<BossDashboard | null>(null)
+
+/** 服务端门店范围注记：全部门店口径下的未归属条数（`DEC-067` BOSS-STORE-03，文案与 Web 一致）。 */
+const scopeNote = computed(() => {
+  const scope = dashboard.value?.storeScope
+  return scope && scope.scopeType === 'AllStores' && scope.unassignedCount > 0
+    ? `含未归属门店 ${scope.unassignedCount} 条`
+    : ''
+})
 const metricDefinitions = ref<MetricDefinition[]>([])
 
 /** 只解释老板最容易混的几个经营数字，口径与后端指标字典一致。 */
@@ -36,7 +45,6 @@ const projectReports = ref<FinanceProjectReport[]>([])
 const loading = ref(false)
 const loadError = ref('')
 const showTarget = ref(false)
-const storeId = ref('')
 const savingTarget = ref(false)
 const targetForm = ref<BusinessTarget>({
   targetMonth: `${month.value}-01`, signedAmount: 0, receivedAmount: 0, grossProfit: 0, activeProjectCount: 0
@@ -74,8 +82,14 @@ const profitProjects = computed(() => [...projectReports.value]
   .slice(0, 6))
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) void load() })
+onShow(() => { if (isLoggedIn()) { void loadStoreScope(); void load() } })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+
+/** 门店维度切换：写共享上下文（含持久化）后重新取数。 */
+function onStoreScopeChange(value: string) {
+  setStoreScope(value)
+  void load()
+}
 
 async function load() {
   if (session.role !== 'boss') {
@@ -87,7 +101,7 @@ async function load() {
   try {
     const apiMonth = `${month.value}-01`
     const [d, a, projects, dict] = await Promise.all([
-      statisticApi.bossDashboard(apiMonth, storeId.value || undefined),
+      statisticApi.bossDashboard(apiMonth, storeScopeRequestId.value),
       statisticApi.alerts(),
       financeApi.projectPage({ size: 200 }),
       statisticApi.metricDictionary(['signedAmount', 'monthReceiptAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate'])
@@ -189,7 +203,12 @@ function currentMonth() {
     <JzPageHeader title="经营驾驶舱" subtitle="目标、回款、毛利与风险一屏掌握" right-text="人员绩效" @right="openAssessment" />
 
     <view class="ana-body">
-      <JzStoreFilter v-model="storeId" @change="load" />
+      <JzStoreFilter
+      :model-value="storeScope.storeId"
+      :stores="storeScope.stores"
+      :visible="storeScopeVisible"
+      :note="scopeNote"
+      @change="onStoreScopeChange" />
 
       <view class="ana-query jz-card">
         <JzSelectField mode="date" fields="month" variant="boxed" icon="calendar" :value="month" :display="month" @change="onMonthChange" />

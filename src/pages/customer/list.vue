@@ -21,14 +21,22 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
+import { loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
 
 const list = ref<Customer[]>([])
 const filter = ref<'all' | CustomerStage | 'assign'>('all')
 const followFilter = ref<'all' | 'overdue' | 'today' | 'upcoming' | 'unplanned'>('all')
 const keyword = ref('')
-const storeId = ref('')
 const sortMode = ref<'risk' | 'idle' | 'value' | 'newest'>('risk')
 const bossOverview = ref<CustomerOverviewReport | null>(null)
+
+/** 服务端门店范围注记：全部门店口径下的未归属客户数（文案与 Web 一致，前端不兜底计数）。 */
+const scopeNote = computed(() => {
+  const scope = bossOverview.value?.storeScope
+  return scope && scope.scopeType === 'AllStores' && scope.unassignedCount > 0
+    ? `含未归属门店 ${scope.unassignedCount} 条`
+    : ''
+})
 const selectedOwnerId = ref('')
 const bossWorkspaceFocused = ref(false)
 const bossCustomerScrollTop = ref(0)
@@ -62,7 +70,7 @@ onLoad((options?: Record<string, string | undefined>) => {
     filter.value = preset as typeof filter.value
   }
 })
-onShow(() => refresh())
+onShow(() => { void loadStoreScope(); refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
 onPageScroll(({ scrollTop }) => {
@@ -268,7 +276,8 @@ function selectBossGroup(group?: CustomerOwnerGroup) {
   void refresh()
 }
 
-function onStoreChange() {
+function onStoreScopeChange(value: string) {
+  setStoreScope(value)
   selectedOwnerId.value = ''
   void refresh()
 }
@@ -315,7 +324,7 @@ async function refresh() {
         keyword: keyword.value.trim() || undefined,
         stage: filter.value === 'assign' ? 'assign' : filter.value,
         sort: sortMode.value,
-        storeId: storeId.value || undefined,
+        storeId: storeScopeRequestId.value,
         ownerId: selectedOwnerId.value || undefined
       })
       bossOverview.value = report
@@ -328,7 +337,7 @@ async function refresh() {
       hasMore.value = report.hasMore
       return
     }
-    const page = await crmApi.page({ current: 1, size: pageSize, storeId: storeId.value || undefined })
+    const page = await crmApi.page({ current: 1, size: pageSize, storeId: storeScopeRequestId.value })
     list.value = page.list
     current.value = 1
     hasMore.value = page.hasMore
@@ -351,7 +360,7 @@ async function loadMore() {
         keyword: keyword.value.trim() || undefined,
         stage: filter.value === 'assign' ? 'assign' : filter.value,
         sort: sortMode.value,
-        storeId: storeId.value || undefined,
+        storeId: storeScopeRequestId.value,
         ownerId: selectedOwnerId.value || undefined
       })
       list.value = [...list.value, ...report.customers]
@@ -360,7 +369,7 @@ async function loadMore() {
       hasMore.value = report.hasMore
       return
     }
-    const page = await crmApi.page({ current: current.value + 1, size: pageSize, storeId: storeId.value || undefined })
+    const page = await crmApi.page({ current: current.value + 1, size: pageSize, storeId: storeScopeRequestId.value })
     list.value = [...list.value, ...page.list]
     current.value += 1
     hasMore.value = page.hasMore
@@ -439,7 +448,12 @@ function bossBusinessAmount(customer: Customer) {
     </view>
 
     <view v-if="!isBoss">
-      <JzStoreFilter v-model="storeId" @change="onStoreChange" />
+      <JzStoreFilter
+      :model-value="storeScope.storeId"
+      :stores="storeScope.stores"
+      :visible="storeScopeVisible"
+      :note="scopeNote"
+      @change="onStoreScopeChange" />
     </view>
 
     <view v-if="isBoss" class="cl__metrics">
@@ -492,7 +506,11 @@ function bossBusinessAmount(customer: Customer) {
               <view class="cl__search-icon"><JzIcon name="search" :size="30" :color="TOKEN_COLOR.text3" /></view>
               <input v-model="keyword" placeholder="搜索客户 / 手机号 / 小区" placeholder-class="cl__ph" @input="onKeywordInput" @confirm="refresh" />
             </view>
-            <JzStoreFilter v-model="storeId" @change="onStoreChange" />
+            <JzStoreFilter
+      :model-value="storeScope.storeId"
+      :stores="storeScope.stores"
+      :visible="storeScopeVisible"
+      @change="onStoreScopeChange" />
           </view>
           <scroll-view scroll-x class="cl__filters cl__filters--panel" :show-scrollbar="false">
             <view class="cl__filter-row">

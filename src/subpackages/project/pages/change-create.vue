@@ -5,8 +5,6 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
 import type { Contract, ContractChangeType, ContractLine } from '@/domains/trade/model'
-import { fileApi } from '@/domains/file/api'
-import { chooseImages } from '@/domains/file/choose-media'
 import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -50,12 +48,6 @@ const quantity = ref('')
 const newPrice = ref('')
 const costDelta = ref('')
 const reason = ref('')
-const images = ref<string[]>([])
-const customerConfirmedDate = ref('')
-const customerConfirmedTime = ref('')
-const customerConfirmedBy = ref('')
-const customerConfirmMethod = ref('当面确认')
-const CONFIRM_METHODS = ['当面确认', '微信确认', '电话+书面', '其他']
 
 interface BatchRow { name: string; itemType: string; sourceLineId: string; newQuantity: string; newPrice: string; newCost: string; amount: string; cost: string; remark: string }
 const emptyRow = (): BatchRow => ({ name: '', itemType: 'Construction', sourceLineId: '', newQuantity: '', newPrice: '', newCost: '', amount: '', cost: '', remark: '' })
@@ -102,11 +94,6 @@ const deltaCost = computed(() => {
   }
   return 0
 })
-const customerConfirmedAt = computed(() => customerConfirmedDate.value && customerConfirmedTime.value
-  ? `${customerConfirmedDate.value}T${customerConfirmedTime.value}:00`
-  : undefined)
-const customerSignOffReady = computed(() => !!customerConfirmedAt.value
-  && !!customerConfirmedBy.value.trim() && !!customerConfirmMethod.value && images.value.length > 0)
 const beforeAmount = computed(() => Number(contract.value?.currentAmount || 0))
 const afterAmount = computed(() => beforeAmount.value + deltaAmount.value)
 const negativeWarning = computed(() => afterAmount.value < 0)
@@ -119,9 +106,9 @@ function batchRowReady(row: BatchRow): boolean {
   }
   return Number(row.amount) > 0
 }
+// DEC-068：提交门禁只校验系统能校验的事（原因、明细、金额边界），不再要求客户线下确认信息。
 const canSubmit = computed(() => {
   if (negativeWarning.value || !reason.value.trim()) return false
-  if (!customerSignOffReady.value) return false
   if (mode.value === 'batch') return batchRows.value.some(batchRowReady)
   if (requireLine.value && !sourceLineId.value) return false
   if (type.value === 'add' || type.value === 'remove') return Number(amount.value) > 0
@@ -174,48 +161,25 @@ function lineOf(id: string): ContractLine | null {
   return lines.value.find((item) => item.id === id) || null
 }
 
-async function chooseImage() {
-  const remain = 9 - images.value.length
-  if (remain <= 0) { toast('最多 9 张'); return }
-  try { images.value = [...images.value, ...await chooseImages({ count: remain })] }
-  catch (error) { toast(error instanceof Error ? error.message : '照片选择失败，请重试') }
-}
-
 function addRow() { batchRows.value = [...batchRows.value, emptyRow()] }
 function removeRow(index: number) {
   if (batchRows.value.length <= 1) return
   batchRows.value = batchRows.value.filter((_, i) => i !== index)
 }
 
-async function uploadEvidence(): Promise<string[]> {
-  const out: string[] = []
-  for (const path of images.value) {
-    if (fileApi.isManaged(path)) { out.push(path); continue }
-    const res = await fileApi.upload('ContractChange', path, { projectId: projectId.value })
-    out.push(res.path)
-  }
-  return out
-}
-
 async function submit() {
   if (submitting.value) return
   if (!canSubmit.value) {
-    toast(requireLine.value && !sourceLineId.value ? '请选择原合同行'
-      : !customerSignOffReady.value ? '请完成客户线下确认并上传签认证据' : '请完善本次变更信息', 'none')
+    toast(requireLine.value && !sourceLineId.value ? '请选择原合同行' : '请完善本次变更信息', 'none')
     return
   }
   submitting.value = true
   try {
-    const evidence = await uploadEvidence()
     const created = mode.value === 'batch'
       ? await tradeApi.batchSaveContractChange({
         contractId: contractId.value,
         reason: reason.value.trim(),
         type: type.value,
-        evidenceImages: evidence,
-        customerConfirmedAt: customerConfirmedAt.value,
-        customerConfirmedBy: customerConfirmedBy.value.trim(),
-        customerConfirmMethod: customerConfirmMethod.value,
         items: batchRows.value
           .filter(batchRowReady)
           .map((row) => ({
@@ -241,11 +205,7 @@ async function submit() {
           : undefined,
         newQuantity: quantity.value === '' ? undefined : Number(quantity.value),
         newPrice: newPrice.value === '' ? undefined : Number(newPrice.value),
-        costDelta: canViewCost.value ? (Number(costDelta.value) || 0) : undefined,
-        evidenceImages: evidence,
-        customerConfirmedAt: customerConfirmedAt.value,
-        customerConfirmedBy: customerConfirmedBy.value.trim(),
-        customerConfirmMethod: customerConfirmMethod.value
+        costDelta: canViewCost.value ? (Number(costDelta.value) || 0) : undefined
       })
     toast('变更单已提交审批', 'success')
     setTimeout(() => {
@@ -356,16 +316,10 @@ async function submit() {
 
       <view class="jz-card cc__block">
         <view class="jz-between cc__block-head">
-          <text class="cc__block-title">客户线下确认</text>
-          <text class="cc__block-hint">必填</text>
+          <text class="cc__block-title">本单留痕与同频</text>
+          <text class="cc__block-hint">自动</text>
         </view>
-        <view class="cc__confirm-row">
-          <JzSelectField mode="date" variant="boxed" :value="customerConfirmedDate" :display="customerConfirmedDate" placeholder="确认日期" @change="customerConfirmedDate = $event" />
-          <JzSelectField mode="time" variant="boxed" :value="customerConfirmedTime" :display="customerConfirmedTime" placeholder="确认时间" @change="customerConfirmedTime = $event" />
-        </view>
-        <input v-model="customerConfirmedBy" class="cc__input cc__input--full" placeholder="客户确认人姓名" />
-        <JzSelectField variant="boxed" :display="customerConfirmMethod" :range="CONFIRM_METHODS" :index="Math.max(0, CONFIRM_METHODS.indexOf(customerConfirmMethod))" @change="customerConfirmMethod = $event" />
-        <text class="cc__hint">客户线下确认时间、确认人、确认方式与下方签认/签证照片是形成变更单的前置条件。</text>
+        <text class="cc__hint">发起人与发起时间由系统留痕；提交后即时同频业主端只读可见。已生效后不可修改，业主有异议由设计师新建反向变更单。</text>
       </view>
 
       <view class="jz-card cc__block">
@@ -373,21 +327,6 @@ async function submit() {
         <textarea v-model="reason" class="cc__ta" maxlength="200" placeholder="如：客户现场要求客厅背景墙增加灯带造型与木饰面收口" />
       </view>
 
-      <view class="jz-card cc__block">
-        <view class="jz-between cc__block-head">
-          <text class="cc__block-title">现场签证照片</text>
-          <text class="cc__block-hint">最多 9 张</text>
-        </view>
-        <view class="cc__photos">
-          <view v-for="(img, index) in images" :key="img" class="cc__photo">
-            <image :src="img" mode="aspectFill" class="cc__photo-img" />
-            <text class="cc__photo-del" @tap="images = images.filter((_, i) => i !== index)">×</text>
-          </view>
-          <view v-if="images.length < 9" class="cc__photo cc__photo--add" @tap="chooseImage">
-            <JzIcon name="camera" :size="36" :color="TOKEN_COLOR.text3" />
-          </view>
-        </view>
-      </view>
     </template>
 
     <view class="jz-actionbar" v-if="contract && !loading && !loadError">
