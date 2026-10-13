@@ -357,10 +357,18 @@ export const tradeApi = {
     evidenceImages?: string[]
     signatureUrl?: string
     items: Array<{
-      name: string
+      /** 仅历史兼容路径使用；新页面由服务端按报价项目库快照生成名称 */
+      name?: string
       itemType?: string
       changeType?: NonNullable<ContractChange['type']>
       sourceLineId?: string
+      /** 已生效变更目标作为来源（与 sourceLineId 二选一） */
+      sourceChangeItemId?: string
+      /** 新增/替换：报价项目库目标分项 + 目标工程量（服务端冻结快照与金额） */
+      targetCatalogItemId?: string
+      targetQuantity?: number
+      /** 减项·部分减少：减少量（服务端按当前有效剩余校验上限） */
+      reduceQuantity?: number
       newQuantity?: number
       newPrice?: number
       newCost?: number
@@ -380,6 +388,10 @@ export const tradeApi = {
         itemType: item.itemType,
         changeType: item.changeType ? CHANGE_TYPE_API[item.changeType] : undefined,
         sourceLineId: item.sourceLineId,
+        sourceChangeItemId: item.sourceChangeItemId,
+        targetCatalogItemId: item.targetCatalogItemId,
+        targetQuantity: item.targetQuantity,
+        reduceQuantity: item.reduceQuantity,
         newQuantity: item.newQuantity,
         newPrice: item.newPrice,
         newCost: item.newCost,
@@ -390,6 +402,18 @@ export const tradeApi = {
     }).then(normalizeContractChange),
 
   /** 增减项草稿预览：与服务端 batch-save 同一套校验/目标快照/差额口径，不落库（预览即所得）。 */
+  /**
+   * 增减项可变更来源与当前有效剩余（服务端权威投影，仅用于展示与前端预校验）。
+   * 正式提交与审批时由服务端重新投影，不得把展示值当作提交依据。
+   */
+  contractChangeRange: async (input: { contractId: string; sourceLineId?: string; sourceChangeItemId?: string }): Promise<ContractChangeRange> => {
+    const raw = await post<RawRecord>('project/contract-change/range', {
+      contractId: input.contractId,
+      sourceLineId: input.sourceLineId,
+      sourceChangeItemId: input.sourceChangeItemId
+    })
+    return normalizeContractChangeRange(raw)
+  },
   previewContractChange: (input: {
     contractId: string
     type?: NonNullable<ContractChange['type']>
@@ -426,6 +450,74 @@ export const tradeApi = {
         remark: item.remark
       }))
     }).then(normalizeContractChange)
+}
+
+/** 增减项可变更来源（DEC-055/BR-041）：当前有效剩余 / 待审批占用 / 可变更量由服务端投影。 */
+export interface ContractChangeSource {
+  group: 'contract' | 'effective'
+  sourceLineId?: string
+  sourceChangeItemId?: string
+  changeId?: string
+  changeNo?: string
+  name: string
+  itemType?: string
+  brand?: string
+  spec?: string
+  unit?: string
+  initialQuantity?: number
+  effectiveRemainingQuantity?: number
+  pendingReservedQuantity?: number
+  availableQuantity?: number
+  effectiveRemainingAmount?: number
+  currentUnitPrice?: number
+  confirmable?: boolean
+  blockReason?: string
+}
+
+export interface ContractChangeRange {
+  contract?: Contract
+  sources: ContractChangeSource[]
+  selected?: ContractChangeSource
+  confirmable?: boolean
+}
+
+function numberValue(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined || raw === '') return undefined
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : undefined
+}
+
+function normalizeContractChangeSource(raw: RawRecord): ContractChangeSource {
+  return {
+    group: (enumValue(raw.group) === 'effective' ? 'effective' : 'contract'),
+    sourceLineId: raw.sourceLineId == null ? undefined : String(raw.sourceLineId),
+    sourceChangeItemId: raw.sourceChangeItemId == null ? undefined : String(raw.sourceChangeItemId),
+    changeId: raw.changeId == null ? undefined : String(raw.changeId),
+    changeNo: raw.changeNo ? String(raw.changeNo) : undefined,
+    name: String(raw.name || ''),
+    itemType: raw.itemType ? enumValue(raw.itemType) : undefined,
+    brand: raw.brand ? String(raw.brand) : undefined,
+    spec: raw.spec ? String(raw.spec) : undefined,
+    unit: raw.unit ? String(raw.unit) : undefined,
+    initialQuantity: numberValue(raw.initialQuantity),
+    effectiveRemainingQuantity: numberValue(raw.effectiveRemainingQuantity),
+    pendingReservedQuantity: numberValue(raw.pendingReservedQuantity),
+    availableQuantity: numberValue(raw.availableQuantity),
+    effectiveRemainingAmount: numberValue(raw.effectiveRemainingAmount),
+    currentUnitPrice: numberValue(raw.currentUnitPrice),
+    confirmable: raw.confirmable === true,
+    blockReason: raw.blockReason ? String(raw.blockReason) : undefined
+  }
+}
+
+function normalizeContractChangeRange(raw: RawRecord): ContractChangeRange {
+  const sources = Array.isArray(raw.sources) ? raw.sources.map(normalizeContractChangeSource) : []
+  return {
+    contract: raw.contract ? normalizeContract(raw.contract) : undefined,
+    sources,
+    selected: raw.selected ? normalizeContractChangeSource(raw.selected) : undefined,
+    confirmable: raw.confirmable === true
+  }
 }
 
 function normalizeContractLine(raw: RawRecord): ContractLine {
