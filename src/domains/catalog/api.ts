@@ -47,6 +47,18 @@ const UNIT_API: Record<string, string> = {
   '扇': 'Hole', '台': 'Pcs', '支': 'Stick', '格': 'Grid', '片': 'Sheet'
 }
 
+/** 单位枚举键 → 展示文案（与 Web 的 unitLabel 同口径，如 Area → ㎡）。 */
+export function unitLabel(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return UNIT_NAMES[value] ?? (UNIT_NAMES[UNIT_API[value] ?? ''] ?? value)
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const key = String(record.key ?? record.value ?? '')
+    return UNIT_NAMES[key] ?? key
+  }
+  return String(value)
+}
+
 function number(raw: unknown): number {
   return Number(raw ?? 0)
 }

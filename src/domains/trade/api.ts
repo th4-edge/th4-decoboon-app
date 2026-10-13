@@ -468,7 +468,11 @@ export interface ContractChangeSource {
   itemType?: string
   brand?: string
   spec?: string
+  /** 区域（原合同行自带；已生效变更目标取其来源行区域，无来源时为空） */
+  spaceName?: string
   unit?: string
+  /** 单位枚举键（供 unitLabel() 统一展示，Area → ㎡） */
+  unitKey?: string
   initialQuantity?: number
   effectiveRemainingQuantity?: number
   pendingReservedQuantity?: number
@@ -503,7 +507,9 @@ function normalizeContractChangeSource(raw: RawRecord): ContractChangeSource {
     itemType: raw.itemType ? enumValue(raw.itemType) : undefined,
     brand: raw.brand ? String(raw.brand) : undefined,
     spec: raw.spec ? String(raw.spec) : undefined,
+    spaceName: raw.spaceName ? String(raw.spaceName) : undefined,
     unit: raw.unit ? String(raw.unit) : undefined,
+    unitKey: raw.unitKey ? String(raw.unitKey) : undefined,
     initialQuantity: numberValue(raw.initialQuantity),
     effectiveRemainingQuantity: numberValue(raw.effectiveRemainingQuantity),
     pendingReservedQuantity: numberValue(raw.pendingReservedQuantity),
