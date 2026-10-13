@@ -14,7 +14,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzSheet from '@/components/JzSheet.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import PageState from '@/components/PageState/PageState.vue'
-import CatalogPickerSheet from '@/subpackages/quote/components/CatalogPickerSheet/CatalogPickerSheet.vue'
+import CatalogPicker from '@/components/CatalogPicker.vue'
 
 /**
  * 发起增减项（DEC-055 / BR-041 / DEC-068）。
@@ -543,11 +543,14 @@ async function submit() {
       </view>
     </JzSheet>
 
-    <CatalogPickerSheet
+    <!-- 共享报价项目库选择器（多选）：目标分项必须来自企业启用项目，服务端提交时冻结快照 -->
+    <CatalogPicker
       :visible="showCatalog"
-      section-name="增减项目标分项"
-      @close="showCatalog = false"
-      @confirm="onCatalogConfirm"
+      type="construction"
+      title="选择目标分项（报价项目库）"
+      multiple
+      @update:visible="showCatalog = $event"
+      @select-many="onCatalogConfirm"
     />
   </view>
 </template>
