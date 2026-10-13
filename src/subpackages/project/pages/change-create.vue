@@ -85,7 +85,9 @@ const afterAmount = computed(() => (previewAmount.value === null ? null : before
 /** 成本完整性：任一明细成本为空即视为未完整，利润与毛利率暂不可确认（服务端同一口径）。 */
 const costIncomplete = computed(() => Boolean(preview.value?.items?.some((item) => item.costDelta === undefined || item.costDelta === null)))
 /** 选择器筛选：区域 × 分项类型；分组维度决定列表怎么排（对齐 Web 与原型）。 */
-const sourceGroupBy = ref<'area' | 'type'>('area')
+// 默认按分项类型分组：设计阶段允许不设区域（USER-DECISION-20261013-002 / EV-300），
+// 区域在生产数据下常为空，若默认按区域分组会退化成单一「未标注区域」组。
+const sourceGroupBy = ref<'area' | 'type'>('type')
 const sourceArea = ref('all')
 const sourceType = ref('all')
 const NONE_AREA = '__none__'
@@ -657,8 +659,8 @@ async function submit() {
             <text v-for="area in sourceAreaOptions" :key="area.key" class="cc__chip" :class="{ 'cc__chip--on': sourceArea === area.key }" @tap="sourceArea = area.key">{{ area.label }} {{ area.count }}</text>
           </view>
           <view class="cc__seg cc__seg--full">
-            <text class="cc__seg-item" :class="{ 'cc__seg-item--on': sourceGroupBy === 'area' }" @tap="sourceGroupBy = 'area'">按区域分组</text>
             <text class="cc__seg-item" :class="{ 'cc__seg-item--on': sourceGroupBy === 'type' }" @tap="sourceGroupBy = 'type'">按分项类型分组</text>
+            <text class="cc__seg-item" :class="{ 'cc__seg-item--on': sourceGroupBy === 'area' }" @tap="sourceGroupBy = 'area'">按区域分组</text>
           </view>
         </view>
 
