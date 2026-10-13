@@ -422,9 +422,12 @@ export const tradeApi = {
       sourceLineId?: string
       sourceChangeItemId?: string
       targetCatalogItemId?: string
+      /** 新增/替换：目标工程量（服务端据此冻结目标快照并计算金额；缺失即 400「工程量必须大于 0」） */
+      targetQuantity?: number
       reduceQuantity?: number
       newQuantity?: number
       newPrice?: number
+      newCost?: number
       amountDelta?: number
       costDelta?: number
       name?: string
@@ -440,9 +443,11 @@ export const tradeApi = {
         sourceLineId: item.sourceLineId,
         sourceChangeItemId: item.sourceChangeItemId,
         targetCatalogItemId: item.targetCatalogItemId,
+        targetQuantity: item.targetQuantity,
         reduceQuantity: item.reduceQuantity,
         newQuantity: item.newQuantity,
         newPrice: item.newPrice,
+        newCost: item.newCost,
         amountDelta: item.amountDelta,
         costDelta: item.costDelta,
         name: item.name,

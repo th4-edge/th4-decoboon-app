@@ -457,7 +457,7 @@ async function submit() {
             <view class="cc__metric">
               <text class="cc__metric-label">{{ quantityLabel(row) }}</text>
               <view v-if="row.action !== 'reduce' || row.reduceMode !== 'full'" class="cc__qty">
-                <input v-model="row.quantity" class="cc__qty-input jz-numeric-input" type="digit" placeholder="0" placeholder-class="jz-number-placeholder" @input="invalidatePreview()" />
+                <input v-model="row.quantity" class="cc__qty-input jz-numeric-input" type="digit" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" @input="invalidatePreview()" />
                 <text class="cc__qty-unit">{{ unitOf(row) || '单位' }}</text>
               </view>
               <view v-else class="cc__qty cc__qty--text"><text>整项取消</text></view>
