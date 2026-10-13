@@ -86,7 +86,7 @@ const afterAmount = computed(() => (previewAmount.value === null ? null : before
 const costIncomplete = computed(() => Boolean(preview.value?.items?.some((item) => item.costDelta === undefined || item.costDelta === null)))
 /** 选择器筛选：区域 × 分项类型；分组维度决定列表怎么排（对齐 Web 与原型）。 */
 // 默认按分项类型分组：设计阶段允许不设区域（USER-DECISION-20261013-002 / EV-300），
-// 区域在生产数据下常为空，若默认按区域分组会退化成单一「未标注区域」组。
+// 区域在生产数据下常为空，若默认按区域分组会退化成单一「综合项目」组。
 const sourceGroupBy = ref<'area' | 'type'>('type')
 const sourceArea = ref('all')
 const sourceType = ref('all')
@@ -108,7 +108,7 @@ function sourceAreaKey(item: ContractChangeSource): string {
 const sourceAreaOptions = computed(() => {
   const counts = new Map<string, number>()
   for (const item of sources.value) counts.set(sourceAreaKey(item), (counts.get(sourceAreaKey(item)) ?? 0) + 1)
-  return [...counts.entries()].map(([key, count]) => ({ key, label: key === NONE_AREA ? '未标注区域' : key, count }))
+  return [...counts.entries()].map(([key, count]) => ({ key, label: key === NONE_AREA ? '综合项目' : key, count }))
 })
 const sourceTypeOptions = computed(() => {
   const counts = new Map<string, number>()
@@ -123,7 +123,7 @@ const filteredSources = computed(() => sources.value.filter((item) => {
 const groupedSources = computed(() => {
   const groups = new Map<string, ContractChangeSource[]>()
   for (const item of filteredSources.value) {
-    const key = sourceGroupBy.value === 'area' ? (item.spaceName || '未标注区域') : itemTypeLabel(item.itemType)
+    const key = sourceGroupBy.value === 'area' ? (item.spaceName || '综合项目') : itemTypeLabel(item.itemType)
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(item)
   }

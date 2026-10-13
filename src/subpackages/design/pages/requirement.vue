@@ -53,7 +53,7 @@ const spaceOptions: { value: SpaceType; label: string }[] = [
   { value: 'kitchen', label: '厨房' }, { value: 'bathroom', label: '卫生间' },
   { value: 'balcony', label: '阳台' }, { value: 'diningRoom', label: '餐厅' }
 ]
-const spaceLabel = computed(() => spaceOptions.find((item) => item.value === spaceType.value)?.label || '不限区域')
+const spaceLabel = computed(() => spaceOptions.find((item) => item.value === spaceType.value)?.label || '综合项目')
 const demandCount = computed(() => requirements.value.filter((item) => item.kind === 'demand').length)
 const rejectCount = computed(() => requirements.value.filter((item) => item.kind === 'reject').length)
 const highCount = computed(() => requirements.value.filter((item) => item.priority === 'high').length)
@@ -187,7 +187,7 @@ async function save() {
           }">
             {{ designMeta.requirementPriority[item.priority] }}优先
           </text>
-          <text class="dr__item-space">{{ item.spaceName || '不限区域' }}</text>
+          <text class="dr__item-space">{{ item.spaceName || '综合项目' }}</text>
         </view>
         <text class="dr__item-title jz-clamp-2">{{ item.title }}</text>
         <text v-if="item.detail" class="dr__detail" :class="{ 'jz-clamp-2': !expandedItems[item.id] }">{{ item.detail }}</text>
