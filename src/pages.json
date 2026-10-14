@@ -303,8 +303,7 @@
             "navigationBarTitleText": "记录客户微信",
             "backgroundColor": "#F4F7F8"
           }
-        }
-        ,
+        },
         {
           "path": "pages/customer-picker",
           "style": {
@@ -683,6 +682,14 @@
           "style": {
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "pages/share-view",
+          "style": {
+            "navigationBarTitleText": "装修实录",
+            "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -839,8 +846,7 @@
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
-        }
-        ,
+        },
         {
           "path": "pages/quote-line-picker",
           "style": {

@@ -119,6 +119,18 @@ export interface CustomerJourney {
   team?: JourneyMember[]
 }
 
+/** 亲友只读视图（免登录）。服务端已脱敏：不含房号、姓名、电话；Friend 范围不含金额。 */
+export interface ShareJourneyView {
+  projectName?: string
+  /** 小区 + 楼栋，不含房号 */
+  community?: string
+  progress?: number
+  currentStageName?: string
+  photos?: string[]
+  vendor?: JourneyVendor
+  asOf?: string
+}
+
 /** 服务人员投影。硬边界：不得含员工个人手机号（USER-DECISION-20261014-002）。 */
 export interface JourneyMember {
   name: string

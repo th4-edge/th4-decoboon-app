@@ -7,7 +7,7 @@ import { isCustomer } from '@/roles/permission'
 import { journeyApi } from '@/domains/journey/api'
 import type { CustomerJourney, JourneyAction, JourneyFact } from '@/domains/journey/model'
 import { dateTimeText, selectionLineText } from '@/core/format'
-import { toastError } from '@/composables/toast'
+import { toast, toastError } from '@/composables/toast'
 import { useShare } from '@/composables/share'
 import { SHARE_CARD_HEIGHT, SHARE_CARD_ID, SHARE_CARD_WIDTH, drawShareCard } from '@/composables/shareCard'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
@@ -24,9 +24,26 @@ const loadError = ref('')
 
 // 动态分享卡片：数据就绪后画一张带装企品牌的 5:4 卡片，失败则回退静态图。
 const shareImage = ref('')
+/** 亲友观看令牌：生成后才把分享路径切到免登录页（默认分享仍指向本页，不浪费令牌配额）。 */
+const shareToken = ref('')
+const sharing = ref(false)
 
 function shareTitle() {
   return journey.value?.projectName ? `${journey.value.projectName} · 装修全过程` : '装修全过程随时查看'
+}
+
+async function createShareLink() {
+  if (sharing.value) return
+  sharing.value = true
+  try {
+    const link = await journeyApi.shareLinkCreate({ projectId: projectId.value, scope: 'Family', showAmount: false })
+    shareToken.value = link.token
+    toast('已生成亲友观看链接，现在点右上角「…」转发给家人即可')
+  } catch (error) {
+    toastError(error, '生成观看链接失败')
+  } finally {
+    sharing.value = false
+  }
 }
 
 async function buildShareCard() {
@@ -44,7 +61,11 @@ async function buildShareCard() {
 // 项目旅程是业主与家人的共用视图：分享的是"这一户的进度"，不是产品功能。
 useShare(() => ({
   title: shareTitle(),
-  path: `${P.projectJourney}?projectId=${projectId.value}`,
+  // 已生成令牌时分享免登录页（家人/好友无需账号即可查看）；
+  // 否则仍分享本页，避免把未登录访客挡在登录墙外又能被正常打开。
+  path: shareToken.value
+    ? `${P.shareView}?token=${shareToken.value}`
+    : `${P.projectJourney}?projectId=${projectId.value}`,
   imageUrl: shareImage.value || undefined
 }))
 
@@ -174,6 +195,13 @@ function preview(urls: string[], current: string) {
       </view>
       <!-- 业主端不出现"企业内部成本/利润"这类字眼，只对员工展示投影边界说明 -->
       <view v-if="!isCustomer(session.role)" class="journey__footer">项目旅程只展示业主可见事实，不展示企业内部成本和利润。</view>
+      <view v-if="isCustomer(session.role)" class="jz-card journey__share">
+        <text class="journey__share-title">把进度分享给家人</text>
+        <text class="journey__share-desc">生成一条只读链接，家人和好友不用注册就能看这一户的进度与照片；可随时撤回，不含金额与房号。</text>
+        <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="sharing" @tap="createShareLink">
+          {{ shareToken ? '已生成，点右上角「…」转发' : '生成亲友观看链接' }}
+        </button>
+      </view>
       <!-- 服务主体知情权：业主有权知道是谁在为他服务（USER-DECISION-20261014-002）。
            只展示姓名与岗位，不展示员工个人手机号；联络走企业统一客服电话。 -->
       <view v-if="isCustomer(session.role) && journey.team?.length" class="jz-card journey__team">
@@ -237,6 +265,9 @@ function preview(urls: string[], current: string) {
 .journey__item-lines { margin-top: 10rpx; }
 .journey__item-lines text { display: block; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.75; }
 .journey__share-canvas { position: fixed; left: -9999px; top: 0; }
+.journey__share { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; }
+.journey__share-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.journey__share-desc { display: block; margin: 10rpx 0 18rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.7; }
 .journey__team { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; }
 .journey__team-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .journey__team-row { display: flex; justify-content: space-between; margin-top: 14rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }

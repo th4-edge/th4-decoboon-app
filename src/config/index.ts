@@ -66,6 +66,8 @@ export const P = {
   constructionPlanPicker: '/subpackages/plan/pages/construction-picker',
   projectDetail: '/subpackages/project/pages/detail',
   projectJourney: '/subpackages/project/pages/journey',
+  /** 亲友免登录只读页 */
+  shareView: '/subpackages/project/pages/share-view',
   ownerMeasure: '/subpackages/project/pages/owner-measure',
   ownerDesign: '/subpackages/project/pages/owner-design',
   ownerQuote: '/subpackages/project/pages/owner-quote',

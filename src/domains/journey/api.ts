@@ -2,7 +2,7 @@ import { post } from '@/core/http'
 import { fileApi } from '@/domains/file/api'
 import type {
   CustomerJourney, JourneyAction, JourneyFact, JourneyItem, JourneyMedia, JourneyPriceGroup,
-  JourneyPriceRow, JourneyRegion, JourneySection
+  JourneyPriceRow, JourneyRegion, JourneySection, ShareJourneyView
 } from './model'
 
 type RawRecord = Record<string, any>
@@ -162,6 +162,47 @@ export const journeyApi = {
       actions: Array.isArray(raw.actions) ? raw.actions.map(normalizeAction) : [],
       openFeedbackCount: Number(raw.openFeedbackCount ?? 0),
       pendingActionCount: Number(raw.pendingActionCount ?? 0)
+    }
+  },
+
+  /** 业主生成亲友观看链接（需登录）。 */
+  shareLinkCreate: async (input: { projectId: string; scope?: 'Family' | 'Friend'; showAmount?: boolean; expireDays?: number }) => {
+    const raw = await post<RawRecord>('customer/sharelink/save', input)
+    return {
+      shareId: String(raw.shareId ?? ''),
+      token: String(raw.token ?? ''),
+      expireAt: raw.expireAt ? String(raw.expireAt) : undefined
+    }
+  },
+
+  /** 业主撤销观看链接（撤销后立即失效）。 */
+  shareLinkRevoke: async (shareId: string): Promise<void> => {
+    await post<RawRecord>('customer/sharelink/update', { shareId })
+  },
+
+  /** 亲友只读视图（**免登录**，凭 token）。令牌无效/已撤销/已过期统一返回 null。 */
+  shareView: async (token: string): Promise<ShareJourneyView | null> => {
+    const raw = await post<RawRecord | null>('customer/shareview/info', { token })
+    if (!raw) return null
+    const vendor: RawRecord = raw.vendor ?? {}
+    return {
+      projectName: raw.projectName ? String(raw.projectName) : undefined,
+      community: raw.community ? String(raw.community) : undefined,
+      progress: Number(raw.progress ?? 0),
+      currentStageName: raw.currentStageName ? String(raw.currentStageName) : undefined,
+      photos: Array.isArray(raw.photos) ? raw.photos.map((x: unknown) => String(x)) : [],
+      asOf: raw.asOf ? String(raw.asOf) : undefined,
+      vendor: {
+        name: vendor.name ? String(vendor.name) : undefined,
+        logo: vendor.logo ? String(vendor.logo) : undefined,
+        color: vendor.color ? String(vendor.color) : undefined,
+        custodianCredit: vendor.custodianCredit === true,
+        serviceArea: vendor.serviceArea ? String(vendor.serviceArea) : undefined,
+        serviceTel: vendor.serviceTel ? String(vendor.serviceTel) : undefined,
+        afterSaleTel: vendor.afterSaleTel ? String(vendor.afterSaleTel) : undefined,
+        qualification: vendor.qualification ? String(vendor.qualification) : undefined,
+        intro: vendor.intro ? String(vendor.intro) : undefined
+      }
     }
   }
 }
