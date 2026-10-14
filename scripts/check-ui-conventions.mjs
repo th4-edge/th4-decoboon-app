@@ -12,6 +12,11 @@
  * 7. 禁止 <template> 里给 color 属性写裸色值 —— 统一走 TOKEN_COLOR / STATUS_COLOR。
  *
  * 允许清单仅包含统一浮层自身与「非模态解释气泡」。
+ *
+ * 历史坑：原实现用「行级状态机」判断是否在 template/style 内（见到 `</template>` 就置 false），
+ * 遇到 `<template v-if>` 这类**嵌套模板**会提前退出 → 嵌套块之后的模板裸色值全部漏检
+ * （FIX-041 的 `<switch color="#0E8A7D">` 就是这样长期漏过的）；单行 `<template>…</template>`
+ * 也同样是漏检盲区。现改为按**字符区间**计算脚本/样式/根模板块，再按区间给行打标。
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -40,19 +45,66 @@ function walk(dir) {
   return out
 }
 
+/**
+ * 计算 SFC 块区间：[start, end) 字符偏移。
+ *
+ * - 只在**块外**识别块开始标签，块内只找对应结束标签，避免 script 里的字符串或
+ *   style 里的选择器被误判成结构标签；
+ * - template 支持嵌套（`<template v-if>` / `<template #slot>`），按深度配对；
+ * - 单行 `<template>…</template>` 同样落在区间内，不再漏检。
+ */
+function blockRanges(text) {
+  const ranges = { script: [], style: [], template: [] }
+  const tagRe = /<(\/?)(script|style|template)\b[^>]*>/gi
+  let depth = { script: 0, style: 0, template: 0 }
+  let start = { script: -1, style: -1, template: -1 }
+  let match
+  while ((match = tagRe.exec(text)) !== null) {
+    const closing = match[1] === '/'
+    const name = match[2].toLowerCase()
+    const active = depth.script > 0 ? 'script' : (depth.style > 0 ? 'style' : null)
+    if (active && name !== active) continue
+    if (!closing) {
+      if (depth[name] === 0) start[name] = match.index
+      depth[name] += 1
+    } else if (depth[name] > 0) {
+      depth[name] -= 1
+      if (depth[name] === 0) ranges[name].push([start[name], match.index + match[0].length])
+    }
+  }
+  return ranges
+}
+
+/** 行号（0 基）→ 是否落在任一区间内。 */
+function linesIn(ranges, text) {
+  const lineStart = [0]
+  for (let i = 0; i < text.length; i += 1) if (text[i] === '\n') lineStart.push(i + 1)
+  const flags = new Set()
+  for (const [from, to] of ranges) {
+    let low = 0
+    let high = lineStart.length - 1
+    while (low < high) { // 二分找到起始行
+      const mid = (low + high + 1) >> 1
+      if (lineStart[mid] <= from) low = mid
+      else high = mid - 1
+    }
+    for (let i = low; i < lineStart.length && lineStart[i] < to; i += 1) flags.add(i)
+  }
+  return flags
+}
+
 const failures = []
 for (const dir of SCAN_DIRS) {
   for (const file of walk(join(ROOT, dir))) {
     const rel = relative(ROOT, file)
     const text = readFileSync(file, 'utf8')
     const lines = text.split('\n')
-    let inStyle = false
-    let inTemplate = false
+    const ranges = blockRanges(text)
+    const styleLines = linesIn(ranges.style, text)
+    const templateLines = linesIn(ranges.template, text)
     lines.forEach((line, index) => {
-      if (/<template[\s>]/.test(line)) { inTemplate = true; return }
-      if (/<\/template>/.test(line)) { inTemplate = false; return }
-      if (/<style[\s>]/.test(line)) { inStyle = true; return }
-      if (/<\/style>/.test(line)) { inStyle = false; return }
+      const inStyle = styleLines.has(index)
+      const inTemplate = templateLines.has(index)
       // 注释中的说明不计入
       if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
       if (/uni\.showModal|uni\.showActionSheet/.test(line)) {

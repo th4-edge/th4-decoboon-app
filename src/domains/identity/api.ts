@@ -2,7 +2,7 @@ import { post, listOf, upload as uploadRequest } from '@/core/http'
 import { runtime } from '@/config'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
-import type { CustomerAccess, Employee, EmployeeRole, InviteCode, Store, Team, UserProfile } from './model'
+import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, Store, Team, UserProfile } from './model'
 
 export interface LoginToken { token: string }
 
@@ -305,7 +305,14 @@ export const identityApi = {
 
   companyInfo: async () => normalizeCompany(await post<RawRecord>('company/company/info', {})),
 
-  updateCompany: async (input: { title?: string; name?: string; logo?: string; color?: string; addr?: string; setting?: { brandPrimary?: string; custodianCredit?: boolean } }) =>
+  /**
+   * 更新企业信息。
+   *
+   * 历史坑（FIX-041）：后端迁移 114 已支持「企业对外信息」6 个字段（服务区域/客服电话/售后专线/USCC/资质/简介），
+   * 但入参类型一度只声明 brandPrimary/custodianCredit，导致页面即使填了也过不了类型检查 → 字段永远填不进去。
+   * 后端 company/company/update 仅 BOSS 可写（requireBoss），前端类型必须与之一致。
+   */
+  updateCompany: async (input: { title?: string; name?: string; logo?: string; color?: string; addr?: string; setting?: CompanySetting }) =>
     normalizeCompany(await post<RawRecord>('company/company/update', input)),
 
   memberPage: async (query: { status?: 'Active' | 'Suspended' | 'Resigned'; current?: number; size?: number; storeId?: string } = {}) => {

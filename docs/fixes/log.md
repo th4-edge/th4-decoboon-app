@@ -10,6 +10,73 @@
 
 
 
+## FIX-041 · 企业对外信息维护入口缺失（业主端「服务方」无数据来源）
+
+* 日期：2026-10-15
+* 报告角色：企业负责人
+* 影响模块：我的 → 企业信息维护、业主端「我的家」服务方区块（企业名称/客服电话/售后专线/服务区域/资质/简介）
+* 严重度：P0 字段存在但无处填写，业主端只能显示「暂不可确认」
+
+### 现象
+
+业主端升级（P0 第 2 批）为业主露出「服务方」信息后，企业负责人打开 App「我的企业」却找不到对应字段：只有企业全称/简称/地址与「叙事主品牌/记录存证署名」，服务区域、企业客服电话、售后专线、统一社会信用代码、资质、一句话简介 6 项完全没有入口。业主端因此长期只能显示「暂不可确认」。
+
+### 根因
+
+1. 后端已具备：迁移 114「企业对外信息」在 `db_tenant_company` 增加 6 列，`Setting` 增加 6 个属性，`company/company/update` 已逐字段支持写入（仅 BOSS，`requireBoss` 正确）；`company/company/info` 也把整个 `setting` 返回给客户端。
+2. 前端漏做：`src/subpackages/company/pages/info.vue` 只做了 P0 第 1 批的「品牌与署名配置」；`src/domains/identity/api.ts` 的 `updateCompany` 入参类型只声明 `setting?: { brandPrimary?, custodianCredit? }`，`src/domains/identity/model.ts` 的 `Company.setting` 是 `Record<string, unknown>`。即使页面加了输入框也过不了类型检查 → 字段永远填不进去。
+3. 业主端读取链路本身没问题：`CustomerJourneyContext.build()` 的 vendor 投影 + `customer/project/journey/info` 白名单已对齐。缺口只在**员工侧维护入口**。
+
+### 修复方案
+
+* 企业信息页新增「对外服务信息」卡片，读写 6 个字段；卡片头部明确「业主在『我的家』可见，属于服务主体知情权事实」，避免被理解成宣传位（`USER-DECISION-20261014-002`：知情权，不是获客）。
+* `model.ts` 新增 `CompanySetting` 类型（brandPrimary/custodianCredit/enableStore + 6 项对外信息），`Company.setting` 由 `Record<string, unknown>` 收敛为强类型。
+* `updateCompany` 入参类型改为 `setting?: CompanySetting`，与后端写入范围一致（避免下次再加字段时重复踩坑）。
+* 校验（前端先行，后端 `requireBoss` 与字段级合并兜底）：
+  * 企业全称/简称/地址长度；
+  * 客服电话与售后专线：固话（`0551-6558 8899`）、手机号或企业服务号格式，且**不得等于任何在职员工手机号**（拉 `company/member/page` 比对），对应口径「给通道，不给号码」；
+  * 统一社会信用代码：18 位 GB 32100 字符集（不含 I O S V Z）；
+  * 资质 ≤128、简介 ≤512。
+* 顺带修正本页历史遗留的模板裸色值：`<switch color="#0E8A7D">` → `:color="TOKEN_COLOR.primary"`（AGENTS §6.10/§8.3 禁止模板裸色值）。
+
+### 代码改动
+
+* App：`src/subpackages/company/pages/info.vue`（新增对外服务信息卡片与校验）、`src/domains/identity/model.ts`（`CompanySetting`）、`src/domains/identity/api.ts`（`updateCompany` 入参类型）。
+* 后端：无改动（仅消费既有 `company/company/info|update`）。
+* Web 同步：`th4-decoboon-web` 账户中心「企业信息」补同源可编辑入口（仅 BOSS），消费同一 Provider。
+
+### 业务观察者审查
+
+* 行业对标：小型装企的客服电话往往就是老板手机。产品口径要求「企业统一号码」，因此不做硬性禁止手机号，而是禁止「已在职员工登记的个人号码」，既守住业主端不泄露个人号的底线，也不误伤一人装企。
+* 闭环检查：填完后业主端「服务方」区块即刻可用（服务端投影，无前端缓存）；空值仍显示「暂不可确认」，不用空字符串伪装已填写。
+* 权限与数据隔离：页面编辑态仅 BOSS 可见（`session.role === 'boss'`），后端 `requireBoss` 二次校验；员工名单只用于本地比对，不落到任何请求参数。
+* 降级与空态：员工名单拉取失败时不阻断编辑（提示口径改为由服务端兜底），符合「接口异常表达为暂不可确认、保留恢复路径」。
+* 结论：通过。唯一遗留：员工侧的「职责/从业年限/擅长/服务承诺」等人员对外字段后端尚未建列，不在本次范围。
+
+### 附带修复：UI 守卫嵌套模板漏检（`scripts/check-ui-conventions.mjs`）
+
+* 根因：守卫用行级状态机判断 `inTemplate`，见到 `</template>` 即置 false，遇到 `<template v-if>` / `<template #slot>`
+  这类**嵌套模板**会提前退出，之后的模板裸色值全部漏检；单行 `<template>…</template>` 也完全在盲区。
+  本页历史遗留的 `<switch color="#0E8A7D">` 正是这样长期没被拦下。
+* 修复：改为按**字符区间**计算 script / style / 根 template 区块（template 按深度配对，块内不识结构标签），
+  再按区间给行打标；嵌套与单行模板都进入检查范围。
+* 反例验证（临时探针文件，验证后已删除）：
+  * 旧实现只报 2 条（样式裸色值 + 裸 z-index），**漏掉第 6 行（嵌套模板后）与第 7 行（单行模板内）的模板裸色值**；
+  * 新实现报全 4 条，删除探针后全仓 PASS。
+
+### 验证
+
+* `npm run type-check`：通过；
+* `npm run check:ui`：通过（含上述守卫修复后的全仓复检）；
+* `npm run build:mp-weixin`：通过（主包 887,567 B，最大分包 599,234 B，总包 3,531,930 B）；
+* `npm run check:subpackages`：通过（主包 14 页 / 分包 17 个 161 页）；
+* 用户自测清单：
+  1. 企业负责人 × 我的 → 我的企业：可编辑「对外服务信息」6 项，保存后回显一致；
+  2. 非负责人 × 我的企业：无「编辑」入口，字段只读；
+  3. 客服电话填员工个人手机号：被拦截并提示「不能填写员工个人手机号」；
+  4. 统一社会信用代码填 17 位或含 I/O/S/V/Z：被拦截；
+  5. 填写后业主端「我的家」服务方区块显示企业客服电话/售后专线/服务区域/简介（不再「暂不可确认」）。
+
 ## FIX-040 · 经营工具统一可见、四类企业模板只读与报价成本收紧
 
 * 日期：2026-10-08
