@@ -115,6 +115,14 @@ export interface CustomerJourney {
   pendingActionCount: number
   /** 服务方品牌与署名配置（叙事主体归装企，ANS-BIZ-20261010-004 §4） */
   vendor?: JourneyVendor
+  /** 为这一户服务的人（只含姓名与岗位，不含个人手机号） */
+  team?: JourneyMember[]
+}
+
+/** 服务人员投影。硬边界：不得含员工个人手机号（USER-DECISION-20261014-002）。 */
+export interface JourneyMember {
+  name: string
+  roleName: string
 }
 
 export interface JourneyVendor {
@@ -123,4 +131,14 @@ export interface JourneyVendor {
   color?: string
   /** 是否显示「记录存证与保管 · 装得清」署名，默认关闭 */
   custodianCredit?: boolean
+  /** 服务区域 */
+  serviceArea?: string
+  /** 企业统一客服电话（非员工个人号码） */
+  serviceTel?: string
+  /** 售后专线 */
+  afterSaleTel?: string
+  /** 资质 */
+  qualification?: string
+  /** 一句话简介 */
+  intro?: string
 }

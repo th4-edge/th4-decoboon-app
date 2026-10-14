@@ -174,6 +174,15 @@ function preview(urls: string[], current: string) {
       </view>
       <!-- 业主端不出现"企业内部成本/利润"这类字眼，只对员工展示投影边界说明 -->
       <view v-if="!isCustomer(session.role)" class="journey__footer">项目旅程只展示业主可见事实，不展示企业内部成本和利润。</view>
+      <!-- 服务主体知情权：业主有权知道是谁在为他服务（USER-DECISION-20261014-002）。
+           只展示姓名与岗位，不展示员工个人手机号；联络走企业统一客服电话。 -->
+      <view v-if="isCustomer(session.role) && journey.team?.length" class="jz-card journey__team">
+        <text class="journey__team-title">为你家服务的人</text>
+        <view v-for="member in journey.team" :key="member.name + member.roleName" class="journey__team-row">
+          <text>{{ member.name }}</text><text>{{ member.roleName }}</text>
+        </view>
+        <text v-if="journey.vendor?.serviceTel" class="journey__team-tel">有问题打 {{ journey.vendor.serviceTel }}</text>
+      </view>
       <!-- 服务方与记录存证说明：叙事主体归装企；平台署名受企业配置控制，默认关闭 -->
       <view v-else-if="journey.vendor?.name" class="journey__footer">
         本页记录由 {{ journey.vendor.name }} 提供并审核{{ journey.vendor.custodianCredit ? '；记录存证与保管 · 装得清' : '。' }}
@@ -228,5 +237,10 @@ function preview(urls: string[], current: string) {
 .journey__item-lines { margin-top: 10rpx; }
 .journey__item-lines text { display: block; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.75; }
 .journey__share-canvas { position: fixed; left: -9999px; top: 0; }
+.journey__team { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; }
+.journey__team-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.journey__team-row { display: flex; justify-content: space-between; margin-top: 14rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.journey__team-row text:last-child { color: $jzb-text-3; }
+.journey__team-tel { display: block; margin-top: 16rpx; color: $jzb-primary; font-size: $jzb-font-xs; }
 .journey__footer { padding: 10rpx 32rpx 30rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 </style>
