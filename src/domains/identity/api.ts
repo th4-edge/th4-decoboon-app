@@ -305,7 +305,7 @@ export const identityApi = {
 
   companyInfo: async () => normalizeCompany(await post<RawRecord>('company/company/info', {})),
 
-  updateCompany: async (input: { title?: string; name?: string; logo?: string; color?: string; addr?: string }) =>
+  updateCompany: async (input: { title?: string; name?: string; logo?: string; color?: string; addr?: string; setting?: { brandPrimary?: string; custodianCredit?: boolean } }) =>
     normalizeCompany(await post<RawRecord>('company/company/update', input)),
 
   memberPage: async (query: { status?: 'Active' | 'Suspended' | 'Resigned'; current?: number; size?: number; storeId?: string } = {}) => {
