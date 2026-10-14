@@ -113,4 +113,14 @@ export interface CustomerJourney {
   actions: JourneyAction[]
   openFeedbackCount: number
   pendingActionCount: number
+  /** 服务方品牌与署名配置（叙事主体归装企，ANS-BIZ-20261010-004 §4） */
+  vendor?: JourneyVendor
+}
+
+export interface JourneyVendor {
+  name?: string
+  logo?: string
+  color?: string
+  /** 是否显示「记录存证与保管 · 装得清」署名，默认关闭 */
+  custodianCredit?: boolean
 }

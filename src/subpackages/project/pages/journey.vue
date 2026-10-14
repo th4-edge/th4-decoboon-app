@@ -9,6 +9,7 @@ import type { CustomerJourney, JourneyAction, JourneyFact } from '@/domains/jour
 import { dateTimeText, selectionLineText } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import { useShare } from '@/composables/share'
+import { SHARE_CARD_HEIGHT, SHARE_CARD_ID, SHARE_CARD_WIDTH, drawShareCard } from '@/composables/shareCard'
 import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
@@ -21,10 +22,30 @@ const journey = ref<CustomerJourney | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 
+// 动态分享卡片：数据就绪后画一张带装企品牌的 5:4 卡片，失败则回退静态图。
+const shareImage = ref('')
+
+function shareTitle() {
+  return journey.value?.projectName ? `${journey.value.projectName} · 装修全过程` : '装修全过程随时查看'
+}
+
+async function buildShareCard() {
+  if (!journey.value) return
+  const path = await drawShareCard({
+    vendor: journey.value.vendor,
+    // 卡片上不带房号，避免分享出去泄漏具体住址
+    title: journey.value.projectName
+      ? `${journey.value.projectName} · 装修全过程`
+      : '装修全过程'
+  })
+  shareImage.value = path
+}
+
 // 项目旅程是业主与家人的共用视图：分享的是"这一户的进度"，不是产品功能。
 useShare(() => ({
-  title: journey.value?.projectName ? `${journey.value.projectName} · 装修全过程` : '装得清 · 装修全过程随时查看',
-  path: `${P.projectJourney}?projectId=${projectId.value}`
+  title: shareTitle(),
+  path: `${P.projectJourney}?projectId=${projectId.value}`,
+  imageUrl: shareImage.value || undefined
 }))
 
 onLoad((query) => {
@@ -40,6 +61,7 @@ async function load() {
   loadError.value = ''
   try {
     journey.value = await journeyApi.info(projectId.value)
+    void buildShareCard()
     if (targetSection.value) {
       setTimeout(() => uni.pageScrollTo({ selector: `#section-${targetSection.value}`, duration: 300 }), 120)
     }
@@ -152,7 +174,18 @@ function preview(urls: string[], current: string) {
       </view>
       <!-- 业主端不出现"企业内部成本/利润"这类字眼，只对员工展示投影边界说明 -->
       <view v-if="!isCustomer(session.role)" class="journey__footer">项目旅程只展示业主可见事实，不展示企业内部成本和利润。</view>
+      <!-- 服务方与记录存证说明：叙事主体归装企；平台署名受企业配置控制，默认关闭 -->
+      <view v-else-if="journey.vendor?.name" class="journey__footer">
+        本页记录由 {{ journey.vendor.name }} 提供并审核{{ journey.vendor.custodianCredit ? '；记录存证与保管 · 装得清' : '。' }}
+      </view>
       <view class="jz-tabbar-gap" />
+      <!-- 分享卡片画布：离屏绘制，不参与布局 -->
+      <canvas
+        :canvas-id="SHARE_CARD_ID"
+        :id="SHARE_CARD_ID"
+        class="journey__share-canvas"
+        :style="{ width: SHARE_CARD_WIDTH + 'px', height: SHARE_CARD_HEIGHT + 'px' }"
+      />
     </template>
   </view>
 </template>
@@ -194,5 +227,6 @@ function preview(urls: string[], current: string) {
 .journey__item-facts { display: flex; flex-wrap: wrap; gap: 12rpx 22rpx; margin-top: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .journey__item-lines { margin-top: 10rpx; }
 .journey__item-lines text { display: block; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.75; }
+.journey__share-canvas { position: fixed; left: -9999px; top: 0; }
 .journey__footer { padding: 10rpx 32rpx 30rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 </style>
