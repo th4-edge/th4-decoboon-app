@@ -690,6 +690,14 @@
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/owner-qrcode",
+          "style": {
+            "navigationBarTitleText": "业主项目码",
+            "enablePullDownRefresh": false,
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },

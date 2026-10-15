@@ -274,6 +274,15 @@ export const identityApi = {
   acceptCustomerInvite: (input: AcceptCustomerInviteInput) =>
     post<LoginToken>('identity/customer-invite/accept', input),
 
+  /**
+   * 扫码开通业主端（`USER-DECISION-20261015-001`）。
+   *
+   * 入参 scene 来自项目小程序码（= 项目编号）；服务端以「授权手机号 == 房屋所属客户档案手机号」
+   * 校验通过后建立本项目业主授权并返回会话 token，因此必须先完成微信登录与手机号授权。
+   */
+  scanEnterOwner: (scene: string) =>
+    post<LoginToken>('identity/customer-access/scan-enter', { scene }),
+
   rejectInvite: async (inviteId: string, phone: string, reason?: string) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/reject', { inviteId, phone, reason })),
 

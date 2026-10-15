@@ -10,6 +10,62 @@
 
 
 
+## FIX-043 · 业主端开通方式改为「项目码扫码 + 手机号验证」
+
+* 日期：2026-10-15
+* 报告角色：企业负责人
+* 影响模块：项目详情（新增「业主项目码」入口）、业主入口页（扫码进入）、后端项目码与扫码开通
+* 严重度：P0 能力缺口（口径已由用户裁决：`USER-DECISION-20261015-001`）
+
+### 现象 / 需求
+
+合同生效立项后，业主端应「以房屋所属客户开通」：每个项目生成专属小程序码，业主用微信扫码、授权手机号验证后即可查看自己的业主端；
+现状只有「员工发邀请 → 微信卡片 → 业主授权手机号」，没有项目码，也没有"以客户档案手机号开通"的路径。
+
+### 根因
+
+1. 进入凭据一直是**邀请**（`identity/customer-invite/accept`），业务上把"业主进得来"绑在员工操作上；
+2. 后端**完全没有小程序码能力**：`WechatMiniProgramClient` 只有 session / phone / 订阅消息，无 access_token 缓存、无 `getwxacodeunlimit`；
+3. `CustomerAccess` 的 `invite` 列可空、但代码路径只由邀请写入，没有"按项目 + 客户手机号直接授权"的入口。
+
+### 修复方案（按用户确认的推荐口径）
+
+* **后端**
+  * `WechatMiniProgramClient` 新增 `unlimitedQrCode(scene, page, envVersion)`：access_token 沿用既有进程内缓存；`check_path=false`（发布前也能生成）；微信返回 JSON 错误时显式失败并把 errcode/errmsg 写日志，禁止把错误 JSON 当图片落库；
+  * 新增 `project/owner-qrcode/build`（Security，项目可见性 + 数据权限）：scene = **项目编号**，图片按 `owner-qrcode/{comId}/{projectId}-{env}.jpg` 落私有存储（**对象键含版本环境**，避免 release/trial 切换后复用旧码），幂等复用，返回短期签名地址；
+  * 新增 `identity/customer-access/scan-enter`（Security，微信登录态）：scene → 项目 → 以**房屋所属客户**档案手机号比对授权手机号 → upsert `CustomerAccess`（`invite` 为空，与邀请接受路径共用 `customer-access:{creId}:{projectId}` 锁键）→ 返回业主会话；
+  * `WechatMiniProgramConfigure` 新增 `qr-code-env-version`（默认 `release`，可用环境变量 `WECHAT_QR_ENV_VERSION` 切 `trial`）。
+* **App**
+  * 项目详情「同频成员」区新增「业主项目码」入口（与「邀请卡片」并列，邀请降为兜底）；
+  * 新增页面 `subpackages/project/pages/owner-qrcode`：展示项目码、保存到相册（可打印）、复制扫码说明、刷新签名地址；体验版/开发版码给出显式提示；
+  * 业主入口页支持 `scene`（微信小程序码入参）：有 scene 时走「扫码开通」，无 scene 仍走邀请链路，两者共用手机号一致门禁与失败话术。
+* **DDL**：无（码不落库，按需生成 + 私有存储）。
+
+### 代码改动
+
+* 后端：`components/wechat/{service/WechatMiniProgramClient,sdk/WechatMiniProgramSdk,configure/WechatMiniProgramConfigure}`、`project/{model/Project（只读投影）,repository/ProjectRepository,service/ownerqrcode/**}`、`customer/{context/CustomerAccessContext,service/access/scanenter/**}`、`application.yml` / `application-prod.yml`、`security/ProviderSecurityAcceptanceTest`（路由基线 477→479）。
+* App：`src/pages/owner/enter.vue`、`src/domains/identity/api.ts`、`src/domains/project/api.ts`、`src/subpackages/project/pages/{detail,owner-qrcode}.vue`、`src/pages.json`、`src/config/index.ts`。
+* Web：本轮**未做**（现网 Web 各角色页面均未承载"邀请业主"，业务员视图明确排除该动作；承载页面需先裁决，见下）。
+
+### 业务观察者审查
+
+* 行业对标：装企现场交付习惯就是"贴一张码"，业主扫码即用；把"进得来"绑在员工发邀请上，一旦员工离职/手机号变更就断链。
+* 闭环检查：门禁仍是**手机号一致**（不是"扫码即通行"），与 `USER-DECISION-20261014-004` 的"业主只做知情 + 阶段确认"一致；员工微信仍被拒；跨企业/跨项目不放宽。
+* 权限与数据隔离：两条新路由都是 `Security`（非公开），并已纳入安全基线用例（未登录 401）；项目码生成走项目可见性，扫码开通走客户档案手机号。
+* 降级与空态：客户档案无手机号 → 拒绝并提示联系设计师（不放开）；微信侧失败 → 页面「暂不可确认 + 重试」，不用占位图伪装。
+* 结论：通过。**唯一阻塞**：正式版未发布时 `release` 码扫不开，需用 `trial`（体验成员可扫）过渡；发布后切回 `release`。Web 呈现与"客户换号更正通道"（`USER-DECISION-20261015-001` 待确认项 2）留待下一轮。
+
+### 验证
+
+* 后端：`mvn -o -q compile` 通过；`ScanEnterAccessTest` 6/6（手机号一致放行、号码不符拒绝、员工微信拒绝、客户无手机号拒绝、项目不存在 404、房屋所属客户优先）；`ProviderSecurityAcceptanceTest` 3/3（基线 479 = public 16 + protected 463，新路由未登录 401）。
+* App：`npm run verify:mp-weixin` 通过（type-check、全部契约脚本、UI 守卫、构建、分包 162 页）。
+* 用户自测清单：
+  1. 项目详情 → 同频成员 → 「业主项目码」：生成并展示二维码，可保存到相册；
+  2. 业主用**预留手机号**的微信扫码 → 授权手机号 → 进入「我的家」（只可见本项目）；
+  3. 用**其他手机号**微信扫码：提示"该手机号不是本项目的业主手机号…"；
+  4. 用员工微信扫码：提示"已绑定装修公司员工身份"；
+  5. 已发出的邀请卡片仍可用（兜底路径未改动）。
+
 ## FIX-042 · 邀请业主仍展示「邀请令牌」
 
 * 日期：2026-10-15

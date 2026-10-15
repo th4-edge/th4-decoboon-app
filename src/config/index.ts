@@ -95,6 +95,7 @@ export const P = {
   projectPlanEdit: '/subpackages/project/pages/plan-edit',
   projectMembers: '/subpackages/project/pages/members',
   projectInvite: '/subpackages/project/pages/invite',
+  ownerQrcode: '/subpackages/project/pages/owner-qrcode',
   projectAlbum: '/subpackages/project/pages/album',
   projectSelection: '/subpackages/project/pages/selection',
   projectSelectionItem: '/subpackages/project/pages/selection-item',

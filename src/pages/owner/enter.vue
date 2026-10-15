@@ -7,6 +7,10 @@
  * - 页面上**不出现"邀请码 / 邀请编号 / token / 邀请链接"**等字眼，统一表达为"验证手机号，进入我的家"；
  * - 兼容既有业主邀请参数（inviteId / token），保证已发出的邀请不失效。
  *
+ * USER-DECISION-20261015-001（2026-10-15）：业主端开通方式改为「项目码扫码 + 手机号验证」——
+ * 业主扫项目小程序码进入本页（微信把码内 scene 放在 `query.scene`，值 = 项目编号），
+ * 授权手机号后由服务端比对「房屋所属客户档案手机号」放行；邀请卡片链路保留为兜底。
+ *
  * FIX-042（2026-10-15）：邀请令牌退出流程——新的邀请卡片只带 `inviteId`，
  * 不再需要（也不再展示）token；进入判定仍由"业主授权手机号 == 邀请预留手机号"完成。
  * 因此**无 token 时不再做进入前预览**（预览接口要求 token 或手机号，授权前都拿不到），
@@ -27,25 +31,30 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 
 const inviteId = ref('')
 const token = ref('')
+/** 项目码扫码进入参数（微信小程序码 scene 原样传入，值 = 项目编号） */
+const scene = ref('')
 const invite = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const loadError = ref('')
 const { handlePhoneNumber } = useWxPhoneAuth()
 
-/** 是否带着一条"定向邀请"进来（P0 兼容路径；页面上不以"邀请码"表述） */
-const hasDirectInvite = computed(() => !!(inviteId.value || token.value))
+/** 是否带着"定向入口"进来（扫码 scene / 邀请 inviteId 或 token；页面上不以"邀请码"表述） */
+const hasDirectInvite = computed(() => !!(inviteId.value || token.value || scene.value))
 
 onLoad(async (query) => {
   inviteId.value = query?.inviteId || ''
   token.value = query?.token || ''
+  // 扫码进入：scene 可能被 URL 编码，必须解码后再作为项目编号使用。
+  scene.value = query?.scene ? decodeURIComponent(String(query.scene)) : ''
   // 已是业主身份再次打开：直接进我的家
   if (session.token && session.role === 'customer') {
     uni.reLaunch({ url: P.home })
     return
   }
   if (!hasDirectInvite.value) return // 无参数 → 展示"未找到装修项目"的引导态
+  // 扫码进入（scene）无需预览：项目有效性由服务端在"扫码开通"这一步一并校验。
   // FIX-042：无 token（新链接）不预览；仅历史带 token 链接保留预览，避免已发出的邀请提示变化。
-  if (!token.value) return
+  if (scene.value || !token.value) return
   try {
     invite.value = await identityApi.customerInvitationInfo({
       inviteId: inviteId.value || undefined,
@@ -66,6 +75,14 @@ function friendlyEnterError(error: unknown): string {
   if (message.includes('邀请已过期')) return '这条邀请已过期，请联系您的设计师重新发送'
   if (message.includes('邀请已失效')) return '这条邀请已失效或被撤销，请联系您的设计师重新发送'
   if (message.includes('该手机号已绑定其他微信')) return '该手机号已绑定其他微信，请联系您的设计师核对'
+  // 项目码扫码路径（USER-DECISION-20261015-001）
+  if (message.includes('项目码无效或项目不存在')) return '这个项目码无效或项目已不存在，请联系您的装饰公司'
+  if (message.includes('该手机号不是本项目的业主手机号')) {
+    return '该手机号不是本项目的业主手机号：请用签合同时预留的手机号微信扫码，或联系您的设计师核对'
+  }
+  if (message.includes('该项目未关联业主档案')) return '这个项目还没有登记业主档案，请联系您的设计师'
+  // 微信已绑员工时，登录接口返回的是员工会话，扫码开通会被"当前会话不是业主身份"拦下
+  if (message.includes('当前会话不是业主身份')) return '这个微信已绑定装修公司员工身份，请让业主本人微信扫码'
   return '进入我的家失败'
 }
 
@@ -91,6 +108,20 @@ async function enter(event: { detail?: { code?: string; errMsg?: string } }) {
     const profile = await identityApi.sessionInfo(sessionToken.token)
     if (profile.currentEmployee) {
       throw new Error('这个微信已绑定装修公司员工身份，请让业主本人微信进入')
+    }
+    // 扫码路径优先：项目码 + 手机号一致即开通（不依赖邀请）
+    if (scene.value) {
+      const entered = await identityApi.scanEnterOwner(scene.value)
+      loginAsToken(entered.token)
+      const scannedProfile = await identityApi.sessionInfo(entered.token)
+      if (scannedProfile.sessionType !== 'Customer' || !scannedProfile.customerAccesses?.length) {
+        throw new Error('授权未生效，请稍后重试')
+      }
+      loginAsCustomer(scannedProfile, entered.token)
+      hideLoading()
+      toast('已进入我的家', 'success')
+      uni.reLaunch({ url: P.home })
+      return
     }
     const accepted = await identityApi.acceptCustomerInvite({
       inviteId: inviteId.value || undefined,

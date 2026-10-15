@@ -299,6 +299,24 @@ export const projectApi = {
     return post<RawRecord>(uri, { projectId: id }).then(normalizeProject)
   },
 
+  /**
+   * 业主项目码（一项目一码）。
+   *
+   * 服务端幂等：首次生成后落私有存储并复用；返回短期内有效的签名地址（展示/长按保存/打印）。
+   * 返回的 `ownerQrcodeScene` 即项目编号（扫码进入参数），码内不含任何客户信息。
+   */
+  ownerQrcode: async (projectId: string): Promise<{ projectId: string; no: string; name: string; ownerQrcodeScene: string; ownerQrcodeUrl: string; ownerQrcodeEnvVersion: string }> => {
+    const raw = await post<RawRecord>('project/owner-qrcode/build', { projectId })
+    return {
+      projectId: String(raw.projectId ?? projectId),
+      no: String(raw.no ?? ''),
+      name: String(raw.name ?? ''),
+      ownerQrcodeScene: String(raw.ownerQrcodeScene ?? ''),
+      ownerQrcodeUrl: String(raw.ownerQrcodeUrl ?? ''),
+      ownerQrcodeEnvVersion: String(raw.ownerQrcodeEnvVersion ?? '')
+    }
+  },
+
   create: (project: ProjectSaveInput) =>
     post<RawRecord>('project/project/save', {
       quoteId: project.quoteId,

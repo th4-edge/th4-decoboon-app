@@ -190,6 +190,8 @@ const canReport = computed(() => role.value !== 'marketer' && can(role.value, 'a
 const canEditTask = computed(() => can(role.value, 'edit:task') && !isOwner.value)
 const canEditPlan = computed(() => can(role.value, 'edit:plan') && !isOwner.value)
 const canInviteOwner = computed(() => role.value !== 'marketer' && can(role.value, 'act:inviteCustomer') && !isOwner.value)
+/** 业主项目码（USER-DECISION-20261015-001）：与邀请同权限位，作为主路径；邀请卡片保留为兜底。 */
+const canShowOwnerQrcode = canInviteOwner
 const canViewFinance = computed(() => can(role.value, 'view:finance') && !isOwner.value)
 const teamAvatars = computed(() => members.value.filter((m) => m.kind === 'employee').slice(0, 4))
 
@@ -234,6 +236,7 @@ function goChangeCreate() {
   uni.navigateTo({ url: `${P.projectChangeCreate}?${qs.join('&')}` })
 }
 function goInviteOwner() { uni.navigateTo({ url: `${P.projectInvite}?id=${id.value}` }) }
+function goOwnerQrcode() { uni.navigateTo({ url: `${P.ownerQrcode}?id=${id.value}` }) }
 function addTask() {
   const sid = currentStage.value?.id || sortedStages.value[0]?.id || ''
   uni.navigateTo({ url: `${P.projectPlanEdit}?projectId=${id.value}&stageId=${sid}` })
@@ -605,7 +608,10 @@ function avatarOf(m: ProjectMember) {
     <view v-else class="pd__tab-body">
       <view class="jz-between pd__member-head">
         <text class="pd__member-title">同频成员（{{ members.length }}）</text>
-        <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="goInviteOwner"><JzIcon name="user-plus" :size="24" :color="TOKEN_COLOR.white" /><text>邀请业主</text></button>
+        <view class="jz-row" style="gap:12rpx;align-items:center;">
+          <button v-if="canShowOwnerQrcode" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="goOwnerQrcode"><JzIcon name="scan" :size="24" :color="TOKEN_COLOR.white" /><text>业主项目码</text></button>
+          <button v-if="canInviteOwner" class="jz-btn jz-btn--ghost jz-btn--sm pd__action-btn" @tap="goInviteOwner"><JzIcon name="user-plus" :size="24" :color="TOKEN_COLOR.primary" /><text>邀请卡片</text></button>
+        </view>
       </view>
       <view class="jz-card pd__member-grid">
         <view v-for="m in members" :key="m.id" class="pd__member">
