@@ -35,8 +35,17 @@ const brandPrimary = ref<'Company' | 'Platform'>('Company')
 const custodianCredit = ref(false)
 const editable = computed(() => session.role === 'boss')
 
-/** 统一客服电话/售后专线只允许固话、手机号或企业服务号；是否「员工个人号」由员工名单另行拦截。 */
+/**
+ * 统一客服电话/售后专线只允许固话、手机号或企业服务号；是否「员工个人号」由员工名单另行拦截。
+ *
+ * 历史坑（FIX-041 真实浏览器走查发现）：单测/示例与存量数据都带空格分隔（`0551-6558 8899`），
+ * 原正则不认空格 → 用户只是「原样保存」也会被误拦。校验前必须先去掉空白字符（含不间断空格）。
+ */
 const PHONE_PATTERN = /^(0\d{2,3}-?\d{7,8}(-\d{1,5})?|1[3-9]\d{9}|400-?\d{3}-?\d{4}|95\d{3,5})$/
+/** 归一化电话号码：去掉所有空白与不间断空格，便于与正则/员工名单比对。 */
+function compactPhone(value: string): string {
+  return (value || '').replace(/[\s\u00A0]/g, '')
+}
 /** GB 32100 统一社会信用代码字符集（18 位，去除易混字符 I O S V Z）。 */
 const USCC_PATTERN = /^[0-9A-HJ-NPQRTUWXY]{18}$/
 
@@ -77,7 +86,7 @@ async function loadEmployeePhones() {
   try {
     const page = await identityApi.memberPage({ status: 'Active', size: 200 })
     employeePhones.value = page.list
-      .map((item) => (item.phone || '').replace(/[\s-]/g, ''))
+      .map((item) => compactPhone(item.phone || '').replace(/-/g, ''))
       .filter(Boolean)
   } catch {
     // 拉不到名单时不阻断编辑：由后端 requireBoss 与服务端口径兜底
@@ -99,10 +108,10 @@ function validate(): string {
   if ((value.serviceArea || '').trim().length > 128) return '服务区域最长 128 个字符'
   const serviceTel = (value.serviceTel || '').trim()
   const afterSaleTel = (value.afterSaleTel || '').trim()
-  if (serviceTel && !PHONE_PATTERN.test(serviceTel)) return '客服电话请填写固话（0551-6558 8899）或企业服务号'
-  if (afterSaleTel && !PHONE_PATTERN.test(afterSaleTel)) return '售后专线请填写固话或企业服务号'
+  if (serviceTel && !PHONE_PATTERN.test(compactPhone(serviceTel))) return '客服电话请填写固话（0551-6558 8899）或企业服务号'
+  if (afterSaleTel && !PHONE_PATTERN.test(compactPhone(afterSaleTel))) return '售后专线请填写固话或企业服务号'
   for (const [label, tel] of [['客服电话', serviceTel], ['售后专线', afterSaleTel]] as const) {
-    if (tel && employeePhones.value.includes(tel.replace(/[\s-]/g, ''))) {
+    if (tel && employeePhones.value.includes(compactPhone(tel).replace(/-/g, ''))) {
       return `${label}不能填写员工个人手机号，请填写企业统一号码`
     }
   }
