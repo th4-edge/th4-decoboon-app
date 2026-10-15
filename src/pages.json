@@ -698,6 +698,24 @@
             "enablePullDownRefresh": false,
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/material-sheet",
+          "style": {
+            "navigationBarTitleText": "主材下单"
+          }
+        },
+        {
+          "path": "pages/material-sheet-create",
+          "style": {
+            "navigationBarTitleText": "主材下单"
+          }
+        },
+        {
+          "path": "pages/material-sheet-detail",
+          "style": {
+            "navigationBarTitleText": "主材下单"
+          }
         }
       ]
     },

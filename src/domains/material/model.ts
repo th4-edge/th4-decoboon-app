@@ -277,3 +277,101 @@ export interface MaterialCategory {
   active?: boolean
   remark?: string
 }
+
+/* ------------------------------------------------------------------ *
+ * 主材下单作业单（SOL-014 / OBJ-008 / DEC-072 / DEC-073）
+ *
+ * 作业单 = 对厂家的品类单据（一个品类一张单）：
+ * 承载安装位置、型号、颜色、尺寸、测量/配送/安装时间与签字；
+ * **不带价格与账期**——供应商与价格由财务在采购单侧决定。
+ * ------------------------------------------------------------------ */
+
+export type MaterialSheetStatus =
+  | 'draft'
+  | 'measuring'
+  | 'measured'
+  | 'submitted'
+  | 'pricing'
+  | 'ordered'
+  | 'partiallyOrdered'
+  | 'partiallyArrived'
+  | 'arrived'
+  | 'settled'
+  | 'closed'
+  | 'cancelled'
+
+/** 价格状态：无价可下单，成本待结算（利润为 null，禁止 0 成本伪利润）。 */
+export type SheetPriceState = 'priced' | 'unpriced' | 'settled' | 'mixed'
+
+export interface MaterialOrderSheetItem {
+  id: string
+  materialPlanId: string
+  spaceName?: string
+  locationName?: string
+  materialName?: string
+  brand?: string
+  model?: string
+  spec?: string
+  color?: string
+  size?: string
+  craft?: string
+  glass?: string
+  quantity: number
+  unit: string
+  lossRate?: number
+  lossQuantity?: number
+  standardIncluded?: boolean
+  /** 已下单数量（可分批/分供应商） */
+  orderedQuantity?: number
+  priceState?: SheetPriceState
+  remark?: string
+}
+
+export interface MaterialOrderSheet {
+  id: string
+  no: string
+  sheetType: string
+  projectId?: string
+  projectName?: string
+  propertyAddress?: string
+  manufacturerName?: string
+  supplierId?: string
+  supplierName?: string
+  measureAt?: string
+  groupChatAt?: string
+  deliverAt?: string
+  installAt?: string
+  status: MaterialSheetStatus
+  statusName?: string
+  priceState?: SheetPriceState
+  remark?: string
+  createdAt?: string
+  items: MaterialOrderSheetItem[]
+}
+
+/** Excel 单据导出结果（BASE64 承载，与报价工作簿导出同形态）。 */
+export interface MaterialSheetExportFile {
+  fileName: string
+  contentType: string
+  contentBase64: string
+  sha256: string
+}
+
+/** 作业单单位选项：提交给后端时必须使用枚举名（value），展示用 label。 */
+export const SHEET_UNIT_OPTIONS: { label: string; value: string }[] = [
+  { label: '㎡', value: 'Area' },
+  { label: '片', value: 'Sheet' },
+  { label: '块', value: 'Block' },
+  { label: '樘', value: 'Plate' },
+  { label: '套', value: 'Set' },
+  { label: '个', value: 'Count' },
+  { label: '米', value: 'Metre' },
+  { label: '项', value: 'Item' },
+  { label: '台', value: 'Pcs' },
+  { label: '处', value: 'Place' }
+]
+
+export function sheetUnitLabel(value?: string) {
+  if (!value) return ''
+  return SHEET_UNIT_OPTIONS.find((item) => item.value === value)?.label || value
+}

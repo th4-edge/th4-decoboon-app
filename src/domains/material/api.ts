@@ -520,3 +520,174 @@ export const materialBatchPurchaseApi = {
     remark?: string
   }) => post<RawRecord>('project/purchase/batch', input).then(normalizePurchase)
 }
+
+/* ------------------------------------------------------------------ *
+ * 主材下单作业单 API（品类单据：建单 / 测量确认 / 请购 / 导出）
+ * ------------------------------------------------------------------ */
+
+const SHEET_STATUS: Record<string, import('./model').MaterialSheetStatus> = {
+  Draft: 'draft',
+  Measuring: 'measuring',
+  Measured: 'measured',
+  Submitted: 'submitted',
+  Pricing: 'pricing',
+  Ordered: 'ordered',
+  PartiallyOrdered: 'partiallyOrdered',
+  PartiallyArrived: 'partiallyArrived',
+  Arrived: 'arrived',
+  Settled: 'settled',
+  Closed: 'closed',
+  Cancelled: 'cancelled'
+}
+
+const SHEET_PRICE_STATE: Record<string, import('./model').SheetPriceState> = {
+  Priced: 'priced',
+  Unpriced: 'unpriced',
+  Settled: 'settled',
+  Mixed: 'mixed'
+}
+
+function normalizeSheetItem(raw: RawRecord): import('./model').MaterialOrderSheetItem {
+  const plan = raw.materialPlan || {}
+  const catalog = plan.catalogItem || {}
+  return {
+    id: String(raw.itemId ?? raw.id ?? ''),
+    materialPlanId: String(raw.materialPlanId ?? plan.planId ?? ''),
+    spaceName: raw.spaceName ?? plan.spaceName,
+    locationName: raw.locationName,
+    materialName: raw.materialName ?? catalog.name ?? plan.name,
+    brand: raw.brand ?? plan.selectedBrand,
+    model: raw.model ?? plan.selectedModel,
+    spec: raw.spec ?? plan.selectedSpec,
+    color: raw.color,
+    size: raw.size,
+    craft: raw.craft,
+    glass: raw.glass,
+    quantity: Number(raw.quantity ?? 0),
+    unit: enumValue(raw.unit) || 'Item',
+    lossRate: raw.lossRate == null ? undefined : Number(raw.lossRate),
+    lossQuantity: raw.lossQuantity == null ? undefined : Number(raw.lossQuantity),
+    standardIncluded: raw.standardIncluded,
+    orderedQuantity: Number(raw.orderedQuantity ?? 0),
+    priceState: SHEET_PRICE_STATE[enumValue(raw.priceState)] || undefined,
+    remark: raw.remark
+  }
+}
+
+function normalizeSheet(raw: RawRecord): import('./model').MaterialOrderSheet {
+  const project = raw.project || {}
+  const property = raw.property || {}
+  const supplier = raw.supplier || {}
+  return {
+    id: String(raw.sheetId ?? raw.id ?? ''),
+    no: raw.sheetNo ?? raw.no ?? '',
+    sheetType: raw.sheetType ?? '',
+    projectId: project.projectId ? String(project.projectId) : raw.projectId ? String(raw.projectId) : undefined,
+    projectName: project.name,
+    propertyAddress: property.address,
+    manufacturerName: raw.manufacturerName,
+    supplierId: supplier.partnerId ? String(supplier.partnerId) : raw.supplierId ? String(raw.supplierId) : undefined,
+    supplierName: supplier.name ?? raw.supplierName,
+    measureAt: raw.measureAt,
+    groupChatAt: raw.groupChatAt,
+    deliverAt: raw.deliverAt,
+    installAt: raw.installAt,
+    status: SHEET_STATUS[enumValue(raw.status)] || 'draft',
+    statusName: raw.status?.name,
+    priceState: SHEET_PRICE_STATE[enumValue(raw.priceState)] || undefined,
+    remark: raw.remark,
+    createdAt: dateTimeValue(raw.createTime?.dateTime ?? raw.createTime),
+    items: Array.isArray(raw.items) ? raw.items.map(normalizeSheetItem) : []
+  }
+}
+
+export interface SheetLineInput {
+  materialPlanId: string
+  locationName?: string
+  spaceName?: string
+  materialName?: string
+  brand?: string
+  model?: string
+  spec?: string
+  color?: string
+  size?: string
+  craft?: string
+  glass?: string
+  quantity?: number
+  unit?: string
+  standardIncluded?: boolean
+  remark?: string
+}
+
+/** 主材下单作业单：门店/项目维度维护，设计师建单、项目经理测量确认、提交请购。 */
+export const materialSheetApi = {
+  list: async (query: { projectId?: string; sheetType?: string; status?: import('./model').MaterialSheetStatus } = {}) =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/sheet/page', query)).map(normalizeSheet),
+
+  info: async (sheetId: string) => normalizeSheet(await post<RawRecord>('material/sheet/info', { sheetId })),
+
+  save: (input: {
+    projectId: string
+    sheetType: string
+    manufacturerName?: string
+    supplierId?: string
+    groupChatAt?: string
+    installAt?: string
+    remark?: string
+    items: SheetLineInput[]
+  }) => post<RawRecord>('material/sheet/save', input).then(normalizeSheet),
+
+  update: (input: {
+    sheetId: string
+    manufacturerName?: string
+    supplierId?: string
+    groupChatAt?: string
+    deliverAt?: string
+    installAt?: string
+    remark?: string
+    items?: SheetLineInput[]
+  }) => post<RawRecord>('material/sheet/update', input).then(normalizeSheet),
+
+  submit: (sheetId: string) => post<RawRecord>('material/sheet/submit', { sheetId }).then(normalizeSheet),
+
+  measure: (input: { sheetId: string; measureAt?: string; deliverAt?: string; installAt?: string; signatures?: string }) =>
+    post<RawRecord>('material/sheet/measure', input).then(normalizeSheet),
+
+  remove: (sheetId: string) => post<RawRecord>('material/sheet/delete', { sheetId }),
+
+  /** 导出 Excel 单据（按导出时快照，不含价格与账期）。 */
+  exportFile: async (sheetId: string) => {
+    const raw = await post<RawRecord>('material/sheet/export', { sheetId })
+    return {
+      fileName: String(raw.fileName ?? ''),
+      contentType: String(raw.contentType ?? ''),
+      contentBase64: String(raw.contentBase64 ?? ''),
+      sha256: String(raw.sha256 ?? '')
+    }
+  }
+}
+
+/** 作业单枚举：品类来自平台行业基线，供建单选择器使用（前端不硬编码品类）。 */
+export const materialSheetEnumsApi = {
+  load: async (): Promise<{
+    sheetTypes: { code: string; name: string }[]
+    statuses: { value: string; name: string }[]
+    units: { value: string; name: string }[]
+  }> => {
+    const raw = await post<RawRecord>('material/sheet/enums', {})
+    return {
+      sheetTypes: (raw.sheetTypes || []).map((item: RawRecord) => ({
+        code: String(item.code ?? ''),
+        name: String(item.name ?? '')
+      })),
+      statuses: (raw.statuses || []).map((item: RawRecord) => ({
+        value: String(item.value ?? ''),
+        name: String(item.name ?? '')
+      })),
+      units: (raw.units || []).map((item: RawRecord) => ({
+        value: String(item.value ?? ''),
+        name: String(item.name ?? '')
+      }))
+    }
+  }
+}
