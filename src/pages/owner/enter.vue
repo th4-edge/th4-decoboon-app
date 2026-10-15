@@ -5,8 +5,12 @@
  * 交互要求（用户反馈）：
  * - 业主不再和员工/注册企业共用页面；
  * - 页面上**不出现"邀请码 / 邀请编号 / token / 邀请链接"**等字眼，统一表达为"验证手机号，进入我的家"；
- * - 本次（P0）仍兼容既有的业主邀请参数（inviteId / 邀请链接），保证已发出的邀请不失效；
- *   P1 将改为"手机号 + 客户档案"判定，届时移除参数依赖。
+ * - 兼容既有业主邀请参数（inviteId / token），保证已发出的邀请不失效。
+ *
+ * FIX-042（2026-10-15）：邀请令牌退出流程——新的邀请卡片只带 `inviteId`，
+ * 不再需要（也不再展示）token；进入判定仍由"业主授权手机号 == 邀请预留手机号"完成。
+ * 因此**无 token 时不再做进入前预览**（预览接口要求 token 或手机号，授权前都拿不到），
+ * 失效/过期/号码不一致改由「接受邀请」这一步返回，并由本页转成业主看得懂的提示。
  */
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
@@ -40,16 +44,30 @@ onLoad(async (query) => {
     return
   }
   if (!hasDirectInvite.value) return // 无参数 → 展示"未找到装修项目"的引导态
+  // FIX-042：无 token（新链接）不预览；仅历史带 token 链接保留预览，避免已发出的邀请提示变化。
+  if (!token.value) return
   try {
     invite.value = await identityApi.customerInvitationInfo({
       inviteId: inviteId.value || undefined,
-      token: token.value || undefined
+      token: token.value
     })
   } catch (error) {
     loadError.value = '这条邀请已失效或被撤销，请联系您的设计师重新发送'
     toastError(error, loadError.value)
   }
 })
+
+/** 把"接受邀请"阶段的服务端错误转成业主看得懂的话（令牌退出流程后判定都在这一步）。 */
+function friendlyEnterError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  if (message.includes('授权手机号与邀请手机号不一致')) {
+    return '这个微信绑定的手机号与邀请预留号码不一致，请改用预留号码的微信打开，或联系设计师重新发送邀请'
+  }
+  if (message.includes('邀请已过期')) return '这条邀请已过期，请联系您的设计师重新发送'
+  if (message.includes('邀请已失效')) return '这条邀请已失效或被撤销，请联系您的设计师重新发送'
+  if (message.includes('该手机号已绑定其他微信')) return '该手机号已绑定其他微信，请联系您的设计师核对'
+  return '进入我的家失败'
+}
 
 async function enter(event: { detail?: { code?: string; errMsg?: string } }) {
   const auth = handlePhoneNumber(event)
@@ -89,7 +107,7 @@ async function enter(event: { detail?: { code?: string; errMsg?: string } }) {
     uni.reLaunch({ url: P.home })
   } catch (error) {
     hideLoading()
-    toastError(error, '进入我的家失败')
+    toastError(error, friendlyEnterError(error))
   } finally {
     submitting.value = false
   }
