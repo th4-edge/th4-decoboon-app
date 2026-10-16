@@ -231,7 +231,7 @@ async function save(submitAfterSave: boolean) {
             <input v-model="line.color" class="msc__input" placeholder="颜色/花色" />
             <input v-model="line.size" class="msc__input" placeholder="尺寸（如：800*800）" />
             <view class="msc__line-qty">
-              <input v-model="line.quantity" class="msc__input jz-numeric-input" type="digit" placeholder="数量" />
+              <input v-model="line.quantity" class="msc__input jz-numeric-input" type="digit" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
               <JzSelectField
                 variant="boxed"
                 :display="unitLabel(line.unit)"
