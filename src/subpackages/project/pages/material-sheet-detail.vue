@@ -22,13 +22,15 @@ const measureAt = ref('')
 const deliverAt = ref('')
 const installAt = ref('')
 
-/** 可维护窗口：填写中 / 待测量 / 已测量 / 待下单（进入采购后锁定，换材走增减项）。 */
-const editable = computed(() => !!sheet.value &&
+/** 生命周期允许维护：进入采购后锁定；PM 只读/测量，不能编辑和提交。 */
+const lifecycleEditable = computed(() => !!sheet.value &&
   ['draft', 'measuring', 'measured', 'submitted', 'pricing'].includes(sheet.value.status))
+const canMaintainSheet = computed(() => ['designer', 'boss', 'storeManager'].includes(String(session.role || '')))
+const editable = computed(() => lifecycleEditable.value && canMaintainSheet.value)
 /** 测量与时间确认：项目经理或设计师（DEC-MP-07 任一方即可）。 */
 const canMeasure = computed(() => ['pm', 'designer', 'boss', 'storeManager'].includes(String(session.role || '')))
-const canSubmit = computed(() => !!sheet.value && ['draft', 'measuring', 'measured'].includes(sheet.value.status))
-const submitted = computed(() => !!sheet.value && !editable.value)
+const canSubmit = computed(() => editable.value && !!sheet.value && ['draft', 'measuring', 'measured'].includes(sheet.value.status))
+const locked = computed(() => !!sheet.value && !lifecycleEditable.value)
 
 onLoad(async (q) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -183,7 +185,7 @@ async function exportSheet() {
         </view>
       </view>
 
-      <view v-if="canMeasure && editable" class="jz-card msd__card">
+      <view v-if="canMeasure && lifecycleEditable" class="jz-card msd__card">
         <text class="msd__section-title">测量与时间确认</text>
         <view class="msd__field">
           <text class="msd__field-label">测量时间</text>
@@ -200,7 +202,7 @@ async function exportSheet() {
         <button class="jz-btn jz-btn--ghost" :disabled="saving" @tap="saveMeasure">保存测量与时间</button>
       </view>
 
-      <view v-if="submitted" class="jz-card msd__locked">
+      <view v-if="locked" class="jz-card msd__locked">
         <text>该作业单已进入采购，材料与数量已锁定；如需更换材料请发起增减项。</text>
       </view>
 

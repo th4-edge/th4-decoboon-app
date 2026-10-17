@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { isLoggedIn } from '@/domains/identity/session'
+import { isLoggedIn, session } from '@/domains/identity/session'
 import { materialSheetApi, materialSheetEnumsApi } from '@/domains/material/api'
 import { SHEET_PRICE_STATE_META, sheetStatusMeta } from '@/domains/material/meta'
 import type { MaterialOrderSheet } from '@/domains/material/model'
@@ -13,6 +13,7 @@ import JzTag from '@/components/JzTag.vue'
 
 const projectId = ref('')
 const projectName = ref('')
+const canCreate = computed(() => ['designer', 'boss', 'storeManager'].includes(String(session.role || '')))
 const sheets = ref<MaterialOrderSheet[]>([])
 const typeNames = ref<Record<string, string>>({})
 const loading = ref(true)
@@ -117,7 +118,7 @@ function openCreate() {
       </view>
     </template>
 
-    <view class="ms__footer">
+    <view v-if="canCreate" class="ms__footer">
       <button class="jz-btn jz-btn--primary" @tap="openCreate">新建品类作业单</button>
     </view>
     <view class="jz-tabbar-gap" />

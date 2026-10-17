@@ -214,6 +214,13 @@ function goSelection() {
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
   uni.navigateTo({ url: `${P.projectSelection}?${qs.join('&')}` })
 }
+function goMaterialSheet() {
+  const qs = [
+    `projectId=${id.value}`,
+    `projectName=${encodeURIComponent(project.value?.name || '')}`
+  ]
+  uni.navigateTo({ url: `${P.materialSheet}?${qs.join('&')}` })
+}
 function goContract() {
   const qs = [`projectId=${id.value}`]
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
@@ -398,6 +405,16 @@ function avatarOf(m: ProjectMember) {
           <view class="jz-grow">
             <text class="pd__selection-title">主材选材</text>
             <text class="pd__selection-sub">逐项选择主材并与客户确认，跟踪客户确认与材料下单状态</text>
+          </view>
+          <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text3" />
+        </view>
+      </view>
+
+      <view v-if="!isOwner" class="jz-card pd__selection" @tap="goMaterialSheet">
+        <view class="jz-between">
+          <view class="jz-grow">
+            <text class="pd__selection-title">主材下单</text>
+            <text class="pd__selection-sub">按品类建单，跟踪现场测量、提交请购、采购和到场状态</text>
           </view>
           <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text3" />
         </view>
