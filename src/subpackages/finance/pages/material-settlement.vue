@@ -12,6 +12,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 type Tab = 'pending' | 'settlements'
@@ -249,6 +250,11 @@ function settlementStatusColor(status: MaterialSettlement['status']) {
         </view>
       </view>
     </template>
+    <MaterialAssistant
+      context-type="settlement"
+      context-title="主材采购结算工作台"
+      context-subtitle="按供应商/采购单结算 · 结算价是实际成本唯一来源"
+    />
     <view class="jz-tabbar-gap" />
   </view>
 </template>

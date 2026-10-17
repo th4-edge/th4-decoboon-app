@@ -13,6 +13,7 @@ import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 import MaterialSheetContextGuide from '@/components/MaterialSheetContextGuide/MaterialSheetContextGuide.vue'
+import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 
 const sheetId = ref('')
 const sheet = ref<MaterialOrderSheet | null>(null)
@@ -274,6 +275,14 @@ async function exportSheet() {
         <text class="msd__order-title">待财务下单</text>
         <text class="msd__order-text">当前有 {{ remainingLineCount }} 行未下单；财务可在 App 内选择供应商、填写数量和可空单价，直接形成采购单与应付。</text>
       </view>
+
+      <MaterialAssistant
+        context-type="sheet"
+        :project-id="sheet?.projectId"
+        :sheet-id="sheetId"
+        :context-title="sheet ? `${typeName || '主材'} ${sheet.no}` : '主材作业单'"
+        :context-subtitle="sheet ? `${sheet.projectName || '当前项目'} · ${sheetStatusMeta(sheet.status).label}` : '主材作业单上下文'"
+      />
 
       <view class="msd__footer">
         <button v-if="canOrderSheet" class="jz-btn jz-btn--primary" :disabled="saving" @tap="openOrder">去下单</button>

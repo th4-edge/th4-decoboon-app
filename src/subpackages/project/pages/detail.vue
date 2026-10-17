@@ -40,6 +40,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzIconButton from '@/components/JzIconButton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import MaterialHealthCard from '@/components/MaterialHealthCard/MaterialHealthCard.vue'
+import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 
 const id = ref('')
 const project = ref<Project | null>(null)
@@ -670,6 +671,13 @@ function avatarOf(m: ProjectMember) {
         <text class="pd__member-tip-text">业主通过「业主邀请」加入，仅可见本工地进度、动态与验收；员工按岗位在权限矩阵内读写。</text>
       </view>
     </view>
+
+    <MaterialAssistant
+      context-type="project"
+      :project-id="id"
+      :context-title="project?.name || '当前项目'"
+      :context-subtitle="project ? `项目进度 ${project.progress}% · 材料业务体检` : '项目材料业务体检'"
+    />
   </view>
 
   <view v-else class="jz-center" style="padding-top: 200rpx;">项目不存在或已删除</view>
