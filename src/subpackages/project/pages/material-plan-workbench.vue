@@ -22,7 +22,7 @@ const IN_TRANSIT_STATUS = ['Ordered', 'PartiallyOrdered']
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   Planned: { label: '待选材', color: TOKEN_COLOR.text3 },
-  ReadyToOrder: { label: '可下单', color: TOKEN_COLOR.warning },
+  ReadyToOrder: { label: '未下单', color: TOKEN_COLOR.warning },
   Requested: { label: '已请购', color: TOKEN_COLOR.warning },
   Approved: { label: '已审批', color: TOKEN_COLOR.warning },
   PartiallyOrdered: { label: '部分下单', color: TOKEN_COLOR.warning },
@@ -37,9 +37,6 @@ const projectId = ref('')
 const activeView = ref<ViewKey>('all')
 const workbenches = ref<MaterialPlanWorkbench[]>([])
 const returns = ref<MaterialReturnRecord[]>([])
-const selectMode = ref(false)
-const selectedIds = ref<string[]>([])
-const selectedProjectId = ref('')
 const expandState = ref<Record<string, boolean>>({})
 const loadingState = ref(true)
 const loadError = ref('')
@@ -50,9 +47,9 @@ const canConfirmArrival = computed(() => ['boss', 'storeManager', 'finance', 'pm
 
 /** 企业负责人看全公司，财务看履约协同，其余角色看本人范围。 */
 const headerSubtitle = computed(() => {
-  if (role.value === 'boss') return '全公司材料计划：选材确认后下单、在途跟踪与到场确认'
-  if (role.value === 'finance') return '履约协同：材料下单、供应商与到场跟踪'
-  return '选材确认后逐条下单，材料到场由项目经理/设计负责人确认'
+  if (role.value === 'boss') return '全公司材料需求与履约进度；下单统一从主材作业单发起'
+  if (role.value === 'finance') return '材料需求、在途与到场跟踪；下单与结算进入主材作业单'
+  return '材料需求与到场进度；请从主材作业单发起的下单流程'
 })
 
 /** 单行是否命中当前视图（与计数同源，避免"计数对不上列表"）。 */
@@ -79,7 +76,7 @@ const totals = computed(() => ({
 const filters = computed(() => {
   const chips: { key: ViewKey; label: string; count: number }[] = [
     { key: 'all', label: '全部', count: allItems.value.length },
-    { key: 'ready', label: '待下单', count: totals.value.readyToOrder },
+    { key: 'ready', label: '未下单', count: totals.value.readyToOrder },
     { key: 'inTransit', label: '待到货', count: totals.value.inTransit },
     { key: 'partial', label: '部分到场', count: totals.value.partial },
     { key: 'delayed', label: '已逾期', count: totals.value.delayed }
@@ -90,7 +87,7 @@ const filters = computed(() => {
   return chips
 })
 
-/** 待办优先排序：逾期 → 待下单 → 待到货 → 部分到场 → 其它。 */
+/** 待办优先排序：逾期 → 未下单 → 待到货 → 部分到场 → 其它。 */
 function itemRank(item: MaterialPlanWorkbenchItem) {
   if (item.delayed) return 0
   if (READY_STATUS.includes(item.status || '')) return 1
@@ -106,7 +103,7 @@ const visibleProjects = computed(() => {
       const items = [...bench.items]
         .filter((item) => matchesView(item, activeView.value))
         .sort((a, b) => itemRank(a) - itemRank(b) || (a.planId > b.planId ? 1 : -1))
-      // 项目标签跟随当前筛选：避免"筛待下单却显示待到货 3"的口径错位
+      // 项目标签跟随当前筛选：避免"筛未下单却显示待到货 3"的口径错位
       return {
         ...bench,
         items,
@@ -122,10 +119,6 @@ const visibleReturns = computed(() =>
   projectId.value ? returns.value.filter((item) => item.projectId === projectId.value || !item.projectId) : returns.value
 )
 
-const selectedProjectName = computed(() => {
-  const bench = workbenches.value.find((item) => item.projectId === selectedProjectId.value)
-  return bench?.projectName || bench?.projectNo || ''
-})
 
 onLoad((q) => {
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
@@ -167,7 +160,6 @@ async function load() {
 
 function switchView(key: ViewKey) {
   activeView.value = key
-  if (selectMode.value && key === 'returns') toggleSelectMode()
 }
 
 function statusMeta(status?: string) {
@@ -190,57 +182,6 @@ function toggleProject(projectKey: string) {
   expandState.value = { ...expandState.value, [projectKey]: !isExpanded(projectKey) }
 }
 
-function toggleSelectMode() {
-  selectMode.value = !selectMode.value
-  if (!selectMode.value) {
-    selectedIds.value = []
-    selectedProjectId.value = ''
-  } else {
-    activeView.value = activeView.value === 'returns' ? 'all' : activeView.value
-  }
-}
-
-function isSelectable(item: MaterialPlanWorkbenchItem) {
-  return canOrder.value && READY_STATUS.includes(item.status || '')
-}
-
-function toggleSelect(item: MaterialPlanWorkbenchItem) {
-  if (!isSelectable(item)) return
-  if (selectedIds.value.includes(item.planId)) {
-    selectedIds.value = selectedIds.value.filter((id) => id !== item.planId)
-    if (!selectedIds.value.length) selectedProjectId.value = ''
-    return
-  }
-  if (selectedProjectId.value && selectedProjectId.value !== item.projectId) {
-    toastError(new Error('合并下单的材料必须属于同一项目'), '请先取消其他项目的选择')
-    return
-  }
-  selectedProjectId.value = item.projectId
-  selectedIds.value = [...selectedIds.value, item.planId]
-}
-
-/** 当前项目内可合并下单的待选项，供"全选本项目"使用。 */
-const selectableInScope = computed(() => {
-  if (!selectMode.value) return []
-  const scope = selectedProjectId.value
-  return visibleProjects.value
-    .filter((bench) => !scope || bench.projectId === scope)
-    .flatMap((bench) => bench.items)
-    .filter(isSelectable)
-})
-
-function selectAllInScope() {
-  const ids = selectableInScope.value.map((item) => item.planId)
-  if (!ids.length) return
-  selectedProjectId.value = selectableInScope.value[0].projectId
-  selectedIds.value = ids
-}
-
-function openBatchOrder() {
-  if (!selectedIds.value.length) return
-  uni.navigateTo({ url: `${P.materialBatchOrder}?planIds=${selectedIds.value.join(',')}` })
-}
-
 function openProject(id: string) {
   if (!id) return
   uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
@@ -250,12 +191,8 @@ function openCategory() {
   uni.navigateTo({ url: P.materialCategory })
 }
 
-function openSupply() {
-  uni.navigateTo({ url: P.supply })
-}
-
-function order(item: MaterialPlanWorkbenchItem) {
-  uni.navigateTo({ url: `${P.supplyPurchaseEdit}?planId=${item.planId}` })
+function openMaterialSheets() {
+  uni.navigateTo({ url: P.materialSheet })
 }
 
 function confirmArrival(item: MaterialPlanWorkbenchItem) {
@@ -282,7 +219,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
         </view>
         <view class="mpw__summary-divider" />
         <view class="mpw__summary-item">
-          <text class="mpw__summary-label">待下单</text>
+          <text class="mpw__summary-label">未下单</text>
           <text class="mpw__summary-value" :class="{ 'mpw__summary-value--warn': totals.readyToOrder > 0 }">{{ totals.readyToOrder }}</text>
         </view>
         <view class="mpw__summary-divider" />
@@ -310,18 +247,12 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
         </view>
       </scroll-view>
 
-      <view v-if="selectMode" class="mpw__hint">
-        <JzIcon name="alert-circle" :size="30" :color="TOKEN_COLOR.warning" />
-        <text class="mpw__hint-text">{{ selectedProjectId ? `已选「${selectedProjectName}」的材料，可继续勾选或合并下单` : '勾选同一项目的材料后可合并为一张采购单' }}</text>
-        <text v-if="selectableInScope.length" class="mpw__hint-action" @tap="selectAllInScope">全选</text>
-      </view>
-
       <view class="mpw__toolbar">
         <text class="mpw__toolbar-count">
           {{ activeView === 'returns' ? `${visibleReturns.length} 张退货单` : `${visibleProjects.length} 个项目 · ${visibleProjects.reduce((sum, bench) => sum + bench.items.length, 0)} 条材料` }}
         </text>
         <view class="mpw__toolbar-actions">
-          <text v-if="canOrder" class="mpw__link" @tap="toggleSelectMode">{{ selectMode ? '退出多选' : '多选下单' }}</text>
+          <text class="mpw__link" @tap="openMaterialSheets">主材作业单</text>
           <text v-if="canOrder" class="mpw__link" @tap="openCategory">主材分类损耗</text>
         </view>
       </view>
@@ -350,7 +281,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
           :text="allItems.length ? '该分组暂无材料' : '暂无材料计划'"
           :sub="allItems.length ? '切换上方分组查看其它状态的材料' : '合同生效后按主材范围生成计划，选材确认后可下单'"
         >
-          <button v-if="!allItems.length && canOrder" class="jz-btn jz-btn--ghost jz-btn--sm mpw__empty-action" @tap="openSupply">前往供应商协作</button>
+          <button v-if="!allItems.length && canOrder" class="jz-btn jz-btn--ghost jz-btn--sm mpw__empty-action" @tap="openMaterialSheets">查看主材作业单</button>
           <button v-else-if="allItems.length" class="jz-btn jz-btn--ghost jz-btn--sm mpw__empty-action" @tap="switchView('all')">查看全部材料</button>
         </JzEmpty>
 
@@ -363,7 +294,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
               </text>
             </view>
             <view class="mpw__project-tags">
-              <JzTag v-if="bench.readyToOrder" :text="`待下单 ${bench.readyToOrder}`" :color="TOKEN_COLOR.warning" size="sm" />
+              <JzTag v-if="bench.readyToOrder" :text="`未下单 ${bench.readyToOrder}`" :color="TOKEN_COLOR.warning" size="sm" />
               <JzTag v-if="bench.delayed" :text="`逾期 ${bench.delayed}`" :color="TOKEN_COLOR.danger" size="sm" />
               <JzTag v-if="bench.pendingArrival" :text="`待到货 ${bench.pendingArrival}`" :color="TOKEN_COLOR.purple" size="sm" />
             </view>
@@ -378,13 +309,9 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
               v-for="item in bench.items"
               :key="item.planId"
               class="mpw__item"
-              :class="{ 'mpw__item--selected': selectedIds.includes(item.planId), 'mpw__item--disabled': selectMode && !isSelectable(item) }"
             >
-              <view class="mpw__item-head" @tap="selectMode ? toggleSelect(item) : undefined">
-                <view v-if="selectMode" class="mpw__check" :class="{ 'mpw__check--on': selectedIds.includes(item.planId), 'mpw__check--off': !isSelectable(item) }">
-                  <text v-if="selectedIds.includes(item.planId)">✓</text>
-                </view>
-                <text class="mpw__item-name jz-clamp-2">{{ item.materialName || '未命名材料' }}</text>
+              <view class="mpw__item-head">
+              <text class="mpw__item-name jz-clamp-2">{{ item.materialName || '未命名材料' }}</text>
                 <JzTag :text="statusMeta(item.status).label" :color="statusMeta(item.status).color" size="sm" />
               </view>
               <view class="mpw__item-spec jz-clamp-1">
@@ -402,12 +329,7 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
                 <text class="mpw__item-next-label">下一步</text>
                 <text class="mpw__item-next-text">{{ item.nextAction }}</text>
               </view>
-              <view v-if="!selectMode" class="mpw__item-actions">
-                <button
-                  v-if="canOrder && READY_STATUS.includes(item.status || '')"
-                  class="jz-btn jz-btn--primary jz-btn--sm"
-                  @tap="order(item)"
-                ><JzIcon name="package" :size="22" :color="TOKEN_COLOR.white" /><text>去下单</text></button>
+              <view class="mpw__item-actions">
                 <button
                   v-if="canConfirmArrival && (item.status === 'Ordered' || item.status === 'PartiallyArrived')"
                   class="jz-btn jz-btn--ghost jz-btn--sm"
@@ -420,14 +342,6 @@ function confirmArrival(item: MaterialPlanWorkbenchItem) {
       </view>
     </template>
 
-    <view v-if="selectMode" class="mpw__batchbar">
-      <view class="mpw__batchbar-info">
-        <text class="mpw__batchbar-text">已选 {{ selectedIds.length }} 项</text>
-        <text class="mpw__batchbar-sub">{{ selectedProjectName || '请勾选待下单材料' }}</text>
-      </view>
-      <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="toggleSelectMode">取消</button>
-      <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="!selectedIds.length" @tap="openBatchOrder">合并下单</button>
-    </view>
     <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.materialPlanWorkbench" />
   </view>

@@ -678,12 +678,6 @@
           }
         },
         {
-          "path": "pages/material-batch-order",
-          "style": {
-            "navigationStyle": "custom"
-          }
-        },
-        {
           "path": "pages/share-view",
           "style": {
             "navigationBarTitleText": "装修实录",
@@ -713,6 +707,12 @@
         },
         {
           "path": "pages/material-sheet-detail",
+          "style": {
+            "navigationBarTitleText": "主材下单"
+          }
+        },
+        {
+          "path": "pages/material-sheet-order",
           "style": {
             "navigationBarTitleText": "主材下单"
           }
@@ -1058,6 +1058,15 @@
             "backgroundColor": "#FFFFFF"
           }
         }
+,
+        {
+          "path": "pages/material-settlement",
+          "style": {
+            "navigationBarTitleText": "主材结算",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     },
     {
@@ -1311,13 +1320,6 @@
           }
         },
         {
-          "path": "pages/purchase-edit",
-          "style": {
-            "navigationBarTitleText": "新增采购单",
-            "backgroundColor": "#F4F7F8"
-          }
-        },
-        {
           "path": "pages/receipt-edit",
           "style": {
             "navigationBarTitleText": "确认材料到货",
@@ -1326,13 +1328,6 @@
         },
         {
           "path": "pages/supplier-picker",
-          "style": {
-            "navigationStyle": "custom",
-            "backgroundColor": "#F4F7F8"
-          }
-        },
-        {
-          "path": "pages/material-plan-picker",
           "style": {
             "navigationStyle": "custom",
             "backgroundColor": "#F4F7F8"

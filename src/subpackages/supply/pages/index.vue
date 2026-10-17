@@ -4,7 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { materialApi } from '@/domains/material/api'
-import type { MaterialPlan, PurchaseOrder, PurchaseStatus } from '@/domains/material/model'
+import type { PurchaseOrder, PurchaseStatus } from '@/domains/material/model'
 import { supplyApi } from '@/domains/supply/api'
 import type { InventoryStock, Partner, PartnerPrice, StockMovement } from '@/domains/supply/model'
 import { toast, toastError } from '@/composables/toast'
@@ -22,12 +22,8 @@ const warnings = ref<InventoryStock[]>([])
 const partners = ref<Partner[]>([])
 const prices = ref<PartnerPrice[]>([])
 const movements = ref<StockMovement[]>([])
-const plans = ref<MaterialPlan[]>([])
 const purchases = ref<PurchaseOrder[]>([])
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
-const canApprove = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
-const canBuy = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
-const pendingPlans = computed(() => plans.value.filter((item) => ['planned', 'readyToOrder', 'requested', 'approved'].includes(item.status)).slice(0, 8))
 const activePurchases = computed(() => purchases.value.filter((item) => !['cancelled', 'closed'].includes(item.status)).slice(0, 12))
 const pendingPurchaseCount = computed(() => purchases.value.filter((item) => ['submitted', 'approved', 'ordered', 'partiallyReceived'].includes(item.status)).length)
 const waitingReceiptCount = computed(() => purchases.value.filter((item) => ['ordered', 'partiallyReceived'].includes(item.status)).length)
@@ -42,15 +38,14 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 async function refresh() {
   try {
-    const [stockList, warningList, partnerList, movementList, planList, purchaseList] = await Promise.all([
+    const [stockList, warningList, partnerList, movementList, purchaseList] = await Promise.all([
       supplyApi.inventory(), supplyApi.warnings(), supplyApi.partners(), supplyApi.movements(),
-      materialApi.plans(), materialApi.purchases()
+      materialApi.purchases()
     ])
     inventory.value = stockList
     warnings.value = warningList
     partners.value = partnerList
     movements.value = movementList
-    plans.value = planList
     purchases.value = purchaseList
     prices.value = canViewCost.value ? await supplyApi.partnerPrices() : []
   } catch (error) {
@@ -77,7 +72,6 @@ function purchaseStatusColor(status: PurchaseStatus) {
 function deliveryText(mode: PurchaseOrder['deliveryMode']) {
   return mode === 'warehouse' ? '入仓库' : '直送工地'
 }
-function canOrder(item: PurchaseOrder) { return item.status === 'approved' }
 function canReceive(item: PurchaseOrder) { return ['ordered', 'partiallyReceived'].includes(item.status) }
 
 function addPartner() { uni.navigateTo({ url: P.supplyPartnerEdit }) }
@@ -88,7 +82,13 @@ function openMaterialWorkbench() {
   uni.navigateTo({ url: P.materialPlanWorkbench })
 }
 
-function addPurchase(planId?: string) { uni.navigateTo({ url: `${P.supplyPurchaseEdit}${planId ? `?planId=${planId}` : ''}` }) }
+function openMaterialSheets() {
+  uni.navigateTo({ url: P.materialSheet })
+}
+
+function openMaterialSettlement() {
+  uni.navigateTo({ url: P.financeMaterialSettlement })
+}
 function receive(purchase: PurchaseOrder) {
   const items = (purchase.items || []).filter((item) => item.receivedQuantity < item.quantity)
   if (items.length > 1) {
@@ -107,25 +107,6 @@ function receive(purchase: PurchaseOrder) {
   uni.navigateTo({ url: `${P.supplyReceiptEdit}?purchaseId=${purchase.id}${itemQuery}` })
 }
 
-async function order(item: PurchaseOrder) {
-  try {
-    await materialApi.orderPurchase(item.id)
-    toast('已确认下单并形成应付', 'success')
-    await refresh()
-  } catch (error) {
-    toastError(error, '采购下单失败')
-  }
-}
-
-async function approve(item: PurchaseOrder) {
-  try {
-    await materialApi.approvePurchase(item.id)
-    toast('采购单已确认', 'success')
-    await refresh()
-  } catch (error) {
-    toastError(error, '采购单确认失败')
-  }
-}
 </script>
 
 <template>
@@ -140,22 +121,17 @@ async function approve(item: PurchaseOrder) {
 
     <view v-if="tab === 'purchase'" class="supply__list">
       <view class="supply__summary">
-        <view><text>{{ pendingPlans.length }}</text><text>待采购</text></view>
         <view><text>{{ pendingPurchaseCount }}</text><text>进行中</text></view>
         <view><text>{{ waitingReceiptCount }}</text><text>待到货</text></view>
       </view>
-      <view v-if="canBuy" class="supply__add jz-card" @tap="addPurchase()">
-        <JzIcon name="plus" :size="30" :color="TOKEN_COLOR.primary" /><text>从材料计划创建采购单</text>
+      <view class="supply__add jz-card" @tap="openMaterialSheets()">
+        <JzIcon name="package" :size="30" :color="TOKEN_COLOR.primary" /><text>主材下单工作台</text>
       </view>
       <view class="supply__add jz-card" @tap="openMaterialWorkbench()">
         <JzIcon name="file-text" :size="30" :color="TOKEN_COLOR.primary" /><text>材料计划工作台</text>
       </view>
-
-      <view v-if="pendingPlans.length" class="supply__section">待采购材料</view>
-      <view v-for="plan in pendingPlans" :key="plan.id" class="jz-card supply__card">
-        <view class="jz-between"><text class="supply__name">{{ plan.name }}</text><JzTag text="待采购" :color="TOKEN_COLOR.warning" /></view>
-        <text class="supply__meta">{{ plan.project?.name || '项目材料' }} · {{ plan.quantity }}{{ plan.unit }} · 要求到场 {{ plan.requiredAt || '未设置' }}</text>
-        <view v-if="canBuy" class="supply__actions"><button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="addPurchase(plan.id)">去采购</button></view>
+      <view v-if="canViewCost" class="supply__add jz-card" @tap="openMaterialSettlement()">
+        <JzIcon name="wallet" :size="30" :color="TOKEN_COLOR.primary" /><text>主材结算</text>
       </view>
 
       <view v-if="activePurchases.length" class="supply__section">采购进度</view>
@@ -164,11 +140,9 @@ async function approve(item: PurchaseOrder) {
         <text class="supply__meta">{{ item.projectName }} · {{ item.supplierName }} · {{ deliveryText(item.deliveryMode) }}</text>
         <text class="supply__meta">{{ item.no }} · {{ item.receivedQuantity }}/{{ item.quantity }} {{ item.unit }} · 预计 {{ item.expectedAt || '未设置' }}</text>
         <view class="supply__metrics"><text>采购金额 {{ money(item.amount) }}</text><text>单价 {{ money(item.unitPrice) }}</text></view>
-        <view v-if="canApprove && item.status === 'submitted'" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="approve(item)">确认采购</button></view>
-        <view v-else-if="canOrder(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="order(item)">确认已下单</button></view>
-        <view v-else-if="canReceive(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="receive(item)">确认到货</button></view>
+        <view v-if="canReceive(item)" class="supply__actions"><button class="jz-btn jz-btn--primary jz-btn--sm" @tap="receive(item)">确认到货</button></view>
       </view>
-      <JzEmpty v-if="!pendingPlans.length && !activePurchases.length" text="暂无项目采购" sub="材料计划生成后，可从这里发起供应商采购" />
+      <JzEmpty v-if="!activePurchases.length" text="暂无项目采购" sub="请从主材下单工作台发起采购；历史采购单仍可在这里查看到场" />
     </view>
 
     <view v-else-if="tab === 'partner'" class="supply__list">

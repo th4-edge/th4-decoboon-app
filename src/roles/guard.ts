@@ -82,6 +82,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.financeProjects, anyOf: ['view:finance'] },
   { path: P.financeProject, anyOf: ['view:finance'] },
   { path: P.financeEntry, anyOf: ['edit:finance'] },
+  { path: P.financeMaterialSettlement, anyOf: ['view:finance'] },
   { path: P.financeProjectPicker, anyOf: ['edit:finance'] },
   { path: P.financeReceivablePicker, anyOf: ['edit:finance'] },
   { path: P.financePayablePicker, anyOf: ['edit:finance'] },
@@ -106,8 +107,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supplierPicker, anyOf: ['view:supply'] },
-  { path: P.materialPlanPicker, anyOf: ['view:supply'] },
-  { path: P.supplyPurchaseEdit, anyOf: ['view:supply'] },
+  { path: P.materialSheetOrder, anyOf: ['view:material', 'view:supply'] },
   { path: P.supplyReceiptEdit, anyOf: ['view:supply'] }
 ]
 

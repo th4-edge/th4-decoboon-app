@@ -64,7 +64,15 @@ async function load() {
       projectId.value ? materialApi.plans(projectId.value) : Promise.resolve([] as MaterialPlan[])
     ])
     sheetTypes.value = enums.sheetTypes
-    plans.value = planList
+    // 建单页只需要选择器字段，避免把带合同/客户关联的完整计划树一次性 setData 到页面。
+    plans.value = planList.map((plan) => ({
+      id: plan.id,
+      name: plan.name,
+      brand: plan.brand,
+      spec: plan.spec,
+      quantity: plan.quantity,
+      unit: plan.unit
+    } as MaterialPlan))
     if (editing.value) {
       const sheet = await materialSheetApi.info(sheetId.value)
       projectId.value = sheet.projectId || projectId.value
@@ -112,7 +120,7 @@ function addPlan(plan: MaterialPlan) {
     color: '',
     size: '',
     quantity: String(plan.quantity || ''),
-    unit: 'Sheet'
+    unit: SHEET_UNIT_OPTIONS.find((item) => item.label === plan.unit)?.value || 'Sheet'
   })
 }
 

@@ -45,15 +45,15 @@ export function materialSheetGuidance(status: MaterialSheetStatus, priceState?: 
         return { summary: '作业单已建单，现场测量与时间信息正在确认。', nextStep: '确认测量/配送/安装时间并保存，然后提交请购。' }
       case 'submitted':
       case 'pricing':
-        return { summary: '作业单已提交请购，正在等待材料员/财务核价和选择供应商。', nextStep: '等待财务完成采购下单；作业单本身不产生价格或应付。' }
+        return { summary: '作业单已提交请购，正在等待财务选择供应商并下单。', nextStep: '财务在 App 主材下单工作台打开本单，填写数量与可空单价后确认下单；作业单本身不产生价格或应付。' }
       case 'partiallyOrdered':
         return { summary: '作业单已部分下单，仍有一部分数量未进入采购。', nextStep: '跟踪剩余数量的采购下单，已下单部分等待到场确认。' }
       case 'ordered':
         return { summary: '作业单已进入采购，材料与数量已锁定。', nextStep: '等待供应商送货，由项目经理/设计师确认实际到场数量。' }
       case 'partiallyArrived':
-        return { summary: '作业单已部分到场，仍有尾量待确认。', nextStep: '继续确认剩余到场数量；全部到齐后等待结算和成本收敛。' }
+        return { summary: '作业单已部分到场，仍有尾量待确认。', nextStep: '继续在 App 确认剩余到场数量；全部到齐后由财务在 App 主材结算中收敛成本。' }
       case 'arrived':
-        return { summary: '作业单已全部到场，材料履约事实已完成。', nextStep: '等待财务结算；成本未完整时利润仍不确认。' }
+        return { summary: '作业单已全部到场，材料履约事实已完成。', nextStep: '财务在 App 主材结算中确认结算价；结算前成本未完整时利润仍不确认。' }
       case 'settled':
       case 'closed':
         return { summary: '作业单已完成结算或关闭，当前只保留历史查看。', nextStep: '如需变更已生效材料，请走增减项或退货路径。' }

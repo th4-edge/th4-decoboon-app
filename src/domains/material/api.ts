@@ -181,24 +181,6 @@ export const materialApi = {
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/purchase/page', { projectId }))
       .map(normalizePurchase),
 
-  savePurchase: (input: {
-    materialPlanId: string
-    supplierId?: string
-    supplierName?: string
-    quantity: number
-    unitPrice: number
-    deliveryMode: DeliveryMode
-    warehouseId?: string
-    expectedAt?: string
-    remark?: string
-  }) => post<RawRecord>('project/purchase/save', input).then(normalizePurchase),
-
-  approvePurchase: (purchaseId: string, approved = true, conclusion?: string) =>
-    post<RawRecord>('project/purchase/approve', { purchaseId, approved, conclusion }).then(normalizePurchase),
-
-  orderPurchase: (purchaseId: string) =>
-    post<RawRecord>('project/purchase/order', { purchaseId }).then(normalizePurchase),
-
   receipts: async (purchaseId: string) =>
     listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/goods-receipt/page', { purchaseId }))
       .map(normalizeReceipt),
@@ -507,20 +489,6 @@ export const materialCategoryApi = {
     post<RawRecord>('material/category/save', input).then(normalizeMaterialCategory)
 }
 
-/** 按供应商合并下单：同一供应商多条材料生成一张采购单（多条明细）。 */
-export const materialBatchPurchaseApi = {
-  submit: (input: {
-    supplierId?: string
-    supplierName?: string
-    materialPlanIds: string[]
-    quantities: number[]
-    unitPrices: number[]
-    deliveryMode?: DeliveryMode
-    expectedAt?: string
-    remark?: string
-  }) => post<RawRecord>('project/purchase/batch', input).then(normalizePurchase)
-}
-
 /* ------------------------------------------------------------------ *
  * 主材下单作业单 API（品类单据：建单 / 测量确认 / 请购 / 导出）
  * ------------------------------------------------------------------ */
@@ -569,6 +537,9 @@ function normalizeSheetItem(raw: RawRecord): import('./model').MaterialOrderShee
     lossQuantity: raw.lossQuantity == null ? undefined : Number(raw.lossQuantity),
     standardIncluded: raw.standardIncluded,
     orderedQuantity: Number(raw.orderedQuantity ?? 0),
+    purchasePrice: raw.purchasePrice == null ? undefined : Number(raw.purchasePrice),
+    settlementPrice: raw.settlementPrice == null ? undefined : Number(raw.settlementPrice),
+    quoteCostPrice: raw.quoteCostPrice == null ? undefined : Number(raw.quoteCostPrice),
     priceState: SHEET_PRICE_STATE[enumValue(raw.priceState)] || undefined,
     remark: raw.remark
   }
@@ -691,6 +662,20 @@ export const materialSheetApi = {
 
   remove: (sheetId: string) => post<RawRecord>('material/sheet/delete', { sheetId }),
 
+  /** 作业单下单：一次调用按供应商生成一张采购单；单价为空表示未定价（暂估应付）。 */
+  order: (input: {
+    sheetId: string
+    supplierId?: string
+    supplierName?: string
+    deliveryMode?: DeliveryMode
+    expectedAt?: string
+    remark?: string
+    items: Array<{ itemId: string; quantity?: number; purchasePrice?: number | null }>
+  }) => post<RawRecord>('material/sheet/order', {
+    ...input,
+    deliveryMode: input.deliveryMode === 'warehouse' ? 'Warehouse' : 'Direct'
+  }).then(normalizeSheet),
+
   /** 导出 Excel 单据（按导出时快照，不含价格与账期）。 */
   exportFile: async (sheetId: string) => {
     const raw = await post<RawRecord>('material/sheet/export', { sheetId })
@@ -811,4 +796,98 @@ export const materialHealthApi = {
       rows: Array.isArray(raw.rows) ? raw.rows.map(materialHealthRow) : []
     }
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * 主材采购结算（L2：逐单/月结 → 应付修正 → 实际成本收敛）
+ * ------------------------------------------------------------------ */
+
+const SETTLEMENT_SCOPE: Record<string, import('./model').SettlementScope> = {
+  PerPurchaseOrder: 'perPurchaseOrder',
+  Monthly: 'monthly'
+}
+
+const SETTLEMENT_STATUS: Record<string, import('./model').SettlementStatus> = {
+  Confirmed: 'confirmed',
+  Cancelled: 'cancelled'
+}
+
+function normalizeSettlement(raw: RawRecord): import('./model').MaterialSettlement {
+  const supplier = raw.supplier || {}
+  return {
+    id: String(raw.settlementId ?? raw.id ?? ''),
+    no: String(raw.no ?? ''),
+    scope: SETTLEMENT_SCOPE[enumValue(raw.scope)] || 'perPurchaseOrder',
+    period: raw.period ? String(raw.period) : undefined,
+    supplierId: supplier.partnerId ? String(supplier.partnerId) : undefined,
+    supplierName: supplier.name ? String(supplier.name) : undefined,
+    settledAt: raw.settledAt ? String(raw.settledAt) : undefined,
+    totalAmount: Number(raw.totalAmount ?? 0),
+    status: SETTLEMENT_STATUS[enumValue(raw.status)] || 'confirmed',
+    statusName: raw.status?.name ? String(raw.status.name) : undefined,
+    remark: raw.remark ? String(raw.remark) : undefined,
+    cancelledAt: raw.cancelledAt ? String(raw.cancelledAt) : undefined,
+    cancelReason: raw.cancelReason ? String(raw.cancelReason) : undefined,
+    items: Array.isArray(raw.items)
+      ? raw.items.map((item: RawRecord) => ({
+          id: String(item.settlementItemId ?? item.id ?? ''),
+          quantity: Number(item.quantity ?? 0),
+          settlementPrice: Number(item.settlementPrice ?? 0),
+          amount: Number(item.amount ?? 0),
+          remark: item.remark ? String(item.remark) : undefined
+        }))
+      : []
+  }
+}
+
+function normalizeSettlementPreview(raw: RawRecord): import('./model').SettlementPreviewRow {
+  return {
+    purchaseItemId: String(raw.purchaseItemId ?? ''),
+    purchaseOrderId: raw.purchaseOrderId ? String(raw.purchaseOrderId) : undefined,
+    purchaseNo: raw.purchaseNo ? String(raw.purchaseNo) : undefined,
+    supplierId: raw.supplierId ? String(raw.supplierId) : undefined,
+    supplierName: raw.supplierName ? String(raw.supplierName) : undefined,
+    materialName: raw.materialName ? String(raw.materialName) : undefined,
+    quantity: Number(raw.quantity ?? 0),
+    receivedQuantity: Number(raw.receivedQuantity ?? 0),
+    purchasePrice: Number(raw.purchasePrice ?? 0),
+    suggestedSettlementPrice: raw.suggestedSettlementPrice == null ? null : Number(raw.suggestedSettlementPrice),
+    unpriced: raw.unpriced === true
+  }
+}
+
+export const materialSettlementApi = {
+  list: async (supplierId?: string) =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/page', { supplierId }))
+      .map(normalizeSettlement),
+
+  info: async (settlementId: string) =>
+    normalizeSettlement(await post<RawRecord>('material/settlement/info', { settlementId })),
+
+  preview: async (query: {
+    supplierId?: string
+    scope?: 'PerPurchaseOrder' | 'Monthly'
+    period?: string
+    purchaseOrderId?: string
+    projectId?: string
+  } = {}) => listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/preview', query))
+    .map(normalizeSettlementPreview),
+
+  confirm: async (input: {
+    supplierId: string
+    scope?: 'PerPurchaseOrder' | 'Monthly'
+    period?: string
+    remark?: string
+    items: Array<{ purchaseItemId: string; quantity?: number; settlementPrice: number }>
+  }) => normalizeSettlement(await post<RawRecord>('material/settlement/confirm', {
+    ...input,
+    items: input.items.map((item) => ({
+      purchaseItem: { purchaseItemId: item.purchaseItemId },
+      quantity: item.quantity,
+      settlementPrice: item.settlementPrice
+    }))
+  })),
+
+  cancel: async (input: { settlementId: string; reason?: string }) =>
+    normalizeSettlement(await post<RawRecord>('material/settlement/cancel', input))
 }

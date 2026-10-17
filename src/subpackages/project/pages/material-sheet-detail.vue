@@ -33,6 +33,13 @@ const editable = computed(() => lifecycleEditable.value && canMaintainSheet.valu
 /** 测量与时间确认：项目经理或设计师（DEC-MP-07 任一方即可）。 */
 const canMeasure = computed(() => ['pm', 'designer', 'boss', 'storeManager'].includes(String(session.role || '')))
 const canSubmit = computed(() => editable.value && !!sheet.value && ['draft', 'measuring', 'measured'].includes(sheet.value.status))
+/** 财务/Boss/店长在 App 内直接下单；旧材料计划直采路线已下线。 */
+const canOrderSheet = computed(() => !!sheet.value
+  && ['submitted', 'pricing', 'partiallyOrdered'].includes(sheet.value.status)
+  && ['finance', 'boss', 'storeManager'].includes(String(session.role || ''))
+  && (sheet.value.items || []).some((item) => item.quantity - (item.orderedQuantity ?? 0) > 0))
+const remainingLineCount = computed(() => (sheet.value?.items || [])
+  .filter((item) => item.quantity - (item.orderedQuantity ?? 0) > 0).length)
 const locked = computed(() => !!sheet.value && ['ordered', 'partiallyOrdered', 'partiallyArrived', 'arrived', 'settled', 'closed'].includes(sheet.value.status))
 const canCancel = computed(() => !!sheet.value
   && ['designer', 'boss', 'storeManager', 'finance'].includes(String(session.role || ''))
@@ -140,6 +147,10 @@ function editSheet() {
   uni.navigateTo({
     url: `${P.materialSheetCreate}?sheetId=${sheetId.value}&projectId=${sheet.value?.projectId || ''}`
   })
+}
+
+function openOrder() {
+  uni.navigateTo({ url: `${P.materialSheetOrder}?sheetId=${sheetId.value}` })
 }
 
 /** 导出 Excel 单据：小程序内写临时文件后打开（可保存/转发）；其他端仅提示。 */
@@ -259,7 +270,13 @@ async function exportSheet() {
         <text>该作业单已进入采购，材料与数量已锁定；如需更换材料请发起增减项。</text>
       </view>
 
+      <view v-if="canOrderSheet" class="jz-card msd__order">
+        <text class="msd__order-title">待财务下单</text>
+        <text class="msd__order-text">当前有 {{ remainingLineCount }} 行未下单；财务可在 App 内选择供应商、填写数量和可空单价，直接形成采购单与应付。</text>
+      </view>
+
       <view class="msd__footer">
+        <button v-if="canOrderSheet" class="jz-btn jz-btn--primary" :disabled="saving" @tap="openOrder">去下单</button>
         <button class="jz-btn jz-btn--ghost" :disabled="exporting" @tap="exportSheet">导出单据</button>
         <button v-if="editable" class="jz-btn jz-btn--ghost" :disabled="saving" @tap="editSheet">编辑</button>
         <button v-if="canSubmit" class="jz-btn jz-btn--primary" :disabled="saving" @tap="submitSheet">提交请购</button>
@@ -296,6 +313,9 @@ async function exportSheet() {
 .msd__line-meta { display: flex; flex-wrap: wrap; gap: $jzb-space-3; margin-top: $jzb-space-2; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .msd__line-ordered { margin-top: $jzb-space-2; font-size: $jzb-font-xs; color: $jzb-text-2; font-variant-numeric: tabular-nums; }
 .msd__locked { margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-4; font-size: $jzb-font-xs; color: $jzb-text-2; }
+.msd__order { margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-4; }
+.msd__order-title { display: block; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-text-1; }
+.msd__order-text { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; line-height: 1.6; color: $jzb-text-3; }
 .msd__footer { position: sticky; bottom: 0; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
 .msd__footer .jz-btn { flex: 1; min-width: 0; height: 92rpx; padding: 0 8rpx; font-size: $jzb-font-xs; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

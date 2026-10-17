@@ -159,6 +159,8 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     title: '账务核算',
     description: '统一查看资金流水、项目盈利和收付凭证',
     items: [
+      { key: 'materialOrder', label: '主材下单', icon: 'package', tone: TOKEN_COLOR.primaryLighter, path: P.materialSheet },
+      { key: 'materialSettlement', label: '主材结算', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financeMaterialSettlement },
       { key: 'ledger', label: '资金台账', icon: 'chart', tone: TOKEN_COLOR.primaryLighter, path: P.financeLedger },
       { key: 'projects', label: '项目账本', icon: 'briefcase', tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
       { key: 'vouchers', label: '收付凭证', icon: 'doc', tone: TOKEN_COLOR.bgPage, path: P.financeVouchers }

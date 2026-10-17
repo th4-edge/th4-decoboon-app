@@ -323,6 +323,9 @@ export interface MaterialOrderSheetItem {
   standardIncluded?: boolean
   /** 已下单数量（可分批/分供应商） */
   orderedQuantity?: number
+  purchasePrice?: number
+  settlementPrice?: number
+  quoteCostPrice?: number
   priceState?: SheetPriceState
   remark?: string
 }
@@ -355,6 +358,53 @@ export interface MaterialSheetExportFile {
   contentType: string
   contentBase64: string
   sha256: string
+}
+
+/* ------------------------------------------------------------------ *
+ * 主材采购结算（L2：P3 结算价 → 应付修正 → 实际成本收敛）
+ * ------------------------------------------------------------------ */
+
+export type SettlementScope = 'perPurchaseOrder' | 'monthly'
+export type SettlementStatus = 'confirmed' | 'cancelled'
+
+/** 可结算采购明细；已结算明细不会再次出现（互斥 + 月结兜底）。 */
+export interface SettlementPreviewRow {
+  purchaseItemId: string
+  purchaseOrderId?: string
+  purchaseNo?: string
+  supplierId?: string
+  supplierName?: string
+  materialName?: string
+  quantity: number
+  receivedQuantity: number
+  purchasePrice: number
+  suggestedSettlementPrice?: number | null
+  unpriced: boolean
+}
+
+export interface MaterialSettlementItem {
+  id: string
+  quantity: number
+  settlementPrice: number
+  amount: number
+  remark?: string
+}
+
+export interface MaterialSettlement {
+  id: string
+  no: string
+  scope: SettlementScope
+  period?: string
+  supplierId?: string
+  supplierName?: string
+  settledAt?: string
+  totalAmount: number
+  status: SettlementStatus
+  statusName?: string
+  remark?: string
+  cancelledAt?: string
+  cancelReason?: string
+  items: MaterialSettlementItem[]
 }
 
 /** 作业单单位选项：提交给后端时必须使用枚举名（value），展示用 label。 */

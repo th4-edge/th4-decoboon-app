@@ -132,7 +132,10 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: 'material-sheet-cancel', category: '材料采购', title: '作业单为什么不能直接取消', summary: '未进入采购前可取消并保留原因；进入采购后必须走调整或退货。', symptoms: ['作业单详情没有取消入口', '提示已进入采购，材料与数量锁定', '取消后仍能看到历史单据'], reason: '作业单一旦进入采购，采购单和应付事实已经形成，不能靠取消作业单抹掉；已到货扣减必须走退货。', actions: ['确认作业单是否已经下单或到场', '未进入采购时填写取消原因后取消', '已下单未到走采购调整，已到货走退货或增减项'], actionLabel: '查看材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
   },
   {
-    id: 'cannot-purchase-material', category: '材料采购', title: '材料计划不能生成采购单', summary: '采购必须从项目材料计划发起，并依赖有效供应商和价格。', symptoms: ['采购页面没有可选择的材料计划', '选择供应商后无法提交'], reason: '材料计划状态不符合采购条件，或供应商、价格、项目参与关系不完整。', actions: ['先确认项目材料计划已生成并进入可采购状态', '检查供应商是否有效、品牌和采购价是否维护', '确认当前角色拥有项目采购权限'], actionLabel: '材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench'
+    id: 'material-sheet-order', category: '材料采购', title: '提交请购后在哪里下单', summary: '材料下单统一从主材作业单发起，财务在 App 内直接下单；旧的材料计划直采入口已下线。', symptoms: ['作业单显示待下单但找不到采购入口', '材料计划页面没有“去下单”按钮'], reason: '提交请购后，作业单进入财务下单队列；材料计划只展示需求与履约进度，不再直接创建采购单。', actions: ['财务打开主材下单工作台', '选择已提交请购的作业单', '选择供应商、填写本次数量和可空单价后确认下单'], actionLabel: '主材下单工作台', actionPath: '/subpackages/project/pages/material-sheet', roles: ['finance', 'boss', 'storeManager']
+  },
+  {
+    id: 'material-settlement-app', category: '材料采购', title: '主材结算怎么确认、撤销后成本怎么变', summary: '结算价是实际成本唯一来源；同一采购明细只能结算一次，撤销后回到成本待结算。', symptoms: ['采购已到场但利润仍为空', '结算单确认后想改结算价', '月结和逐单结算不知道选哪个'], reason: '采购价只是暂估；结算价确认后才会修正应付并收敛实际成本。逐单优先，月结只结算尚未逐单结算的差额。', actions: ['打开 App 主材结算查看可结算明细', '未定价行按对账结果填写结算价', '逐单或按月结确认；如需纠错先撤销结算再重结'], actionLabel: '主材结算', actionPath: '/subpackages/finance/pages/material-settlement', roles: ['finance', 'boss', 'storeManager']
   },
   {
     id: 'upload-failed', category: '异常处理', title: '照片、视频或文件上传失败', summary: '通常是微信权限、网络或单个文件过大导致。', symptoms: ['选择照片后一直上传中', '提示文件上传失败或下载地址过期'], reason: '未授权相机或相册、网络中断，或文件超过当前上传限制。', actions: ['在微信设置中允许相机、相册或文件权限', '切换稳定网络后重试', '重新选择文件；刷新后仍失败时提交反馈并保留问题时间']
