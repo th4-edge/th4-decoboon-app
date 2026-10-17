@@ -601,6 +601,14 @@ function normalizeSheet(raw: RawRecord): import('./model').MaterialOrderSheet {
   }
 }
 
+/** Provider 入参是实体关联（materialPlan.planId），不能把 materialPlanId 直接透传给后端。 */
+function sheetItemsPayload(items: SheetLineInput[]): RawRecord[] {
+  return items.map(({ materialPlanId, ...line }) => ({
+    ...line,
+    materialPlan: { planId: materialPlanId }
+  }))
+}
+
 export interface SheetLineInput {
   materialPlanId: string
   locationName?: string
@@ -635,7 +643,10 @@ export const materialSheetApi = {
     installAt?: string
     remark?: string
     items: SheetLineInput[]
-  }) => post<RawRecord>('material/sheet/save', input).then(normalizeSheet),
+  }) => post<RawRecord>('material/sheet/save', {
+    ...input,
+    items: sheetItemsPayload(input.items)
+  }).then(normalizeSheet),
 
   update: (input: {
     sheetId: string
@@ -646,7 +657,10 @@ export const materialSheetApi = {
     installAt?: string
     remark?: string
     items?: SheetLineInput[]
-  }) => post<RawRecord>('material/sheet/update', input).then(normalizeSheet),
+  }) => post<RawRecord>('material/sheet/update', {
+    ...input,
+    items: input.items ? sheetItemsPayload(input.items) : undefined
+  }).then(normalizeSheet),
 
   submit: (sheetId: string) => post<RawRecord>('material/sheet/submit', { sheetId }).then(normalizeSheet),
 

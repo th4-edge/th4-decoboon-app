@@ -1,7 +1,7 @@
 # 主材下单作业单 · App 走查清单（待执行）
 
 - 目的：把 2026-10-15 新增的 App 三页（作业单列表 / 建单 / 详情与测量确认）在**真机或微信开发者工具**上逐条走一遍，产出可归档的走查证据。
-- 状态：**待执行**（本文是清单与判据，不含任何实测结果；执行后按下表如实填写）。
+- 状态：**已执行**。执行结果与修复记录见 `docs/acceptance/runs/20261017-material-sheet-app-release/`。
 - 关联：`SOL-014` / `OBJ-008` / `BR-044` / `BR-045` / `SCN-021` / `DEC-072` / `DEC-073` / `DEC-074`；后端迁移 117/118/119。
 - 页面代码：`src/subpackages/project/pages/material-sheet*.vue`；路由 `P.materialSheet | materialSheetCreate | materialSheetDetail`。
 

@@ -39,15 +39,13 @@ onLoad(async (q) => {
 async function load() {
   if (!sheetId.value) { loadingState.value = false; return }
   try {
-    const [detail] = await Promise.all([
+    // 两类数据并行读取；枚举失败不阻断详情，由品类编码回退展示。
+    const [detail, enums] = await Promise.all([
       materialSheetApi.info(sheetId.value),
-      materialSheetEnumsApi.load()
-        .then((enums) => {
-          typeName.value = enums.sheetTypes.find((item) => item.code === detail.sheetType)?.name || detail.sheetType
-        })
-        .catch(() => { typeName.value = detail.sheetType })
+      materialSheetEnumsApi.load().catch(() => null)
     ])
     sheet.value = detail
+    typeName.value = enums?.sheetTypes.find((item) => item.code === detail.sheetType)?.name || detail.sheetType
     measureAt.value = detail.measureAt || ''
     deliverAt.value = detail.deliverAt || ''
     installAt.value = detail.installAt || ''
@@ -63,12 +61,13 @@ async function saveMeasure() {
   saving.value = true
   loading('保存测量与时间…')
   try {
-    sheet.value = await materialSheetApi.measure({
+    await materialSheetApi.measure({
       sheetId: sheetId.value,
       measureAt: measureAt.value || undefined,
       deliverAt: deliverAt.value || undefined,
       installAt: installAt.value || undefined
     })
+    await load()
     toast('已保存测量与时间', 'success')
   } catch (error) {
     toastError(error, '保存失败')
@@ -83,7 +82,8 @@ async function submitSheet() {
   saving.value = true
   loading('提交请购…')
   try {
-    sheet.value = await materialSheetApi.submit(sheetId.value)
+    await materialSheetApi.submit(sheetId.value)
+    await load()
     toast('已提交请购，等待材料员/财务下单', 'success')
   } catch (error) {
     toastError(error, '提交失败')

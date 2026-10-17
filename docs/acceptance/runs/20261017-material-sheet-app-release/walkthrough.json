@@ -1,0 +1,126 @@
+{
+  "at": "2026-10-17T02:23:19.382Z",
+  "projectId": "236266510782300160",
+  "steps": [
+    {
+      "step": "session",
+      "employee": "张伟",
+      "role": "Boss",
+      "company": "昭青网络"
+    },
+    {
+      "step": "list-initial",
+      "path": "subpackages/project/pages/material-sheet",
+      "items": 0
+    },
+    {
+      "step": "screenshot",
+      "name": "a0-list-before.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/a0-list-before.png"
+    },
+    {
+      "step": "create-page",
+      "plans": 9
+    },
+    {
+      "step": "screenshot",
+      "name": "b1-create.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/b1-create.png"
+    },
+    {
+      "step": "create-filled",
+      "marker": "验收走查-1792203809851"
+    },
+    {
+      "step": "screenshot",
+      "name": "b3-create-filled.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/b3-create-filled.png"
+    },
+    {
+      "step": "created",
+      "sheetId": "1792203811236229974",
+      "marker": "验收走查-1792203809851"
+    },
+    {
+      "step": "detail-draft",
+      "title": [
+        "瓷砖（地砖/墙砖）下单单"
+      ],
+      "rows": [
+        "工程李思远 · 华润凯旋门9栋1601 · 华润凯旋门9栋1601",
+        "厂家验收走查-1792203809851",
+        "测量待确认",
+        "配送待确认",
+        "安装待确认"
+      ],
+      "lines": [
+        "1客厅地砖46片瓷砖--马可波罗400*800（展厅款）马可波罗型号 CZ888规格 400*800颜色 浅灰尺寸 400*800"
+      ]
+    },
+    {
+      "step": "screenshot",
+      "name": "c1-detail-draft.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/c1-detail-draft.png"
+    },
+    {
+      "step": "measure",
+      "status": {
+        "name": "已测量",
+        "key": "Measured"
+      }
+    },
+    {
+      "step": "detail-measured",
+      "rows": [
+        "工程李思远 · 华润凯旋门9栋1601 · 华润凯旋门9栋1601",
+        "厂家验收走查-1792203809851",
+        "测量2026-10-18",
+        "配送2026-10-25",
+        "安装2026-10-26"
+      ]
+    },
+    {
+      "step": "screenshot",
+      "name": "c2-detail-measured.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/c2-detail-measured.png"
+    },
+    {
+      "step": "export",
+      "fileName": "TILE-20261017-001-Tile下单表.xlsx",
+      "bytes": 4319,
+      "zipMagic": "PK"
+    },
+    {
+      "step": "submitted",
+      "buttons": [
+        "导出 Excel 单据",
+        "编辑"
+      ],
+      "lines": 1
+    },
+    {
+      "step": "screenshot",
+      "name": "c4-submitted.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/c4-submitted.png"
+    },
+    {
+      "step": "list-submitted",
+      "items": 1,
+      "texts": [
+        "瓷砖（地砖/墙砖） 待下单TILE-20261017-001·1 行·验收走查-1792203809851测量 2026-10-18配送 2026-10-25安装 2026-10-26"
+      ]
+    },
+    {
+      "step": "screenshot",
+      "name": "a3-list-submitted.png",
+      "path": "/Users/zhangwei/FutureFiles/安徽昭青/家装装修/装客宝/前端代码/th4-decoboon-app/docs/acceptance/runs/20261017-material-sheet-app-release/screenshots/a3-list-submitted.png"
+    }
+  ],
+  "operator": {
+    "name": "张伟",
+    "role": "Boss",
+    "company": "昭青网络"
+  },
+  "sheetId": "1792203811236229974",
+  "outcome": "PASS"
+}
