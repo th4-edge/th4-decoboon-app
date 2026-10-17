@@ -601,6 +601,25 @@ function normalizeSheet(raw: RawRecord): import('./model').MaterialOrderSheet {
   }
 }
 
+export interface SheetFieldConfig {
+  key: string
+  label: string
+  visible: boolean
+  required: boolean
+  order: number
+}
+
+function normalizeSheetFields(raw: unknown): SheetFieldConfig[] {
+  if (!Array.isArray(raw)) return []
+  return raw.map((item: RawRecord) => ({
+    key: String(item.key ?? ''),
+    label: String(item.label ?? item.key ?? ''),
+    visible: item.visible !== false,
+    required: item.required === true,
+    order: Number(item.order ?? 0)
+  })).filter((item) => !!item.key)
+}
+
 /** Provider 入参是实体关联（materialPlan.planId），不能把 materialPlanId 直接透传给后端。 */
 function sheetItemsPayload(items: SheetLineInput[]): RawRecord[] {
   return items.map(({ materialPlanId, ...line }) => ({
@@ -667,6 +686,9 @@ export const materialSheetApi = {
   measure: (input: { sheetId: string; measureAt?: string; deliverAt?: string; installAt?: string; signatures?: string }) =>
     post<RawRecord>('material/sheet/measure', input).then(normalizeSheet),
 
+  cancel: (input: { sheetId: string; reason: string }) =>
+    post<RawRecord>('material/sheet/cancel', input).then(normalizeSheet),
+
   remove: (sheetId: string) => post<RawRecord>('material/sheet/delete', { sheetId }),
 
   /** 导出 Excel 单据（按导出时快照，不含价格与账期）。 */
@@ -684,7 +706,12 @@ export const materialSheetApi = {
 /** 作业单枚举：品类来自平台行业基线，供建单选择器使用（前端不硬编码品类）。 */
 export const materialSheetEnumsApi = {
   load: async (): Promise<{
-    sheetTypes: { code: string; name: string }[]
+    sheetTypes: {
+      code: string
+      name: string
+      headerFields: SheetFieldConfig[]
+      lineFields: SheetFieldConfig[]
+    }[]
     statuses: { value: string; name: string }[]
     units: { value: string; name: string }[]
   }> => {
@@ -692,7 +719,9 @@ export const materialSheetEnumsApi = {
     return {
       sheetTypes: (raw.sheetTypes || []).map((item: RawRecord) => ({
         code: String(item.code ?? ''),
-        name: String(item.name ?? '')
+        name: String(item.name ?? ''),
+        headerFields: normalizeSheetFields(item.headerFields),
+        lineFields: normalizeSheetFields(item.lineFields)
       })),
       statuses: (raw.statuses || []).map((item: RawRecord) => ({
         value: String(item.value ?? ''),

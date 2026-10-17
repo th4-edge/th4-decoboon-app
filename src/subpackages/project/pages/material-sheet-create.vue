@@ -276,15 +276,16 @@ async function save(submitAfterSave: boolean) {
 .msc__field--column { flex-direction: column; align-items: stretch; gap: $jzb-space-2; }
 .msc__label { font-size: $jzb-font-sm; color: $jzb-text-2; }
 .msc__input { flex: 1; min-width: 0; height: 68rpx; padding: 0 $jzb-space-3; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; font-size: $jzb-font-sm; }
-.msc__textarea { width: 100%; min-height: 140rpx; padding: $jzb-space-3; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; font-size: $jzb-font-sm; }
+.msc__textarea { width: 100%; height: 120rpx; min-height: 120rpx; padding: $jzb-space-2 $jzb-space-3; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; font-size: $jzb-font-sm; line-height: 1.5; }
 .msc__section { padding: 0 $jzb-page-pad; }
 .msc__section-title { display: block; margin: $jzb-space-3 0; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-text-2; }
 .msc__line { margin-bottom: $jzb-space-3; padding: $jzb-space-4; }
 .msc__line-head { display: flex; align-items: flex-start; justify-content: space-between; gap: $jzb-space-3; }
 .msc__line-name { flex: 1; min-width: 0; font-size: $jzb-font-sm; font-weight: 650; }
 .msc__line-remove { font-size: $jzb-font-xs; color: $jzb-text-3; }
-.msc__line-grid { display: flex; flex-direction: column; gap: $jzb-space-2; margin-top: $jzb-space-3; }
-.msc__line-qty { display: flex; align-items: center; gap: $jzb-space-3; }
+.msc__line-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $jzb-space-2; margin-top: $jzb-space-3; }
+.msc__line-grid > .msc__input:first-child { grid-column: 1 / -1; }
+.msc__line-qty { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
 .msc__plan { margin-bottom: $jzb-space-3; padding: $jzb-space-4; }
 .msc__plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: $jzb-space-3; }
 .msc__plan-name { flex: 1; min-width: 0; font-size: $jzb-font-sm; font-weight: 600; }

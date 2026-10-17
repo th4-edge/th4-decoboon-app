@@ -3,18 +3,20 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import { materialSheetApi, materialSheetEnumsApi } from '@/domains/material/api'
+import { materialSheetApi, materialSheetEnumsApi, type SheetFieldConfig } from '@/domains/material/api'
 import { SHEET_PRICE_STATE_META, sheetStatusMeta } from '@/domains/material/meta'
 import { sheetUnitLabel, type MaterialOrderSheet } from '@/domains/material/model'
-import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { hideLoading, loading, promptText, toast, toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzTag from '@/components/JzTag.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const sheetId = ref('')
 const sheet = ref<MaterialOrderSheet | null>(null)
 const typeName = ref('')
+const sheetTypeConfig = ref<{ headerFields: SheetFieldConfig[]; lineFields: SheetFieldConfig[] } | null>(null)
 const loadingState = ref(true)
 const saving = ref(false)
 const exporting = ref(false)
@@ -30,7 +32,20 @@ const editable = computed(() => lifecycleEditable.value && canMaintainSheet.valu
 /** 测量与时间确认：项目经理或设计师（DEC-MP-07 任一方即可）。 */
 const canMeasure = computed(() => ['pm', 'designer', 'boss', 'storeManager'].includes(String(session.role || '')))
 const canSubmit = computed(() => editable.value && !!sheet.value && ['draft', 'measuring', 'measured'].includes(sheet.value.status))
-const locked = computed(() => !!sheet.value && !lifecycleEditable.value)
+const locked = computed(() => !!sheet.value && ['ordered', 'partiallyOrdered', 'partiallyArrived', 'arrived', 'settled', 'closed'].includes(sheet.value.status))
+const canCancel = computed(() => !!sheet.value
+  && ['designer', 'boss', 'storeManager', 'finance'].includes(String(session.role || ''))
+  && !['ordered', 'partiallyOrdered', 'partiallyArrived', 'arrived', 'settled', 'closed', 'cancelled'].includes(sheet.value.status))
+const measureFieldConfig = computed(() => sheetTypeConfig.value?.headerFields.find((field) => field.key === 'measureAt') || null)
+const deliverFieldConfig = computed(() => sheetTypeConfig.value?.headerFields.find((field) => field.key === 'deliverAt') || null)
+const installFieldConfig = computed(() => sheetTypeConfig.value?.headerFields.find((field) => field.key === 'installAt') || null)
+const measureVisible = computed(() => measureFieldConfig.value?.visible !== false)
+const deliverVisible = computed(() => deliverFieldConfig.value?.visible !== false)
+const installVisible = computed(() => installFieldConfig.value?.visible !== false)
+const measureRequired = computed(() => measureFieldConfig.value?.required === true)
+const measureLabel = computed(() => measureFieldConfig.value?.label || '测量时间')
+const deliverLabel = computed(() => deliverFieldConfig.value?.label || '配送日期')
+const installLabel = computed(() => installFieldConfig.value?.label || '安装日期')
 
 onLoad(async (q) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -47,7 +62,9 @@ async function load() {
       materialSheetEnumsApi.load().catch(() => null)
     ])
     sheet.value = detail
-    typeName.value = enums?.sheetTypes.find((item) => item.code === detail.sheetType)?.name || detail.sheetType
+    const matched = enums?.sheetTypes.find((item) => item.code === detail.sheetType) || null
+    sheetTypeConfig.value = matched ? { headerFields: matched.headerFields || [], lineFields: matched.lineFields || [] } : null
+    typeName.value = matched?.name || detail.sheetType
     measureAt.value = detail.measureAt || ''
     deliverAt.value = detail.deliverAt || ''
     installAt.value = detail.installAt || ''
@@ -81,6 +98,10 @@ async function saveMeasure() {
 
 async function submitSheet() {
   if (saving.value) return
+  if (measureVisible.value && measureRequired.value && !measureAt.value) {
+    toast(`请先填写${measureLabel.value}`)
+    return
+  }
   saving.value = true
   loading('提交请购…')
   try {
@@ -89,6 +110,25 @@ async function submitSheet() {
     toast('已提交请购，等待材料员/财务下单', 'success')
   } catch (error) {
     toastError(error, '提交失败')
+  } finally {
+    hideLoading()
+    saving.value = false
+  }
+}
+
+async function cancelSheet() {
+  if (!sheet.value || !canCancel.value) return
+  const reason = await promptText('取消作业单', '请填写取消原因', '取消后作业单保留历史，但不能再继续请购；已进入采购的作业单不能直接取消。')
+  if (reason === null) return
+  if (!reason) { toast('请填写取消原因'); return }
+  saving.value = true
+  loading('取消作业单…')
+  try {
+    await materialSheetApi.cancel({ sheetId: sheetId.value, reason })
+    toast('作业单已取消', 'success')
+    await load()
+  } catch (error) {
+    toastError(error, '取消失败')
   } finally {
     hideLoading()
     saving.value = false
@@ -144,7 +184,7 @@ async function exportSheet() {
 
 <template>
   <view class="msd">
-    <JzPageHeader :title="typeName || '主材下单'" :subtitle="sheet?.no || ''" back />
+    <JzPageHeader :title="typeName || '主材下单'" :subtitle="sheet?.no || ''" :right-text="canCancel ? '取消' : ''" back @right="cancelSheet" />
     <view v-if="loadingState" class="msd__hint">加载中…</view>
     <JzEmpty v-else-if="!sheet" text="作业单不存在或无权访问" sub="请返回列表重新选择" />
     <template v-else>
@@ -185,19 +225,21 @@ async function exportSheet() {
         </view>
       </view>
 
-      <view v-if="canMeasure && lifecycleEditable" class="jz-card msd__card">
+      <view v-if="canMeasure && lifecycleEditable && (measureVisible || deliverVisible || installVisible)" class="jz-card msd__card msd__card--time">
         <text class="msd__section-title">测量与时间确认</text>
-        <view class="msd__field">
-          <text class="msd__field-label">测量时间</text>
-          <JzSelectField mode="date" variant="boxed" :value="measureAt" :display="measureAt" placeholder="选择测量日期" @change="measureAt = $event" />
-        </view>
-        <view class="msd__field">
-          <text class="msd__field-label">配送时间</text>
-          <JzSelectField mode="date" variant="boxed" :value="deliverAt" :display="deliverAt" placeholder="选择配送日期" @change="deliverAt = $event" />
-        </view>
-        <view class="msd__field">
-          <text class="msd__field-label">安装时间</text>
-          <JzSelectField mode="date" variant="boxed" :value="installAt" :display="installAt" placeholder="选择安装日期" @change="installAt = $event" />
+        <view class="msd__time-grid">
+          <view v-if="measureVisible" class="msd__time-field">
+            <text class="msd__time-label">{{ measureLabel }}<text v-if="measureRequired" class="msd__required">*</text></text>
+            <JzSelectField mode="date" variant="plain" :value="measureAt" :display="measureAt" placeholder="选择日期" @change="measureAt = $event" />
+          </view>
+          <view v-if="deliverVisible" class="msd__time-field">
+            <text class="msd__time-label">{{ deliverLabel }}</text>
+            <JzSelectField mode="date" variant="plain" :value="deliverAt" :display="deliverAt" placeholder="选择日期" @change="deliverAt = $event" />
+          </view>
+          <view v-if="installVisible" class="msd__time-field">
+            <text class="msd__time-label">{{ installLabel }}</text>
+            <JzSelectField mode="date" variant="plain" :value="installAt" :display="installAt" placeholder="选择日期" @change="installAt = $event" />
+          </view>
         </view>
         <button class="jz-btn jz-btn--ghost" :disabled="saving" @tap="saveMeasure">保存测量与时间</button>
       </view>
@@ -207,19 +249,21 @@ async function exportSheet() {
       </view>
 
       <view class="msd__footer">
-        <button class="jz-btn jz-btn--ghost" :disabled="exporting" @tap="exportSheet">导出 Excel 单据</button>
+        <button class="jz-btn jz-btn--ghost" :disabled="exporting" @tap="exportSheet">导出单据</button>
         <button v-if="editable" class="jz-btn jz-btn--ghost" :disabled="saving" @tap="editSheet">编辑</button>
         <button v-if="canSubmit" class="jz-btn jz-btn--primary" :disabled="saving" @tap="submitSheet">提交请购</button>
       </view>
     </template>
     <view class="jz-tabbar-gap" />
+    <JzConfirmDialog />
   </view>
 </template>
 
 <style lang="scss" scoped>
 .msd { min-height: 100vh; background: $jzb-bg-page; }
 .msd__hint { padding: $jzb-space-5 $jzb-page-pad; font-size: $jzb-font-sm; color: $jzb-text-3; }
-.msd__card { display: flex; flex-direction: column; gap: $jzb-space-3; margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-5; }
+.msd__card { display: flex; flex-direction: column; gap: $jzb-space-3; margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-4; }
+.msd__card--time { gap: $jzb-space-2; }
 .msd__head { display: flex; align-items: center; justify-content: space-between; gap: $jzb-space-3; }
 .msd__title { font-size: $jzb-font-md; font-weight: 650; color: $jzb-text-1; }
 .msd__tags { display: flex; align-items: center; gap: $jzb-space-2; }
@@ -228,8 +272,11 @@ async function exportSheet() {
 .msd__value { flex: 1; min-width: 0; font-size: $jzb-font-sm; color: $jzb-text-1; }
 .msd__section { padding: 0 $jzb-page-pad; }
 .msd__section-title { display: block; margin-bottom: $jzb-space-3; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-text-2; }
-.msd__field { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
-.msd__field-label { font-size: $jzb-font-sm; color: $jzb-text-2; }
+.msd__time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: $jzb-space-2; }
+.msd__time-field { min-width: 0; padding: 10rpx 12rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.msd__time-label { display: block; margin-bottom: 2rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.msd__time-field :deep(.jz-select-field) { min-height: 56rpx; font-size: $jzb-font-sm; }
+.msd__required { margin-left: 4rpx; color: $jzb-danger; }
 .msd__line { margin-bottom: $jzb-space-3; padding: $jzb-space-4; }
 .msd__line-head { display: flex; align-items: center; gap: $jzb-space-3; }
 .msd__line-index { width: 40rpx; height: 40rpx; line-height: 40rpx; text-align: center; border-radius: 20rpx; background: $jzb-bg-hover; font-size: $jzb-font-xs; color: $jzb-text-3; font-variant-numeric: tabular-nums; }
@@ -239,5 +286,5 @@ async function exportSheet() {
 .msd__line-ordered { margin-top: $jzb-space-2; font-size: $jzb-font-xs; color: $jzb-text-2; font-variant-numeric: tabular-nums; }
 .msd__locked { margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-4; font-size: $jzb-font-xs; color: $jzb-text-2; }
 .msd__footer { position: sticky; bottom: 0; display: flex; align-items: center; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad; background: $jzb-bg-card; border-top: 1rpx solid $jzb-border-light; }
-.msd__footer .jz-btn { flex: 1; }
+.msd__footer .jz-btn { flex: 1; min-width: 0; height: 92rpx; padding: 0 8rpx; font-size: $jzb-font-xs; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
