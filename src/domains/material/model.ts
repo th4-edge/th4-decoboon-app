@@ -375,3 +375,74 @@ export function sheetUnitLabel(value?: string) {
   if (!value) return ''
   return SHEET_UNIT_OPTIONS.find((item) => item.value === value)?.label || value
 }
+
+/* ------------------------------------------------------------------ *
+ * 项目材料业务体检（与 Web blueprint/check/report 同源）
+ * ------------------------------------------------------------------ */
+
+export interface MaterialHealthIssue {
+  id: string
+  label: string
+  severity: string
+  count: number
+  nextAction: string
+  evidence: string
+  refs: string[]
+}
+
+export interface MaterialHealthRow {
+  planId: string
+  spaceName?: string
+  category?: string
+  materialName?: string
+  status?: string
+  statusName?: string
+  selectionStatus?: string
+  selectionStatusName?: string
+  quantity?: number
+  orderedQuantity?: number
+  receivedQuantity?: number
+  requiredAt?: string
+  supplierName?: string
+  purchaseNo?: string
+  delayed: boolean
+  nextAction?: string
+}
+
+export interface MaterialHealthReport {
+  projectId: string
+  projectNo?: string
+  projectName?: string
+  projectStatusName?: string
+  propertyAddress?: string
+  customerName?: string
+  designerName?: string
+  managerName?: string
+  hasMaterialPlan: boolean
+  totalItems: number
+  selectedItems: number
+  unselectedItems: number
+  readyToOrder: number
+  partiallyOrdered: number
+  pendingArrival: number
+  partiallyArrived: number
+  arrived: number
+  delayed: number
+  purchaseCount: number
+  unpricedPurchaseCount: number
+  missingSupplierCount: number
+  costComplete: boolean
+  costIncompleteCount: number
+  materialCost: number
+  estimatedCost: number
+  actualCost: number
+  profitAmount?: number | null
+  costLabel: string
+  stageKey: string
+  stageLabel: string
+  stageSummary: string
+  nextAction: string
+  settlementStatus: string
+  issues: MaterialHealthIssue[]
+  rows: MaterialHealthRow[]
+}

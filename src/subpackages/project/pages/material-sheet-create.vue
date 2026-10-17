@@ -7,8 +7,10 @@ import { materialApi, materialSheetApi, materialSheetEnumsApi } from '@/domains/
 import { SHEET_UNIT_OPTIONS } from '@/domains/material/model'
 import type { MaterialPlan } from '@/domains/material/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzIcon from '@/components/JzIcon.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 interface DraftLine {
@@ -186,6 +188,21 @@ async function save(submitAfterSave: boolean) {
     <JzPageHeader :title="editing ? '编辑作业单' : '新建作业单'" subtitle="一个品类一张单；材料只能来自合同选材或增减项" back />
     <view v-if="loadingState" class="msc__hint">加载中…</view>
     <template v-else>
+      <view class="jz-card msc__guide">
+        <view class="msc__guide-row">
+          <JzIcon name="package" :size="28" :color="TOKEN_COLOR.primary" />
+          <view class="jz-grow"><text class="msc__guide-title">材料行只能来自材料计划</text><text class="msc__guide-text">先完成选材确认；合同外或标配外主材必须先走增减项，不能在本单直接新增。</text></view>
+        </view>
+        <view class="msc__guide-row">
+          <JzIcon name="ruler" :size="28" :color="TOKEN_COLOR.primary" />
+          <view class="jz-grow"><text class="msc__guide-title">现场字段按品类模板显示</text><text class="msc__guide-text">测量、配送、安装等字段由当前品类模板决定；标 * 的必填项缺失时不能提交请购。</text></view>
+        </view>
+        <view class="msc__guide-row">
+          <JzIcon name="wallet" :size="28" :color="TOKEN_COLOR.primary" />
+          <view class="jz-grow"><text class="msc__guide-title">作业单不承载价格</text><text class="msc__guide-text">价格、供应商和账期由财务在采购单侧决定；未定价下单会形成暂估应付，成本保持不完整。</text></view>
+        </view>
+      </view>
+
       <view class="jz-card msc__card">
         <view class="msc__field">
           <text class="msc__label">品类</text>
@@ -272,6 +289,10 @@ async function save(submitAfterSave: boolean) {
 .msc { min-height: 100vh; background: $jzb-bg-page; }
 .msc__hint { padding: $jzb-space-5 $jzb-page-pad; font-size: $jzb-font-sm; color: $jzb-text-3; }
 .msc__card { display: flex; flex-direction: column; gap: $jzb-space-4; margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-5; }
+.msc__guide { display: flex; flex-direction: column; gap: 18rpx; margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-4; }
+.msc__guide-row { display: flex; align-items: flex-start; gap: 14rpx; }
+.msc__guide-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.msc__guide-text { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 .msc__field { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
 .msc__field--column { flex-direction: column; align-items: stretch; gap: $jzb-space-2; }
 .msc__label { font-size: $jzb-font-sm; color: $jzb-text-2; }

@@ -734,3 +734,81 @@ export const materialSheetEnumsApi = {
     }
   }
 }
+
+function materialHealthIssue(raw: RawRecord): import('./model').MaterialHealthIssue {
+  return {
+    id: String(raw.id ?? ''),
+    label: String(raw.label ?? ''),
+    severity: String(raw.severity ?? ''),
+    count: Number(raw.count ?? 0),
+    nextAction: String(raw.nextAction ?? ''),
+    evidence: String(raw.evidence ?? ''),
+    refs: Array.isArray(raw.refs) ? raw.refs.map((item: unknown) => String(item)) : []
+  }
+}
+
+function materialHealthRow(raw: RawRecord): import('./model').MaterialHealthRow {
+  const value = (key: string) => raw[key] == null ? undefined : Number(raw[key])
+  return {
+    planId: String(raw.planId ?? ''),
+    spaceName: raw.spaceName ? String(raw.spaceName) : undefined,
+    category: raw.category ? String(raw.category) : undefined,
+    materialName: raw.materialName ? String(raw.materialName) : undefined,
+    status: raw.status ? String(raw.status) : undefined,
+    statusName: raw.statusName ? String(raw.statusName) : undefined,
+    selectionStatus: raw.selectionStatus ? String(raw.selectionStatus) : undefined,
+    selectionStatusName: raw.selectionStatusName ? String(raw.selectionStatusName) : undefined,
+    quantity: value('quantity'),
+    orderedQuantity: value('orderedQuantity'),
+    receivedQuantity: value('receivedQuantity'),
+    requiredAt: raw.requiredAt ? String(raw.requiredAt) : undefined,
+    supplierName: raw.supplierName ? String(raw.supplierName) : undefined,
+    purchaseNo: raw.purchaseNo ? String(raw.purchaseNo) : undefined,
+    delayed: raw.delayed === true,
+    nextAction: raw.nextAction ? String(raw.nextAction) : undefined
+  }
+}
+
+/** 项目材料业务体检：只消费 B2 已交付的只读 Provider。 */
+export const materialHealthApi = {
+  report: async (projectId: string): Promise<import('./model').MaterialHealthReport> => {
+    const raw = await post<RawRecord>('blueprint/check/report', { projectId })
+    return {
+      projectId: String(raw.projectId ?? ''),
+      projectNo: raw.projectNo ? String(raw.projectNo) : undefined,
+      projectName: raw.projectName ? String(raw.projectName) : undefined,
+      projectStatusName: raw.projectStatusName ? String(raw.projectStatusName) : undefined,
+      propertyAddress: raw.propertyAddress ? String(raw.propertyAddress) : undefined,
+      customerName: raw.customerName ? String(raw.customerName) : undefined,
+      designerName: raw.designerName ? String(raw.designerName) : undefined,
+      managerName: raw.managerName ? String(raw.managerName) : undefined,
+      hasMaterialPlan: raw.hasMaterialPlan === true,
+      totalItems: Number(raw.totalItems ?? 0),
+      selectedItems: Number(raw.selectedItems ?? 0),
+      unselectedItems: Number(raw.unselectedItems ?? 0),
+      readyToOrder: Number(raw.readyToOrder ?? 0),
+      partiallyOrdered: Number(raw.partiallyOrdered ?? 0),
+      pendingArrival: Number(raw.pendingArrival ?? 0),
+      partiallyArrived: Number(raw.partiallyArrived ?? 0),
+      arrived: Number(raw.arrived ?? 0),
+      delayed: Number(raw.delayed ?? 0),
+      purchaseCount: Number(raw.purchaseCount ?? 0),
+      unpricedPurchaseCount: Number(raw.unpricedPurchaseCount ?? 0),
+      missingSupplierCount: Number(raw.missingSupplierCount ?? 0),
+      costComplete: raw.costComplete === true,
+      costIncompleteCount: Number(raw.costIncompleteCount ?? 0),
+      materialCost: Number(raw.materialCost ?? 0),
+      estimatedCost: Number(raw.estimatedCost ?? 0),
+      actualCost: Number(raw.actualCost ?? 0),
+      profitAmount: raw.profitAmount == null ? null : Number(raw.profitAmount),
+      costLabel: String(raw.costLabel ?? ''),
+      stageKey: String(raw.stageKey ?? ''),
+      stageLabel: String(raw.stageLabel ?? ''),
+      stageSummary: String(raw.stageSummary ?? ''),
+      nextAction: String(raw.nextAction ?? ''),
+      settlementStatus: String(raw.settlementStatus ?? ''),
+      issues: Array.isArray(raw.issues) ? raw.issues.map(materialHealthIssue) : [],
+      rows: Array.isArray(raw.rows) ? raw.rows.map(materialHealthRow) : []
+    }
+  }
+}

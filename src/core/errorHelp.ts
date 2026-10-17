@@ -11,6 +11,8 @@ const RULES: ErrorHelpRule[] = [
   { topic: 'quote-cost-incomplete', pattern: /成本未完整|标准成本|成本.*(缺失|补齐)/i },
   { topic: 'contract-no-project', pattern: /合同.*(生效|签约)|只有已生效合同|请先完成合同签约/i },
   { topic: 'selection-not-visible', pattern: /主材选材|选材记录|选材结果/i },
+  { topic: 'material-sheet-time', pattern: /作业单.*(测量|时间|配送|安装)|提交.*(测量|配送|安装)|模板.*必填|复尺/i },
+  { topic: 'material-sheet-cancel', pattern: /取消作业单|已进入采购.*取消|进入采购.*锁定/i },
   { topic: 'cannot-purchase-material', pattern: /供应商|采购价|采购单|材料计划.*采购/i },
   { topic: 'upload-failed', pattern: /uploadFile|文件上传|上传服务|照片上传|视频上传|下载地址/i },
   { topic: 'owner-cannot-see', pattern: /业主.*(项目|授权)|项目授权|customer access/i },

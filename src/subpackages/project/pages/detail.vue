@@ -15,6 +15,8 @@ import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { dateTimeText, money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { projectApi } from '@/domains/project/api'
+import { materialHealthApi } from '@/domains/material/api'
+import type { MaterialHealthReport } from '@/domains/material/model'
 import { toastError } from '@/composables/toast'
 import { useShare } from '@/composables/share'
 import { financeApi } from '@/domains/finance/api'
@@ -37,6 +39,7 @@ import JzReportCard from '@/components/JzReportCard.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzIconButton from '@/components/JzIconButton.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import MaterialHealthCard from '@/components/MaterialHealthCard/MaterialHealthCard.vue'
 
 const id = ref('')
 const project = ref<Project | null>(null)
@@ -48,6 +51,8 @@ const acceptances = ref<Acceptance[]>([])
 const feedbacks = ref<CustomerFeedback[]>([])
 const rectifyItems = ref<RectifyItem[]>([])
 const financeReport = ref<FinanceProjectReport | null>(null)
+const materialHealth = ref<MaterialHealthReport | null>(null)
+const materialHealthError = ref('')
 const contract = ref<Contract | null>(null)
 type ProjectTab = 'overview' | 'plan' | 'tasks' | 'feed' | 'members' | 'change' | 'advice'
 const tab = ref<ProjectTab>('overview')
@@ -125,7 +130,19 @@ async function load() {
     tasks.value = tk
     contract.value = null
     if (can(role.value, 'view:finance')) {
-      financeReport.value = await financeApi.projectReport(id.value).catch(() => null)
+      const [finance, health] = await Promise.all([
+        financeApi.projectReport(id.value).catch(() => null),
+        materialHealthApi.report(id.value)
+          .then((data) => ({ data, error: '' }))
+          .catch((error) => ({ data: null, error: error instanceof Error ? error.message : '材料业务暂不可确认' }))
+      ])
+      financeReport.value = finance
+      materialHealth.value = health.data
+      materialHealthError.value = health.error
+    } else {
+      financeReport.value = null
+      materialHealth.value = null
+      materialHealthError.value = ''
     }
     if (role.value === 'marketer') {
       reports.value = []
@@ -382,6 +399,16 @@ function avatarOf(m: ProjectMember) {
         <button v-else-if="canOpenStage && !hasManager" class="jz-btn jz-btn--neutral jz-grow pd__action-btn" @tap="goMembers('assign')"><JzIcon name="user-plus" :size="27" :color="TOKEN_COLOR.primary" /><text>先指定项目经理才能开工</text></button>
         <button v-if="canReport" class="jz-btn jz-btn--ghost jz-grow pd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报</text></button>
       </view>
+
+      <MaterialHealthCard
+        v-if="!isOwner && canViewFinance"
+        :report="materialHealth"
+        :error="materialHealthError"
+        :loading="loading"
+        @retry="load"
+        @open-plan="goMaterialPlan"
+        @open-sheet="goMaterialSheet"
+      />
 
       <view v-if="!isOwner" class="pd__entry-row">
         <view class="jz-card pd__entry" @tap="goMaterialPlan">

@@ -126,6 +126,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: 'selection-not-visible', category: '主材选材', title: '看不到主材选材入口', summary: '选材从合同材料清单发起，只对有项目权限的角色开放。', symptoms: ['项目详情没有“主材选材”', '设计师或客户看不到选材清单'], reason: '合同尚未生效、项目尚未创建，或当前账号不在项目参与范围内。', actions: ['确认合同已生效且项目已创建', '确认账号属于项目成员或业主授权范围', '由设计师从项目或合同工作台进入选材'], actionLabel: '查看项目', actionPath: '/pages/project/list'
   },
   {
+    id: 'material-sheet-time', category: '材料采购', title: '作业单的测量、配送、安装和到场时间有什么区别', summary: '作业单记录现场计划时间；要求到场和实际到场在材料计划、采购与到场记录中确认。', symptoms: ['不知道测量日期和到场日期分别填在哪', '提交请购时提示测量字段必填', '作业单有配送日期但看不到实际到场'], reason: '作业单承载现场测量/配送/安装计划，不承载系统时间戳和实际到场事实；当前品类模板可能把测量字段设为必填。', actions: ['在作业单详情确认测量、配送、安装计划日期', '标 * 的模板必填字段补齐后再提交请购', '实际到场数量与日期到材料计划/到场确认中登记'], actionLabel: '材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
+  },
+  {
+    id: 'material-sheet-cancel', category: '材料采购', title: '作业单为什么不能直接取消', summary: '未进入采购前可取消并保留原因；进入采购后必须走调整或退货。', symptoms: ['作业单详情没有取消入口', '提示已进入采购，材料与数量锁定', '取消后仍能看到历史单据'], reason: '作业单一旦进入采购，采购单和应付事实已经形成，不能靠取消作业单抹掉；已到货扣减必须走退货。', actions: ['确认作业单是否已经下单或到场', '未进入采购时填写取消原因后取消', '已下单未到走采购调整，已到货走退货或增减项'], actionLabel: '查看材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
+  },
+  {
     id: 'cannot-purchase-material', category: '材料采购', title: '材料计划不能生成采购单', summary: '采购必须从项目材料计划发起，并依赖有效供应商和价格。', symptoms: ['采购页面没有可选择的材料计划', '选择供应商后无法提交'], reason: '材料计划状态不符合采购条件，或供应商、价格、项目参与关系不完整。', actions: ['先确认项目材料计划已生成并进入可采购状态', '检查供应商是否有效、品牌和采购价是否维护', '确认当前角色拥有项目采购权限'], actionLabel: '材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench'
   },
   {

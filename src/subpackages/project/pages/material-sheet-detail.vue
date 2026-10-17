@@ -12,6 +12,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import MaterialSheetContextGuide from '@/components/MaterialSheetContextGuide/MaterialSheetContextGuide.vue'
 
 const sheetId = ref('')
 const sheet = ref<MaterialOrderSheet | null>(null)
@@ -203,6 +204,16 @@ async function exportSheet() {
         <view class="msd__row"><text class="msd__label">安装</text><text class="msd__value">{{ sheet.installAt || '待确认' }}</text></view>
         <view v-if="sheet.remark" class="msd__row"><text class="msd__label">备注</text><text class="msd__value">{{ sheet.remark }}</text></view>
       </view>
+
+      <MaterialSheetContextGuide
+        :status="sheet.status"
+        :price-state="sheet.priceState"
+        :measure-required="measureRequired"
+        :measure-label="measureLabel"
+        :has-measure-value="!!measureAt"
+        :locked="locked"
+        :can-cancel="canCancel"
+      />
 
       <view class="msd__section">
         <text class="msd__section-title">材料明细（{{ sheet.items?.length || 0 }} 行）</text>
