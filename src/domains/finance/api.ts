@@ -120,6 +120,7 @@ function normalizePayable(raw: Raw): Payable {
     type: PAYABLE_TYPE_UI[lower(raw.type)] || 'other',
     payeeEmployee: raw.payeeEmployee ? normalizeEmployee(raw.payeeEmployee) : undefined,
     payeeName: raw.payeeName, period: raw.period, amount, paidAmount,
+    estimated: raw.estimated === true, settledAmount: raw.settledAmount == null ? undefined : num(raw.settledAmount),
     outstandingAmount: Math.max(amount - paidAmount, 0), dueDate: raw.dueDate ?? '',
     status: PAYABLE_STATUS_UI[lower(raw.status)] || 'pending', urgent: !!raw.urgent,
     sourceNo: raw.sourceNo, remark: raw.remark,

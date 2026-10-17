@@ -69,6 +69,8 @@ export interface Payable {
   payeeName?: string
   period?: string
   amount: number
+  estimated: boolean
+  settledAmount?: number
   paidAmount: number
   outstandingAmount: number
   dueDate: string

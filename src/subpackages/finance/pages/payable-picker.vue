@@ -66,14 +66,15 @@ const scopeLabel = computed(() => project.value?.name || '企业全部应付')
 const filterActive = computed(() => Boolean(keyword.value.trim()) || statusFilter.value !== 'all'
   || typeFilter.value !== 'all' || showSettled.value)
 
+function isPending(item: Payable) { return item.estimated || item.outstandingAmount > 0 }
 function isOverdue(item: Payable) {
-  return item.outstandingAmount > 0 && (item.status === 'overdue' || diffDays(item.dueDate) < 0)
+  return !item.estimated && item.outstandingAmount > 0 && (item.status === 'overdue' || diffDays(item.dueDate) < 0)
 }
 
 const filteredItems = computed(() => [...items.value]
   .filter((item) => {
-    if (!showSettled.value && item.outstandingAmount <= 0) return false
-    if (statusFilter.value === 'outstanding' && item.outstandingAmount <= 0) return false
+    if (!showSettled.value && !isPending(item)) return false
+    if (statusFilter.value === 'outstanding' && !isPending(item)) return false
     if (statusFilter.value === 'overdue' && !isOverdue(item)) return false
     if (statusFilter.value === 'urgent' && !item.urgent) return false
     if (typeFilter.value !== 'all' && item.type !== typeFilter.value) return false
@@ -88,9 +89,9 @@ const filteredItems = computed(() => [...items.value]
 
 const visibleItems = computed(() => filteredItems.value.slice(0, visibleLimit.value))
 const groups = computed<Array<{ key: GroupKey; label: string; items: Payable[] }>>(() => {
-  const pending = visibleItems.value.filter((item) => item.outstandingAmount > 0 && !isOverdue(item))
-  const overdue = visibleItems.value.filter((item) => item.outstandingAmount > 0 && isOverdue(item))
-  const settled = visibleItems.value.filter((item) => item.outstandingAmount <= 0)
+  const pending = visibleItems.value.filter((item) => isPending(item) && !isOverdue(item))
+  const overdue = visibleItems.value.filter((item) => isOverdue(item))
+  const settled = visibleItems.value.filter((item) => !isPending(item))
   return [
     { key: 'overdue', label: '逾期', items: overdue },
     { key: 'pending', label: '待付', items: pending },
@@ -98,7 +99,7 @@ const groups = computed<Array<{ key: GroupKey; label: string; items: Payable[] }
   ]
 })
 const allSettled = computed(() => !showSettled.value && !filterActive.value && !hasMore.value
-  && items.value.length > 0 && items.value.every((item) => item.outstandingAmount <= 0))
+  && items.value.length > 0 && items.value.every((item) => !isPending(item)))
 const filteredEmpty = computed(() => !loading.value && !loadError.value && !allSettled.value
   && !filteredItems.value.length && (items.value.length > 0 || filterActive.value))
 const noData = computed(() => !loading.value && !loadError.value && !items.value.length && !hasMore.value)
@@ -188,7 +189,7 @@ async function loadPayables(reset = true) {
     items.value = [...unique.values()]
     total.value = items.value.length
     hasMore.value = page.length >= PAGE_SIZE
-    const active = items.value.find((item) => item.id === selectedId.value && item.outstandingAmount > 0)
+    const active = items.value.find((item) => item.id === selectedId.value && isPending(item))
     if (active) selected.value = active
   } catch (error) {
     if (version !== loadVersion) return
@@ -255,6 +256,10 @@ function resetFilters() {
 }
 
 function choose(item: Payable) {
+  if (item.estimated) {
+    toast('该应付单待定价，请先在材料结算中确认结算价')
+    return
+  }
   if (item.outstandingAmount <= 0) {
     toast('该应付单已结清，不能再次核销')
     return
@@ -276,8 +281,8 @@ function clearSelection() {
 function dueText(item: Payable) {
   if (!item.dueDate) return '到期日未设置'
   const days = diffDays(item.dueDate)
-  if (item.outstandingAmount > 0 && days < 0) return `${item.dueDate} · 已逾期 ${-days} 天`
-  if (item.outstandingAmount > 0 && days === 0) return `${item.dueDate} · 今天到期`
+  if (!item.estimated && item.outstandingAmount > 0 && days < 0) return `${item.dueDate} · 已逾期 ${-days} 天`
+  if (!item.estimated && item.outstandingAmount > 0 && days === 0) return `${item.dueDate} · 今天到期`
   return item.dueDate
 }
 
@@ -382,7 +387,7 @@ function goPayables() {
             v-for="item in groupItem.items"
             :key="item.id"
             class="ppk-item"
-            :class="{ 'ppk-item--on': selected?.id === item.id, 'ppk-item--disabled': item.outstandingAmount <= 0 }"
+            :class="{ 'ppk-item--on': selected?.id === item.id, 'ppk-item--disabled': item.estimated || item.outstandingAmount <= 0 }"
             @tap="choose(item)"
           >
             <view class="ppk-item__main">
@@ -390,17 +395,18 @@ function goPayables() {
                 <text class="ppk-item__name">{{ item.name }}</text>
                 <text class="ppk-item__type" :style="{ color: PAYABLE_TYPE_META[item.type].color }">{{ PAYABLE_TYPE_META[item.type].label }}</text>
                 <text class="ppk-item__status" :style="{ color: PAYABLE_STATUS_META[item.status].color }">{{ PAYABLE_STATUS_META[item.status].label }}</text>
+                <text v-if="item.estimated" class="ppk-item__type">暂估/待定价</text>
                 <text v-if="item.urgent" class="ppk-item__urgent">加急</text>
               </view>
-              <text class="ppk-item__amount">{{ money(item.outstandingAmount) }}<text class="ppk-item__amount-label"> 待付</text></text>
-              <text class="ppk-item__meta">应付 {{ money(item.amount) }} · 已付 {{ money(item.paidAmount) }}</text>
+              <text class="ppk-item__amount">{{ item.estimated ? '待定价' : money(item.outstandingAmount) }}<text class="ppk-item__amount-label"> {{ item.estimated ? '结算后付款' : '待付' }}</text></text>
+              <text class="ppk-item__meta">{{ item.estimated ? '暂估应付待结算' : `应付 ${money(item.amount)} · 已付 ${money(item.paidAmount)}` }}</text>
               <text class="ppk-item__due" :style="{ color: isOverdue(item) ? TOKEN_COLOR.danger : TOKEN_COLOR.text3 }">{{ dueText(item) }}</text>
               <text class="ppk-item__meta">收款方：{{ payeeName(item) }}</text>
               <text class="ppk-item__meta">项目：{{ projectName(item) }}<text v-if="item.period"> · 工资周期 {{ item.period }}</text></text>
               <text v-if="item.sourceNo" class="ppk-item__source">来源单号：{{ item.sourceNo }}</text>
             </view>
             <JzIcon v-if="selected?.id === item.id" name="check" :size="30" :color="TOKEN_COLOR.primary" />
-            <JzIcon v-else-if="item.outstandingAmount <= 0" name="lock" :size="26" :color="TOKEN_COLOR.text4" />
+            <JzIcon v-else-if="item.estimated || item.outstandingAmount <= 0" name="lock" :size="26" :color="TOKEN_COLOR.text4" />
             <JzIcon v-else name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
           </view>
         </view>

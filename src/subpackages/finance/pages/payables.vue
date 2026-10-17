@@ -65,8 +65,10 @@ function selectFilter(value: Filter) {
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&payableType=${initialType.value || 'material'}${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
 function edit(item: Payable) { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&id=${item.id}` }) }
-function pay(item: Payable) { if (editable.value && item.outstandingAmount > 0) uni.navigateTo({ url: `${P.financeEntry}?type=payment&payableId=${item.id}` }) }
-function progress(item: Payable) { return Math.min(100, Math.round(item.paidAmount / Math.max(item.amount, 1) * 100)) }
+function pay(item: Payable) { if (editable.value && !item.estimated && item.outstandingAmount > 0) uni.navigateTo({ url: `${P.financeEntry}?type=payment&payableId=${item.id}` }) }
+function progress(item: Payable) { return item.estimated ? 0 : Math.min(100, Math.round(item.paidAmount / Math.max(item.amount, 1) * 100)) }
+function amountText(item: Payable) { return item.estimated ? '待定价' : money(item.amount) }
+function outstandingText(item: Payable) { return item.estimated ? '待结算' : money(item.outstandingAmount) }
 </script>
 
 <template>
@@ -96,19 +98,21 @@ function progress(item: Payable) { return Math.min(100, Math.round(item.paidAmou
       <view v-for="item in items" :key="item.id" class="fin-card" @tap="edit(item)">
         <view class="fin-card__top">
           <view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.project?.name || '企业通用费用' }} · {{ item.payeeEmployee?.name || item.payeeName || '未指定收款方' }}</text></view>
-          <text class="fin-card__amount">{{ money(item.amount) }}</text>
+          <text class="fin-card__amount">{{ amountText(item) }}</text>
         </view>
         <view class="fin-card__facts">
           <text :style="{ color: PAYABLE_TYPE_META[item.type].color }">{{ PAYABLE_TYPE_META[item.type].label }}</text>
           <text :style="{ color: PAYABLE_STATUS_META[item.status].color }">{{ PAYABLE_STATUS_META[item.status].label }}</text>
           <text>账期 {{ item.dueDate || '—' }}</text>
           <text v-if="item.period">{{ item.period }}</text>
+          <text v-if="item.estimated" :style="{ color: TOKEN_COLOR.warning }">暂估/待定价</text>
           <text v-if="item.urgent" :style="{ color: TOKEN_COLOR.danger }">加急</text>
         </view>
         <view class="fin-progress"><view class="fin-progress__bar" :style="{ width: `${progress(item)}%`, background: item.type === 'salary' ? TOKEN_COLOR.warning : undefined }" /></view>
         <view class="fin-card__foot">
-          <text class="jz-caption">已付 {{ money(item.paidAmount) }} · 待付 {{ money(item.outstandingAmount) }}</text>
-          <text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap.stop="pay(item)">安排付款</text>
+          <text class="jz-caption">已付 {{ money(item.paidAmount) }} · 待付 {{ outstandingText(item) }}</text>
+          <text v-if="editable && !item.estimated && item.outstandingAmount > 0" class="fin-card__action" @tap.stop="pay(item)">安排付款</text>
+          <text v-else-if="item.estimated" class="jz-caption">结算后安排付款</text>
           <text v-else class="jz-caption">{{ item.sourceNo || item.materialPlan?.name || '已结清' }}</text>
         </view>
       </view>
