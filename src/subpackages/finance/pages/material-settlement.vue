@@ -10,7 +10,6 @@ import { toast, toastError, promptText } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
-import JzIcon from '@/components/JzIcon.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -31,6 +30,7 @@ const periods = ref<Record<string, string>>({})
 const loading = ref(true)
 const loadError = ref('')
 const submitting = ref('')
+const showRule = ref(false)
 
 const editable = computed(() => can(session.role, 'edit:finance'))
 const groups = computed<SupplierGroup[]>(() => {
@@ -56,6 +56,7 @@ const groups = computed<SupplierGroup[]>(() => {
   return Array.from(bySupplier.values())
 })
 const unpricedCount = computed(() => rows.value.filter((row) => row.unpriced).length)
+const missingPriceCount = computed(() => rows.value.filter((row) => !priceOf(row)).length)
 
 function monthValue() {
   const now = new Date()
@@ -182,7 +183,7 @@ function settlementStatusColor(status: MaterialSettlement['status']) {
 
 <template>
   <view class="mset">
-    <JzPageHeader title="主材结算" subtitle="结算价是实际成本的唯一来源；逐单优先，月结兜底" right-icon="refresh" @right="load" />
+    <JzPageHeader title="主材结算" subtitle="先填结算价，再按采购单或供应商确认" right-icon="refresh" @right="load" />
 
     <view class="mset__tabs">
       <view class="mset__tab" :class="{ 'mset__tab--on': tab === 'pending' }" @tap="tab = 'pending'">待结算</view>
@@ -193,9 +194,14 @@ function settlementStatusColor(status: MaterialSettlement['status']) {
     <PageState v-else-if="loadError && !groups.length" state="error" title="可结算明细暂不可确认" :subtitle="loadError" @retry="load" />
 
     <template v-else-if="tab === 'pending'">
-      <view class="mset__hint">
-        <JzIcon name="info" :size="26" :color="TOKEN_COLOR.warning" />
-        <text>同一采购明细只能结算一次；月结只结算尚未逐单结算的差额。{{ unpricedCount ? ` 当前 ${unpricedCount} 行未定价，必须按对账结果填结算价。` : '' }}</text>
+      <view class="jz-card mset__summary">
+        <view class="mset__summary-head">
+          <text class="mset__summary-title">待结算</text>
+          <text class="mset__summary-badge">{{ groups.length }} 家供应商</text>
+        </view>
+        <text class="mset__summary-line">可结算 {{ rows.length }} 行 · 未定价 {{ unpricedCount }} 行 · 待填结算价 {{ missingPriceCount }} 行</text>
+        <text class="mset__help-link" @tap="showRule = !showRule">{{ showRule ? '收起规则' : '结算规则' }}</text>
+        <text v-if="showRule" class="mset__help-body">同一采购明细只能结算一次；月结只结算尚未逐单结算的差额。每行必须填写大于 0 的结算价。</text>
       </view>
       <JzEmpty v-if="!groups.length" text="当前没有可结算的采购明细" sub="采购下单并到场后会进入这里" />
       <view v-for="group in groups" :key="group.supplierId || 'unknown'" class="jz-card mset__group">
@@ -213,7 +219,7 @@ function settlementStatusColor(status: MaterialSettlement['status']) {
         <view v-for="order in group.orders" :key="order.orderId" class="mset__order">
           <view class="mset__order-head">
             <text class="mset__order-no">{{ order.orderNo }}</text>
-            <button v-if="editable" class="jz-btn jz-btn--ghost jz-btn--sm" :loading="submitting === `${group.supplierId}-${order.orderId}`" @tap="settle(group, 'PerPurchaseOrder', order.rows, order.orderId)">结算本单</button>
+            <button v-if="editable" class="jz-btn jz-btn--primary jz-btn--sm" :loading="submitting === `${group.supplierId}-${order.orderId}`" @tap="settle(group, 'PerPurchaseOrder', order.rows, order.orderId)">结算本单</button>
           </view>
           <view v-for="row in order.rows" :key="row.purchaseItemId" class="mset__row">
             <view class="mset__row-top">
@@ -264,7 +270,13 @@ function settlementStatusColor(status: MaterialSettlement['status']) {
 .mset__tabs { display: flex; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad 0; }
 .mset__tab { padding: 12rpx 24rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-card; font-size: $jzb-font-sm; color: $jzb-text-2; }
 .mset__tab--on { background: $jzb-primary; color: $jzb-text-inverse; font-weight: 650; }
-.mset__hint { display: flex; align-items: flex-start; gap: $jzb-space-2; margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-3; border-radius: $jzb-radius-sm; background: $jzb-primary-lightest; font-size: $jzb-font-xs; line-height: 1.6; color: $jzb-text-2; }
+.mset__summary { display: flex; flex-direction: column; gap: 8rpx; margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-4; }
+.mset__summary-head { display: flex; align-items: center; justify-content: space-between; gap: $jzb-space-3; }
+.mset__summary-title { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.mset__summary-badge { font-size: $jzb-font-xs; color: $jzb-primary-dark; }
+.mset__summary-line { font-size: $jzb-font-sm; color: $jzb-text-2; }
+.mset__help-link { font-size: $jzb-font-xs; color: $jzb-primary-dark; }
+.mset__help-body { padding: 12rpx 16rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; font-size: $jzb-font-xs; line-height: 1.6; color: $jzb-text-2; }
 .mset__group { margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-4; }
 .mset__group-head { display: flex; align-items: flex-start; justify-content: space-between; gap: $jzb-space-3; }
 .mset__grow { flex: 1; min-width: 0; }
