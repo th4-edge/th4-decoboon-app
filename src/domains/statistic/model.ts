@@ -454,11 +454,28 @@ export interface PerformanceReport {
 }
 
 export interface BusinessTarget {
+  targetId?: string
+  storeId?: string
+  storeName?: string
   targetMonth: string
   signedAmount: number
   receivedAmount: number
   grossProfit: number
   activeProjectCount: number
+}
+
+/** 门店经营利润（参考，MET-011 草案）。 */
+export interface StoreProfitReport {
+  storeId: string
+  storeName: string
+  periodLabel: string
+  projectGrossProfit: number | null
+  otherIncome: number
+  directCompanyExpense: number
+  storeProfit: number | null
+  costComplete: boolean
+  profitWarning?: string
+  unallocatedNote: string
 }
 
 export type SuccessActivationStatus = 'not_activated' | 'in_progress' | 'activated' | 'risk'

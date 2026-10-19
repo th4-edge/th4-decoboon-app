@@ -4,11 +4,11 @@ import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { P, goTab, isTabPath } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { statisticApi } from '@/domains/statistic/api'
-import type { DesignerReport, MarketerPeriodMetric, MarketerRateMetric, MarketerReport, PmReport, StoreManagerReport, TeamLeaderReport } from '@/domains/statistic/model'
+import type { BusinessTarget, DesignerReport, MarketerPeriodMetric, MarketerRateMetric, MarketerReport, PmReport, StoreManagerReport, StoreProfitReport, TeamLeaderReport } from '@/domains/statistic/model'
 import { money, moneyParts } from '@/core/format'
 import type { SiteReport } from '@/domains/site/model'
 import { CUSTOMER_STAGE_META } from '@/domains/crm/meta'
-import { toastError } from '@/composables/toast'
+import { toast, toastError } from '@/composables/toast'
 import { useTeamContext } from '@/composables/teamContext'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -32,6 +32,17 @@ function reportAuthorRole(report: SiteReport) {
 const designerReport = ref<DesignerReport | null>(null)
 const marketerReport = ref<MarketerReport | null>(null)
 const storeReport = ref<StoreManagerReport | null>(null)
+const storeProfitReport = ref<StoreProfitReport | null>(null)
+const storeTarget = ref<BusinessTarget | null>(null)
+const showStoreTarget = ref(false)
+const savingStoreTarget = ref(false)
+const storeTargetError = ref('')
+/** 生产后端尚未上线门店利润/目标接口时，隐藏该模块，避免误显示“成本未完整”。 */
+const storeBusinessUnavailable = ref(false)
+const storeTargetForm = ref<BusinessTarget>({
+  targetMonth: `${new Date().toISOString().slice(0, 7)}-01`,
+  signedAmount: 0, receivedAmount: 0, grossProfit: 0, activeProjectCount: 0
+})
 const teamReport = ref<TeamLeaderReport | null>(null)
 const pmReport = ref<PmReport | null>(null)
 const loading = ref(false)
@@ -43,6 +54,11 @@ const isTeamLeader = computed(() => session.role === 'teamLeader')
 const isPm = computed(() => session.role === 'pm')
 const isMarketer = computed(() => session.role === 'marketer')
 const hasData = computed(() => !!(pmReport.value || teamReport.value || storeReport.value || designerReport.value || marketerReport.value))
+const storeProfitText = computed(() => {
+  const profit = storeProfitReport.value
+  if (!profit || profit.storeProfit == null) return profit?.profitWarning || '成本未完整'
+  return money(profit.storeProfit)
+})
 
 onShow(() => { if (isLoggedIn() && requireTeam()) void load() })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
@@ -53,13 +69,41 @@ async function load() {
   try {
     if (isPm.value) pmReport.value = await statisticApi.pm()
     else if (isTeamLeader.value) teamReport.value = await statisticApi.teamLeader()
-    else if (isStoreManager.value) storeReport.value = await statisticApi.storeManager()
+    else if (isStoreManager.value) {
+      storeReport.value = await statisticApi.storeManager()
+      const month = new Date().toISOString().slice(0, 7)
+      const [profit, target] = await Promise.all([
+        statisticApi.storeProfit().catch(() => null),
+        statisticApi.storeTarget(month).catch(() => null)
+      ])
+      storeProfitReport.value = profit
+      storeTarget.value = target
+      storeBusinessUnavailable.value = !profit && !target
+      if (target) storeTargetForm.value = { ...target, targetMonth: `${month}-01` }
+    }
     else if (isDesigner.value) designerReport.value = await statisticApi.designer()
     else marketerReport.value = await statisticApi.marketer()
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '业绩数据加载失败'
     toastError(error, '业绩数据加载失败')
   } finally { loading.value = false }
+}
+
+async function saveStoreTarget() {
+  if (savingStoreTarget.value) return
+  savingStoreTarget.value = true
+  storeTargetError.value = ''
+  try {
+    const month = new Date().toISOString().slice(0, 7)
+    storeTarget.value = await statisticApi.saveStoreTarget({ ...storeTargetForm.value, targetMonth: `${month}-01` })
+    storeTargetForm.value = { ...storeTarget.value, targetMonth: `${month}-01` }
+    showStoreTarget.value = false
+    toast('本店经营目标已保存', 'success')
+  } catch (error) {
+    storeTargetError.value = error instanceof Error ? error.message : '本店经营目标保存失败'
+  } finally {
+    savingStoreTarget.value = false
+  }
 }
 
 const cards = computed((): { label: string; value: string; icon: IconName; tone: 'brand' | 'warning' | 'danger' | 'success' | 'purple' | 'info'; path?: string }[] => {
@@ -363,6 +407,41 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
     </template>
 
     <template v-else-if="isStoreManager">
+      <template v-if="!storeBusinessUnavailable">
+      <view class="jz-section"><text class="jz-section__title">本店经营目标与利润</text><text class="jz-section__more" @tap="showStoreTarget = !showStoreTarget">{{ showStoreTarget ? '收起' : '设置目标' }}</text></view>
+      <view class="jz-card perf__store-profit">
+        <view class="perf__store-profit-head">
+          <view>
+            <text class="perf__store-profit-label">{{ storeProfitReport?.periodLabel || '累计' }}经营利润（参考）</text>
+            <text class="perf__store-profit-value" :class="{ 'perf__store-profit-value--warn': storeProfitReport?.storeProfit == null }">
+              {{ storeProfitText }}
+            </text>
+          </view>
+          <text class="perf__store-profit-note">{{ storeProfitReport?.unallocatedNote || '未分摊总部/公共费用' }}</text>
+        </view>
+        <view v-if="storeProfitReport" class="perf__store-profit-breakdown">
+          <view><text>项目毛利</text><text>{{ storeProfitReport.projectGrossProfit == null ? '—' : money(storeProfitReport.projectGrossProfit) }}</text></view>
+          <view><text>非项目收入</text><text>{{ money(storeProfitReport.otherIncome) }}</text></view>
+          <view><text>直接企业费用</text><text>{{ money(storeProfitReport.directCompanyExpense) }}</text></view>
+        </view>
+      </view>
+
+      <view v-if="showStoreTarget" class="jz-card perf__store-target">
+        <view class="perf__store-target-row"><text>签约目标</text><input v-model.number="storeTargetForm.signedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="perf__store-target-row"><text>回款目标</text><input v-model.number="storeTargetForm.receivedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="perf__store-target-row"><text>毛利目标</text><input v-model.number="storeTargetForm.grossProfit" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="perf__store-target-row"><text>在建项目目标</text><input v-model.number="storeTargetForm.activeProjectCount" type="number" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <text v-if="storeTargetError" class="perf__store-target-error">{{ storeTargetError }}</text>
+        <button class="jz-btn jz-btn--primary" :disabled="savingStoreTarget" @tap="saveStoreTarget">{{ savingStoreTarget ? '保存中…' : '保存本店目标' }}</button>
+      </view>
+      <view v-else-if="storeTarget" class="jz-card perf__store-target-summary">
+        <view><text>签约</text><text>{{ money(storeTarget.signedAmount) }}</text></view>
+        <view><text>回款</text><text>{{ money(storeTarget.receivedAmount) }}</text></view>
+        <view><text>毛利</text><text>{{ money(storeTarget.grossProfit) }}</text></view>
+        <view><text>在建</text><text>{{ storeTarget.activeProjectCount }} 个</text></view>
+      </view>
+      </template>
+
       <view class="jz-section"><text class="jz-section__title">门店经营结构</text><text class="jz-section__more">点击卡片进入对应业务</text></view>
       <view class="perf__structure">
         <view v-for="item in storeStructureCards" :key="item.label" class="jz-card perf__structure-card" @tap="openPath(item.path)">

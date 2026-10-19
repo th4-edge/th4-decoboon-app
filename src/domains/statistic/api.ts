@@ -1,6 +1,6 @@
 import { post } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus, MetricDefinition } from './model'
+import type { BossDashboard, BossWorkbench, BusinessAlert, BusinessAlertReport, BusinessEvent, BusinessEventCategory, BusinessEventLevel, BusinessEventType, BusinessTarget, ChurnRiskLevel, DashboardMetric, DashboardReport, DesignerReport, DesignerPerformance, EmployeePerformance, MarketerPeriodMetric, MarketerRankingItem, MarketerRateMetric, MarketerReport, PerformanceReport, PmReport, RoleActivation, StoreManagerReport, StoreProfitReport, SuccessActivationStatus, SuccessMilestone, SuccessMilestoneStatus, SuccessProgramReport, TeamLeaderReport, TeamMemberPerformance, WorkbenchIndicator, WorkbenchProject, WorkbenchReport, WorkbenchSignalStatus, MetricDefinition } from './model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import type { StoreScopeInfo } from './model'
 
@@ -462,6 +462,60 @@ export const statisticApi = {
       receivedAmount: Number(raw.receivedAmount ?? input.receivedAmount),
       grossProfit: Number(raw.grossProfit ?? input.grossProfit),
       activeProjectCount: Number(raw.activeProjectCount ?? input.activeProjectCount)
+    }
+  },
+
+  /** 门店月度目标：店长锁定本店；BOSS 可传 storeId。 */
+  storeTarget: async (month: string, storeId?: string): Promise<BusinessTarget> => {
+    const raw = await post<RawRecord>('statistic/target/info', {
+      month: `${month.slice(0, 7)}-01`,
+      ...(storeId ? { storeId } : {})
+    })
+    const store = (raw.store || {}) as RawRecord
+    return {
+      targetId: raw.targetId == null ? undefined : String(raw.targetId),
+      storeId: store.storeId == null ? undefined : String(store.storeId),
+      storeName: store.name == null ? undefined : String(store.name),
+      targetMonth: raw.targetMonth ?? `${month.slice(0, 7)}-01`,
+      signedAmount: Number(raw.signedAmount ?? 0),
+      receivedAmount: Number(raw.receivedAmount ?? 0),
+      grossProfit: Number(raw.grossProfit ?? 0),
+      activeProjectCount: Number(raw.activeProjectCount ?? 0)
+    }
+  },
+  saveStoreTarget: async (input: BusinessTarget, storeId?: string): Promise<BusinessTarget> => {
+    const raw = await post<RawRecord>('statistic/target/save', {
+      month: input.targetMonth,
+      signedAmount: input.signedAmount,
+      receivedAmount: input.receivedAmount,
+      grossProfit: input.grossProfit,
+      activeProjectCount: input.activeProjectCount,
+      ...(storeId ? { storeId } : {})
+    })
+    return {
+      targetId: raw.targetId == null ? undefined : String(raw.targetId),
+      targetMonth: raw.targetMonth ?? input.targetMonth,
+      signedAmount: Number(raw.signedAmount ?? input.signedAmount),
+      receivedAmount: Number(raw.receivedAmount ?? input.receivedAmount),
+      grossProfit: Number(raw.grossProfit ?? input.grossProfit),
+      activeProjectCount: Number(raw.activeProjectCount ?? input.activeProjectCount)
+    }
+  },
+  /** 门店经营利润（参考）：店长/门店财务锁定本店；BOSS 必须传 storeId。 */
+  storeProfit: async (storeId?: string): Promise<StoreProfitReport> => {
+    const raw = await post<RawRecord>('statistic/store/profit/report', storeId ? { storeId } : {})
+    const nullable = (value: unknown): number | null => value == null ? null : Number(value)
+    return {
+      storeId: String(raw.storeId ?? ''),
+      storeName: String(raw.storeName ?? ''),
+      periodLabel: String(raw.periodLabel ?? '累计'),
+      projectGrossProfit: nullable(raw.projectGrossProfit),
+      otherIncome: Number(raw.otherIncome ?? 0),
+      directCompanyExpense: Number(raw.directCompanyExpense ?? 0),
+      storeProfit: nullable(raw.storeProfit),
+      costComplete: raw.costComplete === true,
+      profitWarning: raw.profitWarning == null ? undefined : String(raw.profitWarning),
+      unallocatedNote: String(raw.unallocatedNote ?? '未分摊总部/公共费用')
     }
   },
 
