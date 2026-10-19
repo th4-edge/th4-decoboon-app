@@ -137,7 +137,7 @@ function openContract() {
 
 <template>
   <view class="chg">
-    <JzPageHeader title="增减项工作台" subtitle="合同变更到任务、材料与应收重算"  back />
+    <JzPageHeader title="项目增减项" subtitle="查看项目变更记录，并新增增减项" back />
     <PageState v-if="loadingState && !changes.length && !loadError" state="loading" :rows="4" />
     <PageState v-else-if="loadError && !changes.length" state="error" title="变更状态暂不可确认" :subtitle="loadError" @retry="load" />
     <template v-else>
@@ -164,6 +164,11 @@ function openContract() {
         </view>
         <view class="jz-grow" />
         <view class="chg__link" @tap="openContract">合同档案</view>
+      </view>
+
+      <view v-if="canCreate" class="chg__create-guide">
+        <JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" />
+        <text>新增、减项、替换可在一张变更单内提交；审批通过后自动同步合同金额、应收与材料计划。</text>
       </view>
 
       <view class="chg__body">
@@ -201,9 +206,9 @@ function openContract() {
     </template>
     <view class="jz-tabbar-gap" />
 
-    <view class="jz-actionbar" v-if="contractId && canCreate">
+    <view class="jz-actionbar" v-if="canCreate">
       <view class="jz-actionbar__inner">
-        <button class="jz-btn jz-btn--primary jz-grow" @tap="openCreate">＋ 发起增减项</button>
+        <button class="jz-btn jz-btn--primary jz-grow" @tap="openCreate">＋ 新增增减项</button>
       </view>
     </view>
   </view>
@@ -223,6 +228,8 @@ function openContract() {
 .chg__filter { padding: 10rpx 24rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; font-size: $jzb-font-sm; color: $jzb-text-2; }
 .chg__filter--on { background: $jzb-primary-lightest; color: $jzb-primary-dark; font-weight: 650; }
 .chg__link { font-size: $jzb-font-xs; color: $jzb-text-3; }
+.chg__create-guide { display: flex; align-items: flex-start; gap: 10rpx; margin: 0 $jzb-page-pad $jzb-space-3; padding: 14rpx 16rpx; border-radius: $jzb-radius-sm; background: $jzb-primary-lightest; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.6; }
+.chg__create-guide text { flex: 1; min-width: 0; }
 .chg__body { padding: 0 $jzb-page-pad; }
 .chg__item { margin-bottom: $jzb-space-4; padding: $jzb-space-5; }
 .chg__item-head { display: flex; justify-content: space-between; align-items: center; }

@@ -205,7 +205,7 @@ function projectLocation(item: Project) {
  * 选中项目后先解析生效合同：无合同或合同未生效时不给进发起表单，
  * 避免用户填完才在提交阶段被拒（BR-035 前置条件）。
  */
-async function chooseProject(item: Project) {
+async function openProjectChanges(item: Project) {
   if (picking.value) return
   picking.value = item.id
   try {
@@ -219,7 +219,7 @@ async function chooseProject(item: Project) {
       return
     }
     uni.navigateTo({
-      url: `${P.projectChangeCreate}?projectId=${item.id}&contractId=${contract.id}`
+      url: `${P.projectChange}?projectId=${item.id}&contractId=${contract.id}`
     })
   } finally {
     picking.value = ''
@@ -229,7 +229,7 @@ async function chooseProject(item: Project) {
 
 <template>
   <view class="cpp">
-    <JzPageHeader title="选择项目" subtitle="选择要发起增减项的项目" back />
+    <JzPageHeader title="选择项目" subtitle="选择项目查看变更记录并新增增减项" back />
 
     <view class="cpp__body">
       <view class="cpp__search">
@@ -306,7 +306,7 @@ async function chooseProject(item: Project) {
             :key="item.id"
             class="cpp__item"
             :class="{ 'cpp__item--busy': picking === item.id }"
-            @tap="chooseProject(item)"
+            @tap="openProjectChanges(item)"
           >
             <JzEmployeeAvatar v-if="item.designer" :src="item.designer.avatarUrl || ''" :name="item.designer.name" :role="item.designer.role" :status="item.designer.status" :size="56" />
             <view v-else class="cpp__item-placeholder"><JzIcon name="briefcase" :size="28" :color="TOKEN_COLOR.text3" /></view>

@@ -179,6 +179,13 @@ function goCreate() {
   uni.navigateTo({ url: P.projectChangePicker })
 }
 
+/** 工作台按项目分组：项目头部先进入该项目的变更列表，再在列表内新增或查看单据。 */
+function openProjectGroup(group: BossContractChangeGroup) {
+  const params = [`projectId=${group.projectId}`]
+  if (group.contractId) params.push(`contractId=${group.contractId}`)
+  uni.navigateTo({ url: `${P.projectChange}?${params.join('&')}` })
+}
+
 function openDetail(item?: BossContractChangeItem) {
   if (!item) return
   const params = [`changeId=${item.changeId}`]
@@ -389,11 +396,12 @@ function addressText(group: BossContractChangeGroup) {
           sub="合同签订后发生的施工项、主材增减，发起并经企业审批通过后会汇总到这里"
         />
         <view v-for="group in groups" :key="group.projectId" class="jz-card ccw__group">
-          <view class="ccw__group-head" @tap="openDetail(group.items[0])">
+          <view class="ccw__group-head" @tap="openProjectGroup(group)">
             <view class="ccw__group-title">
               <text class="ccw__group-name">{{ group.projectName }}</text>
               <JzTag :text="riskMeta(group.riskLevel).label" :color="riskMeta(group.riskLevel).color" size="sm" />
             </view>
+            <text class="ccw__group-more">全部变更</text>
             <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
           </view>
           <text class="ccw__group-sub">{{ group.customerName || '客户待完善' }} · {{ addressText(group) }}</text>
@@ -530,6 +538,7 @@ function addressText(group: BossContractChangeGroup) {
 .ccw__group-head { display: flex; align-items: center; justify-content: space-between; }
 .ccw__group-title { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
 .ccw__group-name { font-size: $jzb-font-md; font-weight: 700; }
+.ccw__group-more { flex: none; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
 .ccw__group-sub { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
 .ccw__group-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; margin-top: 18rpx; padding: 18rpx 0; border-top: 1rpx solid $jzb-border-light; border-bottom: 1rpx solid $jzb-border-light; }
 .ccw__fact { min-width: 0; }

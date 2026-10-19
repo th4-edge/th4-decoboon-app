@@ -127,9 +127,13 @@ async function load() {
       rectifyItems.value = []
       return
     }
-    const tk = await scheduleApi.tasks(id.value)
+    const shouldLoadContract = canInitiateChange.value || canViewFinance.value
+    const [tk, ct] = await Promise.all([
+      scheduleApi.tasks(id.value),
+      shouldLoadContract ? tradeApi.contractByProject(id.value).catch(() => null) : Promise.resolve(null)
+    ])
     tasks.value = tk
-    contract.value = null
+    contract.value = ct
     if (can(role.value, 'view:finance')) {
       const [finance, health] = await Promise.all([
         financeApi.projectReport(id.value).catch(() => null),
@@ -256,12 +260,6 @@ function goContractChange() {
   const qs = [`projectId=${id.value}`]
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
   uni.navigateTo({ url: `${P.projectChange}?${qs.join('&')}` })
-}
-function goChangeCreate() {
-  if (!canInitiateChange.value) return
-  const qs = [`projectId=${id.value}`]
-  if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
-  uni.navigateTo({ url: `${P.projectChangeCreate}?${qs.join('&')}` })
 }
 function goInviteOwner() { uni.navigateTo({ url: `${P.projectInvite}?id=${id.value}` }) }
 function goOwnerQrcode() { uni.navigateTo({ url: `${P.ownerQrcode}?id=${id.value}` }) }
@@ -416,20 +414,14 @@ function avatarOf(m: ProjectMember) {
         @open-settlement="goMaterialSettlement"
       />
 
-      <view v-if="!isOwner" class="pd__entry-row">
-        <view class="jz-card pd__entry" @tap="goMaterialPlan">
-          <JzIcon name="package" :size="34" :color="TOKEN_COLOR.primary" />
-          <text class="pd__entry-title">材料计划</text>
-          <text class="pd__entry-sub">需求量与到场</text>
+      <view v-if="!isOwner" class="jz-card pd__tools">
+        <view class="pd__tool" @tap="goMaterialPlan">
+          <view class="pd__tool-icon"><JzIcon name="package" :size="30" :color="TOKEN_COLOR.primary" /></view>
+          <text class="pd__tool-label">材料计划</text>
         </view>
-        <view class="jz-card pd__entry" @tap="goContractChange">
-          <JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.warning" />
-          <text class="pd__entry-title">增减项</text>
-          <text class="pd__entry-sub">变更与重算</text>
-          <view v-if="canInitiateChange" class="pd__entry-add" @tap.stop="goChangeCreate">
-            <JzIcon name="plus-square" :size="22" :color="TOKEN_COLOR.warning" />
-            <text>新增</text>
-          </view>
+        <view class="pd__tool" @tap="goContractChange">
+          <view class="pd__tool-icon"><JzIcon name="file-text" :size="30" :color="TOKEN_COLOR.primary" /></view>
+          <text class="pd__tool-label">增减项</text>
         </view>
       </view>
 
@@ -744,15 +736,12 @@ function avatarOf(m: ProjectMember) {
 .pd__tab-body { padding: 20rpx $jzb-page-pad; }
 .pd__quick-actions { display: flex; flex-direction: row; padding: 20rpx; margin-bottom: 20rpx; }
 .pd__quick-actions .jz-btn { margin: 0 8rpx; }
-.pd__entry-row { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
-.pd__entry { flex: 1; padding: 24rpx; display: flex; flex-direction: column; gap: 6rpx; }
-.pd__entry-add {
-  display: inline-flex; align-items: center; gap: 6rpx; align-self: flex-start;
-  margin-top: 8rpx; padding: 6rpx 18rpx; background: $jzb-warning-soft;
-  color: $jzb-warning; border-radius: 999rpx; font-size: $jzb-font-xs; font-weight: 600;
-}
-.pd__entry-title { font-size: 28rpx; font-weight: 600; color: $jzb-primary-dark; }
-.pd__entry-sub { font-size: 22rpx; color: $jzb-text-3; }
+.pd__tools { display: flex; align-items: stretch; margin-bottom: 20rpx; padding: 10rpx 8rpx; background: $jzb-gradient-surface; border-color: rgba(22, 163, 148, .14); }
+.pd__tool { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 10rpx; padding: 16rpx 8rpx; border-radius: $jzb-radius-sm; }
+.pd__tool:active { background: $jzb-bg-hover; }
+.pd__tool + .pd__tool { border-left: 1rpx solid $jzb-border-light; }
+.pd__tool-icon { width: 62rpx; height: 62rpx; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: $jzb-primary-lightest; }
+.pd__tool-label { color: $jzb-text-2; font-size: $jzb-font-xs; font-weight: 600; }
 .pd__selection { padding: 24rpx; margin-bottom: 20rpx; }
 .pd__selection-title { font-size: 30rpx; font-weight: 600; }
 .pd__selection-sub { display: block; margin-top: 8rpx; font-size: 24rpx; line-height: 1.6; color: $jzb-text-3; }
@@ -847,7 +836,7 @@ function avatarOf(m: ProjectMember) {
 .pd__more { display: flex; align-items: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
 
 /* ---------- 品牌色卡片面：项目详情不再是一片纯白灰 ---------- */
-.pd__entry, .pd__selection, .pd__mine, .pd__roles, .pd__contract, .pd__gantt,
+.pd__selection, .pd__mine, .pd__roles, .pd__contract, .pd__gantt,
 .pd__advice, .pd__feedback {
   background: linear-gradient(160deg, $jzb-bg-card 0%, $jzb-primary-lightest 100%);
   border-color: rgba(22, 163, 148, 0.14);
