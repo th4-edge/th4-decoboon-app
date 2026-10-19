@@ -17,6 +17,7 @@ import JzIcon from '@/components/JzIcon.vue'
 const items = ref<DesignWorkbenchItem[]>([])
 const loading = ref(false)
 const activeFilter = ref<'all' | 'Pending' | 'Doing' | 'Done'>('all')
+const isStoreManager = computed(() => session.role === 'storeManager')
 
 const filters = [
   { key: 'all', label: '全部' },
@@ -99,7 +100,7 @@ function isOverdue(stayDays: number): boolean {
 
 <template>
   <view class="wb">
-    <JzPageHeader title="设计工作台" :subtitle="`${session.company?.name || ''} · 待设计客户房屋`" />
+    <JzPageHeader :title="isStoreManager ? '门店设计方案' : '设计工作台'" :subtitle="`${session.company?.name || ''} · ${isStoreManager ? '本店客户设计推进' : '待设计客户房屋'}`" />
 
     <view class="wb__filters">
       <view
@@ -116,7 +117,7 @@ function isOverdue(stayDays: number): boolean {
 
     <view class="wb__body">
       <view v-if="!loading && filtered.length === 0" class="jz-card wb__empty">
-        <JzEmpty text="暂无待设计客户" sub="客户量房并分配设计师后会出现在这里" />
+        <JzEmpty :text="isStoreManager ? '本店暂无设计方案' : '暂无待设计客户'" :sub="isStoreManager ? '本店客户进入设计阶段后会出现在这里' : '客户量房并分配设计师后会出现在这里'" />
       </view>
 
       <view

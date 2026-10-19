@@ -21,6 +21,9 @@ const asOfDate = ref(new Date().toISOString().slice(0, 10))
 const bookkeepingNote = ref('')
 
 const isBoss = computed(() => session.role === 'boss')
+const isStoreManager = computed(() => session.role === 'storeManager')
+const canManage = computed(() => isBoss.value || isStoreManager.value)
+const busyId = ref('')
 const hasBatch = computed(() => !!batch.value?.id)
 const completedCount = computed(() => projects.value.filter(item => ['applied', 'locked'].includes(item.status)).length)
 const pendingCount = computed(() => projects.value.length - completedCount.value)
@@ -30,12 +33,12 @@ onLoad(() => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (!isBoss.value) {
-    toast('仅企业负责人可以办理业务承接')
+  if (!canManage.value) {
+    toast('仅企业负责人或店长可以办理业务承接')
     setTimeout(() => uni.reLaunch({ url: P.home }), 500)
   }
 })
-onShow(() => { if (isBoss.value) void load() })
+onShow(() => { if (canManage.value) void load() })
 onPullDownRefresh(async () => { await load(); uni.stopPullDownRefresh() })
 
 async function load() {
@@ -59,6 +62,7 @@ async function load() {
 }
 
 async function startBatch() {
+  if (!isBoss.value) return
   if (!asOfDate.value) { toast('请选择接管日期'); return }
   try {
     batch.value = await carryoverApi.batchSave(asOfDate.value, bookkeepingNote.value.trim() || undefined)
@@ -80,11 +84,18 @@ function openOpeningBalance() {
 }
 
 function addProject() {
+  if (!isBoss.value) return
   if (!batch.value?.id) { toast('请先建立承接任务'); return }
   uni.navigateTo({ url: `${P.carryoverEdit}?batchId=${batch.value.id}` })
 }
 
 function editProject(item: CarryoverProject) {
+  if (isStoreManager.value) {
+    if ((item.status === 'applied' || item.status === 'locked') && item.projectId) {
+      uni.navigateTo({ url: `${P.projectDetail}?id=${item.projectId}` })
+    }
+    return
+  }
   if (item.status === 'applied' || item.status === 'locked') {
     if (item.projectId) uni.navigateTo({ url: `${P.projectDetail}?id=${item.projectId}` })
     else openPlan(item)
@@ -101,6 +112,23 @@ function openPlan(item: CarryoverProject) {
 function planStatusText(item: CarryoverProject) {
   if (item.status !== 'applied' && item.status !== 'locked') return ''
   return ({ notStarted: '剩余计划待制定', draft: '计划待确认', confirmed: '计划已确认', locked: '计划已锁定' } as const)[item.planStatus || 'notStarted']
+}
+
+async function confirmProject(item: CarryoverProject) {
+  if (!isStoreManager.value || busyId.value === item.id || !item.carryoverReady) return
+  busyId.value = item.id!
+  try {
+    await carryoverApi.confirm(item.id!, 'boss', '本店店长代确认项目范围')
+    await carryoverApi.confirm(item.id!, 'finance', '本店店长代确认期初应收、应付与成本状态')
+    await carryoverApi.confirm(item.id!, 'pm', '本店店长代确认当前工地状态')
+    await carryoverApi.build(item.id!)
+    toast('项目已承接，可进入工地和财务继续经营', 'success')
+    await load()
+  } catch (error) {
+    toastError(error, '承接代确认失败，请检查待补齐事项')
+  } finally {
+    busyId.value = ''
+  }
 }
 
 function statusText(status: CarryoverProject['status']) {
@@ -120,15 +148,16 @@ function statusClass(status: CarryoverProject['status']) {
       <view class="carryover__hero-icon"><JzIcon name="briefcase" :size="42" :color="TOKEN_COLOR.primaryBase" /></view>
       <text class="carryover__hero-title">开始承接在跑项目</text>
       <text class="carryover__hero-desc">确定接管日期后，逐个录入项目，BOSS 可以代财务和项目经理确认。</text>
-      <view class="carryover__date">
+      <view v-if="isBoss" class="carryover__date">
         <text>接管日期</text>
         <JzSelectField mode="date" variant="plain" :value="asOfDate" :display="asOfDate" placeholder="请选择" @change="asOfDate = $event" />
       </view>
-      <view class="carryover__note">
+      <view v-if="isBoss" class="carryover__note">
         <text class="carryover__note-label">账本摸底说明（选填）</text>
         <textarea v-model="bookkeepingNote" maxlength="2000" auto-height placeholder="例如：原账用Excel+代账公司，内账按项目、外账按科目，资金账户3个" />
       </view>
-      <button class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" :color="TOKEN_COLOR.white" /><text>建立承接任务，开始录入</text></button>
+      <button v-if="isBoss" class="jz-btn jz-btn--primary jz-btn--block" @tap="startBatch"><JzIcon name="plus" :size="28" :color="TOKEN_COLOR.white" /><text>建立承接任务，开始录入</text></button>
+      <view v-else class="carryover__notice">请企业负责人建立承接任务；店长可在任务建立后对本店项目代确认。</view>
     </view>
 
     <template v-else>
@@ -141,7 +170,7 @@ function statusClass(status: CarryoverProject['status']) {
         <text class="carryover__survey-title">账本摸底说明</text>
         <text class="carryover__survey-note">{{ bookkeepingNote }}</text>
       </view>
-      <view class="carryover__opening jz-card" @tap="openOpeningBalance">
+      <view v-if="isBoss" class="carryover__opening jz-card" @tap="openOpeningBalance">
         <view class="carryover__opening-main">
           <text class="carryover__opening-title">期初资金余额</text>
           <text class="carryover__opening-desc">{{ openingCount ? `已登记 ${openingCount} 个账户` : '尚未登记接管日账户余额' }} · 不计入收入/支出</text>
@@ -149,14 +178,14 @@ function statusClass(status: CarryoverProject['status']) {
         <text class="carryover__opening-action">{{ openingCount ? '查看/更正' : '去登记' }}</text>
       </view>
 
-      <view class="carryover__opening jz-card" @tap="openReconciliation">
+      <view v-if="isBoss" class="carryover__opening jz-card" @tap="openReconciliation">
         <view class="carryover__opening-main">
           <text class="carryover__opening-title">首月双轨对账</text>
           <text class="carryover__opening-desc">只对四个主题：项目未收、项目未付、资金余额、项目成本</text>
         </view>
         <text class="carryover__opening-action">去对账</text>
       </view>
-      <view class="carryover__action">
+      <view v-if="isBoss" class="carryover__action">
         <JzActionCard
           v-if="!loading && !projects.length"
           tone="primary"
@@ -204,15 +233,19 @@ function statusClass(status: CarryoverProject['status']) {
             <text class="carryover__fact-value">{{ item.receivableOutstanding ?? '待确认' }}</text>
           </view>
         </view>
+        <view v-if="isStoreManager && item.carryoverReady && item.status !== 'applied' && item.status !== 'locked' && item.status !== 'cancelled'" class="carryover__confirm">
+          <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="busyId === item.id" @tap.stop="confirmProject(item)">{{ busyId === item.id ? '承接中…' : '代确认并承接' }}</button>
+        </view>
+        <view v-else-if="isStoreManager && item.validationBlockers?.length" class="carryover__blockers">待补齐：{{ item.validationBlockers.join('、') }}</view>
         <view v-if="item.status === 'applied' || item.status === 'locked'" class="carryover__plan-status" :class="{ 'carryover__plan-status--done': item.planStatus === 'confirmed' || item.planStatus === 'locked' }">
           <view class="carryover__plan-dot" />
           <text>{{ planStatusText(item) }}</text>
           <text class="carryover__plan-link" @tap.stop="openPlan(item)">{{ item.planStatus === 'notStarted' || item.planStatus === 'draft' ? '去制定' : '查看计划' }}</text>
         </view>
-        <view v-else-if="item.validationBlockers?.length" class="carryover__blockers">
+        <view v-else-if="!isStoreManager && item.validationBlockers?.length" class="carryover__blockers">
           待补齐：{{ item.validationBlockers.join('、') }}
         </view>
-        <view v-else-if="item.status === 'confirmed'" class="carryover__blockers carryover__blockers--ready">资料已确认，进入编辑页提交承接</view>
+        <view v-else-if="!isStoreManager && item.status === 'confirmed'" class="carryover__blockers carryover__blockers--ready">资料已确认，进入编辑页提交承接</view>
       </view>
     </template>
   </view>
@@ -265,4 +298,6 @@ function statusClass(status: CarryoverProject['status']) {
 .carryover__survey { margin-bottom: 18rpx; padding: 22rpx; }
 .carryover__survey-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .carryover__survey-note { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
+.carryover__notice { margin-top: 20rpx; padding: 20rpx 24rpx; border-radius: $jzb-radius; background: $jzb-warning-soft; color: $jzb-warning; font-size: $jzb-font-sm; line-height: 1.6; }
+.carryover__confirm { margin-top: 20rpx; padding-top: 20rpx; border-top: 1rpx solid $jzb-border-light; }
 </style>

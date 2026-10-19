@@ -45,7 +45,7 @@ const TAB = {
 export const ROLE_TABS: Record<RoleKey, RoleTab[]> = {
   /* BOSS：企业负责人拥有全部角色功能入口，Tab 覆盖客户/项目/财务三大主线 */
   boss: [TAB.home, TAB.customer, TAB.project, TAB.finance, TAB.mine],
-  storeManager: [TAB.home, TAB.customer, TAB.project, TAB.mine],
+  storeManager: [TAB.home, TAB.customer, TAB.design, TAB.project, TAB.mine],
   teamLeader: [TAB.home, TAB.customer, TAB.project, TAB.mine],
   marketer: [TAB.home, TAB.customer, TAB.project, TAB.mine],
   designer: [TAB.home, TAB.design, TAB.quote, TAB.project, TAB.mine],
@@ -83,6 +83,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   ],
   storeManager: [
     { key: 'customers', label: '门店客户', icon: 'users', path: P.customerList, capability: 'view:customers' },
+    { key: 'design-workbench', label: '设计方案', icon: 'edit', path: P.designWorkbench, capability: 'view:design' },
     { key: 'measure-workbench', label: '量房预约', icon: 'ruler', path: P.customerMeasureWorkbench, capability: 'view:measure-workbench' },
     { key: 'designer-dispatch', label: '设计调度', icon: 'users', path: P.managerDesigners, capability: 'act:assignDesigner' },
     { key: 'members', label: '成员管理', icon: 'users', path: P.companyMembers, capability: 'act:inviteMember' },
@@ -90,6 +91,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractConfirm' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
     { key: 'projects', label: '门店项目', icon: 'briefcase', path: P.projectList },
+    { key: 'carryover', label: '业务承接', icon: 'briefcase', path: P.carryoverHome },
     { key: 'team', label: '门店团队', icon: 'users', path: P.teamList, capability: 'view:team' },
     { key: 'performance', label: '门店业绩', icon: 'chart', path: P.performance, capability: 'view:performance' },
     { key: 'payroll', label: '本店薪酬', icon: 'wallet', path: P.payrollStorePayroll, capability: 'view:payroll' },
