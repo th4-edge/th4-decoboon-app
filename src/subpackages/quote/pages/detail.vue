@@ -60,7 +60,7 @@ const canCreateProject = computed(() => can(session.role, 'act:projectCreate'))
 const canEnterContract = computed(() => canPrepareContract.value || canConfirmContract.value)
 const canViewCost = computed(() => can(session.role, 'view:cost'))
 const canViewFinance = computed(() => can(session.role, 'view:finance'))
-const canApproveChange = computed(() => session.role === 'boss' || session.role === 'finance')
+const canApproveChange = computed(() => session.role === 'boss' || session.role === 'finance' || session.role === 'storeManager')
 const pendingChanges = computed(() => changes.value.filter((item) => item.status === 'pending'))
 const receivablePlanDelta = computed(() => {
   if (!contract.value) return 0

@@ -37,8 +37,8 @@ const busy = ref(false)
 const conclusion = ref('')
 
 const role = computed(() => (session.role || 'customer') as string)
-/** 审批仅企业负责人与财务（服务端同等校验）。 */
-const canApprove = computed(() => ['boss', 'finance'].includes(role.value))
+/** 审批：企业负责人/财务/本店店长（服务端同等校验，DEC-076）。 */
+const canApprove = computed(() => ['boss', 'finance', 'storeManager'].includes(role.value))
 const canViewCost = computed(() => ['boss', 'storeManager', 'finance'].includes(role.value))
 const isConfirmed = computed(() => change.value?.status === 'customerConfirmed')
 const currentAmount = computed(() => Number(contract.value?.currentAmount || 0))
@@ -179,7 +179,7 @@ async function cancel() {
             <text class="cd__node-sub">{{ change.approvedAt || '' }} · 合同金额、应收、任务、材料已同步</text>
           </view>
           <view v-if="change.status === 'pending'" class="cd__node cd__node--todo">
-            <text class="cd__node-title">等待企业负责人或财务审批</text>
+            <text class="cd__node-title">等待企业负责人、财务或本店店长审批</text>
             <text class="cd__node-sub">审批通过即生效，并即时同频业主端只读可见</text>
           </view>
           <view v-if="change.status === 'approved'" class="cd__node cd__node--todo">

@@ -48,6 +48,8 @@ const { items, loading: listLoading, loadingMore, loadError, loadMoreError, hasM
 const editable = computed(() => can(session.role, 'edit:finance'))
 const canIssueVoucher = computed(() => can(session.role, 'edit:finance'))
 const isBoss = computed(() => session.role === 'boss')
+const isStoreManager = computed(() => session.role === 'storeManager')
+const canHighRisk = computed(() => isBoss.value || isStoreManager.value)
 
 const selecting = ref(false)
 const selected = ref<string[]>([])
@@ -124,8 +126,8 @@ function dateRange(value: DateFilter) {
 }
 
 function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=ledger${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
-function canCorrect(item: Ledger) { return isBoss.value && item.source === 'manual' && !item.correctionGroupId }
-function canDelete(item: Ledger) { return isBoss.value && item.source === 'manual' && !item.correctionGroupId }
+function canCorrect(item: Ledger) { return canHighRisk.value && item.source === 'manual' && !item.correctionGroupId }
+function canDelete(item: Ledger) { return canHighRisk.value && item.source === 'manual' && !item.correctionGroupId }
 function edit(item: Ledger) { if (canCorrect(item)) uni.navigateTo({ url: `${P.financeEntry}?type=ledger&id=${item.id}` }) }
 async function remove(item: Ledger) {
   if (!canDelete(item)) return

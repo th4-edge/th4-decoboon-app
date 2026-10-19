@@ -32,7 +32,8 @@ const newName = ref('')
 const newDescription = ref('')
 const saving = ref(false)
 
-const canManage = computed(() => ['boss', 'finance'].includes(session.role || ''))
+const canManage = computed(() => ['boss', 'finance', 'storeManager'].includes(session.role || ''))
+const canDelete = computed(() => canManage.value)
 const items = computed(() => categories.value.filter((item) => item.direction === direction.value && item.active))
 const filteredItems = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
@@ -162,7 +163,7 @@ async function saveCategory() {
 }
 
 async function removeCategory(item: LedgerCategory) {
-  if (!canManage.value) return
+  if (!canDelete.value) return
   const ok = await confirmDanger('停用业务分类', '停用后历史流水继续保留；新记账将不能再选择该分类。', '确认停用')
   if (!ok) return
   loading('停用分类中')
@@ -221,7 +222,7 @@ async function removeCategory(item: LedgerCategory) {
           </view>
           <view v-if="canManage" class="lc-item__actions">
             <view class="lc-icon-btn" @tap.stop="openEdit(item)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /></view>
-            <view class="lc-icon-btn lc-icon-btn--danger" @tap.stop="removeCategory(item)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /></view>
+            <view v-if="canDelete" class="lc-icon-btn lc-icon-btn--danger" @tap.stop="removeCategory(item)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /></view>
           </view>
         </view>
         <JzEmpty v-if="!filteredItems.length" text="没有匹配的分类" :sub="canManage ? '可以新增其他账务的一级分类' : '请联系负责人维护分类'" />

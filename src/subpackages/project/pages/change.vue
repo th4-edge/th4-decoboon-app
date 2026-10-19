@@ -38,7 +38,7 @@ const busy = ref('')
 const activeFilter = ref<'all' | 'open' | 'done'>('all')
 
 const role = computed(() => session.role || 'customer')
-const canApprove = computed(() => ['boss', 'finance'].includes(role.value as string))
+const canApprove = computed(() => ['boss', 'finance', 'storeManager'].includes(role.value as string))
 /** 发起增减项：与后端 ProjectAccessContext.requireChangeInitiator 对齐。
  *  仅企业负责人/店长/项目经理/本项目设计师可发起；业务员、财务、团队负责人、业主不可。 */
 const canCreate = computed(() => ['boss', 'storeManager', 'pm', 'designer'].includes(role.value as string))
