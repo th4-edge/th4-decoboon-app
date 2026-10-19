@@ -86,7 +86,10 @@ export interface DesignItem {
   pricingMode: PricingMode
   amount: number
   cost: number
+  /** 报价项目库计价说明快照，例如「(材料单价) × 工程量」。 */
   formula?: string
+  /** 工程量自动计算公式，只允许 A/P/WP/CP 等专业变量。 */
+  quantityFormula?: string
   criterion?: string
   /** 施工工艺快照：设计分项生成时从材料库 CatalogItem.craft 冻结 */
   craft?: string
