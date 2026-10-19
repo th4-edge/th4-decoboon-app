@@ -18,6 +18,8 @@ const emit = defineEmits<{
   (e: 'retry'): void
   (e: 'open-plan'): void
   (e: 'open-sheet'): void
+  (e: 'open-selection'): void
+  (e: 'open-settlement'): void
 }>()
 
 const stageColor = computed(() => {
@@ -42,7 +44,45 @@ const metrics = computed(() => {
 })
 
 const focusRow = computed(() => props.report?.rows[0] || null)
+const focusOwner = computed(() => {
+  const row = focusRow.value
+  const report = props.report
+  if (!row || !report) return ''
+  if (row.selectionStatus !== 'Selected') return `设计师：${report.designerName || '未指派'}`
+  if (['Planned', 'ReadyToOrder', 'Requested', 'Approved', 'PartiallyOrdered'].includes(row.status || '')) return '财务：待下单'
+  if (row.delayed || ['Ordered', 'PartiallyArrived'].includes(row.status || '')) return `项目经理：${report.managerName || '未指派'}`
+  if (!report.costComplete) return '财务：待结算'
+  return ''
+})
+const focusAction = computed<{ label: string; event: 'open-selection' | 'open-sheet' | 'open-settlement' } | null>(() => {
+  const row = focusRow.value
+  const report = props.report
+  if (!row || !report) return null
+  if (row.selectionStatus !== 'Selected') return { label: '去选材', event: 'open-selection' }
+  if (['Planned', 'ReadyToOrder', 'Requested', 'Approved', 'PartiallyOrdered'].includes(row.status || '')) {
+    return { label: '去下单', event: 'open-sheet' }
+  }
+  if (row.delayed || ['Ordered', 'PartiallyArrived'].includes(row.status || '')) {
+    return { label: '查看作业单', event: 'open-sheet' }
+  }
+  if (!report.costComplete) return { label: '去结算', event: 'open-settlement' }
+  return null
+})
 const topIssues = computed(() => props.report?.issues.slice(0, 2) || [])
+
+function triggerFocusAction() {
+  const action = focusAction.value
+  if (!action) return
+  if (action.event === 'open-selection') emit('open-selection')
+  else if (action.event === 'open-settlement') emit('open-settlement')
+  else emit('open-sheet')
+}
+
+function severityLabel(severity: string) {
+  if (severity === 'P0') return '高'
+  if (severity === 'P1') return '中'
+  return '低'
+}
 
 function issueColor(severity: string) {
   if (severity === 'P0') return TOKEN_COLOR.danger
@@ -118,7 +158,7 @@ function issueColor(severity: string) {
 
       <view v-if="topIssues.length" class="mhc__issues">
         <view v-for="issue in topIssues" :key="issue.id" class="mhc__issue-row">
-          <JzTag :text="`${issue.severity} · ${issue.count}`" :color="issueColor(issue.severity)" />
+          <JzTag :text="`${severityLabel(issue.severity)} · ${issue.count} 项`" :color="issueColor(issue.severity)" />
           <view class="jz-grow">
             <text class="mhc__issue-title">{{ issue.label }}</text>
             <text class="mhc__issue-text">{{ issue.nextAction }}</text>
@@ -131,12 +171,14 @@ function issueColor(severity: string) {
       </view>
 
       <view v-if="focusRow" class="mhc__focus">
-        <text class="mhc__focus-title">聚焦材料行</text>
+        <text class="mhc__focus-title">最急材料</text>
         <text class="mhc__focus-main">{{ focusRow.materialName || '材料待确认' }} · {{ focusRow.spaceName || focusRow.category || '空间未填' }}</text>
         <text class="mhc__focus-meta">
-          {{ focusRow.statusName || '状态待确认' }} · 已下单 {{ focusRow.orderedQuantity ?? 0 }} · 已到场 {{ focusRow.receivedQuantity ?? 0 }}
+          {{ focusRow.selectionStatusName || focusRow.statusName || '状态待确认' }} · 已下单 {{ focusRow.orderedQuantity ?? 0 }} · 已到场 {{ focusRow.receivedQuantity ?? 0 }}
         </text>
-        <text class="mhc__focus-next">{{ focusRow.nextAction || '下一步待确认' }}</text>
+        <text v-if="focusOwner" class="mhc__focus-owner">责任：{{ focusOwner }}</text>
+        <text class="mhc__focus-next">下一步：{{ focusRow.nextAction || '待确认' }}</text>
+        <button v-if="focusAction" class="jz-btn jz-btn--primary jz-btn--sm mhc__focus-action" @tap="triggerFocusAction">{{ focusAction.label }}</button>
       </view>
 
       <view class="mhc__actions">
@@ -175,11 +217,13 @@ function issueColor(severity: string) {
 .mhc__issue-title { display: block; color: $jzb-text-1; font-size: $jzb-font-xs; font-weight: 700; }
 .mhc__issue-text { display: block; margin-top: 4rpx; color: $jzb-text-2; font-size: 20rpx; line-height: 1.5; }
 .mhc__ok { display: flex; align-items: flex-start; gap: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.5; }
-.mhc__focus { padding: 16rpx 18rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
-.mhc__focus-title { display: block; color: $jzb-text-3; font-size: 20rpx; }
+.mhc__focus { padding: 16rpx 18rpx; border: 1rpx solid $jzb-warning-soft; border-radius: $jzb-radius-sm; background: $jzb-warning-soft; }
+.mhc__focus-title { display: block; color: $jzb-warning; font-size: 20rpx; font-weight: 700; }
 .mhc__focus-main { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .mhc__focus-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.mhc__focus-owner { display: block; margin-top: 6rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .mhc__focus-next { display: block; margin-top: 6rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
+.mhc__focus-action { margin-top: 12rpx; }
 .mhc__actions { display: flex; gap: 12rpx; }
 .mhc__actions .jz-btn { flex: 1; }
 </style>

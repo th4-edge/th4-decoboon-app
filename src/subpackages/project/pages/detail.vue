@@ -249,6 +249,9 @@ function goMaterialPlan() {
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
   uni.navigateTo({ url: `${P.projectMaterialPlan}?${qs.join('&')}` })
 }
+function goMaterialSettlement() {
+  uni.navigateTo({ url: P.financeMaterialSettlement })
+}
 function goContractChange() {
   const qs = [`projectId=${id.value}`]
   if (contract.value?.id) qs.push(`contractId=${contract.value.id}`)
@@ -409,6 +412,8 @@ function avatarOf(m: ProjectMember) {
         @retry="load"
         @open-plan="goMaterialPlan"
         @open-sheet="goMaterialSheet"
+        @open-selection="goSelection"
+        @open-settlement="goMaterialSettlement"
       />
 
       <view v-if="!isOwner" class="pd__entry-row">

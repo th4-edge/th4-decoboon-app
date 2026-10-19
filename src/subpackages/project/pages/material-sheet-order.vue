@@ -29,6 +29,7 @@ const remark = ref('')
 const lines = ref<OrderLine[]>([])
 const loadingState = ref(true)
 const submitting = ref(false)
+const showHelp = ref(false)
 
 const role = computed(() => String(session.role || ''))
 const canOrder = computed(() => ['finance', 'boss', 'storeManager'].includes(role.value))
@@ -144,6 +145,16 @@ async function submit() {
     <JzEmpty v-else-if="!canOrder" text="当前角色不能下单" sub="只有财务、店长或企业负责人可以在 App 内确认下单" />
     <JzEmpty v-else-if="!remainingLines.length" text="该作业单已全部下单" sub="可返回详情查看采购与到场进度" />
     <template v-else>
+      <view class="jz-card mso__summary">
+        <view class="mso__summary-head">
+          <text class="mso__summary-title">本次下单</text>
+          <text class="mso__summary-badge">{{ lines.length }} 行</text>
+        </view>
+        <text class="mso__summary-line">{{ currentPartner?.name || '尚未选择供应商' }} · {{ unpricedCount ? `${unpricedCount} 行未定价` : '全部已定价' }}</text>
+        <text class="mso__help-link" @tap="showHelp = !showHelp">{{ showHelp ? '收起说明' : '为什么单价可留空？' }}</text>
+        <text v-if="showHelp" class="mso__help-body">未定价也能下单，系统先按暂估应付记账；结算时再补最终价，成本完整前不显示利润。</text>
+      </view>
+
       <view class="jz-card mso__card">
         <view class="mso__field" @tap="openSupplierPicker">
           <text class="mso__label">供应商 <text class="mso__req">*</text></text>
@@ -208,6 +219,13 @@ async function submit() {
 <style lang="scss" scoped>
 .mso { min-height: 100vh; background: $jzb-bg-page; }
 .mso__hint { padding: $jzb-space-5 $jzb-page-pad; font-size: $jzb-font-sm; color: $jzb-text-3; }
+.mso__summary { display: flex; flex-direction: column; gap: 8rpx; margin: $jzb-space-4 $jzb-page-pad 0; padding: $jzb-space-4; }
+.mso__summary-head { display: flex; align-items: center; justify-content: space-between; gap: $jzb-space-3; }
+.mso__summary-title { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.mso__summary-badge { font-size: $jzb-font-xs; color: $jzb-primary-dark; }
+.mso__summary-line { font-size: $jzb-font-sm; color: $jzb-text-2; }
+.mso__help-link { font-size: $jzb-font-xs; color: $jzb-primary-dark; }
+.mso__help-body { padding: 12rpx 16rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; font-size: $jzb-font-xs; line-height: 1.6; color: $jzb-text-2; }
 .mso__card { display: flex; flex-direction: column; gap: $jzb-space-4; margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-5; }
 .mso__field { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
 .mso__field--col { flex-direction: column; align-items: stretch; gap: 8rpx; }
