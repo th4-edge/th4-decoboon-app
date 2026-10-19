@@ -11,10 +11,11 @@ import { money } from '@/core/format'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
-import JzSheet from '@/components/JzSheet.vue'
+import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
+import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
-import { catalogApi, unitLabel } from '@/domains/catalog/api'
+import { unitLabel } from '@/domains/catalog/api'
 import type { CatalogType } from '@/domains/catalog/model'
 
 /**
@@ -71,6 +72,7 @@ const rangeLoading = ref(false)
 const rangeError = ref('')
 const showSource = ref(false)
 const showCatalog = ref(false)
+const catalogType = ref<CatalogType>('construction')
 const activeUid = ref(0)
 
 const preview = ref<PreviewResult | null>(null)
@@ -84,12 +86,14 @@ const previewAmount = computed(() => (preview.value ? Number(preview.value.amoun
 const afterAmount = computed(() => (previewAmount.value === null ? null : beforeAmount.value + previewAmount.value))
 /** 成本完整性：任一明细成本为空即视为未完整，利润与毛利率暂不可确认（服务端同一口径）。 */
 const costIncomplete = computed(() => Boolean(preview.value?.items?.some((item) => item.costDelta === undefined || item.costDelta === null)))
-/** 选择器筛选：区域 × 分项类型；分组维度决定列表怎么排（对齐 Web 与原型）。 */
+/** 选择器筛选：区域 × 分项类型 × 关键词；分组维度决定列表怎么排，仅看可变更过滤不可选来源。 */
 // 默认按分项类型分组：设计阶段允许不设区域（USER-DECISION-20261013-002 / EV-300），
 // 区域在生产数据下常为空，若默认按区域分组会退化成单一「综合项目」组。
 const sourceGroupBy = ref<'area' | 'type'>('type')
 const sourceArea = ref('all')
 const sourceType = ref('all')
+const sourceKeyword = ref('')
+const sourceOnlyAvailable = ref(false)
 const NONE_AREA = '__none__'
 const ITEM_TYPE_LABELS: Record<string, string> = {
   Construction: '施工', Material: '主材', Soft: '软装', Appliance: '电器', General: '综合', Custom: '全屋定制'
@@ -105,6 +109,22 @@ function sourceUnit(item: ContractChangeSource | null | undefined): string {
 function sourceAreaKey(item: ContractChangeSource): string {
   return item.spaceName ? item.spaceName : NONE_AREA
 }
+function sourceMeta(item: ContractChangeSource): string {
+  return [item.brand, item.spec].filter(Boolean).join(' · ') || '合同范围'
+}
+function sourcePriceText(item: ContractChangeSource): string {
+  return item.currentUnitPrice === undefined ? '—' : `${money(item.currentUnitPrice)}/${sourceUnit(item) || '单位'}`
+}
+function sourceQuantityText(value: number | undefined, item: ContractChangeSource): string {
+  return value === undefined ? '—' : `${value}${sourceUnit(item)}`
+}
+function isSourceSelected(item: ContractChangeSource): boolean {
+  const source = activeRow.value?.source
+  if (!source) return false
+  if (source.sourceLineId && item.sourceLineId) return source.sourceLineId === item.sourceLineId
+  if (source.sourceChangeItemId && item.sourceChangeItemId) return source.sourceChangeItemId === item.sourceChangeItemId
+  return false
+}
 const sourceAreaOptions = computed(() => {
   const counts = new Map<string, number>()
   for (const item of sources.value) counts.set(sourceAreaKey(item), (counts.get(sourceAreaKey(item)) ?? 0) + 1)
@@ -115,11 +135,21 @@ const sourceTypeOptions = computed(() => {
   for (const item of sources.value) counts.set(itemTypeLabel(item.itemType), (counts.get(itemTypeLabel(item.itemType)) ?? 0) + 1)
   return [...counts.entries()].map(([key, count]) => ({ key, label: key, count }))
 })
-const filteredSources = computed(() => sources.value.filter((item) => {
-  if (sourceArea.value !== 'all' && sourceAreaKey(item) !== sourceArea.value) return false
-  if (sourceType.value !== 'all' && itemTypeLabel(item.itemType) !== sourceType.value) return false
-  return true
-}))
+const matchedSources = computed(() => {
+  const keyword = sourceKeyword.value.trim().toLowerCase()
+  return sources.value.filter((item) => {
+    if (sourceArea.value !== 'all' && sourceAreaKey(item) !== sourceArea.value) return false
+    if (sourceType.value !== 'all' && itemTypeLabel(item.itemType) !== sourceType.value) return false
+    if (!keyword) return true
+    return [item.name, item.brand, item.spec, item.spaceName, item.changeNo, itemTypeLabel(item.itemType), item.group === 'effective' ? '已生效' : '原合同']
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword))
+  })
+})
+const filteredSources = computed(() => sourceOnlyAvailable.value
+  ? matchedSources.value.filter((item) => item.confirmable !== false)
+  : matchedSources.value)
+const blockedSourceCount = computed(() => matchedSources.value.filter((item) => item.confirmable === false).length)
 const groupedSources = computed(() => {
   const groups = new Map<string, ContractChangeSource[]>()
   for (const item of filteredSources.value) {
@@ -132,6 +162,8 @@ const groupedSources = computed(() => {
 function resetSourceFilters(): void {
   sourceArea.value = 'all'
   sourceType.value = 'all'
+  sourceKeyword.value = ''
+  sourceOnlyAvailable.value = false
 }
 
 onLoad((q) => {
@@ -214,18 +246,20 @@ function openSource(row: DraftRow) {
   activeUid.value = row.uid
   resetSourceFilters()
   showSource.value = true
-  if (!sources.value.length && !rangeLoading.value) void loadRange()
+  if (!rangeLoading.value) void loadRange()
 }
 
 function openCatalog(row: DraftRow) {
   activeUid.value = row.uid
-  targetKeyword.value = ''
+  catalogType.value = row.target?.type ?? 'construction'
   showCatalog.value = true
-  // 目标面板必须每次打开都拉取项目库（自动打开与显式打开共用此入口）
-  void loadTargetItems()
 }
 
 function pickSource(source: ContractChangeSource) {
+  if (source.confirmable === false) {
+    toast(source.blockReason || '该来源当前不可变更', 'none')
+    return
+  }
   const row = activeRow.value
   if (row) {
     row.source = source
@@ -237,69 +271,34 @@ function pickSource(source: ContractChangeSource) {
   invalidatePreview()
 }
 
-/** 多选目标：第一个填入当前行，其余追加为新行（与 Web 同行为）。 */
-/** 目标分项（报价项目库）：与来源面板同构的自建选择器（类型 chips + 搜索 + 单价）。 */
-const TARGET_TYPES: Array<{ key: CatalogType; label: string }> = [
-  { key: 'construction', label: '施工' },
-  { key: 'material', label: '主材' },
-  { key: 'custom', label: '全屋定制' },
-  { key: 'soft', label: '软装' },
-  { key: 'appliance', label: '电器' },
-  { key: 'general', label: '综合' }
-]
-const targetItems = ref<CatalogItem[]>([])
-const targetLoading = ref(false)
-const targetKeyword = ref('')
-const targetType = ref<CatalogType>('construction')
-const filteredTargetItems = computed(() => {
-  const kw = targetKeyword.value.trim()
-  if (!kw) return targetItems.value
-  return targetItems.value.filter((item) =>
-    [item.name, item.brand, item.spec, item.series, item.category]
-      .some((value) => String(value ?? '').includes(kw))
-  )
-})
-
-const targetError = ref('')
-async function loadTargetItems() {
-  targetLoading.value = true
-  targetError.value = ''
-  try {
-    const page = await catalogApi.page({ type: targetType.value, current: 1, size: 100, includeInactive: false })
-    targetItems.value = page.list
-  } catch (error) {
-    targetItems.value = []
-    targetError.value = error instanceof Error ? error.message : '报价项目库加载失败'
-  } finally {
-    targetLoading.value = false
-  }
-}
-
-function selectTargetType(type: CatalogType) {
-  targetType.value = type
-  void loadTargetItems()
-}
-
-/** 报价项目库单价（与目标分项选择器同一计价口径；成本对设计师不可见）。 */
-function targetPriceText(item: CatalogItem): string {
-  if (item.pricingMode === 'fixedTotal') return money(item.fixedTotalPrice ?? (item.materialPrice || 0) + (item.manualPrice || 0))
-  if (item.pricingMode === 'manualOnly') return money(item.manualPrice)
-  if (item.pricingMode === 'materialOnly') return money(item.materialPrice)
-  return money((item.materialPrice || 0) + (item.manualPrice || 0))
-}
-
-function targetPriceParts(item: CatalogItem): string {
-  if (item.pricingMode === 'fixedTotal') return '固定总价'
-  const parts: string[] = []
-  if (item.pricingMode !== 'manualOnly' && item.materialPrice) parts.push(`材料 ${money(item.materialPrice)}`)
-  if (item.pricingMode !== 'materialOnly' && item.manualPrice) parts.push(`人工 ${money(item.manualPrice)}`)
-  return parts.join(' + ')
-}
-
-/** 选中目标分项：直接落到当前行（服务端提交时按项目库冻结快照）。 */
+/** 单选目标（替换行）：直接落到当前行（服务端提交时按项目库冻结快照）。 */
 function pickTarget(item: CatalogItem) {
   const row = activeRow.value
-  if (row) row.target = item
+  if (!row) return
+  row.target = item
+  if (!row.quantity) row.quantity = '1'
+  showCatalog.value = false
+  invalidatePreview()
+}
+
+/** 多选目标（新增分项）：第一个填入当前行，其余追加为新行，与 Web 增减项一致。 */
+function pickTargets(items: CatalogItem[]) {
+  const row = activeRow.value
+  if (!row || !items.length) return
+  const [first, ...rest] = items
+  row.target = first
+  if (!row.quantity) row.quantity = '1'
+  for (const target of rest) {
+    rows.value.push({
+      uid: nextUid(),
+      action: 'add',
+      reduceMode: 'partial',
+      source: null,
+      target,
+      quantity: '1',
+      remark: ''
+    })
+  }
   showCatalog.value = false
   invalidatePreview()
 }
@@ -643,98 +642,137 @@ async function submit() {
       </view>
     </view>
 
-    <JzSheet :visible="showSource" title="选择来源分项" @close="showSource = false">
-      <view class="cc__picker-wrap">
-        <view v-if="rangeLoading" class="cc__picker-tip">加载当前有效剩余…</view>
-        <text v-if="rangeError" class="cc__warn cc__picker-tip">{{ rangeError }}</text>
-
-        <!-- 筛选：区域横条 × 分项类型 chips；分组维度可切（按区域 / 按分项类型） -->
-        <view class="cc__filters">
-          <view class="cc__chips">
-            <text class="cc__chip" :class="{ 'cc__chip--on': sourceType === 'all' }" @tap="sourceType = 'all'">全部 {{ sources.length }}</text>
-            <text v-for="type in sourceTypeOptions" :key="type.key" class="cc__chip" :class="{ 'cc__chip--on': sourceType === type.key }" @tap="sourceType = type.key">{{ type.label }} {{ type.count }}</text>
-          </view>
-          <view class="cc__chips">
-            <text class="cc__chip" :class="{ 'cc__chip--on': sourceArea === 'all' }" @tap="sourceArea = 'all'">全部区域</text>
-            <text v-for="area in sourceAreaOptions" :key="area.key" class="cc__chip" :class="{ 'cc__chip--on': sourceArea === area.key }" @tap="sourceArea = area.key">{{ area.label }} {{ area.count }}</text>
-          </view>
-          <view class="cc__seg cc__seg--full">
-            <text class="cc__seg-item" :class="{ 'cc__seg-item--on': sourceGroupBy === 'type' }" @tap="sourceGroupBy = 'type'">按分项类型分组</text>
-            <text class="cc__seg-item" :class="{ 'cc__seg-item--on': sourceGroupBy === 'area' }" @tap="sourceGroupBy = 'area'">按区域分组</text>
-          </view>
+    <!-- 来源分项：与 CatalogPicker 同级全屏选择体验；搜索、筛选、分组和关键金额同屏 -->
+    <view v-if="showSource" class="sp">
+      <view class="sp__header">
+        <view class="sp__header-main">
+          <text class="sp__title">选择来源分项</text>
+          <text class="sp__sub">从合同原行或已生效增减项中选择；剩余量、待审批占用和可变更量以服务端为准。</text>
         </view>
+        <view class="sp__close" @tap="showSource = false">
+          <JzIcon name="close" :size="26" :color="TOKEN_COLOR.text3" />
+        </view>
+      </view>
 
-        <scroll-view scroll-y class="cc__picker-body">
-          <view v-for="group in groupedSources" :key="group.label">
-            <text class="cc__picker-group">{{ group.label }} · {{ group.items.length }} 项</text>
+      <view class="sp__search">
+        <JzIcon name="search" :size="28" :color="TOKEN_COLOR.text4" />
+        <input v-model="sourceKeyword" class="sp__search-input" placeholder="搜索名称、品牌、规格、区域或变更单号" confirm-type="search" />
+        <view v-if="sourceKeyword" class="sp__search-clear" @tap="sourceKeyword = ''">
+          <JzIcon name="close" :size="22" :color="TOKEN_COLOR.text4" />
+        </view>
+      </view>
+
+      <scroll-view scroll-x class="sp__tabs" :show-scrollbar="false">
+        <view class="sp__tab-row">
+          <view class="sp__tab" :class="{ 'sp__tab--on': sourceType === 'all' }" @tap="sourceType = 'all'">全部 {{ sources.length }}</view>
+          <view v-for="type in sourceTypeOptions" :key="type.key" class="sp__tab" :class="{ 'sp__tab--on': sourceType === type.key }" @tap="sourceType = type.key">{{ type.label }} {{ type.count }}</view>
+        </view>
+      </scroll-view>
+
+      <scroll-view scroll-x class="sp__filter" :show-scrollbar="false">
+        <view class="sp__filter-row">
+          <text class="sp__filter-label">区域</text>
+          <view class="sp__filter-item" :class="{ 'sp__filter-item--on': sourceArea === 'all' }" @tap="sourceArea = 'all'">全部</view>
+          <view v-for="area in sourceAreaOptions" :key="area.key" class="sp__filter-item" :class="{ 'sp__filter-item--on': sourceArea === area.key }" @tap="sourceArea = area.key">{{ area.label }} {{ area.count }}</view>
+        </view>
+      </scroll-view>
+
+      <view class="sp__toolbar">
+        <view class="sp__seg">
+          <text class="sp__seg-item" :class="{ 'sp__seg-item--on': sourceGroupBy === 'type' }" @tap="sourceGroupBy = 'type'">按类型</text>
+          <text class="sp__seg-item" :class="{ 'sp__seg-item--on': sourceGroupBy === 'area' }" @tap="sourceGroupBy = 'area'">按区域</text>
+        </view>
+        <view class="sp__only" :class="{ 'sp__only--on': sourceOnlyAvailable }" @tap="sourceOnlyAvailable = !sourceOnlyAvailable">
+          <view class="sp__check" :class="{ 'sp__check--on': sourceOnlyAvailable }">
+            <JzIcon v-if="sourceOnlyAvailable" name="check" :size="18" :color="TOKEN_COLOR.white" :stroke-width="3" />
+          </view>
+          <text>仅看可变更</text>
+        </view>
+      </view>
+
+      <view class="sp__summary">
+        <text>共 {{ filteredSources.length }} 项</text>
+        <text v-if="sourceOnlyAvailable && blockedSourceCount" class="sp__summary-sub">已隐藏 {{ blockedSourceCount }} 项不可变更</text>
+      </view>
+      <view v-if="rangeLoading && sources.length" class="sp__refresh">正在刷新当前有效剩余…</view>
+      <view v-if="rangeError && sources.length" class="sp__banner">{{ rangeError }}</view>
+
+      <scroll-view scroll-y class="sp__body">
+        <view v-if="rangeLoading && !sources.length" class="sp__state">正在读取当前有效剩余…</view>
+        <view v-else-if="!sources.length && rangeError" class="sp__state sp__state--error">{{ rangeError }}</view>
+        <view v-else-if="!groupedSources.length" class="sp__empty">
+          <JzEmpty text="没有匹配的来源分项" sub="可调整区域、分项类型、关键词，或关闭“仅看可变更”" />
+          <button class="jz-btn jz-btn--ghost jz-btn--sm sp__reset" @tap="resetSourceFilters">重置筛选</button>
+        </view>
+        <template v-else>
+          <view v-for="group in groupedSources" :key="group.label" class="sp__group">
+            <view class="sp__group-head">
+              <text class="sp__group-title">{{ group.label }}</text>
+              <text class="sp__group-count">{{ group.items.length }} 项</text>
+            </view>
             <view
               v-for="item in group.items"
               :key="item.sourceLineId || item.sourceChangeItemId"
-              class="cc__picker-item"
-              :class="{ 'cc__picker-item--disabled': item.confirmable === false }"
+              class="sp__item"
+              :class="{ 'sp__item--blocked': item.confirmable === false, 'sp__item--selected': isSourceSelected(item) }"
               @tap="pickSource(item)"
             >
-              <view class="jz-grow">
-                <view class="cc__picker-name-row">
-                  <text class="cc__picker-name">{{ item.name }}</text>
-                  <text class="cc__picker-tag">{{ item.group === 'effective' ? `已生效 ${item.changeNo || ''}` : '原合同行' }}</text>
-                  <text v-if="sourceGroupBy === 'type' && item.spaceName" class="cc__picker-tag cc__picker-tag--area">{{ item.spaceName }}</text>
-                  <text v-if="item.confirmable === false" class="cc__picker-tag cc__picker-tag--block">暂不可变更</text>
+              <view class="sp__item-head">
+                <view class="jz-grow">
+                  <view class="sp__item-title">
+                    <text class="sp__item-tag" :class="{ 'sp__item-tag--effective': item.group === 'effective' }">
+                      {{ item.group === 'effective' ? (item.changeNo ? `已生效 ${item.changeNo}` : '已生效') : '原合同行' }}
+                    </text>
+                    <text v-if="item.spaceName" class="sp__item-tag sp__item-tag--area">{{ item.spaceName }}</text>
+                    <text v-if="item.confirmable === false" class="sp__item-tag sp__item-tag--block">暂不可变更</text>
+                  </view>
+                  <text class="sp__item-name jz-clamp-2">{{ item.name }}</text>
+                  <text class="sp__item-meta jz-clamp-1">{{ sourceMeta(item) }}</text>
                 </view>
-                <text class="cc__picker-meta">{{ [item.brand, item.spec].filter(Boolean).join(' · ') || '合同范围' }}</text>
-                <text class="cc__picker-stat">
-                  单价 {{ item.currentUnitPrice === undefined ? '—' : `${money(item.currentUnitPrice)}/${sourceUnit(item) || '单位'}` }} ·
-                  剩余量 {{ item.effectiveRemainingQuantity ?? '—' }}{{ sourceUnit(item) }}<template v-if="item.effectiveRemainingAmount !== undefined"> / {{ money(item.effectiveRemainingAmount) }}</template>
-                  <template v-if="item.pendingReservedQuantity"> · 待审批占用 {{ item.pendingReservedQuantity }}{{ sourceUnit(item) }}</template>
-                  · 可变更 {{ item.availableQuantity ?? '—' }}{{ sourceUnit(item) }}
-                </text>
-                <text v-if="item.confirmable === false" class="cc__picker-block">{{ item.blockReason || '当前有效剩余暂不可确认' }}</text>
+                <view class="sp__pick" :class="{ 'sp__pick--on': isSourceSelected(item), 'sp__pick--blocked': item.confirmable === false }">
+                  <JzIcon v-if="isSourceSelected(item)" name="check" :size="22" :color="TOKEN_COLOR.white" :stroke-width="3" />
+                  <text v-else-if="item.confirmable === false">不可选</text>
+                  <text v-else>选择</text>
+                </view>
               </view>
-              <JzIcon v-if="activeRow?.source?.sourceLineId === item.sourceLineId && item.sourceLineId" name="check" :size="32" :color="TOKEN_COLOR.primaryBase" />
-              <JzIcon v-else-if="activeRow?.source?.sourceChangeItemId === item.sourceChangeItemId && item.sourceChangeItemId" name="check" :size="32" :color="TOKEN_COLOR.primaryBase" />
-            </view>
-          </view>
-          <text v-if="!groupedSources.length && !rangeLoading" class="cc__picker-tip">没有匹配的来源（可调整区域或分项类型）</text>
-        </scroll-view>
-      </view>
-    </JzSheet>
 
-    <!-- 目标分项选择器（报价项目库）：类型 chips + 搜索 + 项目库单价 -->
-    <JzSheet :visible="showCatalog" title="选择目标分项（报价项目库）" @close="showCatalog = false">
-      <view class="cc__picker-wrap">
-        <view class="cc__filters">
-          <input v-model="targetKeyword" class="cc__search" placeholder="搜索名称 / 规格 / 品牌" />
-          <view class="cc__chips">
-            <text
-              v-for="t in TARGET_TYPES"
-              :key="t.key"
-              class="cc__chip cc__chip--target"
-              :class="{ 'cc__chip--on': targetType === t.key }"
-              @tap="selectTargetType(t.key)"
-            >{{ t.label }}</text>
-          </view>
-        </view>
-        <scroll-view scroll-y class="cc__picker-body">
-          <text v-if="targetLoading" class="cc__picker-tip cc__picker-tip--target">加载报价项目库…</text>
-          <text v-if="targetError" class="cc__warn cc__picker-tip cc__picker-tip--target">{{ targetError }}</text>
-          <view v-for="item in filteredTargetItems" :key="item.id" class="cc__picker-item cc__picker-item--target" @tap="pickTarget(item)">
-            <view class="jz-grow">
-              <view class="cc__picker-name-row">
-                <text class="cc__picker-name">{{ item.name }}</text>
-                <text class="cc__picker-tag">{{ item.category }}</text>
-                <text v-if="item.brand" class="cc__picker-tag">{{ item.brand }}</text>
+              <view class="sp__metrics">
+                <view class="sp__metric">
+                  <text class="sp__metric-label">当前单价</text>
+                  <text class="sp__metric-value">{{ sourcePriceText(item) }}</text>
+                </view>
+                <view class="sp__metric">
+                  <text class="sp__metric-label">有效剩余</text>
+                  <text class="sp__metric-value">{{ sourceQuantityText(item.effectiveRemainingQuantity, item) }}</text>
+                </view>
+                <view class="sp__metric">
+                  <text class="sp__metric-label">可变更</text>
+                  <text class="sp__metric-value sp__metric-value--emphasis">{{ sourceQuantityText(item.availableQuantity, item) }}</text>
+                </view>
               </view>
-              <text class="cc__picker-meta">{{ [item.series, item.spec].filter(Boolean).join(' · ') || '—' }}</text>
-              <text class="cc__picker-stat">
-                项目库单价 {{ targetPriceText(item) }}/{{ unitLabel(item.unit) || item.unit }}<template v-if="targetPriceParts(item)">（{{ targetPriceParts(item) }}）</template>
-              </text>
+
+              <view v-if="item.pendingReservedQuantity !== undefined || item.effectiveRemainingAmount !== undefined" class="sp__extra">
+                <text v-if="item.pendingReservedQuantity">待审批占用 {{ sourceQuantityText(item.pendingReservedQuantity, item) }}</text>
+                <text v-if="item.effectiveRemainingAmount !== undefined">合同剩余金额 {{ money(item.effectiveRemainingAmount) }}</text>
+              </view>
+              <text v-if="item.confirmable === false" class="sp__block">{{ item.blockReason || '当前有效剩余暂不可确认' }}</text>
             </view>
-            <JzIcon name="chevron-right" :size="30" :color="TOKEN_COLOR.text3" />
           </view>
-          <text v-if="!targetLoading && !filteredTargetItems.length" class="cc__picker-tip cc__picker-tip--target">没有匹配的报价项目库项目</text>
-        </scroll-view>
-      </view>
-    </JzSheet>
+        </template>
+      </scroll-view>
+    </view>
+
+    <!-- 与设计方案共用同一个报价项目库选择器，保证分项类型、品牌/系列/规格筛选与计价口径一致 -->
+    <CatalogPicker
+      v-if="showCatalog"
+      :visible="showCatalog"
+      :type="catalogType"
+      :multiple="activeRow?.action === 'add'"
+      :preselected="activeRow && activeRow.target ? [activeRow.target] : []"
+      @update:visible="showCatalog = $event"
+      @select="pickTarget"
+      @select-many="pickTargets"
+    />
   </view>
 </template>
 
@@ -787,24 +825,67 @@ async function submit() {
 .cc__hint { display: block; font-size: 20rpx; color: $jzb-text-3; line-height: 1.6; }
 .cc__hint--inverse { color: rgba(255, 255, 255, 0.72); margin-top: 8rpx; }
 .cc__warn { display: block; margin-bottom: 12rpx; font-size: 20rpx; color: $jzb-danger; line-height: 1.6; }
-.cc__picker-wrap { display: flex; flex-direction: column; height: calc(70vh - 32rpx); }
-.cc__picker-body { flex: 1; min-height: 0; }
-.cc__picker-tip { padding: 16rpx 0; font-size: $jzb-font-xs; color: $jzb-text-3; }
-/* 来源选择器筛选：区域横条 × 类型 chips × 分组维度 */
-.cc__filters { flex: none; display: flex; flex-direction: column; gap: 12rpx; padding: 4rpx 0 12rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.cc__chips { display: flex; gap: 10rpx; overflow-x: auto; white-space: nowrap; }
-.cc__chip { flex: none; padding: 8rpx 18rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cc__chip--on { background: $jzb-primary-lighter; color: $jzb-primary-dark; font-weight: 650; }
-.cc__picker-item--disabled { opacity: .6; }
-.cc__search { width: 100%; height: 72rpx; padding: 0 22rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
-.cc__picker-name-row { display: flex; align-items: center; gap: 10rpx; flex-wrap: wrap; }
-.cc__picker-tag { padding: 2rpx 10rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; color: $jzb-text-3; font-size: 20rpx; font-weight: 600; }
-.cc__picker-tag--area { background: $jzb-primary-lighter; color: $jzb-primary-dark; }
-.cc__picker-tag--block { background: $jzb-danger-soft; color: $jzb-danger; }
-.cc__picker-group { display: block; padding: 16rpx 0 10rpx; font-size: $jzb-font-xs; font-weight: 650; color: $jzb-text-3; }
-.cc__picker-item { display: flex; align-items: center; gap: 12rpx; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
-.cc__picker-name { display: block; font-size: $jzb-font-sm; font-weight: 600; }
-.cc__picker-meta { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.cc__picker-stat { display: block; margin-top: 6rpx; font-size: 20rpx; color: $jzb-text-3; font-variant-numeric: tabular-nums; }
-.cc__picker-block { display: block; margin-top: 6rpx; font-size: 20rpx; color: $jzb-warning; }
+/* 来源分项：全屏选择层，视觉与 CatalogPicker 对齐 */
+.sp { position: fixed; inset: 0; z-index: $jzb-z-page; display: flex; flex-direction: column; background: $jzb-bg-page; }
+.sp__header { flex-shrink: 0; display: flex; align-items: flex-start; gap: 16rpx; padding: 24rpx $jzb-page-pad 20rpx; background: $jzb-text-inverse; border-bottom: 1rpx solid $jzb-border-light; }
+.sp__header-main { flex: 1; min-width: 0; }
+.sp__title { display: block; font-size: $jzb-font-xl; font-weight: 750; line-height: 1.3; }
+.sp__sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.5; }
+.sp__close { width: 56rpx; height: 56rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: $jzb-bg-hover; border-radius: 50%; }
+.sp__search { flex-shrink: 0; display: flex; align-items: center; gap: 12rpx; padding: 16rpx $jzb-page-pad; background: $jzb-text-inverse; }
+.sp__search-input { flex: 1; min-width: 0; height: 64rpx; padding: 0 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-1; }
+.sp__search-clear { width: 48rpx; height: 48rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.sp__tabs { flex-shrink: 0; background: $jzb-text-inverse; white-space: nowrap; border-bottom: 1rpx solid $jzb-border-light; }
+.sp__tab-row { display: inline-flex; gap: 12rpx; padding: 12rpx $jzb-page-pad; }
+.sp__tab { min-height: 64rpx; padding: 0 22rpx; display: inline-flex; align-items: center; border-radius: $jzb-radius-pill; color: $jzb-text-2; background: $jzb-bg-hover; font-size: $jzb-font-sm; }
+.sp__tab--on { color: $jzb-text-inverse; background: $jzb-primary; font-weight: 650; }
+.sp__filter { flex-shrink: 0; background: $jzb-text-inverse; white-space: nowrap; border-bottom: 1rpx solid $jzb-border-light; }
+.sp__filter-row { display: flex; align-items: center; gap: 10rpx; padding: 8rpx $jzb-page-pad 12rpx; }
+.sp__filter-label { margin-right: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.sp__filter-item { min-height: 54rpx; padding: 0 18rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
+.sp__filter-item--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; font-weight: 650; }
+.sp__toolbar { flex-shrink: 0; display: flex; align-items: center; gap: 16rpx; padding: 12rpx $jzb-page-pad; background: $jzb-bg-page; }
+.sp__seg { flex: 1; display: flex; padding: 4rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-pill; }
+.sp__seg-item { flex: 1; padding: 8rpx 12rpx; text-align: center; border-radius: $jzb-radius-pill; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.sp__seg-item--on { background: $jzb-text-inverse; color: $jzb-primary-dark; font-weight: 650; box-shadow: $jzb-shadow-xs; }
+.sp__only { flex-shrink: 0; display: flex; align-items: center; gap: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.sp__only--on { color: $jzb-primary-dark; font-weight: 650; }
+.sp__check { width: 32rpx; height: 32rpx; display: flex; align-items: center; justify-content: center; border: 2rpx solid $jzb-border; border-radius: 8rpx; background: $jzb-text-inverse; }
+.sp__check--on { border-color: $jzb-primary; background: $jzb-primary; }
+.sp__summary { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 $jzb-page-pad 8rpx; color: $jzb-text-3; font-size: 20rpx; }
+.sp__summary-sub { color: $jzb-text-4; }
+.sp__refresh { flex-shrink: 0; padding: 0 $jzb-page-pad 8rpx; color: $jzb-text-4; font-size: 20rpx; }
+.sp__banner { flex-shrink: 0; margin: 0 $jzb-page-pad 8rpx; padding: 10rpx 14rpx; border-radius: $jzb-radius-sm; background: $jzb-danger-soft; color: $jzb-danger; font-size: 20rpx; line-height: 1.5; }
+.sp__body { flex: 1; min-height: 0; padding: 0 $jzb-page-pad calc(24rpx + #{$jzb-safe-bottom}); box-sizing: border-box; }
+.sp__state { padding: 60rpx 0; text-align: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.sp__state--error { color: $jzb-danger; }
+.sp__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60rpx 20rpx; }
+.sp__reset { margin-top: 20rpx; }
+.sp__group { padding-bottom: 8rpx; }
+.sp__group-head { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 4rpx 10rpx; }
+.sp__group-title { color: $jzb-text-3; font-size: $jzb-font-xs; font-weight: 700; }
+.sp__group-count { color: $jzb-text-4; font-size: 20rpx; }
+.sp__item { padding: 20rpx; margin-bottom: 14rpx; background: $jzb-text-inverse; border: 1rpx solid rgba(15, 23, 42, .06); border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
+.sp__item--selected { border-color: $jzb-primary; background: $jzb-primary-lightest; }
+.sp__item--blocked { opacity: .68; }
+.sp__item-head { display: flex; align-items: flex-start; gap: 12rpx; }
+.sp__item-head .jz-grow { min-width: 0; }
+.sp__item-title { display: flex; align-items: center; gap: 8rpx; flex-wrap: wrap; }
+.sp__item-name { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; }
+.sp__item-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.45; }
+.sp__item-tag { padding: 2rpx 10rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; color: $jzb-text-3; font-size: 20rpx; font-weight: 600; }
+.sp__item-tag--effective { background: $jzb-primary-lightest; color: $jzb-primary-dark; }
+.sp__item-tag--area { background: $jzb-primary-lighter; color: $jzb-primary-dark; }
+.sp__item-tag--block { background: $jzb-danger-soft; color: $jzb-danger; }
+.sp__pick { min-width: 88rpx; height: 52rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0 16rpx; border-radius: $jzb-radius-pill; background: $jzb-primary; color: $jzb-text-inverse; font-size: $jzb-font-xs; font-weight: 650; }
+.sp__pick--on { background: $jzb-primary-dark; }
+.sp__pick--blocked { background: $jzb-bg-hover; color: $jzb-text-4; font-weight: 500; }
+.sp__metrics { display: flex; gap: 10rpx; margin-top: 14rpx; }
+.sp__metric { flex: 1; min-width: 0; padding: 12rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.sp__metric-label { display: block; color: $jzb-text-3; font-size: 20rpx; }
+.sp__metric-value { display: block; margin-top: 4rpx; overflow: hidden; color: $jzb-text-1; font-size: $jzb-font-xs; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.sp__metric-value--emphasis { color: $jzb-primary-dark; }
+.sp__extra { display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; margin-top: 12rpx; color: $jzb-text-3; font-size: 20rpx; }
+.sp__block { display: block; margin-top: 10rpx; padding: 10rpx 12rpx; border-radius: $jzb-radius-sm; background: $jzb-danger-soft; color: $jzb-danger; font-size: 20rpx; line-height: 1.5; }
+@media (min-width: 768px) { .sp { left: 50%; right: auto; width: 560px; transform: translateX(-50%); box-shadow: 0 0 60rpx rgba(15, 23, 42, .1); } }
 </style>
