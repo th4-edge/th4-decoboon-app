@@ -63,6 +63,7 @@ export type Capability =
   | 'act:inviteCustomer'
   | 'act:issue'
   | 'act:material'
+  | 'act:receiptReverse'
   | 'view:notice'
   | 'view:performance'
   | 'view:workbench'
@@ -112,6 +113,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
     // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
     'edit:finance',
+    'act:receiptReverse',
     'view:cost',
     'view:schedule', 'view:task', 'edit:quote',
     // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成

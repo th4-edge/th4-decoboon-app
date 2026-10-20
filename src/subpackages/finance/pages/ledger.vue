@@ -261,7 +261,7 @@ function openVouchers() {
           <view class="fin-fact"><JzIcon name="user" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.counterparty || item.createdBy?.name || '—' }}</text></view>
         </view>
         <view class="fin-card__foot">
-          <text class="jz-caption">{{ DIRECTION_LABEL[item.direction] }} · {{ item.source === 'receipt' ? '收款核销' : item.source === 'payment' ? '付款核销' : item.source === 'adjustment' ? '调整冲销' : '手工记账' }}</text>
+          <text class="jz-caption">{{ DIRECTION_LABEL[item.direction] }} · {{ item.source === 'receipt' ? '收款核销' : item.source === 'payment' ? '付款核销' : item.source === 'receiptReversal' ? '收款冲正' : item.source === 'adjustment' ? '调整冲销' : '手工记账' }}</text>
           <text v-if="item.remark" class="jz-caption">{{ item.remark }}</text>
           <view v-if="canDelete(item)" class="fin-card__link fin-card__link--danger" @tap.stop="remove(item)"><JzIcon name="trash" :size="22" :color="TOKEN_COLOR.danger" /><text>删除</text></view>
           <view v-if="canCorrect(item)" class="fin-card__link" @tap.stop="edit(item)"><JzIcon name="edit" :size="22" :color="TOKEN_COLOR.primary" /><text>更正</text></view>

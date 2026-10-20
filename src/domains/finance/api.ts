@@ -10,7 +10,7 @@ import { normalizeWorker } from '@/domains/labor/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
   FinanceLedgerReport, FinancePayableReport, LedgerCategory, LedgerManualPurpose, OpeningBalance, PartnerLedgerReport,
-  Payable, PayableStatus, PayableType, Payment, Receipt, ReceiptRefund, Receivable,
+  Payable, PayableStatus, PayableType, Payment, Receipt, ReceiptReversal, ReceiptReversalReason, ReceiptRefund, Receivable,
   ReceivableStatus, ReceivableType, Settlement, SettlementStatus, VoucherReport
 } from './model'
 
@@ -24,6 +24,7 @@ const PAYABLE_STATUS_UI: Record<string, PayableStatus> = { pending: 'pending', p
 const ACCOUNT_API: Record<FundAccount, string> = { companyBank: 'CompanyBank', cash: 'Cash', wechat: 'Wechat', alipay: 'Alipay', other: 'Other' }
 const ACCOUNT_UI: Record<string, FundAccount> = { companybank: 'companyBank', cash: 'cash', wechat: 'wechat', alipay: 'alipay', other: 'other' }
 const LEDGER_DIRECTION_API: Record<LedgerDirection, string> = { income: 'Income', expense: 'Expense' }
+const LEDGER_SOURCE_UI: Record<string, Ledger['source']> = { receipt: 'receipt', payment: 'payment', manual: 'manual', adjustment: 'adjustment', receiptreversal: 'receiptReversal' }
 const LEDGER_PURPOSE_API: Record<LedgerManualPurpose, string> = {
   projectIncidentalCost: 'ProjectIncidentalCost', companyExpense: 'CompanyExpense',
   otherIncome: 'OtherIncome', capitalTransfer: 'CapitalTransfer', other: 'Other'
@@ -32,6 +33,11 @@ const LEDGER_PURPOSE_UI: Record<string, LedgerManualPurpose> = {
   projectincidentalcost: 'projectIncidentalCost', companyexpense: 'companyExpense',
   otherincome: 'otherIncome', capitaltransfer: 'capitalTransfer', other: 'other'
 }
+const RECEIPT_REVERSAL_REASON_API: Record<ReceiptReversalReason, string> = {
+  notReceived: 'NotReceived', amountError: 'AmountError', receivableError: 'ReceivableError',
+  duplicate: 'Duplicate', accountOrDateError: 'AccountOrDateError', other: 'Other'
+}
+const RECEIPT_REVERSAL_REASON_UI = Object.fromEntries(Object.entries(RECEIPT_REVERSAL_REASON_API).map(([key, value]) => [value.toLowerCase(), key])) as Record<string, ReceiptReversalReason>
 const SETTLEMENT_STATUS_API: Record<SettlementStatus, string> = {
   draft: 'Draft', confirmed: 'Confirmed', closed: 'Closed',
   retentionPending: 'RetentionPending', retentionReleased: 'RetentionReleased'
@@ -92,7 +98,26 @@ function normalizeReceipt(raw: Raw): Receipt {
     customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
     receivedAt: raw.receivedAt ?? '', payerName: raw.payerName, voucherUrl: raw.voucherUrl, remark: raw.remark,
+    status: lower(raw.status) === 'reversed' ? 'reversed' : 'active',
+    reversedAt: raw.reversedAt ? String(raw.reversedAt) : undefined,
+    reversedBy: raw.reversedBy ? normalizeEmployee(raw.reversedBy) : undefined,
+    reversalReason: raw.reversalReason == null ? undefined : String(raw.reversalReason),
     createdBy: raw.createdBy ? normalizeEmployee(raw.createdBy) : undefined, createdAt: time(raw)
+  }
+}
+function normalizeReceiptReversal(raw: Raw): ReceiptReversal {
+  return {
+    id: String(raw.id ?? raw.reversalId ?? ''),
+    receipt: normalizeReceipt(raw.receipt || {}),
+    project: normalizeProject(raw.project || {}),
+    customer: raw.customer ? normalizeCustomer(raw.customer) : undefined,
+    receivable: raw.receivable ? normalizeReceivable(raw.receivable) : undefined,
+    amount: num(raw.amount),
+    reversalAt: raw.reversalAt ?? '',
+    reasonType: RECEIPT_REVERSAL_REASON_UI[lower(raw.reasonType)] || 'other',
+    reason: raw.reason ?? '',
+    operator: raw.operator ? normalizeEmployee(raw.operator) : undefined,
+    createdAt: time(raw)
   }
 }
 function normalizeReceiptRefund(raw: Raw): ReceiptRefund {
@@ -150,7 +175,7 @@ function normalizeLedger(raw: Raw): Ledger {
     category: raw.category ?? '',
     categoryNode: raw.categoryNode ? normalizeLedgerCategory(raw.categoryNode) : undefined,
     purpose: raw.purpose ? (LEDGER_PURPOSE_UI[lower(raw.purpose)] || 'other') : undefined,
-    source: lower(raw.source) as Ledger['source'],
+    source: LEDGER_SOURCE_UI[lower(raw.source)] || 'manual',
     sourceId: raw.sourceId == null ? undefined : String(raw.sourceId),
     amount: num(raw.amount), account: ACCOUNT_UI[lower(raw.account)] || 'companyBank',
     occurredAt: raw.occurredAt ?? '', counterparty: raw.counterparty, summary: raw.summary ?? '', remark: raw.remark,
@@ -319,6 +344,10 @@ export const financeApi = {
     })),
   receipts: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceipt),
+  receiptInfo: async (receiptId: string) =>
+    normalizeReceipt(await post<Raw>('finance/receipt/info', { receiptId })),
+  reverseReceipt: async (input: { receiptId: string; reasonType: ReceiptReversalReason; reason: string; reversalAt: string; idempotencyKey: string }) =>
+    normalizeReceiptReversal(await post<Raw>('finance/receipt/reverse', { ...input, reasonType: RECEIPT_REVERSAL_REASON_API[input.reasonType] })),
   createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizeReceipt(await post<Raw>('finance/receipt/save', { ...input, account: ACCOUNT_API[input.account] })),
   refunds: async (params: { projectId?: string; current?: number; size?: number } = {}) =>

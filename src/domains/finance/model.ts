@@ -9,7 +9,7 @@ export type PayableType = 'material' | 'salary' | 'project' | 'supplier' | 'expe
 export type PayableStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'closed'
 export type FundAccount = 'companyBank' | 'cash' | 'wechat' | 'alipay' | 'other'
 export type LedgerDirection = 'income' | 'expense'
-export type LedgerSource = 'receipt' | 'payment' | 'manual' | 'adjustment'
+export type LedgerSource = 'receipt' | 'payment' | 'manual' | 'adjustment' | 'receiptReversal'
 export type LedgerManualPurpose = 'projectIncidentalCost' | 'companyExpense' | 'otherIncome' | 'capitalTransfer' | 'other'
 export type SettlementStatus = 'draft' | 'confirmed' | 'closed' | 'retentionPending' | 'retentionReleased'
 
@@ -32,6 +32,9 @@ export interface Receivable {
   createdAt?: string
 }
 
+export type ReceiptStatus = 'active' | 'reversed'
+export type ReceiptReversalReason = 'notReceived' | 'amountError' | 'receivableError' | 'duplicate' | 'accountOrDateError' | 'other'
+
 export interface Receipt {
   id: string
   project: Project
@@ -44,6 +47,24 @@ export interface Receipt {
   voucherUrl?: string
   remark?: string
   createdBy?: Employee
+  status: ReceiptStatus
+  reversedAt?: string
+  reversedBy?: Employee
+  reversalReason?: string
+  createdAt?: string
+}
+
+export interface ReceiptReversal {
+  id: string
+  receipt: Receipt
+  project: Project
+  customer?: Customer
+  receivable?: Receivable
+  amount: number
+  reversalAt: string
+  reasonType: ReceiptReversalReason
+  reason: string
+  operator?: Employee
   createdAt?: string
 }
 
@@ -197,6 +218,8 @@ export interface FinanceSummary {
   monthNetCashFlowAmount: number
   receiptCount: number
   paymentCount: number
+  grossReceiptAmount?: number
+  reversalAmount?: number
   receiptAmount: number
   paymentAmount: number
   monthReceiptAmount: number
@@ -233,6 +256,8 @@ export interface FinanceProjectReport {
   unpaidAmount: number
   receiptCount: number
   paymentCount: number
+  grossReceiptAmount?: number
+  reversalAmount?: number
   receiptAmount: number
   paymentAmount: number
   monthReceiptAmount: number
@@ -292,6 +317,8 @@ export interface VoucherMonthAmount {
 export interface VoucherReport {
   count: number
   totalAmount: number
+  grossReceiptAmount?: number
+  reversalAmount?: number
   receiptAmount: number
   paymentAmount: number
   monthlyAmounts: VoucherMonthAmount[]

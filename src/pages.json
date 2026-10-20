@@ -939,6 +939,13 @@
           }
         },
         {
+          "path": "pages/receipt-reversal",
+          "style": {
+            "navigationBarTitleText": "收款冲正",
+            "backgroundColor": "#FFFFFF"
+          }
+        },
+        {
           "path": "pages/payables",
           "style": {
             "navigationBarTitleText": "应付账款",

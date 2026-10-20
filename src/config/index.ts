@@ -161,6 +161,7 @@ export const P = {
   financeLedger: '/subpackages/finance/pages/ledger',
   financeReceivables: '/subpackages/finance/pages/receivables',
   financeReceipts: '/subpackages/finance/pages/receipts',
+  financeReceiptReversal: '/subpackages/finance/pages/receipt-reversal',
   supplyPartnerEdit: '/subpackages/supply/pages/partner-edit',
   supplyPartnerPriceEdit: '/subpackages/supply/pages/partner-price-edit',
   supplierPicker: '/subpackages/supply/pages/supplier-picker',

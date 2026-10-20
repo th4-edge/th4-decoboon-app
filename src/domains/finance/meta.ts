@@ -1,5 +1,5 @@
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
-import type { FundAccount, LedgerDirection, LedgerManualPurpose, PayableStatus, PayableType, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
+import type { FundAccount, LedgerDirection, LedgerManualPurpose, PayableStatus, PayableType, ReceiptReversalReason, ReceiptStatus, ReceivableStatus, ReceivableType, SettlementStatus } from './model'
 
 export const RECEIVABLE_TYPE_META: Record<ReceivableType, { label: string; color: string }> = {
   first: { label: '首期款', color: TOKEN_COLOR.primaryBase },
@@ -32,6 +32,20 @@ export const PAYABLE_STATUS_META: Record<PayableStatus, { label: string; color: 
   paid: { label: '已付清', color: TOKEN_COLOR.success },
   overdue: { label: '已逾期', color: TOKEN_COLOR.danger },
   closed: { label: '已关闭', color: TOKEN_COLOR.text4 }
+}
+
+export const RECEIPT_STATUS_META: Record<ReceiptStatus, { label: string; color: string }> = {
+  active: { label: '有效', color: TOKEN_COLOR.success },
+  reversed: { label: '已冲正', color: TOKEN_COLOR.text3 }
+}
+
+export const RECEIPT_REVERSAL_REASON_META: Record<ReceiptReversalReason, { label: string; hint: string }> = {
+  notReceived: { label: '未实际到账', hint: '客户实际未支付或款项未到公司账户' },
+  amountError: { label: '金额录错', hint: '收款金额与实际到账不一致' },
+  receivableError: { label: '应收节点选错', hint: '款项实际对应其他应收节点' },
+  duplicate: { label: '重复登记', hint: '同一笔收款被重复录入' },
+  accountOrDateError: { label: '账户或日期录错', hint: '到账账户或收款日期填写错误' },
+  other: { label: '其他', hint: '需在说明中写清具体原因' }
 }
 
 export const ACCOUNT_LABEL: Record<FundAccount, string> = {

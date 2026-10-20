@@ -5,7 +5,7 @@ import { P } from '@/config'
 import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
 import type { Receipt } from '@/domains/finance/model'
-import { ACCOUNT_LABEL } from '@/domains/finance/meta'
+import { ACCOUNT_LABEL, RECEIPT_STATUS_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { toastError } from '@/composables/toast'
@@ -24,6 +24,7 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
   20
 )
 const editable = computed(() => can(session.role, 'edit:finance'))
+const canReverse = computed(() => can(session.role, 'act:receiptReverse'))
 const refundMode = ref(false)
 const totals = ref({ total: 0, month: 0, count: 0 })
 
@@ -51,6 +52,10 @@ function openReceipt(id: string) {
   uni.navigateTo({ url: refundMode.value ? `${P.financeRefundCreate}?receiptId=${id}` : `${P.financeProject}?projectId=${items.value.find((item) => item.id === id)?.project.id || ''}` })
 }
 function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
+function openReversal(id: string) {
+  if (!canReverse.value || refundMode.value) return
+  uni.navigateTo({ url: `${P.financeReceiptReversal}?receiptId=${id}` })
+}
 </script>
 
 <template>
@@ -80,7 +85,13 @@ function openReceivables() { uni.navigateTo({ url: P.financeReceivables }) }
           <view class="fin-fact"><JzIcon name="user" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.payerName || item.customer?.name || '客户' }}</text></view>
           <text>{{ item.remark || '已核销应收' }}</text>
         </view>
-        <view class="fin-card__foot"><text class="jz-caption">经办 {{ item.createdBy?.name || '财务' }}</text><text class="jz-caption">{{ item.voucherUrl ? '已上传凭证' : '无凭证' }}</text></view>
+        <view class="fin-card__foot">
+          <view class="fin-receipt-state" :class="{ 'fin-receipt-state--reversed': item.status === 'reversed' }"><text>{{ RECEIPT_STATUS_META[item.status || 'active'].label }}</text></view>
+          <text class="jz-caption">经办 {{ item.createdBy?.name || '财务' }}</text>
+          <text class="jz-caption">{{ item.voucherUrl ? '已上传凭证' : '无凭证' }}</text>
+          <text v-if="canReverse && !refundMode && item.status !== 'reversed'" class="fin-card__action fin-card__action--danger" @tap.stop="openReversal(item.id)">冲正</text>
+        </view>
+        <view v-if="item.status === 'reversed'" class="fin-receipt-reversed"><JzIcon name="refresh" :size="22" :color="TOKEN_COLOR.text3" /><text>{{ item.reversalReason || '该收款已冲正，原单保留用于审计' }}</text></view>
       </view>
       <ListFooter v-if="!loadError && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
       <view v-if="!items.length" class="fin-empty"><JzEmpty text="暂无收款记录" sub="从应收节点登记收款后会在这里形成回款记录" /></view>
