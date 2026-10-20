@@ -29,6 +29,8 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
+declare const wx: { reLaunch: (options: { url: string }) => void }
+
 const inviteId = ref('')
 const token = ref('')
 /** 项目码扫码进入参数（微信小程序码 scene 原样传入，值 = 项目编号） */
@@ -147,18 +149,31 @@ async function enter(event: { detail?: { code?: string; errMsg?: string } }) {
 function goJoinCompany() { uni.navigateTo({ url: P.companyJoin }) }
 function goRegisterCompany() { uni.navigateTo({ url: P.enterprise }) }
 
+/** 退出当前页会话后，下一事件循环再重定向，避免当前页同步重渲染吞掉路由。 */
+function reLaunchAfterLogout(url: string) {
+  setTimeout(() => {
+    // #ifdef MP-WEIXIN
+    wx.reLaunch({ url })
+    // #endif
+    // #ifndef MP-WEIXIN
+    uni.reLaunch({ url })
+    // #endif
+  }, 0)
+}
+
 /**
  * 历史坑（FIX-024）：未归属用户直接回首页会被首页拦截再次跳回未加入企业页。
  * 用户明确选择返回或切换时，先结束本次未归属会话，再离开注册/授权链路。
  */
 function leaveToHome() {
   if (session.sessionType === 'user' && !session.emp) logout()
-  uni.reLaunch({ url: P.home })
+  // 历史坑：logout 会同步触发本页重渲染，立即 reLaunch 可能被当前事件周期吞掉。
+  reLaunchAfterLogout(P.home)
 }
 
 function switchAccount() {
   logout()
-  uni.reLaunch({ url: P.login })
+  reLaunchAfterLogout(P.login)
 }
 </script>
 

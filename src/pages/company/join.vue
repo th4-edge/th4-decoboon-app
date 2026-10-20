@@ -21,6 +21,8 @@ import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
+declare const wx: { reLaunch: (options: { url: string }) => void }
+
 /** 员工入口默认收起，避免业主/新用户误入 */
 const showEmployeeJoin = ref(false)
 const inviteInput = ref('')
@@ -41,6 +43,18 @@ function parseEmployeeInvite(raw: string): string | null {
 
 function goOwnerEnter() { uni.navigateTo({ url: P.ownerEnter }) }
 function goRegisterCompany() { uni.navigateTo({ url: P.enterprise }) }
+
+/** 退出当前页会话后，下一事件循环再重定向，避免当前页同步重渲染吞掉路由。 */
+function reLaunchAfterLogout(url: string) {
+  setTimeout(() => {
+    // #ifdef MP-WEIXIN
+    wx.reLaunch({ url })
+    // #endif
+    // #ifndef MP-WEIXIN
+    uni.reLaunch({ url })
+    // #endif
+  }, 0)
+}
 
 async function openEmployeeInvite() {
   const inviteId = parseEmployeeInvite(inviteInput.value)
@@ -68,14 +82,16 @@ function later() {
   // pages/index/index.vue 会再次强制跳回本页，形成“以后再说一直在原页”的死循环。
   // 选择暂不加入即结束本次未归属登录，回到游客首页；下次主动登录时再询问。
   if (session.token && session.sessionType === 'user' && !session.emp) logout()
-  uni.reLaunch({ url: P.home })
+  // 历史坑：logout 会同步触发本页重渲染，立即 reLaunch 会被当前事件周期吞掉。
+  // 移到下一事件循环后使用微信原生路由，确保用户真正回到游客首页。
+  reLaunchAfterLogout(P.home)
 }
 
 async function relogin() {
   const ok = await confirm('切换账号', '将退出当前登录并重新进入，是否继续？', '退出登录')
   if (!ok) return
   logout()
-  uni.reLaunch({ url: P.login })
+  reLaunchAfterLogout(P.login)
 }
 </script>
 

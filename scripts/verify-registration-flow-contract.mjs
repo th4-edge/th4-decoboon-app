@@ -30,8 +30,10 @@ expect(join.includes('function later()') && join.includes('session.sessionType =
   '未归属页缺少用户类型离场判定')
 expect(join.includes('if (session.token && session.sessionType === \'user\' && !session.emp) logout()'),
   '未归属页“以后再说”未清理临时用户会话')
-expect(join.indexOf('logout()') < join.indexOf('uni.reLaunch({ url: P.home })'),
-  '未归属页“以后再说”必须先清理会话再回首页')
+expect(join.includes('function reLaunchAfterLogout(url: string)')
+  && join.includes('wx.reLaunch({ url })')
+  && join.includes('reLaunchAfterLogout(P.home)'),
+  '未归属页“以后再说”未在会话重渲染完成后再回首页')
 expect(!join.includes('function goTabHome()'), '未归属页仍保留会被首页拦截的旧离场函数')
 expect(join.includes('以后再说，返回首页'), '未归属页退出按钮没有明确的回首页说明')
 expect(!home.includes("if (!isLoggedIn()) goTab(P.login)"),
@@ -46,6 +48,10 @@ expect(ownerEnter.includes('不是当前账号？切换账号') && ownerEnter.in
   '未找到装修项目时缺少切换账号/退出入口')
 expect(ownerEnter.includes('if (session.sessionType === \'user\' && !session.emp) logout()'),
   '业主空态返回首页前未处理未归属临时会话')
+expect(ownerEnter.includes('function reLaunchAfterLogout(url: string)')
+  && ownerEnter.includes('wx.reLaunch({ url })')
+  && ownerEnter.includes('reLaunchAfterLogout(P.home)'),
+  '业主空态返回首页未在会话重渲染完成后再跳转')
 expect(ownerEnter.includes('if (!hasDirectInvite.value) return'),
   '进入我的家无邀请参数时不应继续请求项目接口')
 

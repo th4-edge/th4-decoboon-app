@@ -24,7 +24,8 @@
 
 * 未归属用户在“未加入企业”页点击“以后再说”时，必须结束本次未归属登录并回到游客首页；
 * 回到首页前必须清理 `jz_session_v2` 与令牌，否则首页会把 `sessionType=user && !emp` 再次分流回本页，形成跳转死循环；
-* 下次用户主动登录时再重新询问是否加入企业或查看业主项目。【FIX-024】
+* 清理会话会触发当前页重渲染，必须在下一事件循环再重定向；微信小程序使用 `wx.reLaunch`，避免同步 `uni.reLaunch` 被吞掉；
+* 下次用户主动登录时再重新询问是否加入企业或查看业主项目。【FIX-024 / FIX-044】
 
 ### 0.3 “进入我的家”无项目空态
 
@@ -45,6 +46,12 @@
 * 正式业务域名为 `https://decoboon.joytsing.com` 时，必须在微信公众平台同时加入 request、uploadFile、downloadFile 合法域名；
 * 开发工具关闭域名校验不能作为生产真机上传通过证据，发布前必须使用 `urlCheck=true` 或真机完成头像、单图、多图上传；
 * 上传失败若为 `url not in domain list`，前端必须提示检查 uploadFile 合法域名，不得继续显示“网络异常”；【FIX-025】
+
+### 0.5.1 小程序业务文件下载【FIX-044】
+
+* 报价项目库 V1.0 模板等业务文件必须由后端返回业务域名网关地址（`file/private/download` 短期签名），不得把阿里云 OSS 预签名地址直接交给小程序 `downloadFile`；
+* 业务域名 `https://decoboon.joytsing.com` 必须加入微信公众平台 `downloadFile` 合法域名；
+* 下载授权只覆盖冻结的模板对象键，文件名只用于 `Content-Disposition`，不得放宽到任意 OSS 对象。
 
 ### 0.6 业主邀请与进入（不使用邀请令牌）【FIX-042】
 

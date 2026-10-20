@@ -10,6 +10,52 @@
 
 
 
+## FIX-044 · 报价项目库模板下载被域名拦截、未归属页“以后再说”无响应
+
+* 日期：2026-10-21
+* 报告角色：企业负责人 / 线上新用户
+* 影响模块：报价项目库批量导入、登录后身份选择、业主入口离场
+* 严重度：P1 线上主流程中断
+
+### 现象
+
+1. 线上小程序进入“报价项目库维护 → 批量导入”，下载 V1.0 模板时提示 `downloadFile:fail url not in domain list`；
+2. 用户完成手机号授权后进入“我是业主 / 我是装修公司员工 / 我是装修公司”身份选择页，点击“以后再说，返回首页”后页面仍停留在当前页，但登录信息已被清空。
+
+### 根因
+
+1. 后端 `catalog/import-template/build` 使用 `FileSignatureContext.sign()` 返回了阿里云 OSS 预签名地址；微信小程序 `downloadFile` 只允许已配置的业务域名，不能直接访问 OSS 域名。该类小程序下载必须使用 `signGateway()` 返回业务域名网关地址。
+2. 身份选择页在 `logout()` 后立即调用 `uni.reLaunch`。退出会话会同步触发当前页重渲染，当前事件周期的路由调用被吞掉；开发者工具复现为会话已清理、页面栈仍停留在 `pages/company/join`。延迟后使用微信原生 `wx.reLaunch` 可稳定完成跳转。
+
+### 修复方案
+
+1. 模板授权地址改为 `signGateway(TEMPLATE_KEY, TEMPLATE_NAME)`，前端 `fileApi.absolute()` 补全为 `https://decoboon.joytsing.com/api/file/private/download?...`；
+2. 未归属页和业主入口页统一在退出会话后的下一事件循环重定向：微信小程序使用 `wx.reLaunch`，其他端使用 `uni.reLaunch`；
+3. 补充后端单测与注册流程契约，禁止模板接口回退到 OSS 预签名地址，禁止退出后立即同步跳转导致无响应。
+
+### 代码改动
+
+* 后端：`catalog/service/importtemplate/build/support/Build.java`、`src/test/java/com/th4/edge/decoboon/catalog/CatalogImportTemplateBuildTest.java`；
+* App：`pages/company/join.vue`、`pages/owner/enter.vue`、`scripts/verify-registration-flow-contract.mjs`。
+
+### 业务观察者审查
+
+* 行业对标：报价库模板属于装企批量维护基础资料的标准入口，不能要求用户绕过小程序去聊天文件或电脑端手工寻找；身份选择页必须随时允许放弃注册并回到游客态。
+* 闭环检查：模板下载恢复后，企业负责人可继续完成“下载模板 → 电脑整理 → 手机上传预览 → 确认导入”；未归属用户可退出登录并继续浏览，不影响员工邀请、业主项目码和注册企业三条原有的进入路径。
+* 权限与数据隔离：模板接口仍要求登录员工；下载链接只对冻结的 `system/catalog-import/...v1.0.xlsx` 签名，不放宽对象路径；退出仅清理当前临时用户会话，不改变企业数据权限。
+* 降级与空态：后端网关回源失败时仍返回明确的下载失败提示；身份页跳转不再依赖当前页重渲染是否完成。
+* 结论：通过。
+
+### 验证
+
+* 后端：`mvn -q -Dtest=CatalogImportTemplateBuildTest test` 通过；`mvn -q -DskipTests package` 通过；
+* App：`npm run check:registration`、`npm run type-check`、`npm run build:mp-weixin`、`npm run check:subpackages` 通过；
+* 微信开发者工具实测：注入未归属用户会话 → 身份选择页点击“以后再说，返回首页” → 页面栈变为 `pages/index/index`，会话为未登录；
+* 用户自测清单：
+  1. 企业负责人进入报价项目库维护，下载 V1.0 模板应打开/转发 `xlsx`，不再出现 `url not in domain list`；
+  2. 新用户手机号登录进入身份选择页，点击“以后再说，返回首页”应回到游客首页，不再停留；
+  3. 在“进入我的家”无项目空态点击“返回首页，暂不进入我的家”也应回到游客首页。
+
 ## FIX-043 · 业主端开通方式改为「项目码扫码 + 手机号验证」
 
 * 日期：2026-10-15
