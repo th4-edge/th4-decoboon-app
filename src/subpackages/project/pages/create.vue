@@ -386,7 +386,7 @@ function validateEffectiveInputs() {
       </view>
       <view class="pc__row"><text class="pc__label">签约日期</text><JzSelectField mode="date" :disabled="!signFieldsEditable" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
       <view class="pc__row"><text class="pc__label">计划开工</text><JzSelectField mode="date" :disabled="!effectiveFieldsEditable" :value="startDate" :display="startDate" placeholder="请选择" @change="startDate = $event" /></view>
-      <view class="pc__row"><text class="pc__label">计划完工</text><JzSelectField mode="date" :disabled="!effectiveFieldsEditable" :value="planEndDate" :display="planEndDate" start="" :end="startDate || ''" placeholder="请选择" @change="planEndDate = $event" /></view>
+      <view class="pc__row"><text class="pc__label">计划完工</text><JzSelectField mode="date" :disabled="!effectiveFieldsEditable" :value="planEndDate" :display="planEndDate" :start="startDate || ''" placeholder="请选择" @change="planEndDate = $event" /></view>
       <view class="pc__plan-block" :class="{ 'pc__plan-block--disabled': !planFieldsEditable }" @tap="openPaymentPlanPicker">
         <view class="pc__plan-head"><text class="pc__label">付款计划</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
         <text class="pc__plan-name">{{ selectedPaymentPlan?.name || '选择付款计划模板' }}</text>

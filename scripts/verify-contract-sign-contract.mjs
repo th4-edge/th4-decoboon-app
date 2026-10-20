@@ -40,6 +40,7 @@ expect(projectCreate.includes("return canPrepareContract.value ? '提交合同�
 expect(projectCreate.includes("return canConfirmContract.value ? '调整并确认签约' : '已提交，等待负责人确认'"), '合同页缺少负责人确认步骤')
 expect(projectCreate.includes("return canCreateProject.value ? '确认生效并生成项目' : '等待负责人确认生效'"), '合同页缺少负责人生效步骤')
 expect(projectCreate.includes('确认后进入已签约状态，再单独确认生效并生成项目'), '合同页签约与生效未拆分')
+expect(projectCreate.includes(':start="startDate || \'\'"') && !projectCreate.includes(':end="startDate || \'\'"'), '计划完工日期必须允许选择开工日之后的未来日期')
 expect(!/tradeApi\.generateContract\([^)]*\{[\s\S]{0,240}signedAt:/.test(projectCreate), '合同发起接口不应直接提交签约日期')
 
 if (failures.length) {
