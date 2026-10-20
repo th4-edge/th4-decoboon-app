@@ -26,6 +26,8 @@ const propertyId = ref('')
 const quotes = ref<Quote[]>([])
 const contract = ref<Contract | null>(null)
 const finalSignedAmount = ref<number | string>('')
+const finalAmountDirty = ref(false)
+const finalAmountQuoteId = ref('')
 const signedAt = ref(new Date().toISOString().slice(0, 10))
 const startDate = ref(new Date().toISOString().slice(0, 10))
 const planEndDate = ref(new Date(Date.now() + 120 * 86400000).toISOString().slice(0, 10))
@@ -165,7 +167,15 @@ async function load() {
 async function selectQuote(quote: Quote) {
   quoteId.value = quote.id
   contract.value = await tradeApi.contractByQuote(quote.id).catch(() => null)
-  finalSignedAmount.value = contract.value?.signedAmount ?? quote.amount
+  // 从付款/施工计划选择页返回时 onShow 会重载合同；同一待签合同不得用报价默认值覆盖用户已录入的最终签约价。
+  const keepDirtyAmount = finalAmountQuoteId.value === quote.id
+    && finalAmountDirty.value
+    && (!contract.value || ['draft', 'pendingSign'].includes(contract.value.status))
+  if (!keepDirtyAmount) {
+    finalSignedAmount.value = contract.value?.signedAmount ?? quote.amount
+    finalAmountDirty.value = false
+  }
+  finalAmountQuoteId.value = quote.id
   if (!paymentPlanCode.value) paymentPlanCode.value = contract.value?.paymentPlan?.sourceCode || ''
   if (!constructionPlanCode.value) constructionPlanCode.value = contract.value?.constructionPlan?.sourceCode || ''
   if (contract.value?.signedAt) signedAt.value = contract.value.signedAt.slice(0, 10)
@@ -234,18 +244,20 @@ async function submit() {
 
     if (contract.value.status === 'draft' || contract.value.status === 'pendingSign') {
       fallback = '合同签约失败'
-      const ok = await confirm('确认签约', '确认该合同已完成签约？确认后进入已签约状态，再单独确认生效并生成项目。', '确认签约')
+      const signedAmountToSubmit = Number(finalSignedAmount.value)
+      const ok = await confirm('确认签约', `最终签约价 ${money(signedAmountToSubmit)}。确认该合同已完成签约？确认后进入已签约状态，再单独确认生效并生成项目。`, '确认签约')
       if (!ok) return
       loading('确认合同签约…')
       contract.value = await tradeApi.updateContract(contract.value.id, 'signed', {
         signedAt: signedAt.value || undefined,
-        signedAmount: Number(finalSignedAmount.value),
+        signedAmount: signedAmountToSubmit,
         paymentPlanCode: paymentPlanCode.value,
         constructionPlanCode: constructionPlanCode.value,
         startDate: startDate.value,
         planEndDate: planEndDate.value,
         paymentTerms: paymentTerms.value.trim() || undefined
       })
+      finalAmountDirty.value = false
       hideLoading()
       toast('合同已签约，下一步确认生效并生成项目', 'success')
       return
@@ -381,6 +393,7 @@ function validateEffectiveInputs() {
           class="jz-grow pc__value jz-numeric-input"
           type="digit"
           :disabled="!signFieldsEditable"
+          @input="finalAmountDirty = true"
           placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
         />
       </view>

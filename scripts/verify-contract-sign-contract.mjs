@@ -41,6 +41,9 @@ expect(projectCreate.includes("return canConfirmContract.value ? '调整并确�
 expect(projectCreate.includes("return canCreateProject.value ? '确认生效并生成项目' : '等待负责人确认生效'"), '合同页缺少负责人生效步骤')
 expect(projectCreate.includes('确认后进入已签约状态，再单独确认生效并生成项目'), '合同页签约与生效未拆分')
 expect(projectCreate.includes(':start="startDate || \'\'"') && !projectCreate.includes(':end="startDate || \'\'"'), '计划完工日期必须允许选择开工日之后的未来日期')
+expect(projectCreate.includes('finalAmountDirty') && projectCreate.includes('finalAmountQuoteId') && projectCreate.includes('keepDirtyAmount'), '同一待签合同返回页面时必须保留用户已录入的最终签约价')
+expect(projectCreate.includes('const signedAmountToSubmit = Number(finalSignedAmount.value)'), '确认签约前必须冻结本次提交的最终签约价')
+expect(projectCreate.includes('最终签约价 ${money(signedAmountToSubmit)}'), '签约确认弹窗必须展示本次实际提交的最终签约价')
 expect(!/tradeApi\.generateContract\([^)]*\{[\s\S]{0,240}signedAt:/.test(projectCreate), '合同发起接口不应直接提交签约日期')
 
 if (failures.length) {
