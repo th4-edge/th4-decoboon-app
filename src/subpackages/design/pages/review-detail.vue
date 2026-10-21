@@ -7,12 +7,12 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { designApi, designMeta } from '@/domains/design/api'
 import type { DesignItem, DesignScheme } from '@/domains/design/model'
-import { money } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import JzMoney from '@/components/JzMoney.vue'
 
 const designId = ref('')
 const scheme = ref<DesignScheme | null>(null)
@@ -70,7 +70,7 @@ onLoad((query) => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (!can(session.role, 'view:design')) {
+  if (!can(session.role, 'view:design-review')) {
     uni.showToast({ title: '当前账号无权查看设计方案', icon: 'none' })
     return
   }
@@ -99,24 +99,24 @@ onLoad((query) => {
       <view class="drd__price-grid">
         <view class="jz-card drd__price drd__price--primary">
           <text>{{ priceLabel }}</text>
-          <text v-if="primaryPrice !== null" class="drd__price-value">¥{{ money(primaryPrice) }}</text>
+          <JzMoney v-if="primaryPrice !== null" class="drd__price-value" :value="primaryPrice" />
           <text v-else class="drd__price-empty">暂不可计算</text>
           <text v-if="scheme.currentQuoteStatusName" class="drd__price-note">{{ scheme.currentQuoteStatusName }}</text>
         </view>
         <view class="jz-card drd__price">
           <text>方案计算价</text>
-          <text class="drd__price-value">¥{{ money(scheme.calculatedAmount || 0) }}</text>
+          <JzMoney class="drd__price-value" :value="scheme.calculatedAmount || 0" />
           <text class="drd__price-note">设计分项销售金额合计</text>
         </view>
         <view v-if="costVisible" class="jz-card drd__price">
           <text>预计成本</text>
-          <text v-if="costComplete" class="drd__price-value">¥{{ money(totalCost || 0) }}</text>
+          <JzMoney v-if="costComplete" class="drd__price-value" :value="totalCost || 0" />
           <text v-else class="drd__price-empty">成本未完整</text>
           <text class="drd__price-note">成本不完整时不计算可靠毛利</text>
         </view>
         <view v-if="costVisible" class="jz-card drd__price">
           <text>预计毛利</text>
-          <text v-if="costComplete" class="drd__price-value">¥{{ money((scheme.calculatedAmount || 0) - (totalCost || 0)) }}</text>
+          <JzMoney v-if="costComplete" class="drd__price-value" :value="(scheme.calculatedAmount || 0) - (totalCost || 0)" />
           <text v-else class="drd__price-empty">暂不可计算</text>
           <text class="drd__price-note">方案计算价 − 预计成本</text>
         </view>
@@ -138,12 +138,14 @@ onLoad((query) => {
               <text class="drd__item-name">{{ item.name }}</text>
               <text class="drd__item-meta">{{ spaceName(item) }} · {{ item.category }} · {{ designMeta.pricingMode[item.pricingMode] }}</text>
             </view>
-            <text class="drd__item-amount">¥{{ money(item.amount) }}</text>
+            <JzMoney class="drd__item-amount" :value="item.amount" />
           </view>
           <view class="drd__item-facts">
             <text>工程量 {{ item.quantity }} {{ item.unit }}</text>
-            <text>销售单价 ¥{{ money(unitPrice(item)) }}</text>
-            <text v-if="costVisible && item.cost != null">成本 ¥{{ money(item.cost) }} · 毛利 ¥{{ money(item.amount - item.cost) }}</text>
+            <view class="drd__fact-money"><text>销售单价</text><JzMoney :value="unitPrice(item)" /></view>
+            <view v-if="costVisible && item.cost != null" class="drd__fact-money">
+              <text>成本</text><JzMoney :value="item.cost" /><text>毛利</text><JzMoney :value="item.amount - item.cost" />
+            </view>
             <text v-else-if="costVisible" class="drd__cost-missing">成本待维护</text>
           </view>
         </view>
@@ -184,6 +186,7 @@ onLoad((query) => {
 .drd__item-meta { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .drd__item-amount { flex-shrink: 0; color: $jzb-primary-dark; font-size: $jzb-font-md; font-weight: 700; }
 .drd__item-facts { margin-top: 14rpx; padding-top: 14rpx; display: flex; flex-wrap: wrap; gap: 8rpx 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.drd__fact-money { display: inline-flex; align-items: center; gap: 4rpx; }
 .drd__cost-missing { color: $jzb-warning; }
 .drd__empty { margin: 0 24rpx; padding: 24rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .drd__notice { margin: 24rpx; padding: 18rpx 20rpx; display: flex; gap: 10rpx; align-items: flex-start; color: $jzb-text-2; background: $jzb-bg-card; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
