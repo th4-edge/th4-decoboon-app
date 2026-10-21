@@ -26,6 +26,7 @@ export type Capability =
   | 'view:quote'
   | 'view:cost'
   | 'view:design'
+  | 'view:design-review'
   | 'view:catalog'
   | 'edit:catalog'
   | 'view:catalog-cost'
@@ -110,7 +111,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'edit:payment-plan-template',
     'edit:construction-plan-template',
     'view:selection-board', 'view:rectify',
-    'view:design', 'edit:design', 'act:talk',
+    'view:design', 'view:design-review', 'edit:design', 'act:talk',
     'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
     // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
@@ -173,7 +174,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:catalog',
     'view:selection-board', 'view:rectify',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
-    'view:design', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
+    'view:design', 'view:design-review', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
     'view:approval', 'view:supply',
     'act:issue', 'act:material', 'act:acceptRequest', 'view:notice', 'view:payroll', 'edit:payroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'

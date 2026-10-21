@@ -7,13 +7,13 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { designApi, designMeta } from '@/domains/design/api'
 import type { DesignScheme, DesignStatus } from '@/domains/design/model'
-import { money } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
+import JzMoney from '@/components/JzMoney.vue'
 
 const items = ref<DesignScheme[]>([])
 const loading = ref(false)
@@ -77,7 +77,7 @@ onLoad(() => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (!can(session.role, 'view:design')) {
+  if (!can(session.role, 'view:design-review')) {
     uni.showToast({ title: '当前账号无权查看设计方案', icon: 'none' })
     return
   }
@@ -120,7 +120,7 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
         <view class="dr__price">
           <view>
             <text class="dr__price-label">{{ priceLabel(item) }}</text>
-            <text v-if="priceOf(item) !== null" class="dr__price-value">¥{{ money(priceOf(item) || 0) }}</text>
+            <JzMoney v-if="priceOf(item) !== null" class="dr__price-value" :value="priceOf(item) || 0" />
             <text v-else class="dr__price-empty">暂不可计算</text>
           </view>
           <text v-if="item.currentQuoteStatusName" class="dr__quote-state">{{ item.currentQuoteStatusName }}</text>
@@ -128,7 +128,10 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
         <view class="dr__facts">
           <text>{{ item.spaceCount || 0 }} 个区域</text>
           <text>{{ item.itemCount || 0 }} 个分项</text>
-          <text v-if="item.priceSource === 'quote'">方案计算价 ¥{{ money(item.calculatedAmount || 0) }}</text>
+          <view v-if="item.priceSource === 'quote'" class="dr__calc-price">
+            <text>方案计算价</text>
+            <JzMoney :value="item.calculatedAmount || 0" />
+          </view>
           <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
@@ -160,5 +163,5 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 .dr__price-empty { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .dr__quote-state { flex-shrink: 0; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .dr__facts { margin-top: 16rpx; padding-top: 16rpx; display: flex; align-items: center; gap: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.dr__facts text:nth-child(3) { margin-right: auto; }
+.dr__calc-price { margin-right: auto; display: inline-flex; align-items: center; gap: 4rpx; }
 </style>

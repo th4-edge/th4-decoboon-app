@@ -8,12 +8,12 @@ import { can } from '@/roles/permission'
 import { workbenchApi } from '@/domains/workbench/api'
 import type { DesignWorkbenchItem } from '@/domains/workbench/model'
 import { toastError } from '@/composables/toast'
-import { money } from '@/core/format'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzMoney from '@/components/JzMoney.vue'
 
 const items = ref<DesignWorkbenchItem[]>([])
 const loading = ref(false)
@@ -156,7 +156,7 @@ function workbenchPriceLabel(item: DesignWorkbenchItem): string {
         <view v-if="item.schemeCount > 0" class="wb__item-price">
           <view>
             <text class="wb__item-price-label">{{ workbenchPriceLabel(item) }}</text>
-            <text v-if="workbenchPrice(item) !== null" class="wb__item-price-value">¥{{ money(workbenchPrice(item) || 0) }}</text>
+            <JzMoney v-if="workbenchPrice(item) !== null" class="wb__item-price-value" :value="workbenchPrice(item) || 0" />
             <text v-else class="wb__item-price-empty">暂不可计算</text>
           </view>
           <text v-if="item.currentQuoteStatusName" class="wb__item-price-status">{{ item.currentQuoteStatusName }}</text>
