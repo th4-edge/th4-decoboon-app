@@ -26,7 +26,11 @@ function normalizeCompensation(raw: Raw): CompensationScheme {
     effectiveTo: raw.effectiveTo,
     status: enumKey(raw.status) as CompensationScheme['status'],
     remark: raw.remark,
-    createdAt: raw.createTime?.dateTime ?? raw.createTime
+    locked: raw.locked === true,
+    lockedReason: raw.lockedReason || undefined,
+    createdBy: raw.createdBy ? employee(raw.createdBy) : undefined,
+    createdAt: raw.createTime?.dateTime ?? raw.createTime,
+    updatedAt: raw.updateTime?.dateTime ?? raw.updateTime
   }
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { payrollApi } from '@/domains/payroll/api'
@@ -14,23 +14,36 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const schemeId = ref('')
+const successorId = ref('')
 const selectedEmployee = ref<Employee | null>(null)
 const form = reactive({ baseSalary: '', scheduledDays: '', effectiveFrom: localDate(), effectiveTo: '', remark: '' })
 const saving = ref(false)
 const currentDate = () => localDate()
+const pageTitle = computed(() => schemeId.value ? '编辑薪酬方案' : successorId.value ? '新增后续薪酬方案' : '新增薪酬方案')
 function localDate(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
+
+function suggestedSuccessorDate(item: { effectiveFrom: string; effectiveTo?: string }): string {
+  const today = localDate()
+  const base = item.effectiveTo || item.effectiveFrom
+  const [year, month, day] = base.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  date.setDate(date.getDate() + 1)
+  const candidate = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+  return candidate > today ? candidate : today
+}
 
 onLoad(async (query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   schemeId.value = query?.schemeId || ''
-  if (schemeId.value) {
-    const item = await payrollApi.compensationInfo(schemeId.value)
+  successorId.value = query?.successorId || ''
+  if (schemeId.value || successorId.value) {
+    const item = await payrollApi.compensationInfo(schemeId.value || successorId.value)
     selectedEmployee.value = item.employee
     form.baseSalary = item.baseSalary.toFixed(2)
     form.scheduledDays = String(item.scheduledDays || '')
-    form.effectiveFrom = item.effectiveFrom
-    form.effectiveTo = item.effectiveTo || ''
-    form.remark = item.remark || ''
+    form.effectiveFrom = schemeId.value ? item.effectiveFrom : suggestedSuccessorDate(item)
+    form.effectiveTo = schemeId.value ? item.effectiveTo || '' : ''
+    form.remark = schemeId.value ? item.remark || '' : ''
   }
 })
 
@@ -79,11 +92,12 @@ async function submit() {
 
 <template>
   <view class="pay-page">
-    <JzPageHeader :title="schemeId ? '编辑薪酬方案' : '新增薪酬方案'" subtitle="固定工资按自然月生效，应出勤天数由本方案统一配置" />
+    <JzPageHeader :title="pageTitle" subtitle="固定工资按自然月生效，应出勤天数由本方案统一配置" />
     <view class="pay-body">
+      <view v-if="successorId" class="pay-successor-tip">原方案和既有工资事实保持不变；请确认新的生效日期，系统按最新生效日期匹配后续工资月份。</view>
       <JzEmployeeSelectField
         :employee="selectedEmployee"
-        :disabled="!!schemeId"
+        :disabled="!!schemeId || !!successorId"
         label="发薪员工"
         placeholder="请选择员工"
         @select="chooseEmployee"
@@ -118,6 +132,7 @@ async function submit() {
 .pay-input,
 .pay-textarea { box-sizing: border-box; width: 100%; padding: 24rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
 .pay-textarea { min-height: 160rpx; }
+.pay-successor-tip { margin-bottom: 20rpx; padding: 20rpx; border-radius: $jzb-radius-md; background: $jzb-primary-lightest; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.6; }
 .pay-field-tip { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 .jz-btn { margin-top: 36rpx; }
 </style>

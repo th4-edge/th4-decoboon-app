@@ -20,7 +20,11 @@ export interface CompensationScheme {
   effectiveTo?: string
   status: CompensationStatus
   remark?: string
+  locked: boolean
+  lockedReason?: string
+  createdBy?: Employee
   createdAt?: string
+  updatedAt?: string
 }
 
 export interface AttendanceSummary {
