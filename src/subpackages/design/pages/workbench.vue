@@ -8,6 +8,7 @@ import { can } from '@/roles/permission'
 import { workbenchApi } from '@/domains/workbench/api'
 import type { DesignWorkbenchItem } from '@/domains/workbench/model'
 import { toastError } from '@/composables/toast'
+import { money } from '@/core/format'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -96,6 +97,18 @@ function designStatusColor(status: string): string {
 function isOverdue(stayDays: number): boolean {
   return stayDays >= 7
 }
+
+function workbenchPrice(item: DesignWorkbenchItem): number | null {
+  if (item.priceSource === 'Quote') return item.currentQuoteAmount ?? null
+  if (item.priceSource === 'Calculated') return item.calculatedAmount ?? null
+  return null
+}
+
+function workbenchPriceLabel(item: DesignWorkbenchItem): string {
+  if (item.priceSource === 'Quote') return item.currentQuoteNo ? `正式报价 ${item.currentQuoteNo}` : '当前正式报价'
+  if (item.priceSource === 'Calculated') return '方案计算价 · 待报价'
+  return '尚无分项 · 暂不可计算'
+}
 </script>
 
 <template>
@@ -138,6 +151,15 @@ function isOverdue(stayDays: number): boolean {
           <JzIcon name="map-pin" :size="24" :color="TOKEN_COLOR.text4" />
           <text>{{ item.community || item.addr || '房屋地址待完善' }}</text>
           <text v-if="item.area" class="wb__item-area">{{ item.area }}㎡</text>
+        </view>
+
+        <view v-if="item.schemeCount > 0" class="wb__item-price">
+          <view>
+            <text class="wb__item-price-label">{{ workbenchPriceLabel(item) }}</text>
+            <text v-if="workbenchPrice(item) !== null" class="wb__item-price-value">¥{{ money(workbenchPrice(item) || 0) }}</text>
+            <text v-else class="wb__item-price-empty">暂不可计算</text>
+          </view>
+          <text v-if="item.currentQuoteStatusName" class="wb__item-price-status">{{ item.currentQuoteStatusName }}</text>
         </view>
 
         <view class="wb__item-meta">

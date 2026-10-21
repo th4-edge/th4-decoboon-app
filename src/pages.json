@@ -487,7 +487,15 @@
         {
           "path": "pages/journey",
           "style": {
-            "navigationBarTitleText": "项目旅程",
+            "navigationBarTitleText": "装修历程",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/owner-preview",
+          "style": {
+            "navigationBarTitleText": "业主视角预览",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
@@ -497,7 +505,7 @@
           "style": {
             "navigationBarTitleText": "量房档案",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -505,7 +513,7 @@
           "style": {
             "navigationBarTitleText": "设计方案",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -513,7 +521,7 @@
           "style": {
             "navigationBarTitleText": "报价清单",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -521,7 +529,15 @@
           "style": {
             "navigationBarTitleText": "选材记录",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
+          }
+        },
+        {
+          "path": "pages/owner-material-plan",
+          "style": {
+            "navigationBarTitleText": "材料计划",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -529,7 +545,7 @@
           "style": {
             "navigationBarTitleText": "增减项",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -537,15 +553,23 @@
           "style": {
             "navigationBarTitleText": "验收整改",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
           "path": "pages/owner-payment",
           "style": {
-            "navigationBarTitleText": "付款计划",
+            "navigationBarTitleText": "我的钱",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
+          }
+        },
+        {
+          "path": "pages/owner-archive",
+          "style": {
+            "navigationBarTitleText": "家档案",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -553,7 +577,7 @@
           "style": {
             "navigationBarTitleText": "合同",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F4F7F8"
+            "backgroundColor": "#F4F1E9"
           }
         },
         {
@@ -778,6 +802,20 @@
           "path": "pages/design-picker",
           "style": {
             "navigationStyle": "custom",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/review",
+          "style": {
+            "navigationBarTitleText": "设计方案运营查看",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/review-detail",
+          "style": {
+            "navigationBarTitleText": "设计方案详情",
             "backgroundColor": "#F4F7F8"
           }
         }
@@ -1064,8 +1102,7 @@
             "navigationBarTitleText": "登记客户退款",
             "backgroundColor": "#FFFFFF"
           }
-        }
-,
+        },
         {
           "path": "pages/material-settlement",
           "style": {

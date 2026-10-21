@@ -21,6 +21,14 @@ function normalizeDesign(raw: Raw): DesignWorkbenchItem {
     schemeCount: Number(raw.schemeCount ?? 0),
     hasRequirement: raw.hasRequirement === true,
     lastDesignAt: raw.lastDesignAt ? String(raw.lastDesignAt) : null,
+    latestDesignId: raw.latestDesignId ? String(raw.latestDesignId) : null,
+    latestDesignName: raw.latestDesignName ? String(raw.latestDesignName) : null,
+    latestDesignStatusName: raw.latestDesignStatusName ? String(raw.latestDesignStatusName) : null,
+    calculatedAmount: raw.calculatedAmount != null ? Number(raw.calculatedAmount) : null,
+    currentQuoteAmount: raw.currentQuoteAmount != null ? Number(raw.currentQuoteAmount) : null,
+    currentQuoteNo: raw.currentQuoteNo ? String(raw.currentQuoteNo) : null,
+    currentQuoteStatusName: raw.currentQuoteStatusName ? String(raw.currentQuoteStatusName) : null,
+    priceSource: raw.priceSource === 'Quote' || raw.priceSource === 'Calculated' ? raw.priceSource : 'Unavailable',
     stayDays: Number(raw.stayDays ?? 0)
   }
 }

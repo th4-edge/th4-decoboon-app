@@ -204,6 +204,14 @@ export interface DesignWorkbenchItem extends WorkbenchCustomerBase {
   schemeCount: number
   hasRequirement: boolean
   lastDesignAt: string | null
+  latestDesignId?: string | null
+  latestDesignName?: string | null
+  latestDesignStatusName?: string | null
+  calculatedAmount?: number | null
+  currentQuoteAmount?: number | null
+  currentQuoteNo?: string | null
+  currentQuoteStatusName?: string | null
+  priceSource?: 'Quote' | 'Calculated' | 'Unavailable'
 }
 
 /** 报价工作台列表项 */

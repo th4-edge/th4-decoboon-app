@@ -14,6 +14,7 @@ export type Capability =
   | 'view:schedule'
   | 'view:task'
   | 'view:inspection'
+  | 'view:owner-preview'
   | 'view:material'
   | 'view:supply'
   | 'view:finance'
@@ -110,6 +111,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'edit:construction-plan-template',
     'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
+    'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
     // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
     'edit:finance',
@@ -128,6 +130,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:selection-board', 'view:rectify',
     'view:catalog',
     'view:design', 'edit:design', 'act:talk',
+    'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:team', 'view:schedule', 'view:task',
     'view:quote', 'edit:quote', 'act:quote', 'act:assignDesigner', 'act:inviteMember',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
@@ -146,6 +149,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:catalog',
     'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
+    'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
     'edit:project', 'edit:plan', 'act:report', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
     'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
@@ -157,6 +161,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:catalog',
     'view:selection-board', 'view:rectify',
     'view:design', 'act:talk',
+    'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:material', 'view:supply', 'view:quote',
     'edit:plan', 'edit:task', 'act:report', 'act:startStage', 'act:acceptRequest', 'act:stageNotApplicable',
     'act:issue', 'act:material', 'view:notice', 'view:workbench', 'view:performance', 'view:ownPayslip', 'view:commission'
@@ -168,7 +173,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:catalog',
     'view:selection-board', 'view:rectify',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
-    'view:finance', 'edit:finance', 'view:contract', 'view:quote',
+    'view:design', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
     'view:approval', 'view:supply',
     'act:issue', 'act:material', 'act:acceptRequest', 'view:notice', 'view:payroll', 'edit:payroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'

@@ -81,11 +81,11 @@ export interface DesignItem {
   formulaRevisionNeeded?: boolean
   materialPrice: number
   manualPrice: number
-  /** null = 成本待维护，0 = 明确零成本 */
-  costPrice: number | null
+  /** null = 成本待维护，0 = 明确零成本；undefined = 当前角色无权查看。 */
+  costPrice?: number | null
   pricingMode: PricingMode
   amount: number
-  cost: number
+  cost?: number | null
   /** 报价项目库计价说明快照，例如「(材料单价) × 工程量」。 */
   formula?: string
   /** 工程量自动计算公式，只允许 A/P/WP/CP 等专业变量。 */
@@ -125,6 +125,18 @@ export interface DesignScheme {
   spaces?: DesignSpace[]
   items?: DesignItem[]
   requirements?: DesignRequirement[]
+  /** 当前设计分项销售金额合计；服务端计算。 */
+  calculatedAmount?: number
+  spaceCount?: number
+  itemCount?: number
+  /** 当前正式报价摘要；服务端统一选择。 */
+  currentQuoteId?: string
+  currentQuoteNo?: string
+  currentQuoteVersion?: number
+  currentQuoteStatus?: string
+  currentQuoteStatusName?: string
+  currentQuoteAmount?: number
+  priceSource?: 'quote' | 'calculated' | 'unavailable'
   createdAt?: string
   updatedAt?: string
 }

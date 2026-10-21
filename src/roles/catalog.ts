@@ -73,6 +73,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   boss: [
     { key: 'customer', label: '客户经营', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'design-workbench', label: '设计工作台', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
+    { key: 'design-review', label: '设计方案运营查看', icon: 'eye', path: P.designReview, capability: 'view:design' },
     { key: 'quotes', label: '报价谈单', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
     { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractConfirm' },
     { key: 'projects', label: '项目工地', icon: 'briefcase', path: P.projectList, capability: 'view:allProjects' },
@@ -84,6 +85,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   storeManager: [
     { key: 'customers', label: '门店客户', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'design-workbench', label: '设计方案', icon: 'edit', path: P.designWorkbench, capability: 'view:design' },
+    { key: 'design-review', label: '本店设计方案查看', icon: 'eye', path: P.designReview, capability: 'view:design' },
     { key: 'measure-workbench', label: '量房预约', icon: 'ruler', path: P.customerMeasureWorkbench, capability: 'view:measure-workbench' },
     { key: 'designer-dispatch', label: '设计调度', icon: 'users', path: P.managerDesigners, capability: 'act:assignDesigner' },
     { key: 'members', label: '成员管理', icon: 'users', path: P.companyMembers, capability: 'act:inviteMember' },
@@ -152,7 +154,8 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'refund', label: '客户退款', icon: 'history', path: P.financeRefunds, capability: 'view:finance' },
     { key: 'partner', label: '供应商往来', icon: 'users', path: P.financePartners, capability: 'view:finance' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
-    { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:supply' }
+    { key: 'material-plan', label: '材料计划', icon: 'package', path: P.materialPlanWorkbench, capability: 'view:supply' },
+    { key: 'design-review', label: '设计方案与报价', icon: 'eye', path: P.designReview, capability: 'view:design' }
   ],
   customer: [
     { key: 'project', label: '我的家', icon: 'home', path: P.projectList },

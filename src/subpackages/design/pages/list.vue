@@ -51,6 +51,17 @@ const quotableDesigns = computed(() =>
 const readyCount = computed(() => quotableDesigns.value.length)
 const totalItems = computed(() => designs.value.reduce((sum, item) => sum + (item.items?.length || 0), 0))
 const totalSpaces = computed(() => designs.value.reduce((sum, item) => sum + (item.spaces?.length || 0), 0))
+function schemePrice(design: DesignScheme, linkedQuote: Quote | null): number | null {
+  if (design.currentQuoteId) return design.currentQuoteAmount ?? null
+  if (linkedQuote) return linkedQuote.amount
+  if ((design.itemCount ?? design.items?.length ?? 0) > 0) {
+    return design.calculatedAmount ?? (design.items || []).reduce((sum, item) => sum + item.amount, 0)
+  }
+  return null
+}
+function schemePriceLabel(design: DesignScheme): string {
+  return design.currentQuoteId ? '当前正式报价' : '方案计算价 · 待报价'
+}
 const designQuotes = computed(() =>
   quotes.value.filter((item) => item.design?.id && item.status !== 'rejected' && item.status !== 'superseded')
 )
@@ -374,8 +385,9 @@ function statusClass(status: DesignStatus) {
           </view>
           <view class="dl__scheme-price-row">
             <view class="dl__scheme-price">
-              <text v-if="item.quote" class="dl__scheme-price-value">{{ money(item.quote.amount) }}</text>
-              <text v-else class="dl__scheme-price-empty">待报价</text>
+              <text v-if="schemePrice(item.design, item.quote) !== null" class="dl__scheme-price-value">{{ money(schemePrice(item.design, item.quote) || 0) }}</text>
+              <text v-else class="dl__scheme-price-empty">暂不可计算</text>
+              <text class="dl__scheme-price-label">{{ schemePrice(item.design, item.quote) !== null ? schemePriceLabel(item.design) : '尚无设计分项' }}</text>
             </view>
             <view v-if="canEdit && !locked" class="dl__scheme-actions">
               <button
@@ -601,7 +613,9 @@ function statusClass(status: DesignStatus) {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  gap: 6rpx 12rpx;
 }
 .dl__scheme-price-value {
   color: $jzb-primary-dark;
@@ -613,6 +627,7 @@ function statusClass(status: DesignStatus) {
   color: $jzb-text-4;
   font-size: $jzb-font-sm;
 }
+.dl__scheme-price-label { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .dl__scheme-actions {
   flex-shrink: 0;
   display: flex;

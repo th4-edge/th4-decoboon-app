@@ -168,10 +168,11 @@ function normalizeDesignItem(raw: RawRecord): DesignItem {
     formulaRevisionNeeded: Boolean(raw.formulaRevisionNeeded),
     materialPrice: number(raw.materialPrice),
     manualPrice: number(raw.manualPrice),
-    costPrice: raw.costPrice === undefined || raw.costPrice === null ? null : number(raw.costPrice),
+    costPrice: raw.costPrice === undefined
+      ? undefined : raw.costPrice === null ? null : number(raw.costPrice),
     pricingMode: PRICING_MODE[enumValue(raw.pricingMode)] || 'materialAndManual',
     amount: number(raw.amount),
-    cost: number(raw.cost),
+    cost: raw.cost === undefined ? undefined : raw.cost === null ? null : number(raw.cost),
     formula: raw.formula,
     criterion: raw.criterion,
     craft: raw.craft,
@@ -228,6 +229,18 @@ export function normalizeScheme(raw: RawRecord): DesignScheme {
     spaces: raw.spaces ? (raw.spaces as RawRecord[]).map(normalizeSpace) : undefined,
     items: raw.items ? (raw.items as RawRecord[]).map(normalizeDesignItem) : undefined,
     requirements: raw.requirements ? (raw.requirements as RawRecord[]).map(normalizeRequirement) : undefined,
+    calculatedAmount: raw.calculatedAmount == null ? undefined : number(raw.calculatedAmount),
+    spaceCount: raw.spaceCount == null ? undefined : number(raw.spaceCount),
+    itemCount: raw.itemCount == null ? undefined : number(raw.itemCount),
+    currentQuoteId: raw.currentQuoteId ? String(raw.currentQuoteId) : undefined,
+    currentQuoteNo: raw.currentQuoteNo ? String(raw.currentQuoteNo) : undefined,
+    currentQuoteVersion: raw.currentQuoteVersion == null ? undefined : number(raw.currentQuoteVersion),
+    currentQuoteStatus: raw.currentQuoteStatus ? enumValue(raw.currentQuoteStatus) : undefined,
+    currentQuoteStatusName: raw.currentQuoteStatusName ? String(raw.currentQuoteStatusName) : undefined,
+    currentQuoteAmount: raw.currentQuoteAmount == null ? undefined : number(raw.currentQuoteAmount),
+    priceSource: raw.currentQuoteId
+      ? 'quote'
+      : raw.calculatedAmount != null && number(raw.calculatedAmount) > 0 ? 'calculated' : 'unavailable',
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
     updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)
   }
@@ -532,6 +545,16 @@ export const designApi = {
 
   scheme: (designId: string) =>
     post<RawRecord>('design/scheme/info', { designId }).then(signScheme),
+
+  /** 运营查看：全局方案分页；范围由服务端按登录角色裁剪。 */
+  reviewSchemes: async (query: { status?: DesignStatus; keyword?: string; ownerId?: string; current?: number; size?: number } = {}) =>
+    Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/scheme/page', {
+      status: query.status ? DESIGN_STATUS_API[query.status] : undefined,
+      keyword: query.keyword,
+      ownerId: query.ownerId,
+      current: query.current ?? 1,
+      size: query.size ?? 100
+    })).map(signScheme)),
 
   saveScheme: (input: SchemeInput) =>
     post<RawRecord>(input.designId ? 'design/scheme/update' : 'design/scheme/save', {
