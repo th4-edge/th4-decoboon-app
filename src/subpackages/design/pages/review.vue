@@ -163,6 +163,5 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 .dr__price-empty { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .dr__quote-state { flex-shrink: 0; color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .dr__facts { margin-top: 16rpx; padding-top: 16rpx; display: flex; align-items: center; gap: 16rpx; border-top: 1rpx solid $jzb-border-light; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.dr__facts > :nth-child(3) { margin-right: auto; }
-.dr__calc-price { display: inline-flex; align-items: center; gap: 4rpx; }
+.dr__calc-price { margin-right: auto; display: inline-flex; align-items: center; gap: 4rpx; }
 </style>
