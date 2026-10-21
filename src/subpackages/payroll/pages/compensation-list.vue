@@ -9,6 +9,7 @@ import { COMPENSATION_STATUS_META } from '@/domains/payroll/meta'
 import { isLoggedIn } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { session } from '@/domains/identity/session'
+import { TOKEN_COLOR } from '@/styles/tokens'
 import { alert, confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -76,7 +77,7 @@ async function remove(item: CompensationScheme) {
           <text class="comp-card__name">{{ item.employee.name }}</text>
           <view class="comp-card__tags">
             <JzTag :text="COMPENSATION_STATUS_META[item.status].label" :color="COMPENSATION_STATUS_META[item.status].color" />
-            <JzTag v-if="item.locked" text="已锁定" color="#B7791F" />
+            <JzTag v-if="item.locked" text="已锁定" :color="TOKEN_COLOR.warning" />
           </view>
         </view>
         <view class="comp-card__facts"><text>月固定工资 {{ salaryMoney(item.baseSalary) }}</text><text>月应出勤 {{ item.scheduledDays }} 天</text><text>生效 {{ item.effectiveFrom }}</text><text v-if="item.locked">调薪请新增后续方案，历史工资事实不回写</text></view>
