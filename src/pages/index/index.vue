@@ -45,12 +45,23 @@ import JzBrandLogo from '@/components/JzBrandLogo.vue'
 import { useSystem } from '@/composables/system'
 import { useShare } from '@/composables/share'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import OwnerHome from '@/components/owner/OwnerHome.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  ensureOwnerPreviewJourney,
+  navigateOwnerPreviewTab,
+  ownerPreview
+} from '@/domains/owner-preview/session'
 
-const role = computed(() => session.role || 'customer')
+const previewProject = ref<Project | null>(null)
+const previewMode = computed(() => ownerPreview.active)
+const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
 const successProgramRef = ref<{ reload: () => Promise<void> } | null>(null)
 const emp = computed(() => session.emp)
-const customer = computed(() => session.customer)
+const customer = computed(() => ownerPreview.active
+  ? previewProject.value?.customer || null
+  : session.customer)
 const roleMeta = computed(() => ROLE_META[role.value])
 const { system } = useSystem()
 const loggedIn = computed(() => isLoggedIn())
@@ -100,11 +111,13 @@ let bossHomeCache: {
   unreadCount: number
 } | null = null
 
-onLoad(() => {
+onLoad((query) => {
+  activateOwnerPreviewFromQuery(query)
   if (isLoggedIn() && session.sessionType === 'user' && !session.emp) uni.reLaunch({ url: P.companyJoin })
 })
 onShow(() => {
   if (!isLoggedIn()) return
+  if (previewMode.value) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
   if (session.sessionType === 'user' && !session.emp) { uni.reLaunch({ url: P.companyJoin }); return }
   const background = role.value === 'boss' && !!bossHomeCache
   if (background) applyBossCache()
@@ -119,7 +132,9 @@ onPullDownRefresh(() => {
   return Promise.all([refresh(), onboardingRef.value?.reload(), successProgramRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
 })
 
-const myProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
+const myProjects = computed(() => ownerPreview.active
+  ? projects.value
+  : visibleProjects(projects.value, role.value, emp.value, customer.value))
 const customerProject = computed(() => isCustomer(role.value) ? myProjects.value[0] || null : null)
 const metrics = computed(() => projectMetrics(myProjects.value))
 const greeting = computed(() => {
@@ -135,6 +150,7 @@ const visibleReports = computed(() => {
 const waitAccept = computed(() =>
   acceptances.value.filter((a) => a.customerStatus === 'waiting' && myProjects.value.some((p) => p.id === a.projectId))
 )
+const customerPendingAcceptance = computed(() => isCustomer(role.value) ? waitAccept.value[0] || null : null)
 const individualWaitAccept = computed(() => role.value === 'pm' ? [] : waitAccept.value)
 
 const showAllAttention = ref(false)
@@ -322,6 +338,22 @@ function applyBossCache() {
 }
 
 async function refresh(background = false) {
+  if (ownerPreview.active) {
+    const project = await projectApi.info(ownerPreview.projectId)
+    if (project.id !== ownerPreview.projectId) throw new Error('项目范围校验失败，请返回员工项目重试')
+    previewProject.value = project
+    projects.value = [project]
+    const [latestReports, latestAcceptances] = await Promise.all([
+      siteApi.reports(project.id).catch(() => []),
+      acceptanceApi.listByProject(project.id).catch(() => [])
+    ])
+    reports.value = latestReports
+    acceptances.value = latestAcceptances
+    customers.value = []
+    unreadCount.value = 0
+    void ensureOwnerPreviewJourney()
+    return
+  }
   if (role.value === 'boss') {
     if (!background && !bossHomeCache) bossWorkbenchLoading.value = true
     try {
@@ -447,24 +479,44 @@ async function refresh(background = false) {
 }
 
 function openProject(id: string) {
-  uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
+  const previewQuery = ownerPreview.active ? `&preview=1&projectId=${encodeURIComponent(ownerPreview.projectId)}` : ''
+  uni.navigateTo({ url: `${P.projectDetail}?id=${id}${previewQuery}` })
 }
 
 function openOwnerFact(path: string) {
   if (!customerProject.value) return
-  uni.navigateTo({ url: `${path}?projectId=${customerProject.value.id}` })
+  const previewQuery = ownerPreview.active ? '&preview=1' : ''
+  uni.navigateTo({ url: `${path}?projectId=${customerProject.value.id}${previewQuery}` })
 }
 
 function openJourney(section?: string) {
   if (!customerProject.value) return
   const query = [`projectId=${customerProject.value.id}`]
   if (section) query.push(`section=${section}`)
+  if (ownerPreview.active) query.push('preview=1')
   uni.navigateTo({ url: `${P.projectJourney}?${query.join('&')}` })
 }
 
 function openFeedbackList() {
+  if (ownerPreview.active) {
+    uni.showToast({ title: '预览模式仅浏览，业主操作需业主本人完成', icon: 'none' })
+    return
+  }
   const query = customerProject.value ? `?projectId=${customerProject.value.id}` : ''
   uni.navigateTo({ url: `${P.feedbackList}${query}` })
+}
+
+function openMessages() {
+  if (ownerPreview.active) {
+    uni.showToast({ title: '预览模式仅浏览', icon: 'none' })
+    return
+  }
+  go(P.msgList)
+}
+
+function openAllProjects() {
+  if (ownerPreview.active) navigateOwnerPreviewTab(P.projectList)
+  else goTab(P.projectList)
 }
 
 function openPerformance() {
@@ -577,7 +629,10 @@ function displayName() {
 const avatarUrl = computed(() => emp.value?.avatarUrl || session.user?.avatarUrl || '')
 
 /** 企业名称：强化企业归属展示 */
-const orgLine = computed(() => session.company?.name || (isCustomer(role.value) ? '装修公司' : '未归属企业'))
+const orgLine = computed(() => {
+  if (isCustomer(role.value)) return customerProject.value?.company?.name || session.company?.name || '装修公司'
+  return session.company?.name || '未归属企业'
+})
 
 /** 门店 / 团队 / 视图说明 */
 const orgSubLine = computed(() => {
@@ -603,9 +658,11 @@ const projectSectionTitle = computed(() => {
 <template>
   <view class="home">
     <template v-if="loggedIn">
-    <JzPageHeader fixed :title="`${greeting}，${displayName()}`" :subtitle="orgLine">
+    <OwnerHome v-if="isCustomer(role)" :project="customerProject" />
+    <template v-else>
+    <JzPageHeader :fixed="!previewMode" :title="isCustomer(role) ? '我的家' : `${greeting}，${displayName()}`" :subtitle="isCustomer(role) ? `由 ${orgLine} 提供服务` : orgLine">
       <template #right>
-        <view class="home__bell" @tap="go(P.msgList)">
+        <view class="home__bell" @tap="openMessages">
           <JzIcon name="bell" :size="38" :color="TOKEN_COLOR.white" :stroke-width="2" />
         </view>
       </template>
@@ -613,8 +670,8 @@ const projectSectionTitle = computed(() => {
 
     <view class="home__body">
       <!-- 角色横幅：明确当前身份与视图边界 -->
-      <OnboardingChecklist ref="onboardingRef" />
-      <SuccessProgramCard ref="successProgramRef" />
+      <OnboardingChecklist v-if="!previewMode" ref="onboardingRef" />
+      <SuccessProgramCard v-if="!previewMode" ref="successProgramRef" />
       <view v-if="role === 'boss' && carryoverBatch" class="home__carryover jz-card" @tap="go(P.carryoverHome)">
         <view class="home__carryover-icon"><JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" /></view>
         <view class="jz-grow">
@@ -624,7 +681,7 @@ const projectSectionTitle = computed(() => {
         <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
       </view>
 
-      <view class="home__profile jz-card">
+      <view v-if="!isCustomer(role) || !customerProject" class="home__profile jz-card">
         <view class="home__profile-top">
           <JzEmployeeAvatar v-if="role !== 'customer' && emp" :src="avatarUrl" :name="displayName()" :role="emp.role" :status="emp.status" :size="112" />
           <JzAvatar v-else :src="avatarUrl" :name="displayName()" :color="roleMeta.color" :size="112" />
@@ -646,12 +703,39 @@ const projectSectionTitle = computed(() => {
       </view>
 
       <view v-if="isCustomer(role) && customerProject" class="jz-card home__owner-project" @tap="openProject(customerProject.id)">
-        <view class="jz-between"><text class="home__owner-project-title">我的家</text><JzTag :text="PROJECT_STATUS_META[customerProject.status].label" :color="PROJECT_STATUS_META[customerProject.status].color" /></view>
-        <text class="home__owner-project-name">{{ customerProject.name }}</text>
-        <text class="home__owner-project-address">{{ customerProject.community || customerProject.address }}</text>
-        <view class="home__owner-stage"><view><text class="home__owner-stage-label">当前阶段</text><text class="home__owner-stage-value">{{ projectStageText(customerProject) }}</text></view><text class="home__owner-progress">{{ customerProject.progress }}%</text></view>
-        <JzProgress :percent="customerProject.progress" :height="12" />
+        <view class="home__owner-provider">
+          <view class="home__owner-provider-logo"><JzBrandLogo variant="color" :size="64" /></view>
+          <view class="jz-grow">
+            <text class="home__owner-provider-name">{{ orgLine }}</text>
+            <text class="home__owner-provider-sub">由装企提供服务 · 装得清记录存证与保管</text>
+          </view>
+          <JzTag :text="PROJECT_STATUS_META[customerProject.status].label" :color="PROJECT_STATUS_META[customerProject.status].color" />
+        </view>
+        <view class="home__owner-project-main">
+          <text class="home__owner-project-eyebrow">我的家 · 项目进展</text>
+          <text class="home__owner-project-name">{{ customerProject.name }}</text>
+          <text class="home__owner-project-address">{{ customerProject.community || customerProject.address }}</text>
+          <view class="home__owner-stage">
+            <view><text class="home__owner-stage-label">当前阶段</text><text class="home__owner-stage-value">{{ projectStageText(customerProject) }}</text></view>
+            <text class="home__owner-progress">{{ customerProject.progress }}%</text>
+          </view>
+          <JzProgress :percent="customerProject.progress" :height="12" />
+        </view>
         <view class="home__owner-enter" @tap.stop="openJourney()"><text>查看我的家全貌</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" /></view>
+      </view>
+
+      <view v-if="isCustomer(role) && customerPendingAcceptance" class="home__owner-todo jz-card" @tap="openOwnerFact(P.ownerAcceptance)">
+        <view class="home__owner-todo-icon"><JzIcon name="shield-check" :size="36" :color="TOKEN_COLOR.warning" /></view>
+        <view class="jz-grow">
+          <text class="home__owner-todo-title">阶段验收待您确认</text>
+          <text class="home__owner-todo-sub">请查看现场照片与验收说明，由您本人确认或驳回。</text>
+        </view>
+        <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
+      </view>
+
+      <view v-if="isCustomer(role) && customerProject" class="home__owner-section-head">
+        <text>我家的记录</text>
+        <text>8 类档案</text>
       </view>
 
       <view v-if="isCustomer(role) && customerProject" class="jz-card home__owner-quicks">
@@ -761,7 +845,7 @@ const projectSectionTitle = computed(() => {
       </view>
 
       <!-- 快捷入口 -->
-      <view class="home__quicks jz-card" :class="{ 'home__quicks--boss': role === 'boss', 'home__quicks--finance': role === 'finance' }">
+      <view v-if="quicks.length" class="home__quicks jz-card" :class="{ 'home__quicks--boss': role === 'boss', 'home__quicks--finance': role === 'finance' }">
         <view v-for="q in quicks" :key="q.label" class="home__quick" @tap="q.action()">
           <view class="home__quick-icon"><JzIcon :name="iconName(q.icon)" :size="38" :color="TOKEN_COLOR.primary" :stroke-width="1.9" /></view>
           <text class="home__quick-label">{{ q.label }}</text>
@@ -855,7 +939,7 @@ const projectSectionTitle = computed(() => {
       <view class="home__section">
         <view class="jz-section">
           <text class="jz-section__title">{{ projectSectionTitle }}</text>
-          <view class="home__more" @tap="goTab(P.projectList)"><text>{{ role === 'boss' ? '项目台账' : '全部' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
+          <view class="home__more" @tap="openAllProjects"><text>{{ role === 'boss' ? '项目台账' : '全部' }}</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" /></view>
         </view>
         <template v-if="role === 'boss'">
           <JzSkeleton v-if="bossWorkbenchLoading" :rows="2" />
@@ -955,6 +1039,7 @@ const projectSectionTitle = computed(() => {
     <view class="jz-tabbar-gap" />
 
     <JzTabBar :current="P.home" />
+    </template>
     </template>
 
     <template v-else>

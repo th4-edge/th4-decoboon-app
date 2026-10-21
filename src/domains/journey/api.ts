@@ -2,7 +2,8 @@ import { post } from '@/core/http'
 import { fileApi } from '@/domains/file/api'
 import type {
   CustomerJourney, JourneyAction, JourneyFact, JourneyItem, JourneyMedia, JourneyPriceGroup,
-  JourneyPriceRow, JourneyRegion, JourneySection, ShareJourneyView
+  JourneyPriceRow, JourneyRegion, JourneySection, JourneyVendor, JourneyMember,
+  OwnerPreviewMeta, ShareJourneyView
 } from './model'
 
 type RawRecord = Record<string, any>
@@ -145,24 +146,70 @@ async function normalizeSection(raw: RawRecord): Promise<JourneySection> {
   }
 }
 
+function normalizeVendor(raw: RawRecord | undefined): JourneyVendor | undefined {
+  if (!raw) return undefined
+  return {
+    name: raw.name ? String(raw.name) : undefined,
+    logo: raw.logo ? String(raw.logo) : undefined,
+    color: raw.color ? String(raw.color) : undefined,
+    custodianCredit: raw.custodianCredit === true,
+    serviceArea: raw.serviceArea ? String(raw.serviceArea) : undefined,
+    serviceTel: raw.serviceTel ? String(raw.serviceTel) : undefined,
+    afterSaleTel: raw.afterSaleTel ? String(raw.afterSaleTel) : undefined,
+    qualification: raw.qualification ? String(raw.qualification) : undefined,
+    intro: raw.intro ? String(raw.intro) : undefined
+  }
+}
+
+function normalizeMember(raw: RawRecord): JourneyMember {
+  return {
+    name: String(raw.name ?? ''),
+    roleName: String(raw.roleName ?? '')
+  }
+}
+
+function normalizePreviewMeta(raw: RawRecord | undefined): OwnerPreviewMeta | undefined {
+  if (!raw || raw.mode !== 'EmployeeOwnerPreview') return undefined
+  return {
+    mode: 'EmployeeOwnerPreview',
+    readOnly: raw.readOnly === true,
+    notice: String(raw.notice ?? '业主视角预览 · 只读，不代表业主已查看或确认'),
+    watermark: raw.watermark == null ? undefined : String(raw.watermark),
+    asOf: raw.asOf == null ? undefined : String(raw.asOf)
+  }
+}
+
+async function normalizeJourney(raw: RawRecord): Promise<CustomerJourney> {
+  return {
+    projectId: String(raw.projectId ?? ''),
+    projectNo: raw.projectNo ? String(raw.projectNo) : undefined,
+    projectName: String(raw.projectName ?? ''),
+    projectStatus: raw.projectStatus ? String(raw.projectStatus) : undefined,
+    projectStatusName: raw.projectStatusName ? String(raw.projectStatusName) : undefined,
+    progress: Number(raw.progress ?? 0),
+    currentStageName: raw.currentStageName ? String(raw.currentStageName) : undefined,
+    propertyAddress: raw.propertyAddress ? String(raw.propertyAddress) : undefined,
+    asOf: raw.asOf ? String(raw.asOf) : undefined,
+    sections: Array.isArray(raw.sections) ? await Promise.all(raw.sections.map(normalizeSection)) : [],
+    actions: Array.isArray(raw.actions) ? raw.actions.map(normalizeAction) : [],
+    openFeedbackCount: Number(raw.openFeedbackCount ?? 0),
+    pendingActionCount: Number(raw.pendingActionCount ?? 0),
+    vendor: normalizeVendor(raw.vendor),
+    team: Array.isArray(raw.team) ? raw.team.map(normalizeMember) : [],
+    previewMeta: normalizePreviewMeta(raw.previewMeta)
+  }
+}
+
 export const journeyApi = {
   info: async (projectId: string): Promise<CustomerJourney> => {
     const raw = await post<RawRecord>('customer/project/journey/info', { projectId })
-    return {
-      projectId: String(raw.projectId ?? ''),
-      projectNo: raw.projectNo ? String(raw.projectNo) : undefined,
-      projectName: String(raw.projectName ?? ''),
-      projectStatus: raw.projectStatus ? String(raw.projectStatus) : undefined,
-      projectStatusName: raw.projectStatusName ? String(raw.projectStatusName) : undefined,
-      progress: Number(raw.progress ?? 0),
-      currentStageName: raw.currentStageName ? String(raw.currentStageName) : undefined,
-      propertyAddress: raw.propertyAddress ? String(raw.propertyAddress) : undefined,
-      asOf: raw.asOf ? String(raw.asOf) : undefined,
-      sections: Array.isArray(raw.sections) ? await Promise.all(raw.sections.map(normalizeSection)) : [],
-      actions: Array.isArray(raw.actions) ? raw.actions.map(normalizeAction) : [],
-      openFeedbackCount: Number(raw.openFeedbackCount ?? 0),
-      pendingActionCount: Number(raw.pendingActionCount ?? 0)
-    }
+    return normalizeJourney(raw)
+  },
+
+  /** 员工侧业主视角只读预览；不复用业主鉴权接口，不调用任何业主写动作。 */
+  ownerPreviewInfo: async (projectId: string): Promise<CustomerJourney> => {
+    const raw = await post<RawRecord>('project/owner-preview/info', { projectId })
+    return normalizeJourney(raw)
   },
 
   /** 业主生成亲友观看链接（需登录）。 */

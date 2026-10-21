@@ -9,6 +9,7 @@ import { agreePrivacy, isLoggedIn, loginAsCustomer, loginAsEmployee, loginAsToke
 import { useSystem } from '@/composables/system'
 import { hideLoading, loading, toast } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
+import { resetOwnerPreview } from '@/domains/owner-preview/session'
 import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
@@ -21,14 +22,21 @@ const { handlePhoneNumber } = useWxPhoneAuth()
 
 onLoad(async (query) => {
   // 本地联调：使用真实员工令牌快速切换角色；生产构建不会执行该分支。
-  if (import.meta.env.DEV && query?.devToken) {
+  if ((import.meta.env.DEV || import.meta.env.MODE === 'development') && query?.devToken) {
     const token = String(query.devToken)
     try {
       agreePrivacy()
       loginAsToken(token)
       const profile = await identityApi.sessionInfo(token)
       if (profile.currentEmployee) {
+        resetOwnerPreview()
         loginAsEmployee(profile.currentEmployee, token, profile)
+        goTab(P.home)
+        return
+      }
+      if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) {
+        resetOwnerPreview()
+        loginAsCustomer(profile, token)
         goTab(P.home)
         return
       }
@@ -65,10 +73,12 @@ async function finishWxLogin(code: string, phoneCode?: string) {
     loginAsToken(token.token)
     const profile = await identityApi.sessionInfo(token.token)
     if (profile.currentEmployee) {
+      resetOwnerPreview()
       loginAsEmployee(profile.currentEmployee, token.token, profile)
       hideLoading()
       goTab(P.home)
     } else if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) {
+      resetOwnerPreview()
       loginAsCustomer(profile, token.token)
       hideLoading()
       goTab(P.home)

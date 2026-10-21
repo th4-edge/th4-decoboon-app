@@ -117,6 +117,17 @@ export interface CustomerJourney {
   vendor?: JourneyVendor
   /** 为这一户服务的人（只含姓名与岗位，不含个人手机号） */
   team?: JourneyMember[]
+  /** 仅员工侧业主视角预览返回；真实业主端为空。 */
+  previewMeta?: OwnerPreviewMeta
+}
+
+/** 员工侧业主视角只读预览标识。 */
+export interface OwnerPreviewMeta {
+  mode: 'EmployeeOwnerPreview'
+  readOnly: boolean
+  notice: string
+  watermark?: string
+  asOf?: string
 }
 
 /** 亲友只读视图（免登录）。服务端已脱敏：不含房号、姓名、电话；Friend 范围不含金额。 */

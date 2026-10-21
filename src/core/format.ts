@@ -231,7 +231,7 @@ export function maskPhone(p?: string): string {
 /** 姓名首个字符（头像占位） */
 export function nameChar(name?: string): string {
   if (!name) return '家'
-  return name.slice(-2)
+  return Array.from(name.trim())[0] || '家'
 }
 
 /** 由姓名生成稳定头像底色 */

@@ -22,8 +22,18 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
+import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import OwnerProgress from '@/components/owner/OwnerProgress.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  leaveOwnerPreview,
+  ownerPreview,
+  ownerPreviewWatermark
+} from '@/domains/owner-preview/session'
 
-const role = computed(() => session.role || 'customer')
+const previewMode = computed(() => ownerPreview.active)
+const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const emp = computed(() => session.emp)
 const customer = computed(() => session.customer)
 const all = ref<Project[]>([])
@@ -35,9 +45,6 @@ const loadMoreError = ref('')
 const current = ref(1)
 const pageSize = 20
 const hasMore = ref(false)
-/** 业主端只有一个工地时，"进度"Tab 直接进工地详情，避免"只有一条还要再点一次"。 */
-const redirectedToSingle = ref(false)
-
 /** 企业负责人经营视角状态 */
 const isBoss = computed(() => role.value === 'boss')
 /** 企业级增减项工作台：负责人/店长/团队长/财务可进入；设计师/业务员/项目经理走项目内工作台。 */
@@ -50,11 +57,15 @@ const bossContractStage = ref<string>('all')
 const bossSort = ref<ProjectSortKey>('risk')
 
 onLoad((options?: Record<string, string | undefined>) => {
+  activateOwnerPreviewFromQuery(options)
   if (!isLoggedIn()) goTab(P.login)
   const status = options?.status
   if (status && FILTERS.some((item) => item.key === status)) filter.value = status as 'all' | ProjectStatus
 })
-onShow(() => { if (isLoggedIn()) refresh() })
+onShow(() => {
+  if (previewMode.value) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
+  if (isLoggedIn()) refresh()
+})
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
 
@@ -63,6 +74,14 @@ async function refresh() {
   loadError.value = ''
   loadMoreError.value = ''
   try {
+    if (ownerPreview.active) {
+      const project = await projectApi.info(ownerPreview.projectId)
+      if (project.id !== ownerPreview.projectId) throw new Error('项目范围校验失败，请返回员工项目重试')
+      all.value = [project]
+      current.value = 1
+      hasMore.value = false
+      return
+    }
     if (isBoss.value) {
       const report = await projectApi.overview({
         current: 1,
@@ -81,7 +100,6 @@ async function refresh() {
     all.value = page.list
     current.value = 1
     hasMore.value = page.hasMore
-    redirectIfSingleOwnerProject()
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '项目加载失败'
   } finally {
@@ -120,19 +138,10 @@ async function loadMore() {
   }
 }
 
-const scoped = computed(() => visibleProjects(all.value, role.value, emp.value, customer.value))
+const scoped = computed(() => ownerPreview.active
+  ? all.value
+  : visibleProjects(all.value, role.value, emp.value, customer.value))
 
-/**
- * 业主端正常只有一处工地：列表没有存在意义，首次进入直接落到工地详情。
- * 用标记位防止从详情返回时反复跳转（返回键仍然回到"我的家"）。
- */
-function redirectIfSingleOwnerProject() {
-  if (redirectedToSingle.value || !isCustomer(role.value)) return
-  const only = visibleProjects(all.value, role.value, emp.value, customer.value)
-  if (only.length !== 1) return
-  redirectedToSingle.value = true
-  uni.redirectTo({ url: `${P.projectDetail}?id=${only[0].id}` })
-}
 const myFiltered = computed(() => filter.value === 'all' ? scoped.value : scoped.value.filter((p) => p.status === filter.value))
 
 const FILTERS: { key: 'all' | ProjectStatus; label: string }[] = [
@@ -340,7 +349,8 @@ function profitRateText(p: Project) {
 }
 
 function open(id: string) {
-  uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
+  const previewQuery = ownerPreview.active ? `&preview=1&projectId=${encodeURIComponent(ownerPreview.projectId)}` : ''
+  uni.navigateTo({ url: `${P.projectDetail}?id=${id}${previewQuery}` })
 }
 function createProject() {
   if (!canCreate()) return
@@ -356,6 +366,9 @@ function openChangeWorkbench() {
 
 <template>
   <view class="pl">
+    <OwnerProgress v-if="isCustomer(role)" :project="scoped[0] || null" />
+    <template v-else>
+    <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
     <JzPageHeader
       :title="isBoss ? '项目经营' : '项目工地'"
       :subtitle="isBoss ? bossSubtitle : (isCustomer(role) ? '仅展示与您关联的工地' : `${scoped.length} 个在建/历史项目`)"
@@ -573,6 +586,8 @@ function openChangeWorkbench() {
 
     <JzFloatAdd v-if="canCreate()" text="合同签约" @tap="createProject" />
     <JzTabBar :current="P.projectList" />
+    <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
+    </template>
   </view>
 </template>
 

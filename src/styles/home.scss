@@ -132,3 +132,90 @@
 .home__carryover-icon { width: 68rpx; height: 68rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lightest; }
 .home__carryover-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .home__carryover-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.45; }
+
+/* 业主首页：先看我的家，再看今天需要确认什么。 */
+.home__owner-project {
+  padding: 0;
+  overflow: hidden;
+  background: $jzb-bg-card;
+}
+.home__owner-provider {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 24rpx;
+  border-bottom: 1rpx solid $jzb-border-light;
+}
+.home__owner-provider-logo {
+  width: 64rpx;
+  height: 64rpx;
+  flex: 0 0 64rpx;
+  overflow: hidden;
+  border-radius: 20rpx;
+  background: $jzb-primary-lightest;
+}
+.home__owner-provider-name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.home__owner-provider-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.45; }
+.home__owner-project-main {
+  margin: 20rpx 18rpx 0;
+  padding: 28rpx 24rpx;
+  overflow: hidden;
+  border-radius: 28rpx;
+  color: $jzb-text-inverse;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(216, 255, 89, .16), transparent 32%),
+    linear-gradient(145deg, $jzb-primary-dark, $jzb-primary);
+  box-shadow: 0 18rpx 34rpx rgba(16, 50, 43, .18);
+}
+.home__owner-project-eyebrow { display: block; color: rgba(255,255,255,.68); font-size: 21rpx; font-weight: 600; letter-spacing: 1rpx; }
+.home__owner-project-name { display: block; margin-top: 10rpx; color: $jzb-text-inverse; font-size: 38rpx; font-weight: 750; }
+.home__owner-project-address { display: block; margin-top: 6rpx; color: rgba(255,255,255,.72); font-size: $jzb-font-xs; }
+.home__owner-stage { display: flex; align-items: flex-end; justify-content: space-between; margin: 26rpx 0 14rpx; }
+.home__owner-stage-label { display: block; color: rgba(255,255,255,.62); font-size: 21rpx; }
+.home__owner-stage-value { display: block; margin-top: 5rpx; color: $jzb-text-inverse; font-size: $jzb-font-md; font-weight: 700; }
+.home__owner-progress { color: #D8FF59; font-size: 34rpx; font-weight: 750; }
+.home__owner-project :deep(.jz-progress) { background: rgba(255,255,255,.14); }
+.home__owner-enter {
+  margin: 0 24rpx;
+  padding: 20rpx 0 22rpx;
+  border-top: 0;
+  color: $jzb-primary-dark;
+}
+.home__owner-todo {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin: 0 $jzb-page-pad 20rpx;
+  padding: 24rpx;
+  background: $jzb-warning-soft;
+  border: 1rpx solid rgba(230, 126, 34, .13);
+}
+.home__owner-todo-icon {
+  width: 72rpx;
+  height: 72rpx;
+  flex: 0 0 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22rpx;
+  background: rgba(255,255,255,.7);
+}
+.home__owner-todo-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.home__owner-todo-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.home__owner-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4rpx $jzb-page-pad 14rpx;
+  padding: 0 4rpx;
+}
+.home__owner-section-head text:first-child { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
+.home__owner-section-head text:last-child { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.home__owner-quicks { gap: 8rpx; padding: 18rpx 10rpx 12rpx; }
+.home__owner-quick {
+  min-height: 136rpx;
+  border-radius: 22rpx;
+  transition: background $jzb-duration-fast $jzb-ease-out, transform $jzb-duration-fast $jzb-ease-out;
+}
+.home__owner-quick:active { background: $jzb-primary-lightest; transform: scale(.96); }
+.home__owner-quick .jz-icon { padding: 0; }

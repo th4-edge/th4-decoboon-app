@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import { isCustomer } from '@/roles/permission'
+import { can, isCustomer } from '@/roles/permission'
 import { journeyApi } from '@/domains/journey/api'
 import type { CustomerJourney, JourneyAction, JourneyFact } from '@/domains/journey/model'
 import { dateTimeText, selectionLineText } from '@/core/format'
@@ -15,12 +15,23 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzTag from '@/components/JzTag.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
+import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import OwnerTabBar from '@/components/owner/OwnerTabBar.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  leaveOwnerPreview,
+  setOwnerPreviewJourney
+} from '@/domains/owner-preview/session'
 
 const projectId = ref('')
 const targetSection = ref('')
 const journey = ref<CustomerJourney | null>(null)
 const loading = ref(true)
 const loadError = ref('')
+const previewMode = ref(false)
+const previewPermissionDenied = ref(false)
+const refreshing = ref(false)
 
 // 动态分享卡片：数据就绪后画一张带装企品牌的 5:4 卡片，失败则回退静态图。
 const shareImage = ref('')
@@ -71,18 +82,34 @@ useShare(() => ({
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
+  activateOwnerPreviewFromQuery(query)
+  previewMode.value = query?.preview === '1'
   projectId.value = query?.projectId || ''
   targetSection.value = query?.section || ''
+  if (previewMode.value && !can(session.role, 'view:owner-preview')) {
+    previewPermissionDenied.value = true
+  }
 })
-onShow(() => { if (projectId.value) void load() })
+onShow(() => {
+  if (previewMode.value) {
+    uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
+  }
+  if (projectId.value && !previewPermissionDenied.value) void load()
+})
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
-  loading.value = true
+  if (previewPermissionDenied.value) return
+  const hasContent = !!journey.value
+  loading.value = !hasContent
+  refreshing.value = previewMode.value && hasContent
   loadError.value = ''
   try {
-    journey.value = await journeyApi.info(projectId.value)
-    void buildShareCard()
+    journey.value = previewMode.value
+      ? await journeyApi.ownerPreviewInfo(projectId.value)
+      : await journeyApi.info(projectId.value)
+    if (previewMode.value) setOwnerPreviewJourney(journey.value)
+    if (!previewMode.value) void buildShareCard()
     if (targetSection.value) {
       setTimeout(() => uni.pageScrollTo({ selector: `#section-${targetSection.value}`, duration: 300 }), 120)
     }
@@ -92,6 +119,7 @@ async function load() {
     toastError(error, loadError.value)
   } finally {
     loading.value = false
+    refreshing.value = false
   }
 }
 
@@ -127,16 +155,40 @@ function run(action: JourneyAction) {
   }
 }
 
-const actions = computed(() => journey.value?.actions || [])
+function openFeedbackCreate() {
+  uni.navigateTo({ url: `${P.feedbackEdit}?projectId=${projectId.value}` })
+}
+
+function openFeedbackHistory() {
+  uni.navigateTo({ url: `${P.feedbackList}?projectId=${projectId.value}` })
+}
+
+const actions = computed(() => previewMode.value ? [] : (journey.value?.actions || []))
+const watermark = computed(() => journey.value?.previewMeta?.watermark || '业主视角预览 · 仅内部使用')
+
+function backToProject() {
+  if (previewMode.value) {
+    leaveOwnerPreview()
+    return
+  }
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+    return
+  }
+  uni.redirectTo({ url: `${P.projectDetail}?id=${projectId.value}` })
+}
 
 function preview(urls: string[], current: string) {
-  uni.previewImage({ urls, current })
+  uni.previewImage({ urls, current, showmenu: !previewMode.value } as any)
 }
 </script>
 
 <template>
-  <view class="journey">
-    <PageState v-if="loading && !journey" state="loading" :rows="6" />
+  <view class="journey" :class="{ 'journey--preview': previewMode }">
+    <OwnerPreviewBanner v-if="previewMode" :refreshing="refreshing" @back="backToProject" />
+    <PageState v-if="previewPermissionDenied" state="error" title="你没有该项目业主视角的预览权限" subtitle="请返回员工项目，或确认项目数据范围。" retry-text="返回员工项目" @retry="backToProject" />
+    <PageState v-else-if="loading && !journey" state="loading" :rows="6" />
     <PageState v-else-if="loadError && !journey" state="error" title="项目旅程暂不可确认" :subtitle="loadError" @retry="load" />
     <template v-else-if="journey">
       <view class="journey__hero">
@@ -185,17 +237,21 @@ function preview(urls: string[], current: string) {
               </view>
               <view v-if="item.amount || item.date" class="journey__item-meta"><text v-if="item.amount">{{ item.amount }}</text><text v-if="item.date">{{ dateTimeText(item.date) }}</text></view>
               <view v-if="item.images.length" class="journey__images">
-                <image v-for="(image, index) in item.images.slice(0, 6)" :key="index" :src="image" mode="aspectFill" class="journey__image" @tap="preview(item.images, image)" />
+                <image v-for="(image, index) in item.images.slice(0, 6)" :key="index" :src="image" mode="aspectFill" class="journey__image" :show-menu-by-longpress="!previewMode" @tap="preview(item.images, image)" />
               </view>
               <view v-if="item.facts.length" class="journey__item-facts"><text v-for="fact in item.facts" :key="fact.key">{{ fact.label }} {{ fact.value }}</text></view>
               <view v-if="item.lines.length" class="journey__item-lines"><text v-for="(line, index) in item.lines.slice(0, 30)" :key="index">· {{ selectionLineText(line) }}</text></view>
             </view>
           </view>
+          <view v-if="section.key === 'feedback' && !previewMode && isCustomer(session.role)" class="journey__feedback-actions">
+            <button class="jz-btn jz-btn--ghost journey__feedback-button" @tap="openFeedbackHistory">查看记录</button>
+            <button class="jz-btn jz-btn--primary journey__feedback-button" @tap="openFeedbackCreate">提出意见或投诉</button>
+          </view>
         </view>
       </view>
       <!-- 业主端不出现"企业内部成本/利润"这类字眼，只对员工展示投影边界说明 -->
-      <view v-if="!isCustomer(session.role)" class="journey__footer">项目旅程只展示业主可见事实，不展示企业内部成本和利润。</view>
-      <view v-if="isCustomer(session.role)" class="jz-card journey__share">
+      <view v-if="!isCustomer(session.role) && !previewMode" class="journey__footer">项目旅程只展示业主可见事实，不展示企业内部成本和利润。</view>
+      <view v-if="!previewMode && isCustomer(session.role)" class="jz-card journey__share">
         <text class="journey__share-title">把进度分享给家人</text>
         <text class="journey__share-desc">生成一条只读链接，家人和好友不用注册就能看这一户的进度与照片；可随时撤回，不含金额与房号。</text>
         <button class="jz-btn jz-btn--primary jz-btn--block" :disabled="sharing" @tap="createShareLink">
@@ -204,7 +260,7 @@ function preview(urls: string[], current: string) {
       </view>
       <!-- 服务主体知情权：业主有权知道是谁在为他服务（USER-DECISION-20261014-002）。
            只展示姓名与岗位，不展示员工个人手机号；联络走企业统一客服电话。 -->
-      <view v-if="isCustomer(session.role) && journey.team?.length" class="jz-card journey__team">
+      <view v-if="(isCustomer(session.role) || previewMode) && journey.team?.length" class="jz-card journey__team">
         <text class="journey__team-title">为你家服务的人</text>
         <view v-for="member in journey.team" :key="member.name + member.roleName" class="journey__team-row">
           <text>{{ member.name }}</text><text>{{ member.roleName }}</text>
@@ -216,6 +272,8 @@ function preview(urls: string[], current: string) {
         本页记录由 {{ journey.vendor.name }} 提供并审核{{ journey.vendor.custodianCredit ? '；记录存证与保管 · 装得清' : '。' }}
       </view>
       <view class="jz-tabbar-gap" />
+      <view v-if="previewMode" class="journey__preview-note">业主操作需业主本人在业主端完成</view>
+      <OwnerPreviewWatermark v-if="previewMode" :text="watermark" />
       <!-- 分享卡片画布：离屏绘制，不参与布局 -->
       <canvas
         :canvas-id="SHARE_CARD_ID"
@@ -223,55 +281,59 @@ function preview(urls: string[], current: string) {
         class="journey__share-canvas"
         :style="{ width: SHARE_CARD_WIDTH + 'px', height: SHARE_CARD_HEIGHT + 'px' }"
       />
+      <OwnerTabBar :current="P.projectJourney" />
     </template>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.journey { min-height: 100vh; padding-bottom: 40rpx; background: $jzb-bg-page; }
-.journey__hero { padding: 28rpx 32rpx 36rpx; background: linear-gradient(135deg, $jzb-primary-dark 0%, $jzb-primary 100%); color: $jzb-text-inverse; }
-.journey__no { font-size: $jzb-font-xs; opacity: .82; }
-.journey__name { display: block; margin-top: 8rpx; font-size: $jzb-font-xl; font-weight: 700; }
-.journey__address { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; opacity: .86; }
-.journey__progress { display: flex; align-items: center; gap: 16rpx; margin-top: 26rpx; font-size: $jzb-font-xs; }
+.journey { min-height: 100vh; padding-bottom: 40rpx; color: $jzb-text-inverse; background: radial-gradient(circle at 80% -10%, rgba(43,196,180,.16), transparent 36%), $jzb-brand-ink-deep; }
+.journey__preview-note { margin: 0 24rpx 20rpx; padding: 18rpx 22rpx; color: rgba(255,255,255,.56); font-size: $jzb-font-xs; text-align: center; background: rgba(255,255,255,.06); border: 1rpx solid rgba(255,255,255,.08); border-radius: $jzb-radius; }
+.journey__feedback-actions { display: flex; gap: 16rpx; margin-top: 24rpx; padding-top: 24rpx; border-top: 1rpx solid rgba(255,255,255,.1); }
+.journey__feedback-button { flex: 1; min-height: 76rpx; font-size: $jzb-font-xs; }
+.journey__hero { position: relative; overflow: hidden; padding: 44rpx 32rpx 46rpx; background: linear-gradient(145deg, $jzb-brand-ink-deep 0%, $jzb-brand-ink 55%, $jzb-primary-dark 100%); color: $jzb-text-inverse; }
+.journey__no { display: inline-block; padding: 6rpx 14rpx; color: $jzb-primary-light; font-size: 19rpx; letter-spacing: 1rpx; background: rgba(255,255,255,.07); border: 1rpx solid rgba(255,255,255,.1); border-radius: $jzb-radius-pill; }
+.journey__name { display: block; margin-top: 18rpx; font-size: 46rpx; font-weight: 760; line-height: 1.3; letter-spacing: -0.8rpx; }
+.journey__address { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; opacity: .62; }
+.journey__progress { display: flex; align-items: center; gap: 16rpx; margin-top: 32rpx; font-size: $jzb-font-xs; }
 .journey__progress :deep(.jz-progress) { flex: 1; }
 .journey__hero-foot { display: flex; justify-content: space-between; margin-top: 18rpx; font-size: $jzb-font-xs; opacity: .9; }
-.journey__todo { margin: 20rpx 24rpx; padding: 24rpx; }
+.journey__todo { margin: 24rpx; padding: 24rpx; background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.1); }
 .journey__todo-head { display: flex; align-items: center; justify-content: space-between; }
-.journey__todo-title { font-size: $jzb-font-md; font-weight: 700; }
-.journey__action { display: flex; align-items: center; gap: 12rpx; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.journey__todo-title { color: $jzb-text-inverse; font-size: $jzb-font-md; font-weight: 700; }
+.journey__action { display: flex; align-items: center; gap: 12rpx; padding: 22rpx 0; border-bottom: 1rpx solid rgba(255,255,255,.08); }
 .journey__action:last-child { border-bottom: none; }
-.journey__action-title { display: block; font-size: $jzb-font-sm; font-weight: 650; }
-.journey__action-desc { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.journey__action-title { display: block; color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 650; }
+.journey__action-desc { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: rgba(255,255,255,.55); }
 .journey__section { padding: 0 24rpx 20rpx; }
 .journey__section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; }
-.journey__section-title { display: block; font-size: $jzb-font-md; font-weight: 700; }
-.journey__section-sub { display: block; margin-top: 3rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.journey__card { padding: 24rpx; }
-.journey__summary { display: block; font-size: $jzb-font-sm; color: $jzb-text-1; line-height: 1.65; }
+.journey__section-title { display: block; color: $jzb-text-inverse; font-size: $jzb-font-md; font-weight: 700; }
+.journey__section-sub { display: block; margin-top: 3rpx; font-size: $jzb-font-xs; color: rgba(255,255,255,.48); }
+.journey__card { padding: 24rpx; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.09); box-shadow: 0 18rpx 42rpx rgba(0,0,0,.12); }
+.journey__summary { display: block; font-size: $jzb-font-sm; color: rgba(255,255,255,.9); line-height: 1.65; }
 .journey__facts { display: flex; flex-wrap: wrap; margin-top: 16rpx; }
 .journey__fact { width: 50%; padding-top: 14rpx; }
-.journey__fact-label { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.journey__fact-value { display: block; margin-top: 4rpx; font-size: $jzb-font-sm; font-weight: 650; }
-.journey__items { margin-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
-.journey__item { padding: 20rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.journey__fact-label { display: block; font-size: $jzb-font-xs; color: rgba(255,255,255,.45); }
+.journey__fact-value { display: block; margin-top: 4rpx; font-size: $jzb-font-sm; font-weight: 650; color: rgba(255,255,255,.92); }
+.journey__items { margin-top: 18rpx; border-top: 1rpx solid rgba(255,255,255,.08); }
+.journey__item { padding: 20rpx 0; border-bottom: 1rpx solid rgba(255,255,255,.08); }
 .journey__item:last-child { border-bottom: none; }
-.journey__item-title { display: block; font-size: $jzb-font-sm; font-weight: 650; }
-.journey__item-sub { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.journey__item-meta { display: flex; gap: 18rpx; margin-top: 8rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 600; }
+.journey__item-title { display: block; color: rgba(255,255,255,.94); font-size: $jzb-font-sm; font-weight: 650; }
+.journey__item-sub { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: rgba(255,255,255,.5); }
+.journey__item-meta { display: flex; gap: 18rpx; margin-top: 8rpx; color: $jzb-primary-light; font-size: $jzb-font-xs; font-weight: 600; }
 .journey__images { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 12rpx; }
 .journey__image { width: 150rpx; height: 150rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
-.journey__item-facts { display: flex; flex-wrap: wrap; gap: 12rpx 22rpx; margin-top: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.journey__item-facts { display: flex; flex-wrap: wrap; gap: 12rpx 22rpx; margin-top: 10rpx; color: rgba(255,255,255,.62); font-size: $jzb-font-xs; }
 .journey__item-lines { margin-top: 10rpx; }
-.journey__item-lines text { display: block; color: $jzb-text-2; font-size: $jzb-font-xs; line-height: 1.75; }
+.journey__item-lines text { display: block; color: rgba(255,255,255,.62); font-size: $jzb-font-xs; line-height: 1.75; }
 .journey__share-canvas { position: fixed; left: -9999px; top: 0; }
-.journey__share { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; }
-.journey__share-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
-.journey__share-desc { display: block; margin: 10rpx 0 18rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.7; }
-.journey__team { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; }
-.journey__team-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
-.journey__team-row { display: flex; justify-content: space-between; margin-top: 14rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
-.journey__team-row text:last-child { color: $jzb-text-3; }
+.journey__share { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.09); }
+.journey__share-title { display: block; color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 650; }
+.journey__share-desc { display: block; margin: 10rpx 0 18rpx; color: rgba(255,255,255,.55); font-size: $jzb-font-xs; line-height: 1.7; }
+.journey__team { margin: 0 32rpx 20rpx; padding: 24rpx 28rpx; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.09); }
+.journey__team-title { display: block; color: $jzb-text-inverse; font-size: $jzb-font-sm; font-weight: 650; }
+.journey__team-row { display: flex; justify-content: space-between; margin-top: 14rpx; color: rgba(255,255,255,.72); font-size: $jzb-font-xs; }
+.journey__team-row text:last-child { color: rgba(255,255,255,.46); }
 .journey__team-tel { display: block; margin-top: 16rpx; color: $jzb-primary; font-size: $jzb-font-xs; }
-.journey__footer { padding: 10rpx 32rpx 30rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
+.journey__footer { padding: 10rpx 32rpx 30rpx; color: rgba(255,255,255,.45); font-size: $jzb-font-xs; line-height: 1.6; }
 </style>

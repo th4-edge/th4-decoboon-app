@@ -16,8 +16,17 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzActionSheet from '@/components/JzActionSheet.vue'
 import { toastError } from '@/composables/toast'
+import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
+import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  leaveOwnerPreview,
+  ownerPreview,
+  ownerPreviewWatermark
+} from '@/domains/owner-preview/session'
 
-const role = computed(() => session.role || 'customer')
+const previewMode = computed(() => ownerPreview.active)
+const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const emp = computed(() => session.emp)
 const customer = computed(() => session.customer)
 const projects = ref<Project[]>([])
@@ -25,11 +34,19 @@ const reports = ref<SiteReport[]>([])
 const pickVisible = ref(false)
 const pickProjects = ref<Project[]>([])
 
-onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
-onShow(() => { if (isLoggedIn()) refresh() })
+onLoad((query) => {
+  activateOwnerPreviewFromQuery(query)
+  if (!isLoggedIn()) goTab(P.login)
+})
+onShow(() => {
+  if (previewMode.value) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
+  if (isLoggedIn()) refresh()
+})
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
-const scopedProjects = computed(() => visibleProjects(projects.value, role.value, emp.value, customer.value))
+const scopedProjects = computed(() => ownerPreview.active
+  ? projects.value
+  : visibleProjects(projects.value, role.value, emp.value, customer.value))
 const feed = computed(() => {
   const ids = scopedProjects.value.map((p) => p.id)
   return reports.value.filter((r) => ids.includes(r.projectId))
@@ -37,6 +54,13 @@ const feed = computed(() => {
 
 async function refresh() {
   try {
+    if (ownerPreview.active) {
+      const project = await projectApi.info(ownerPreview.projectId)
+      if (project.id !== ownerPreview.projectId) throw new Error('项目范围校验失败，请返回员工项目重试')
+      projects.value = [project]
+      reports.value = await siteApi.reports(project.id)
+      return
+    }
     const [ps, rs] = await Promise.all([projectApi.list(), siteApi.allReports()])
     projects.value = ps
     reports.value = rs
@@ -73,7 +97,14 @@ function onPickProject(index: number) {
 
 <template>
   <view class="dy">
-    <JzPageHeader title="工地同频动态" :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'" right-text="写汇报" right-icon="edit" @right="startReport" />
+    <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
+    <JzPageHeader
+      title="工地同频动态"
+      :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'"
+      :right-text="canReport() ? '写汇报' : ''"
+      :right-icon="canReport() ? 'edit' : undefined"
+      @right="startReport"
+    />
 
     <view class="dy__scope jz-card">
       <text class="dy__scope-label">{{ isCustomer(role) ? '我的工地动态' : '我参与的工地动态' }}</text>
@@ -89,6 +120,7 @@ function onPickProject(index: number) {
 
     <JzFloatAdd v-if="canReport()" text="写汇报" @tap="startReport" />
     <JzTabBar :current="P.dynamic" />
+    <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
 
     <JzActionSheet
       :visible="pickVisible"

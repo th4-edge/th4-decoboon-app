@@ -1,0 +1,38 @@
+.owner-page {
+  min-height: 100vh;
+  background: $owner-paper;
+  color: $owner-ink;
+  font-size: $owner-body-size;
+}
+
+.owner-page .jz-card {
+  background: $owner-card;
+  border-color: $owner-line;
+  border-radius: $owner-radius-card;
+  box-shadow: $owner-shadow-card;
+}
+
+.owner-page .jz-btn {
+  min-height: 88rpx;
+  border-radius: 26rpx;
+  font-size: $owner-body-size;
+  font-weight: 650;
+}
+
+.owner-page .jz-btn--primary {
+  background: $owner-forest;
+  border-color: $owner-forest;
+  color: #fff;
+  box-shadow: 0 16rpx 34rpx rgba(13, 43, 37, 0.18);
+}
+
+.owner-page .jz-btn--plain,
+.owner-page .jz-btn--ghost {
+  color: $owner-moss;
+  border-color: rgba(36, 114, 99, 0.2);
+  background: rgba(255, 253, 248, 0.78);
+}
+
+.owner-page .jz-safe-bottom {
+  height: calc(#{$jzb-safe-bottom} + 48rpx);
+}

@@ -41,6 +41,14 @@ import JzIconButton from '@/components/JzIconButton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import MaterialHealthCard from '@/components/MaterialHealthCard/MaterialHealthCard.vue'
 import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
+import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
+import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  leaveOwnerPreview,
+  ownerPreview,
+  ownerPreviewWatermark
+} from '@/domains/owner-preview/session'
 
 const id = ref('')
 const project = ref<Project | null>(null)
@@ -67,12 +75,17 @@ useShare(() => ({
 }))
 
 onLoad((q) => {
+  activateOwnerPreviewFromQuery(q)
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
   id.value = q?.id || ''
 })
-onShow(() => { if (id.value) load() })
+onShow(() => {
+  if (ownerPreview.active) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
+  if (id.value) load()
+})
 
-const role = computed(() => session.role || 'customer')
+const previewMode = computed(() => ownerPreview.active)
+const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const isOwner = computed(() => isCustomer(role.value))
 /** 可发起增减项：与后端 requireChangeInitiator 对齐（负责人/店长/项目经理/本项目设计师）。
  *  设计师仅能对自己负责的项目发起，避免“看得见点不了”的 403。 */
@@ -115,7 +128,7 @@ async function load() {
         siteApi.reports(id.value).catch(() => []),
         acceptanceApi.listByProject(id.value).catch(() => []),
         tradeApi.contractByProject(id.value).catch(() => null),
-        feedbackApi.ownerPage(id.value).catch(() => [])
+        (ownerPreview.active ? feedbackApi.employeePage(id.value) : feedbackApi.ownerPage(id.value)).catch(() => [])
       ])
       tasks.value = []
       members.value = []
@@ -214,6 +227,7 @@ const canEditPlan = computed(() => can(role.value, 'edit:plan') && !isOwner.valu
 const canInviteOwner = computed(() => role.value !== 'marketer' && can(role.value, 'act:inviteCustomer') && !isOwner.value)
 /** 业主项目码（USER-DECISION-20261015-001）：与邀请同权限位，作为主路径；邀请卡片保留为兜底。 */
 const canShowOwnerQrcode = canInviteOwner
+const canOwnerPreview = computed(() => can(role.value, 'view:owner-preview') && !isOwner.value)
 const canViewFinance = computed(() => can(role.value, 'view:finance') && !isOwner.value)
 const teamAvatars = computed(() => members.value.filter((m) => m.kind === 'employee').slice(0, 4))
 
@@ -223,9 +237,22 @@ function openTask(id2: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${id2
 function goPlan() { uni.navigateTo({ url: `${P.projectPlan}?id=${id.value}` }) }
 function goFinance() { uni.navigateTo({ url: `${P.financeProject}?projectId=${id.value}` }) }
 function goMembers(mode?: 'assign') { uni.navigateTo({ url: `${P.projectMembers}?id=${id.value}${mode ? '&mode=' + mode : ''}` }) }
-function goJourney() { uni.navigateTo({ url: `${P.projectJourney}?projectId=${id.value}` }) }
-function goOwnerChange() { uni.navigateTo({ url: `${P.ownerChange}?projectId=${id.value}` }) }
-function goFeedbackList() { uni.navigateTo({ url: `${P.feedbackList}?projectId=${id.value}` }) }
+function goJourney() {
+  const preview = ownerPreview.active ? '&preview=1' : ''
+  uni.navigateTo({ url: `${P.projectJourney}?projectId=${id.value}${preview}` })
+}
+function goOwnerPreview() { uni.navigateTo({ url: `${P.ownerPreview}?projectId=${id.value}` }) }
+function goOwnerChange() {
+  const preview = ownerPreview.active ? '&preview=1' : ''
+  uni.navigateTo({ url: `${P.ownerChange}?projectId=${id.value}${preview}` })
+}
+function goFeedbackList() {
+  if (ownerPreview.active) {
+    uni.showToast({ title: '预览模式仅浏览，业主操作需业主本人完成', icon: 'none' })
+    return
+  }
+  uni.navigateTo({ url: `${P.feedbackList}?projectId=${id.value}` })
+}
 function goRectifyBoard() { uni.navigateTo({ url: P.rectifyBoard }) }
 function goAlbum() { uni.navigateTo({ url: `${P.projectAlbum}?id=${id.value}` }) }
 function goContentUpload() { uni.navigateTo({ url: `${P.contentAssetUpload}?projectId=${id.value}` }) }
@@ -299,6 +326,7 @@ function avatarOf(m: ProjectMember) {
 </script>
 
 <template>
+  <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
   <PageState v-if="loading && !project" state="loading" :rows="5" />
   <PageState v-else-if="loadError && !project" state="error" title="工地加载失败" :subtitle="loadError" @retry="load" />
   <view v-else-if="project" class="pd">
@@ -336,6 +364,7 @@ function avatarOf(m: ProjectMember) {
           <view v-if="canViewFinance" class="pd__hero-meta-item"><JzIcon name="wallet" :size="22" :color="TOKEN_COLOR.white" /><text>{{ money(project.contractAmount) }}</text></view>
           <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goDaily"><JzIcon name="clipboard" :size="22" :color="TOKEN_COLOR.white" /><text>日报</text></view>
           <view class="pd__hero-meta-item" @tap="goAlbum"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>相册</text></view>
+          <view v-if="canOwnerPreview" class="pd__hero-meta-item" @tap="goOwnerPreview"><JzIcon name="eye" :size="22" :color="TOKEN_COLOR.white" /><text>业主视角</text></view>
           <view v-if="!isOwner" class="pd__hero-meta-item" @tap="goContentUpload"><JzIcon name="camera" :size="22" :color="TOKEN_COLOR.white" /><text>拍素材</text></view>
         </view>
         <view v-if="!isOwner" class="pd__hero-team" @tap="goMembers">
@@ -678,6 +707,7 @@ function avatarOf(m: ProjectMember) {
   </view>
 
   <view v-else class="jz-center" style="padding-top: 200rpx;">项目不存在或已删除</view>
+  <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
 </template>
 
 <style lang="scss" scoped>

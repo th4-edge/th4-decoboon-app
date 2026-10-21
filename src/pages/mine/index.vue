@@ -8,7 +8,8 @@ import { can, isCustomer } from '@/roles/permission'
 import { ROLE_META } from '@/roles/catalog'
 import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
-import { confirm } from '@/composables/toast'
+import type { Project } from '@/domains/project/model'
+import { confirm, toast } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzAvatar from '@/components/JzAvatar.vue'
@@ -16,17 +17,40 @@ import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
+import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import {
+  activateOwnerPreviewFromQuery,
+  leaveOwnerPreview,
+  navigateOwnerPreviewTab,
+  ownerPreview,
+  ownerPreviewWatermark
+} from '@/domains/owner-preview/session'
 
-const role = computed(() => session.role || 'customer')
+const previewProject = ref<Project | null>(null)
+const previewMode = computed(() => ownerPreview.active)
+const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const roleMeta = computed(() => ROLE_META[role.value])
 const memberCount = ref(0)
 const myProjectCount = ref(0)
 
-onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
-onShow(() => { if (isLoggedIn()) refresh() })
+onLoad((query) => {
+  activateOwnerPreviewFromQuery(query)
+  if (!isLoggedIn()) goTab(P.login)
+})
+onShow(() => {
+  if (previewMode.value) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
+  if (isLoggedIn()) refresh()
+})
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 async function refresh() {
+  if (ownerPreview.active) {
+    previewProject.value = await projectApi.info(ownerPreview.projectId)
+    memberCount.value = 0
+    myProjectCount.value = previewProject.value?.id === ownerPreview.projectId ? 1 : 0
+    return
+  }
   if (can(role.value, 'view:team')) {
     memberCount.value = (await identityApi.employees()).length
   }
@@ -47,13 +71,32 @@ async function refresh() {
 }
 
 function openProfile() {
+  if (previewBlocked()) return
   uni.navigateTo({ url: P.accountProfile })
 }
 function displayName() {
-  return isCustomer(role.value) ? session.customer?.name || '业主' : session.emp?.name || '我'
+  return isCustomer(role.value)
+    ? previewProject.value?.customer?.name || session.customer?.name || '业主'
+    : session.emp?.name || '我'
 }
 function displayPhone() {
-  return isCustomer(role.value) ? session.customer?.phone || '' : session.emp?.phone || ''
+  return isCustomer(role.value)
+    ? previewProject.value?.customer?.phone || session.customer?.phone || ''
+    : session.emp?.phone || ''
+}
+function previewBlocked() {
+  if (!ownerPreview.active) return false
+  toast('预览模式仅浏览，业主操作需业主本人完成')
+  return true
+}
+function guarded(cb: () => void) {
+  return () => {
+    if (!previewBlocked()) cb()
+  }
+}
+function goMyProjects() {
+  if (ownerPreview.active) navigateOwnerPreviewTab(P.projectList)
+  else goTab(P.projectList)
 }
 function cell(icon: IconName, label: string, value: string, cb?: () => void) {
   return { icon, label, value, cb }
@@ -67,14 +110,14 @@ const groups = computed(() => {
   const mine: ReturnType<typeof cell>[] = []
   const support: ReturnType<typeof cell>[] = []
 
-  account.push(cell('user', '个人信息', employee ? '头像、姓名与组织归属' : '姓名与手机号', openProfile))
-  account.push(cell('logout', '退出登录', '清除当前设备登录状态', doLogout))
-  if (employee) account.push(cell('building', '我的企业', session.company?.name || '', () => uni.navigateTo({ url: P.companyInfo })))
-  if (employee) account.push(cell('lock', '账号密码', session.user?.passwordSet ? '已设置' : '未设置', () => uni.navigateTo({ url: P.accountPassword })))
-  if (employee && can(role.value, 'view:subscription')) account.push(cell('wallet', '订阅与门店', '年费、席位与功能模块', () => uni.navigateTo({ url: P.subscription })))
-  if (employee && can(role.value, 'act:inviteMember')) account.push(cell('users', '成员管理', '员工状态、停用与注销', () => uni.navigateTo({ url: P.companyMembers })))
-  if (!employee && session.sessionType === 'user') account.push(cell('building', '未加入企业', session.user?.phone || '', () => uni.navigateTo({ url: P.companyJoin })))
-  if (employee) account.push(cell('logout', '退出企业', '离职与交接管理', () => uni.navigateTo({ url: P.companyResign })))
+  account.push(cell('user', '个人信息', employee ? '头像、姓名与组织归属' : '姓名与手机号', guarded(openProfile)))
+  account.push(cell('logout', '退出登录', '清除当前设备登录状态', guarded(doLogout)))
+  if (employee) account.push(cell('building', '我的企业', session.company?.name || '', guarded(() => uni.navigateTo({ url: P.companyInfo }))))
+  if (employee) account.push(cell('lock', '账号密码', session.user?.passwordSet ? '已设置' : '未设置', guarded(() => uni.navigateTo({ url: P.accountPassword }))))
+  if (employee && can(role.value, 'view:subscription')) account.push(cell('wallet', '订阅与门店', '年费、席位与功能模块', guarded(() => uni.navigateTo({ url: P.subscription }))))
+  if (employee && can(role.value, 'act:inviteMember')) account.push(cell('users', '成员管理', '员工状态、停用与注销', guarded(() => uni.navigateTo({ url: P.companyMembers }))))
+  if (!employee && session.sessionType === 'user') account.push(cell('building', '未加入企业', session.user?.phone || '', guarded(() => uni.navigateTo({ url: P.companyJoin }))))
+  if (employee) account.push(cell('logout', '退出企业', '离职与交接管理', guarded(() => uni.navigateTo({ url: P.companyResign }))))
 
   if (employee && can(role.value, 'view:team')) organization.push(cell('users', '团队成员', `${memberCount.value} 人`, () => uni.navigateTo({ url: P.teamList })))
   if (employee && can(role.value, 'act:inviteMember')) organization.push(cell('user-plus', '邀请员工加入', '生成邀请并分配岗位', () => uni.navigateTo({ url: P.companyInvite })))
@@ -116,14 +159,14 @@ const groups = computed(() => {
   if (role.value === 'pm') business.push(cell('chart', '履约业绩', '项目交付、准时率与验收通过率', () => uni.navigateTo({ url: P.performance })))
 
   if (employee && role.value !== 'boss') mine.push(cell('briefcase', '我参与的项目', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
-  if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, () => goTab(P.projectList)))
-  if (!employee) mine.push(cell('alert-circle', '我的意见投诉', '提交问题并查看处理进度', () => uni.navigateTo({ url: P.feedbackList })))
+  if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, goMyProjects))
+  if (!employee) mine.push(cell('alert-circle', '我的意见投诉', '提交问题并查看处理进度', guarded(() => uni.navigateTo({ url: P.feedbackList }))))
   if (employee && can(role.value, 'view:ownPayslip')) payroll.push(cell('wallet', '我的工资条', '已发放工资条与收入明细', () => uni.navigateTo({ url: P.payrollMyPayroll })))
 
-  support.push(cell('bell', '消息通知', '', () => uni.navigateTo({ url: P.msgList })))
-  support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', () => uni.navigateTo({ url: P.helpCenter })))
-  support.push(cell('message', '联系客服', '微信在线客服 / 客服邮箱', () => uni.navigateTo({ url: P.about })))
-  support.push(cell('info', '关于装得清', `v${runtime.version}`, () => uni.navigateTo({ url: P.about })))
+  support.push(cell('bell', '消息通知', '', guarded(() => uni.navigateTo({ url: P.msgList }))))
+  support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', guarded(() => uni.navigateTo({ url: P.helpCenter }))))
+  support.push(cell('message', '联系客服', '微信在线客服 / 客服邮箱', guarded(() => uni.navigateTo({ url: P.about }))))
+  support.push(cell('info', '关于装得清', `v${runtime.version}`, guarded(() => uni.navigateTo({ url: P.about }))))
 
   return [
     { key: 'account', title: '账号与企业', subtitle: '企业身份、账号安全和订阅权益', items: account },
@@ -135,6 +178,7 @@ const groups = computed(() => {
   ].filter((group) => group.items.length > 0)
 })
 async function doLogout() {
+  if (previewBlocked()) return
   const ok = await confirm('退出登录', '确认退出当前账号吗？', '退出')
   if (!ok) return
   logout()
@@ -144,6 +188,7 @@ async function doLogout() {
 
 <template>
   <view class="mine">
+    <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
     <JzPageHeader title="我的" :subtitle="isCustomer(role) ? '业主同频账号' : '企业协同账号'" />
 
     <view class="mine__profile" :style="{ backgroundColor: roleMeta.soft }" @tap="openProfile">
@@ -172,6 +217,7 @@ async function doLogout() {
       </view>
     </view>
     <JzTabBar :current="P.mine" />
+    <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
   </view>
     <JzConfirmDialog />
 </template>

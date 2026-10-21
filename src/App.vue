@@ -48,4 +48,5 @@ async function refreshIdentity() {
 
 <style lang="scss">
 @import '@/styles/base.scss';
+@import '@/styles/owner.scss';
 </style>

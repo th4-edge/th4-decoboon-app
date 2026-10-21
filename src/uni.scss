@@ -127,6 +127,32 @@ $jzb-z-popover: 1050;     /* 高优先级说明气泡 */
 $jzb-z-toast: 1100;
 $jzb-z-loading: 1200;
 
+/* Owner experience · 业主端专用子品牌 Token */
+$owner-ink: #17231F;
+$owner-ink-2: #34443E;
+$owner-muted: #60716B;
+$owner-muted-2: #85928D;
+$owner-paper: #F4F1E9;
+$owner-paper-deep: #EBE6DB;
+$owner-card: #FFFDF8;
+$owner-forest: #0D2B25;
+$owner-forest-2: #173B33;
+$owner-moss: #247263;
+$owner-moss-light: #3A8F7E;
+$owner-mint: #DFF2EB;
+$owner-copper: #96542F;
+$owner-copper-soft: #F2DFCF;
+$owner-line: rgba(23, 35, 31, 0.09);
+$owner-danger: #B9574D;
+$owner-warning: #A86524;
+$owner-shadow-card: 0 16rpx 50rpx rgba(23, 35, 31, 0.055);
+$owner-radius-card: 40rpx;
+$owner-radius-small: 24rpx;
+$owner-page-pad: 32rpx;
+$owner-section-gap: 52rpx;
+$owner-body-size: 26rpx;
+$owner-meta-size: 24rpx;
+
 /* Role semantic */
 $jzb-role-boss: #16A394;
 $jzb-role-designer: #6958C8;

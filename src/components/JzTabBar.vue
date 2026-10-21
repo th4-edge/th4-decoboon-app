@@ -2,23 +2,31 @@
 import { computed } from 'vue'
 import { goTab } from '@/config'
 import { session } from '@/domains/identity/session'
-import { tabsOf, type RoleTab } from '@/roles/catalog'
+import { navigateOwnerPreviewTab, ownerPreview } from '@/domains/owner-preview/session'
+import { ROLE_TABS, tabsOf, type RoleTab } from '@/roles/catalog'
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import OwnerTabBar from '@/components/owner/OwnerTabBar.vue'
 
 const props = defineProps<{ current: string }>()
-const items = computed(() => tabsOf(session.role))
+const customerMode = computed(() => ownerPreview.active || session.role === 'customer')
+const items = computed(() => ownerPreview.active ? ROLE_TABS.customer : tabsOf(session.role))
 const activeKey = computed(() => items.value.find((item) => item.path === props.current)?.key || 'home')
 const iconName = (name: string) => name as IconName
 
 function onTap(item: RoleTab) {
   if (item.path === props.current) return
+  if (ownerPreview.active) {
+    navigateOwnerPreviewTab(item.path)
+    return
+  }
   goTab(item.path)
 }
 </script>
 
 <template>
-  <view class="jz-tabbar">
+  <OwnerTabBar v-if="customerMode" :current="current" />
+  <view v-else class="jz-tabbar">
     <view
       v-for="item in items" :key="item.key"
       class="jz-tabbar__item" :class="{ 'jz-tabbar__item--active': activeKey === item.key }"

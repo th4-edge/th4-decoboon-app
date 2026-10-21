@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { JourneyItem } from '@/domains/journey/model'
 import { dateTimeText, selectionLineText } from '@/core/format'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 
@@ -38,7 +38,7 @@ function preview(urls: string[], current: string) {
       <view v-if="item.statusName || item.date" class="ofl__meta">
         <text v-if="item.statusName" class="ofl__status">{{ item.statusName }}</text>
         <view v-if="item.date" class="ofl__time">
-          <JzIcon name="clock" :size="22" :color="TOKEN_COLOR.text3" />
+          <JzIcon name="clock" :size="22" :color="OWNER_COLOR.muted" />
           <!-- 日期统一收敛：后端 date 是 ISO 原文（2026-09-10T05:03:07），不能直接渲染 -->
           <text>{{ dateTimeText(item.date) }}</text>
         </view>
@@ -73,13 +73,13 @@ function preview(urls: string[], current: string) {
 </template>
 
 <style lang="scss" scoped>
-.ofl { padding: 0 24rpx; }
-.ofl__empty { padding: 80rpx 0; text-align: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.ofl { padding: 0 32rpx; }
+.ofl__empty { padding: 80rpx 0; text-align: center; color: $owner-muted; font-size: $jzb-font-sm; }
 .ofl__card { padding: 26rpx; margin-bottom: 16rpx; }
 .ofl__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
-.ofl__title { display: block; font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; word-break: break-word; }
-.ofl__sub { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.ofl__amount { flex-shrink: 0; font-size: $jzb-font-lg; font-weight: 750; color: $jzb-primary-dark; font-variant-numeric: tabular-nums; }
+.ofl__title { display: block; font-size: $jzb-font-md; font-weight: 700; color: $owner-ink; word-break: break-word; }
+.ofl__sub { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $owner-muted; }
+.ofl__amount { flex-shrink: 0; font-size: $jzb-font-lg; font-weight: 750; color: $owner-forest; font-variant-numeric: tabular-nums; }
 .ofl__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 14rpx; margin-top: 14rpx; }
 .ofl__status {
   flex-shrink: 0;
@@ -87,19 +87,19 @@ function preview(urls: string[], current: string) {
   border-radius: 999rpx;
   font-size: 22rpx;
   font-weight: 600;
-  color: $jzb-primary-dark;
-  background: $jzb-primary-lighter;
+  color: $owner-forest;
+  background: $owner-mint;
 }
-.ofl__time { display: inline-flex; align-items: center; gap: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.ofl__time { display: inline-flex; align-items: center; gap: 6rpx; color: $owner-muted; font-size: $jzb-font-xs; }
 .ofl__facts { display: flex; flex-wrap: wrap; margin-top: 6rpx; }
 .ofl__fact { width: 50%; min-width: 0; padding: 12rpx 0 0; }
-.ofl__fact-label { display: block; font-size: 20rpx; color: $jzb-text-3; }
-.ofl__fact-value { display: block; margin-top: 4rpx; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-text-1; line-height: 1.5; word-break: break-word; }
+.ofl__fact-label { display: block; font-size: 20rpx; color: $owner-muted; }
+.ofl__fact-value { display: block; margin-top: 4rpx; font-size: $jzb-font-sm; font-weight: 650; color: $owner-ink; line-height: 1.5; word-break: break-word; }
 .ofl__images { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 16rpx; }
-.ofl__img { width: 148rpx; height: 148rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
-.ofl__lines { margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $jzb-border-light; }
+.ofl__img { width: 148rpx; height: 148rpx; border-radius: $jzb-radius-sm; background: $owner-paper; }
+.ofl__lines { margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid $owner-line; }
 .ofl__line { display: flex; align-items: flex-start; gap: 10rpx; }
 .ofl__line + .ofl__line { margin-top: 10rpx; }
-.ofl__line-dot { flex-shrink: 0; width: 8rpx; height: 8rpx; margin-top: 14rpx; border-radius: 50%; background: $jzb-primary-light; }
-.ofl__line-text { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.7; word-break: break-word; }
+.ofl__line-dot { flex-shrink: 0; width: 8rpx; height: 8rpx; margin-top: 14rpx; border-radius: 50%; background: $owner-moss-light; }
+.ofl__line-text { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $owner-ink-2; line-height: 1.7; word-break: break-word; }
 </style>

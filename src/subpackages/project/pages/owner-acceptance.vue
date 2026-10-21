@@ -12,7 +12,7 @@ import OwnerFactHero from '@/components/owner/OwnerFactHero.vue'
 import OwnerFactList from '@/components/owner/OwnerFactList.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR } from '@/styles/tokens'
 
 const projectId = ref('')
 const loaded = ref(false)
@@ -52,7 +52,7 @@ async function refresh() {
 </script>
 
 <template>
-  <view class="oaccept">
+  <view class="owner-page oaccept">
     <PageState v-if="loading && !journey" state="loading" :rows="6" />
     <PageState v-else-if="loadingError && !journey" state="error" title="验收整改暂不可确认" :subtitle="loadingError" @retry="refresh" />
     <template v-else-if="journey">
@@ -75,7 +75,7 @@ async function refresh() {
       </view>
 
       <view v-if="pending" class="oaccept__empty jz-card">
-        <JzIcon name="shield-check" :size="72" :color="TOKEN_COLOR.text4" />
+        <JzIcon name="shield-check" :size="72" :color="OWNER_COLOR.muted2" />
         <text class="oaccept__empty-title">暂无验收记录</text>
         <text class="oaccept__empty-sub">每个施工阶段完成后会发起验收，您可以在线确认或提出整改要求。</text>
       </view>
@@ -89,17 +89,17 @@ async function refresh() {
 </template>
 
 <style lang="scss" scoped>
-.oaccept { min-height: 100vh; background: $jzb-bg-page; padding-bottom: 40rpx; }
-.oaccept__empty { margin: 28rpx 24rpx; padding: 70rpx 40rpx; text-align: center; }
+.oaccept { min-height: 100vh; background: $owner-paper; padding-bottom: 40rpx; }
+.oaccept__empty { margin: 28rpx 32rpx; padding: 70rpx 40rpx; text-align: center; }
 .oaccept__empty-title { display: block; margin-top: 20rpx; font-size: $jzb-font-lg; font-weight: 700; }
-.oaccept__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.7; }
+.oaccept__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $owner-muted; line-height: 1.7; }
 .oaccept__block { margin-top: 30rpx; }
-.factstrip { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 24rpx 24rpx 0; }
-.factstrip__item { flex: 1 1 200rpx; min-width: 0; padding: 22rpx 16rpx; border-radius: $jzb-radius; background: $jzb-bg-card; border: 1rpx solid rgba(15,23,42,0.045); text-align: center; }
-.factstrip__value { display: block; font-size: 34rpx; font-weight: 750; color: $jzb-primary-dark; }
-.factstrip__value--date { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.factstrip { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 24rpx 32rpx 0; }
+.factstrip__item { flex: 1 1 200rpx; min-width: 0; padding: 22rpx 16rpx; border-radius: $jzb-radius; background: $owner-card; border: 1rpx solid rgba(15,23,42,0.045); text-align: center; }
+.factstrip__value { display: block; font-size: 34rpx; font-weight: 750; color: $owner-forest; }
+.factstrip__value--date { font-size: $jzb-font-sm; font-weight: 700; color: $owner-ink; }
 .factstrip__due { display: inline-block; margin-top: 8rpx; padding: 2rpx 12rpx; border-radius: 999rpx; font-size: 20rpx; font-weight: 600; }
 .factstrip__due--soon { color: $jzb-warning; background: $jzb-warning-soft; }
 .factstrip__due--overdue { color: $jzb-danger; background: $jzb-danger-soft; }
-.factstrip__label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.factstrip__label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $owner-muted; }
 </style>

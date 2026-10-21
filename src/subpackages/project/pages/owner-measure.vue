@@ -13,7 +13,7 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
-import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR, STATUS_COLOR } from '@/styles/tokens'
 
 /** 单条记录的明细行，形如「需求：xxx」，标签单独着色。 */
 interface RecordLine { key: string; label: string; text: string }
@@ -68,7 +68,7 @@ function splitLine(line: string): { label: string; text: string } {
 }
 
 function statusTone(status?: string) {
-  if (!status) return TOKEN_COLOR.primaryBase
+  if (!status) return OWNER_COLOR.moss
   if (['Completed', 'Confirmed'].includes(status)) return STATUS_COLOR.done
   if (status === 'Scheduled') return STATUS_COLOR.info
   if (['Cancelled', 'Closed'].includes(status)) return STATUS_COLOR.idle
@@ -90,7 +90,7 @@ async function refresh() {
 </script>
 
 <template>
-  <view class="measure">
+  <view class="owner-page measure">
     <PageState v-if="loading && !journey" state="loading" :rows="6" />
     <PageState v-else-if="loadingError && !journey" state="error" title="量房档案暂不可确认" :subtitle="loadingError" @retry="refresh" />
     <template v-else-if="journey">
@@ -105,7 +105,7 @@ async function refresh() {
       />
 
       <view v-if="pending" class="measure__empty jz-card">
-        <view class="measure__empty-icon"><JzIcon name="ruler" :size="60" :color="TOKEN_COLOR.primary" /></view>
+        <view class="measure__empty-icon"><JzIcon name="ruler" :size="60" :color="OWNER_COLOR.moss" /></view>
         <text class="measure__empty-title">量房还没开始</text>
         <text class="measure__empty-sub">设计师上门后会在这里记录房屋原样、测量尺寸和现场照片，您可以随时回看。</text>
       </view>
@@ -152,7 +152,7 @@ async function refresh() {
                 <view class="jz-grow">
                   <text class="measure__record-title">{{ record.title }}</text>
                   <view class="measure__record-time">
-                    <JzIcon name="clock" :size="22" :color="TOKEN_COLOR.text3" />
+                    <JzIcon name="clock" :size="22" :color="OWNER_COLOR.muted" />
                     <text>{{ record.timeText }}</text>
                   </view>
                 </view>
@@ -189,8 +189,8 @@ async function refresh() {
 </template>
 
 <style lang="scss" scoped>
-.measure { min-height: 100vh; background: $jzb-bg-page; padding-bottom: 40rpx; }
-.measure__empty { margin: 28rpx 24rpx; padding: 64rpx 40rpx; text-align: center; }
+.measure { min-height: 100vh; background: $owner-paper; padding-bottom: 40rpx; }
+.measure__empty { margin: 28rpx 32rpx; padding: 64rpx 40rpx; text-align: center; }
 .measure__empty-icon {
   width: 116rpx;
   height: 116rpx;
@@ -199,42 +199,42 @@ async function refresh() {
   align-items: center;
   justify-content: center;
   border-radius: 34rpx;
-  background: $jzb-primary-lightest;
+  background: $owner-paper;
 }
 .measure__empty-title { display: block; margin-top: 22rpx; font-size: $jzb-font-lg; font-weight: 700; }
-.measure__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.7; }
+.measure__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $owner-muted; line-height: 1.7; }
 
-.measure__stats { display: flex; align-items: stretch; gap: 14rpx; margin: 24rpx 24rpx 8rpx; }
+.measure__stats { display: flex; align-items: stretch; gap: 14rpx; margin: 24rpx 32rpx 8rpx; }
 .measure__stat {
   flex: 1;
   min-width: 0;
   padding: 24rpx 16rpx;
   border-radius: $jzb-radius;
-  background: $jzb-bg-card;
+  background: $owner-card;
   border: 1rpx solid rgba(15, 23, 42, 0.045);
   box-shadow: $jzb-shadow-xs;
   text-align: center;
 }
 .measure__stat--date { flex: 1.45; }
-.measure__stat-value { display: block; font-size: 40rpx; font-weight: 750; color: $jzb-primary-dark; line-height: 1.2; }
+.measure__stat-value { display: block; font-size: 40rpx; font-weight: 750; color: $owner-forest; line-height: 1.2; }
 /* 日期统计位：字号收一档并允许换行，避免长日期撑破卡片或被裁切 */
 .measure__stat-value--date {
   font-size: $jzb-font-sm;
   font-weight: 700;
-  color: $jzb-text-1;
+  color: $owner-ink;
   line-height: 48rpx;
   letter-spacing: -0.2rpx;
   word-break: break-word;
 }
-.measure__stat-label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.measure__stat-label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $owner-muted; }
 
 .measure__block { margin-top: 30rpx; }
 .measure__block-head { display: flex; align-items: center; gap: 14rpx; padding: 0 32rpx 14rpx; }
 .measure__block-bar { width: 8rpx; height: 44rpx; flex-shrink: 0; border-radius: 8rpx; background: $jzb-gradient; }
 .measure__block-title { display: block; font-size: $jzb-font-lg; font-weight: 700; }
-.measure__block-sub { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.measure__block-sub { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $owner-muted; }
 
-.measure__list { padding: 0 24rpx; }
+.measure__list { padding: 0 32rpx; }
 .measure__record { padding: 24rpx; margin-bottom: 16rpx; }
 .measure__record-head { display: flex; align-items: flex-start; gap: 16rpx; }
 .measure__record-index {
@@ -245,13 +245,13 @@ async function refresh() {
   align-items: center;
   justify-content: center;
   border-radius: 12rpx;
-  background: $jzb-primary-lighter;
-  color: $jzb-primary-dark;
+  background: $owner-mint;
+  color: $owner-forest;
   font-size: $jzb-font-xs;
   font-weight: 700;
 }
-.measure__record-title { display: block; font-size: $jzb-font-md; font-weight: 650; color: $jzb-text-1; line-height: 1.35; word-break: break-word; }
-.measure__record-time { display: flex; align-items: center; gap: 8rpx; margin-top: 8rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.measure__record-title { display: block; font-size: $jzb-font-md; font-weight: 650; color: $owner-ink; line-height: 1.35; word-break: break-word; }
+.measure__record-time { display: flex; align-items: center; gap: 8rpx; margin-top: 8rpx; font-size: $jzb-font-xs; color: $owner-muted; }
 
 .measure__facts { margin-top: 20rpx; }
 .measure__designer {
@@ -260,29 +260,29 @@ async function refresh() {
   gap: 16rpx;
   padding: 18rpx 20rpx;
   border-radius: $jzb-radius-sm;
-  background: $jzb-primary-lightest;
+  background: $owner-paper;
 }
-.measure__designer-label { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.measure__designer-name { display: block; margin-top: 4rpx; font-size: $jzb-font; font-weight: 700; color: $jzb-text-1; word-break: break-word; }
+.measure__designer-label { display: block; font-size: $jzb-font-xs; color: $owner-muted; }
+.measure__designer-name { display: block; margin-top: 4rpx; font-size: $jzb-font; font-weight: 700; color: $owner-ink; word-break: break-word; }
 .measure__designer + .measure__fact { margin-top: 6rpx; }
-.measure__fact { display: flex; align-items: flex-start; gap: 20rpx; padding: 18rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.measure__fact { display: flex; align-items: flex-start; gap: 20rpx; padding: 18rpx 0; border-bottom: 1rpx solid $owner-line; }
 .measure__fact:last-child { padding-bottom: 0; border-bottom: none; }
-.measure__fact-label { width: 150rpx; flex-shrink: 0; font-size: $jzb-font-xs; color: $jzb-text-3; line-height: 1.75; }
+.measure__fact-label { width: 150rpx; flex-shrink: 0; font-size: $jzb-font-xs; color: $owner-muted; line-height: 1.75; }
 /* 「原始结构 / 尺寸记录」等长文本必须整行铺开换行，不能再压到半栏 */
-.measure__fact-value { flex: 1; min-width: 0; font-size: $jzb-font-sm; font-weight: 600; color: $jzb-text-1; line-height: 1.75; word-break: break-word; }
+.measure__fact-value { flex: 1; min-width: 0; font-size: $jzb-font-sm; font-weight: 600; color: $owner-ink; line-height: 1.75; word-break: break-word; }
 
-.measure__lines { margin-top: 18rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.measure__lines { margin-top: 18rpx; padding: 18rpx 20rpx; border-radius: $jzb-radius-sm; background: $owner-paper; }
 .measure__line { display: flex; align-items: flex-start; gap: 12rpx; }
 .measure__line + .measure__line { margin-top: 12rpx; }
 .measure__line-label {
   flex-shrink: 0;
   padding: 2rpx 10rpx;
   border-radius: 6rpx;
-  background: $jzb-primary-lighter;
-  color: $jzb-primary-dark;
+  background: $owner-mint;
+  color: $owner-forest;
   font-size: 20rpx;
   font-weight: 600;
   line-height: 1.7;
 }
-.measure__line-text { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.75; word-break: break-word; }
+.measure__line-text { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $owner-ink-2; line-height: 1.75; word-break: break-word; }
 </style>

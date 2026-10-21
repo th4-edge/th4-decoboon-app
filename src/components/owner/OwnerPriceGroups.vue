@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { JourneyPriceGroup, JourneyPriceRow } from '@/domains/journey/model'
-import { TOKEN_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 
@@ -95,7 +95,7 @@ function jumpTo(index: number) {
           <text class="opgroup__sum">{{ group.rows.length }} {{ unitLabel }} · 点击{{ isExpanded(index) ? '收起' : '展开' }}</text>
         </view>
         <JzMoney v-if="showPrice && group.total" class="opgroup__subtotal" :value="Number(group.total || 0)" />
-        <JzIcon :name="isExpanded(index) ? 'chevron-down' : 'chevron-right'" :size="26" :color="TOKEN_COLOR.text4" />
+        <JzIcon :name="isExpanded(index) ? 'chevron-down' : 'chevron-right'" :size="26" :color="OWNER_COLOR.muted2" />
       </view>
 
       <view v-if="isExpanded(index)" class="opgroup__rows">
@@ -113,7 +113,7 @@ function jumpTo(index: number) {
           <!-- 施工工艺：业主最关心的"这活儿到底怎么做"，用品牌色块单独强调 -->
           <view v-if="row.craft" class="opgroup__craft">
             <view class="opgroup__craft-head">
-              <JzIcon name="wrench" :size="22" :color="TOKEN_COLOR.primary" />
+              <JzIcon name="wrench" :size="22" :color="OWNER_COLOR.moss" />
               <text class="opgroup__craft-label">施工工艺</text>
             </view>
             <text class="opgroup__craft-text">{{ row.craft }}</text>
@@ -138,14 +138,14 @@ function jumpTo(index: number) {
 </template>
 
 <style lang="scss" scoped>
-.opgroup { padding: 0 24rpx; }
-.opgroup__empty { padding: 60rpx 0; text-align: center; color: $jzb-text-3; font-size: $jzb-font-sm; }
+.opgroup { padding: 0 32rpx; }
+.opgroup__empty { padding: 60rpx 0; text-align: center; color: $owner-muted; font-size: $jzb-font-sm; }
 
 /* ---------- 区域索引 ---------- */
 .opgroup__index { margin-bottom: 18rpx; }
 .opgroup__index-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16rpx; margin-bottom: 14rpx; }
-.opgroup__index-title { font-size: $jzb-font-xs; color: $jzb-text-3; }
-.opgroup__index-total { flex-shrink: 0; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-primary-dark; }
+.opgroup__index-title { font-size: $jzb-font-xs; color: $owner-muted; }
+.opgroup__index-total { flex-shrink: 0; font-size: $jzb-font-sm; font-weight: 700; color: $owner-forest; }
 .opgroup__chips { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .opgroup__chip {
   display: inline-flex;
@@ -154,10 +154,10 @@ function jumpTo(index: number) {
   max-width: 100%;
   padding: 10rpx 18rpx;
   border-radius: $jzb-radius-pill;
-  background: $jzb-bg-card;
-  border: 1rpx solid $jzb-border-light;
+  background: $owner-card;
+  border: 1rpx solid $owner-line;
 }
-.opgroup__chip:active { background: $jzb-primary-lightest; }
+.opgroup__chip:active { background: $owner-paper; }
 .opgroup__chip-index {
   flex-shrink: 0;
   width: 30rpx;
@@ -166,17 +166,17 @@ function jumpTo(index: number) {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: $jzb-primary-lighter;
-  color: $jzb-primary-dark;
+  background: $owner-mint;
+  color: $owner-forest;
   font-size: 19rpx;
   font-weight: 700;
 }
-.opgroup__chip-name { min-width: 0; font-size: $jzb-font-xs; color: $jzb-text-1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.opgroup__chip-count { flex-shrink: 0; font-size: 20rpx; color: $jzb-text-4; }
+.opgroup__chip-name { min-width: 0; font-size: $jzb-font-xs; color: $owner-ink; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.opgroup__chip-count { flex-shrink: 0; font-size: 20rpx; color: $owner-muted-2; }
 
 /* ---------- 区域卡片 ---------- */
 .opgroup__group { padding: 24rpx; margin-bottom: 18rpx; }
-.opgroup__head { display: flex; align-items: center; gap: 14rpx; padding-bottom: 18rpx; border-bottom: 1rpx solid $jzb-border-light; }
+.opgroup__head { display: flex; align-items: center; gap: 14rpx; padding-bottom: 18rpx; border-bottom: 1rpx solid $owner-line; }
 .opgroup__head--collapsed { padding-bottom: 0; border-bottom: none; }
 .opgroup__head:active { opacity: 0.72; }
 .opgroup__badge {
@@ -187,51 +187,51 @@ function jumpTo(index: number) {
   align-items: center;
   justify-content: center;
   border-radius: 12rpx;
-  background: $jzb-primary-lighter;
-  color: $jzb-primary-dark;
+  background: $owner-mint;
+  color: $owner-forest;
   font-size: $jzb-font-xs;
   font-weight: 700;
 }
-.opgroup__region { display: block; font-size: $jzb-font-md; font-weight: 700; color: $jzb-text-1; word-break: break-word; }
-.opgroup__sum { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
-.opgroup__subtotal { flex-shrink: 0; font-size: $jzb-font-md; font-weight: 750; color: $jzb-primary-dark; }
+.opgroup__region { display: block; font-size: $jzb-font-md; font-weight: 700; color: $owner-ink; word-break: break-word; }
+.opgroup__sum { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $owner-muted; }
+.opgroup__subtotal { flex-shrink: 0; font-size: $jzb-font-md; font-weight: 750; color: $owner-forest; }
 
 /* ---------- 分项 ---------- */
 .opgroup__rows { margin-top: 4rpx; }
-.opgroup__row { padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.opgroup__row { padding: 22rpx 0; border-bottom: 1rpx solid $owner-line; }
 .opgroup__row:last-child { border-bottom: none; padding-bottom: 0; }
-.opgroup__row-empty { padding: 26rpx 0; text-align: center; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.opgroup__row-empty { padding: 26rpx 0; text-align: center; font-size: $jzb-font-xs; color: $owner-muted; }
 .opgroup__row-title { display: flex; align-items: flex-start; gap: 16rpx; }
-.opgroup__row-name { flex: 1; min-width: 0; font-size: $jzb-font; font-weight: 650; color: $jzb-text-1; line-height: 1.45; word-break: break-word; }
-.opgroup__row-amount { flex-shrink: 0; font-size: $jzb-font; font-weight: 700; color: $jzb-primary-dark; white-space: nowrap; }
+.opgroup__row-name { flex: 1; min-width: 0; font-size: $jzb-font; font-weight: 650; color: $owner-ink; line-height: 1.45; word-break: break-word; }
+.opgroup__row-amount { flex-shrink: 0; font-size: $jzb-font; font-weight: 700; color: $owner-forest; white-space: nowrap; }
 .opgroup__row-tags { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 10rpx; }
 .opgroup__tag {
   padding: 3rpx 12rpx;
   border-radius: 8rpx;
   font-size: 20rpx;
-  color: $jzb-primary-dark;
-  background: $jzb-primary-lighter;
+  color: $owner-forest;
+  background: $owner-mint;
 }
-.opgroup__tag--soft { color: $jzb-text-2; background: $jzb-bg-hover; }
+.opgroup__tag--soft { color: $owner-ink-2; background: $owner-paper; }
 
 .opgroup__craft {
   margin-top: 14rpx;
   padding: 16rpx 18rpx;
   border-radius: $jzb-radius-sm;
-  background: $jzb-primary-lightest;
-  border-left: 6rpx solid $jzb-primary;
+  background: $owner-paper;
+  border-left: 6rpx solid $owner-moss;
 }
 .opgroup__craft-head { display: flex; align-items: center; gap: 8rpx; }
-.opgroup__craft-label { font-size: $jzb-font-xs; font-weight: 700; color: $jzb-primary-dark; letter-spacing: 0.5rpx; }
-.opgroup__craft-text { display: block; margin-top: 8rpx; font-size: $jzb-font-sm; color: $jzb-text-1; line-height: 1.7; word-break: break-word; }
+.opgroup__craft-label { font-size: $jzb-font-xs; font-weight: 700; color: $owner-forest; letter-spacing: 0.5rpx; }
+.opgroup__craft-text { display: block; margin-top: 8rpx; font-size: $jzb-font-sm; color: $owner-ink; line-height: 1.7; word-break: break-word; }
 
-.opgroup__criterion { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; color: $jzb-text-2; line-height: 1.7; word-break: break-word; }
+.opgroup__criterion { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; color: $owner-ink-2; line-height: 1.7; word-break: break-word; }
 
 .opgroup__row-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 16rpx; margin-top: 12rpx; }
-.opgroup__row-meta { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $jzb-text-3; line-height: 1.6; word-break: break-word; }
-.opgroup__row-qty { flex-shrink: 0; font-size: $jzb-font-xs; font-weight: 600; color: $jzb-text-2; white-space: nowrap; }
+.opgroup__row-meta { flex: 1; min-width: 0; font-size: $jzb-font-xs; color: $owner-muted; line-height: 1.6; word-break: break-word; }
+.opgroup__row-qty { flex-shrink: 0; font-size: $jzb-font-xs; font-weight: 600; color: $owner-ink-2; white-space: nowrap; }
 
-.opgroup__total { display: flex; align-items: baseline; justify-content: space-between; margin: 4rpx 0 0; padding: 22rpx 26rpx; border-radius: $jzb-radius; background: $jzb-primary-lightest; }
-.opgroup__total-label { font-size: $jzb-font-sm; color: $jzb-text-2; }
-.opgroup__total-value { font-size: 40rpx; font-weight: 750; color: $jzb-primary-dark; }
+.opgroup__total { display: flex; align-items: baseline; justify-content: space-between; margin: 4rpx 0 0; padding: 22rpx 26rpx; border-radius: $jzb-radius; background: $owner-paper; }
+.opgroup__total-label { font-size: $jzb-font-sm; color: $owner-ink-2; }
+.opgroup__total-value { font-size: 40rpx; font-weight: 750; color: $owner-forest; }
 </style>

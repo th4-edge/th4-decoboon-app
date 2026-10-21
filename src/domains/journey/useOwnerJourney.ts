@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { journeyApi } from './api'
 import type { CustomerJourney, JourneySection } from './model'
+import { ownerPreview } from '@/domains/owner-preview/session'
 
 /**
  * 业主事实页统一数据入口。
@@ -22,7 +23,13 @@ export function useOwnerJourney() {
     loading.value = true
     loadingError.value = ''
     try {
-      journey.value = await journeyApi.info(projectId)
+      if (ownerPreview.active && ownerPreview.journey?.projectId === projectId) {
+        journey.value = ownerPreview.journey
+        return
+      }
+      journey.value = ownerPreview.active
+        ? await journeyApi.ownerPreviewInfo(projectId)
+        : await journeyApi.info(projectId)
     } catch (error) {
       journey.value = null
       loadingError.value = error instanceof Error ? error.message : '房屋档案暂不可确认'

@@ -4,12 +4,15 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
 import { useOwnerJourney } from '@/domains/journey/useOwnerJourney'
+import { ownerPreview } from '@/domains/owner-preview/session'
 import { toastError } from '@/composables/toast'
 import OwnerFactHero from '@/components/owner/OwnerFactHero.vue'
 import OwnerFactList from '@/components/owner/OwnerFactList.vue'
+import OwnerSection from '@/components/owner/OwnerSection.vue'
+import OwnerSignoffCard from '@/components/owner/OwnerSignoffCard.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
-import { STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR, STATUS_COLOR } from '@/styles/tokens'
 
 const projectId = ref('')
 const loaded = ref(false)
@@ -17,17 +20,29 @@ const { journey, loading, loadingError, load, section } = useOwnerJourney()
 
 const current = computed(() => section('material'))
 const items = computed(() => current.value?.items || [])
+const selections = computed(() => items.value.filter((item) => item.key.startsWith('selection-')))
 const facts = computed(() => current.value?.facts || [])
-const pending = computed(() => !loading.value && items.value.length === 0)
+const pending = computed(() => !loading.value && selections.value.length === 0)
 
 function factValue(value: string, type: string) {
   return type === 'money' ? `¥${value}` : value
 }
 
+function fact(key: string) {
+  return facts.value.find((item) => item.key === key)?.value
+}
+
+function selectionFact(key: string) {
+  return selections.value[0]?.facts.find((item) => item.key === key)?.value
+}
+
+function openMaterialPlan() {
+  const preview = ownerPreview.active ? '&preview=1' : ''
+  uni.navigateTo({ url: `${P.ownerMaterialPlan}?projectId=${encodeURIComponent(projectId.value)}${preview}` })
+}
+
 /** 最新一版选材（后端按版本倒序下发，第一条即最新）；业主端只读留档。 */
-const selectionStatus = computed(() =>
-  items.value.find((item) => item.key.startsWith('selection-'))?.status || ''
-)
+const selectionStatus = computed(() => selections.value[0]?.status || '')
 const selectionConfirmed = computed(() => ['Selected', 'selected'].includes(selectionStatus.value))
 /** 选材状态：已确认用对勾图标，未确认统一用等待时钟图标（JzIcon 线性图标，非 emoji）。 */
 const selectionStatusIcon = computed<IconName>(() => (selectionConfirmed.value ? 'check-circle' : 'clock'))
@@ -48,17 +63,18 @@ async function refresh() {
 </script>
 
 <template>
-  <view class="oselect">
+  <view class="owner-page oselect">
     <PageState v-if="loading && !journey" state="loading" :rows="6" />
     <PageState v-else-if="loadingError && !journey" state="error" title="选材记录暂不可确认" :subtitle="loadingError" @retry="refresh" />
     <template v-else-if="journey">
       <OwnerFactHero
-        eyebrow="我的家 · 选材记录"
-        :title="current?.summary || journey.projectName"
-        :subtitle="journey.projectName"
+        eyebrow="我的家 · 选材详情"
+        variant="document"
+        :title="selections[0]?.title || '主材选材'"
+        :subtitle="selections[0]?.subtitle || current?.subtitle"
+        :code="journey.projectNo"
+        :meta="factValue(fact('selection') || '', 'text')"
         :address="journey.propertyAddress"
-        :progress="journey.progress"
-        :stage-name="journey.currentStageName || journey.projectStatusName || '待确认'"
         :status-name="current?.statusName"
       />
 
@@ -74,29 +90,46 @@ async function refresh() {
       </view>
 
       <view v-if="pending" class="oselect__empty jz-card">
-        <JzIcon name="package" :size="72" :color="TOKEN_COLOR.text4" />
+        <JzIcon name="package" :size="72" :color="OWNER_COLOR.muted2" />
         <text class="oselect__empty-title">还没有选材记录</text>
         <text class="oselect__empty-sub">签约后设计师会与您现场沟通主材品牌、规格和型号，选材结果会在这里留档。</text>
       </view>
 
       <view v-else class="oselect__block">
-        <OwnerFactList :items="items" empty-text="还没有选材记录" />
+        <OwnerFactList :items="selections" empty-text="还没有选材记录" />
       </view>
+
+      <OwnerSection title="线下确认登记" subtitle="客户现场选择，设计师登记">
+        <OwnerSignoffCard
+          tone="offline"
+          title="客户线下确认选材 · 设计师登记"
+          :description="selectionFact('designer') || selectionFact('registeredAt') ? '品牌、规格、花色和空间由客户线下确认，系统展示设计师登记后的选材版本。' : '选材确认在线下完成；当前同步结果尚未返回登记设计师和登记时间。'"
+          :operator="selectionFact('designer')"
+          :time="selectionFact('registeredAt')"
+          :source="selectionFact('registrationSource')"
+        />
+        <view class="oselect__material-link" @tap="openMaterialPlan">
+          <text>查看材料计划详情</text>
+          <JzIcon name="chevron-right" :size="24" :color="OWNER_COLOR.moss" />
+        </view>
+      </OwnerSection>
+
       <view class="jz-safe-bottom" />
     </template>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.oselect { min-height: 100vh; background: $jzb-bg-page; padding-bottom: 40rpx; }
-.oselect__empty { margin: 28rpx 24rpx; padding: 70rpx 40rpx; text-align: center; }
+.oselect { min-height: 100vh; background: $owner-paper; padding-bottom: 40rpx; }
+.oselect__empty { margin: 28rpx 32rpx; padding: 70rpx 40rpx; text-align: center; }
 .oselect__empty-title { display: block; margin-top: 20rpx; font-size: $jzb-font-lg; font-weight: 700; }
-.oselect__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $jzb-text-3; line-height: 1.7; }
+.oselect__empty-sub { display: block; margin-top: 12rpx; font-size: $jzb-font-sm; color: $owner-muted; line-height: 1.7; }
 .oselect__block { margin-top: 30rpx; }
-.factstrip { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 24rpx 24rpx 0; }
-.factstrip__item { flex: 1 1 200rpx; min-width: 0; padding: 22rpx 16rpx; border-radius: $jzb-radius; background: $jzb-bg-card; border: 1rpx solid rgba(15,23,42,0.045); text-align: center; }
-.factstrip__value { display: block; font-size: 34rpx; font-weight: 750; color: $jzb-primary-dark; }
-.factstrip__value--status { font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-1; }
+.factstrip { display: flex; flex-wrap: wrap; gap: 14rpx; margin: 24rpx 32rpx 0; }
+.factstrip__item { flex: 1 1 200rpx; min-width: 0; padding: 22rpx 16rpx; border-radius: $jzb-radius; background: $owner-card; border: 1rpx solid rgba(15,23,42,0.045); text-align: center; }
+.factstrip__value { display: block; font-size: 34rpx; font-weight: 750; color: $owner-forest; }
+.factstrip__value--status { font-size: $jzb-font-sm; font-weight: 700; color: $owner-ink; }
 .factstrip__status { display: flex; align-items: center; justify-content: center; gap: 8rpx; min-height: 48rpx; }
-.factstrip__label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.factstrip__label { display: block; margin-top: 6rpx; font-size: $jzb-font-xs; color: $owner-muted; }
+.oselect__material-link { min-height: 76rpx; margin-top: 18rpx; display: flex; align-items: center; justify-content: space-between; color: $owner-moss; font-size: 24rpx; font-weight: 700; }
 </style>

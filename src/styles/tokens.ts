@@ -28,6 +28,26 @@ export const TOKEN_COLOR = {
   bgActive: '#E8F7F5'
 } as const
 
+/** 业主端子品牌 Token；与 src/uni.scss 的 $owner-* 对齐。 */
+export const OWNER_COLOR = {
+  ink: '#17231F',
+  ink2: '#34443E',
+  muted: '#60716B',
+  muted2: '#85928D',
+  paper: '#F4F1E9',
+  paperDeep: '#EBE6DB',
+  card: '#FFFDF8',
+  forest: '#0D2B25',
+  forest2: '#173B33',
+  moss: '#247263',
+  mossLight: '#3A8F7E',
+  mint: '#DFF2EB',
+  copper: '#96542F',
+  copperSoft: '#F2DFCF',
+  danger: '#B9574D',
+  warning: '#A86524'
+} as const
+
 /**
  * 业务状态色板（状态标签专用，与 src/uni.scss 的 $jzb-status-* 对齐）。
  *

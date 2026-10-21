@@ -7,9 +7,11 @@ const props = withDefaults(defineProps<{
   media: JourneyMedia[]
   emptyText?: string
   columns?: number
+  showMenuByLongpress?: boolean
 }>(), {
   emptyText: '暂无照片留痕',
-  columns: 2
+  columns: 2,
+  showMenuByLongpress: false
 })
 
 const groups = computed(() => {
@@ -45,7 +47,7 @@ function preview(urls: string[], current: string) {
           class="opg__cell"
           @tap="preview(media.map((m) => m.url), item.url)"
         >
-          <image :src="item.url" mode="aspectFill" class="opg__img" />
+          <image :src="item.url" mode="aspectFill" class="opg__img" :show-menu-by-longpress="showMenuByLongpress" />
           <view class="opg__chip">{{ item.title }}</view>
         </view>
       </view>
