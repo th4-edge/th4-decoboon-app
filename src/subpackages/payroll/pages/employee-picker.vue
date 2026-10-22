@@ -23,7 +23,6 @@ const roleOptions: Array<{ label: string; value: RoleFilter }> = [
   { label: '全部岗位', value: 'all' },
   { label: '企业负责人', value: 'boss' },
   { label: '店长', value: 'storeManager' },
-  { label: '团队负责人', value: 'teamLeader' },
   { label: '业务员', value: 'marketer' },
   { label: '设计师', value: 'designer' },
   { label: '项目经理', value: 'pm' },

@@ -128,17 +128,8 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'act:stageNotApplicable',
     'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
-  teamLeader: [
-    ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
-    'view:selection-board', 'view:rectify',
-    'view:catalog',
-    'view:design', 'edit:design', 'act:talk',
-    'view:owner-preview',
-    'view:myProjects', 'view:customers', 'view:team', 'view:schedule', 'view:task',
-    'view:quote', 'edit:quote', 'act:quote', 'act:assignDesigner', 'act:inviteMember',
-    'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'view:ownPayslip', 'view:commission'
-  ],
+  // DEC-082：TeamLeader 仅保留历史数据解码，不再获得任何应用能力。
+  teamLeader: [],
   marketer: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'view:design', 'view:quote',

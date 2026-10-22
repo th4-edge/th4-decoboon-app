@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onLaunch, onShow } from '@dcloudio/uni-app'
-import { initSession, loginAsCustomer, loginAsEmployee, loginAsUser, session } from '@/domains/identity/session'
+import { initSession, loginAsCustomer, loginAsEmployee, loginAsUser, logout, session } from '@/domains/identity/session'
 import { identityApi } from '@/domains/identity/api'
 import { P } from '@/config'
 import { canVisit, hasRouteRule } from '@/roles/guard'
+import { ProviderRequestError } from '@/core/http'
 
 onLaunch(() => {
   initSession()
@@ -11,6 +12,10 @@ onLaunch(() => {
 })
 
 onShow(() => {
+  if (session.role === 'teamLeader') {
+    rejectFrozenRole('团队负责人角色已冻结，请联系企业负责人改为其他岗位')
+    return
+  }
   refreshIdentity().finally(scheduleRouteGuard)
 })
 
@@ -40,9 +45,29 @@ async function refreshIdentity() {
     if (profile.currentEmployee) loginAsEmployee(profile.currentEmployee, session.token, profile)
     else if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) loginAsCustomer(profile, session.token)
     else loginAsUser(profile, session.token)
-  } catch {
+  } catch (error) {
+    if (error instanceof ProviderRequestError && error.code === '403') {
+      rejectFrozenRole(error.message)
+      return
+    }
     // 401 由 HTTP 层统一清理会话；网络异常保留本地会话，避免离线启动被强制退出。
   }
+}
+
+let frozenRoleRedirecting = false
+function rejectFrozenRole(message: string): void {
+  if (frozenRoleRedirecting) return
+  frozenRoleRedirecting = true
+  logout()
+  uni.showModal({
+    title: '账号状态已变更',
+    content: message || '团队负责人角色已冻结，请联系企业负责人改为其他岗位',
+    showCancel: false,
+    complete: () => {
+      frozenRoleRedirecting = false
+      uni.reLaunch({ url: P.login })
+    }
+  })
 }
 </script>
 

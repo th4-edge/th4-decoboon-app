@@ -7,6 +7,9 @@ const failures = []
 const must = (file, text, message) => {
   if (!read(file).includes(text)) failures.push(`${message}: ${file}`)
 }
+const mustNot = (file, text, message) => {
+  if (read(file).includes(text)) failures.push(`${message}: ${file}`)
+}
 
 must('src/subpackages/project/pages/task/edit.vue', "P.projectPlanEdit", '新建任务必须进入工艺任务库')
 must('src/subpackages/project/pages/task/edit.vue', "catalogId", '新建任务必须说明 CatalogItem 门禁')
@@ -25,8 +28,16 @@ for (const file of [
   must(file, "useTeamContext", 'TeamLeader 依赖页必须统一处理未绑定团队')
 }
 
+// DEC-082：TeamLeader 仅保留历史数据解码，不得继续出现在 App 应用入口中。
+must('src/roles/catalog.ts', "teamLeader: [],", 'TeamLeader 不得装载 App Tab/快捷动作')
+must('src/roles/permission.ts', "teamLeader: [],", 'TeamLeader 不得获得 App 能力')
+mustNot('src/subpackages/company/pages/invite.vue', "value: 'teamLeader'", '邀请页不得再提供 TeamLeader 岗位')
+mustNot('src/subpackages/company/pages/member-detail.vue', "value: 'teamLeader'", '员工详情不得再把 TeamLeader 作为可选项')
+must('src/App.vue', "session.role === 'teamLeader'", 'App 必须主动清理旧缓存中的 TeamLeader 会话')
+must('src/App.vue', "error.code === '403'", 'session/info 403 必须清理冻结账号会话')
+
 if (failures.length) {
   failures.forEach((item) => console.error(`错误: ${item}`))
   process.exit(1)
 }
-console.log('导航与页面权限契约校验通过：任务工艺库、深链守卫、TeamLeader 空态')
+console.log('导航与页面权限契约校验通过：任务工艺库、深链守卫、TeamLeader 冻结')

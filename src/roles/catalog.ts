@@ -21,7 +21,7 @@ export interface RoleTab {
 export const ROLE_META: Record<RoleKey, RoleMeta> = {
   boss:       { label: '企业负责人', short: '负责人', color: TOKEN_COLOR.primary, soft: TOKEN_COLOR.primaryLighter, description: '全局经营与关键审批' },
   storeManager: { label: '店长', short: '店长', color: '#0B7A70', soft: '#E6F5F3', description: '门店经营、客户分配与设计师调度' },
-  teamLeader: { label: '团队负责人', short: '团队长', color: '#2F54EB', soft: TOKEN_COLOR.primaryLighter, description: '团队客户跟进与协同管理' },
+  teamLeader: { label: '团队负责人', short: '团队长', color: '#2F54EB', soft: TOKEN_COLOR.primaryLighter, description: '历史兼容岗位，不再启用' },
   marketer:   { label: '业务员',   short: '业务', color: '#168A96', soft: '#E9F6F7', description: '客户登记、跟进与转化' },
   designer:   { label: '设计师',     short: '设计', color: TOKEN_COLOR.purple, soft: TOKEN_COLOR.purpleSoft, description: '量房报价与施工排期' },
   pm:         { label: '项目经理',   short: '经理', color: TOKEN_COLOR.warning, soft: TOKEN_COLOR.warningSoft, description: '现场施工、节点与验收' },
@@ -46,7 +46,8 @@ export const ROLE_TABS: Record<RoleKey, RoleTab[]> = {
   /* BOSS：企业负责人拥有全部角色功能入口，Tab 覆盖客户/项目/财务三大主线 */
   boss: [TAB.home, TAB.customer, TAB.project, TAB.finance, TAB.mine],
   storeManager: [TAB.home, TAB.customer, TAB.design, TAB.project, TAB.mine],
-  teamLeader: [TAB.home, TAB.customer, TAB.project, TAB.mine],
+  // DEC-082：TeamLeader 仅为历史兼容值，不再装载任何 App Tab。
+  teamLeader: [],
   marketer: [TAB.home, TAB.customer, TAB.project, TAB.mine],
   designer: [TAB.home, TAB.design, TAB.quote, TAB.project, TAB.mine],
   pm: [TAB.home, TAB.customer, TAB.project, TAB.mine],
@@ -94,23 +95,12 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
     { key: 'projects', label: '门店项目', icon: 'briefcase', path: P.projectList },
     { key: 'carryover', label: '业务承接', icon: 'briefcase', path: P.carryoverHome },
-    { key: 'team', label: '门店团队', icon: 'users', path: P.teamList, capability: 'view:team' },
     { key: 'performance', label: '门店业绩', icon: 'chart', path: P.performance, capability: 'view:performance' },
     { key: 'payroll', label: '本店薪酬', icon: 'wallet', path: P.payrollStorePayroll, capability: 'view:payroll' },
     { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
   ],
-  teamLeader: [
-    { key: 'customers', label: '团队客户', icon: 'users', path: P.customerList, capability: 'view:customers' },
-    { key: 'measure-workbench', label: '团队量房', icon: 'ruler', path: P.customerMeasureWorkbench, capability: 'view:measure-workbench' },
-    { key: 'designer-dispatch', label: '团队派单', icon: 'users', path: P.managerDesigners, capability: 'act:assignDesigner' },
-    { key: 'members', label: '成员管理', icon: 'users', path: P.companyMembers, capability: 'act:inviteMember' },
-    { key: 'quotes', label: '方案报价', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
-    { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangeWorkbench },
-    { key: 'projects', label: '团队项目', icon: 'briefcase', path: P.projectList },
-    { key: 'team', label: '团队成员', icon: 'users', path: P.teamList, capability: 'view:team' },
-    { key: 'performance', label: '团队业绩', icon: 'chart', path: P.performance, capability: 'view:performance' },
-    { key: 'notice', label: '消息通知', icon: 'bell', path: P.msgList, capability: 'view:notice' }
-  ],
+  // DEC-082：历史角色不再获得任何 App 工作台动作。
+  teamLeader: [],
   marketer: [
     { key: 'measure-workbench', label: '我的量房', icon: 'ruler', path: P.customerMeasureWorkbench, capability: 'view:measure-workbench' },
     { key: 'customers', label: '我的客户', icon: 'user', path: P.customerList, capability: 'view:customers' },
@@ -193,15 +183,6 @@ export const ROLE_CONTENT_WORKBENCH: Partial<Record<RoleKey, ContentWorkbenchGro
       { key: 'tasks', label: '内容任务', subtitle: '创建、发布与跟踪任务', icon: 'clipboard', path: P.contentTasks },
       { key: 'contents', label: '员工内容', subtitle: '审核成片、发布与线索', icon: 'folder', path: P.employeeContents },
       { key: 'touches', label: '内容线索', subtitle: '查看门店归因和承接结果', icon: 'user', path: P.contentLeadTouch }
-    ]
-  },
-  teamLeader: {
-    subtitle: '领取内容任务，完成发布并登记内容线索',
-    actions: [
-      { key: 'assets', label: '素材库', subtitle: '查看可用素材与现场上传', icon: 'camera', path: P.contentAssets },
-      { key: 'tasks', label: '内容任务', subtitle: '领取、制作和提交成片', icon: 'clipboard', path: P.contentTasks },
-      { key: 'contents', label: '我的内容', subtitle: '成片、回填和内容线索', icon: 'folder', path: P.employeeContents },
-      { key: 'touches', label: '内容线索', subtitle: '查看归因和承接结果', icon: 'user', path: P.contentLeadTouch }
     ]
   },
   marketer: {

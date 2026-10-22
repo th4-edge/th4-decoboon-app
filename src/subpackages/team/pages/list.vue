@@ -23,11 +23,10 @@ const { items: list, loading, loadingMore, loadError, loadMoreError, hasMore, re
   (current, size) => identityApi.employeePage({ current, size }),
   20
 )
-const filter = ref<'all' | 'boss' | 'storeManager' | 'teamLeader' | 'designer' | 'pm' | 'marketer'>('all')
+const filter = ref<'all' | 'boss' | 'storeManager' | 'designer' | 'pm' | 'marketer'>('all')
 const { requireTeam } = useTeamContext()
 const FILTERS = [
   { key: 'all', label: '全部' }, { key: 'boss', label: '负责人' }, { key: 'storeManager', label: '店长' },
-  { key: 'teamLeader', label: '团队长' },
   { key: 'designer', label: '设计师' }, { key: 'pm', label: '项目经理' }, { key: 'marketer', label: '顾问' }
 ] as const
 

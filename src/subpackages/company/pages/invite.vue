@@ -19,7 +19,6 @@ const teams = ref<Team[]>([])
 const stores = ref<Store[]>([])
 const storeLabel = computed(() => stores.value.find((item) => item.defaultStore)?.name || stores.value[0]?.name || '默认门店')
 const teamId = ref('')
-const teamName = ref('')
 const generated = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const roles: { value: EmployeeRole; label: string }[] = [
@@ -27,8 +26,7 @@ const roles: { value: EmployeeRole; label: string }[] = [
   { value: 'designer', label: '设计师' },
   { value: 'marketer', label: '业务员' },
   { value: 'pm', label: '项目经理' },
-  { value: 'finance', label: '财务' },
-  { value: 'teamLeader', label: '团队负责人' }
+  { value: 'finance', label: '财务' }
 ]
 const roleIndex = computed(() => roles.findIndex(item => item.value === role.value))
 const teamIndex = computed(() => teams.value.findIndex(item => item.id === teamId.value))
@@ -45,12 +43,10 @@ useShare(() => (generated.value
 async function create() {
   if (!inviteName.value.trim()) { toast('请填写被邀请人姓名'); return }
   if (!/^1\d{10}$/.test(telNo.value)) { toast('请输入正确手机号'); return }
-  if (role.value === 'teamLeader' && !teamId.value && !teamName.value.trim()) { toast('请选择已有团队或填写新团队名称'); return }
   submitting.value = true
   try {
     generated.value = await identityApi.createInvite(inviteName.value.trim(), telNo.value, role.value, {
-      teamId: teamId.value || undefined,
-      teamName: !teamId.value ? teamName.value.trim() : undefined
+      teamId: teamId.value || undefined
     })
     toast('邀请已创建，请点击分享给员工', 'success')
   } catch (error) {
@@ -82,7 +78,6 @@ function pickTeam(label: string) {
           <text>岗位</text>
           <JzSelectField variant="plain" :display="roles[roleIndex]?.label || ''" :range="roles.map(item => item.label)" :index="roleIndex" placeholder="请选择" @change="pickRole" />
         </view>
-        <view v-if="role === 'teamLeader' && !teamId" class="ci-field"><text>新团队</text><input v-model="teamName" maxlength="128" placeholder="团队负责人新团队名称" /></view>
         <view v-if="teams.length" class="ci-field">
           <text>团队</text>
           <JzSelectField variant="plain" :display="teamId ? teams[teamIndex]?.name : '未分配'" :range="['未分配', ...teams.map(item => item.name)]" :index="teamIndex + 1" @change="pickTeam" />
