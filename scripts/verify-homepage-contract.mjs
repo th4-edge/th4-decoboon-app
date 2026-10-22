@@ -32,6 +32,7 @@ const bossActions = [...bossBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) =
 const requiredBossActions = [
   '客户经营',
   '设计工作台',
+  '设计方案',
   '报价谈单',
   '合同签约',
   '项目工地',
@@ -93,6 +94,8 @@ for (const path of ['P.customerMeasureWorkbench', 'P.selectionBoard', 'P.materia
 }
 expect(catalog.includes('boss: [TAB.home, TAB.customer, TAB.project, TAB.finance, TAB.mine]'),
   '企业负责人 Tab Bar 发生变化')
+expect(catalog.includes('finance: [TAB.home, TAB.customer, TAB.finance, TAB.project, TAB.material, TAB.mine]'),
+  '财务未获得与负责人/店长一致的客户 Tab')
 
 expect(home.includes('需要关注的项目'), '首页项目区块未收敛为风险项目')
 expect(home.includes('bossWorkbench?.attentionProjects'), '首页未使用后端风险项目聚合')
@@ -137,6 +140,8 @@ for (const cap of [
   "'view:payment-plan-template'",
   "'view:construction-plan-template'",
   "'view:catalog-cost'",
+  "'act:catalog-import'",
+  "'act:catalog-delete'",
   "'view:selection-board'",
   "'view:rectify'",
   "'view:feedback'"
@@ -150,15 +155,29 @@ expect(mine.includes("payroll.push(cell('wallet', '我的工资条'"), '我的�
 expect(!/business\.push\(cell\('wallet', '我的工资条'/.test(mine), '我的工资条仍混在经营工具中')
 expect(mine.includes("can(role.value, 'view:selection-board')") && mine.includes("can(role.value, 'view:rectify')") && mine.includes("can(role.value, 'view:feedback')"), '选材/整改/意见投诉未按能力开放')
 expect(permissions.includes("'edit:package-template'") && permissions.includes("'edit:payment-plan-template'") && permissions.includes("'edit:construction-plan-template'"), '模板维护能力未独立声明')
-expect(!/finance:\s*\[[\s\S]*?'edit:catalog'/.test(permissions), '财务不应拥有报价项目库写权限')
-expect(!/finance:\s*\[[\s\S]*?'view:catalog-cost'/.test(permissions), '财务不应拥有报价项目库成本可见权限')
+const permissionBlock = (role) => permissions.match(new RegExp(`${role}:\\s*\\[([\\s\\S]*?)\\n\\s*\\]`))?.[1] || ''
+const financeCapabilities = permissionBlock('finance')
+const designerPermissions = permissionBlock('designer')
+expect(["'edit:catalog'", "'view:catalog-cost'", "'act:catalog-import'", "'act:catalog-delete'"].every((cap) => financeCapabilities.includes(cap)), '财务未获得与负责人/店长一致的报价项目库维护能力')
+expect(["'view:customers'", "'act:followCustomer'", "'act:recordWechat'", "'act:recordVisit'", "'act:scheduleMeasure'", "'act:assignDesigner'", "'act:inviteCustomer'"].every((cap) => financeCapabilities.includes(cap)), '财务未获得与负责人/店长一致的客户能力')
+expect(["'edit:catalog'", "'view:catalog-cost'", "'act:catalog-import'", "'act:catalog-delete'"].every((cap) => !designerPermissions.includes(cap)), '设计师不应获得报价项目库维护或成本可见能力')
+const customerList = read('src/pages/customer/list.vue')
+const customerDetail = read('src/subpackages/customer/pages/detail.vue')
+expect(customerList.includes("const isFinance = computed(() => session.role === 'finance')") && customerList.includes('isBoss.value || isStoreManager.value || isFinance.value'), 'App 财务客户列表未按负责人/店长范围开放')
+expect(customerDetail.includes("const isFinance = computed(() => session.role === 'finance')") && customerDetail.includes("session.role === 'boss' || isStoreManager.value || isFinance.value"), 'App 财务客户详情未开放负责人变更或客户经营能力')
 const guard = read('src/roles/guard.ts')
 expect(guard.includes("{ path: P.catalogManage, anyOf: ['view:catalog'] }"), '报价项目库页面守卫未放宽为只读可见')
+expect(guard.includes("{ path: P.catalogImport, anyOf: ['act:catalog-import'] }") && guard.includes("{ path: P.catalogImportResult, anyOf: ['act:catalog-import'] }"), '批量导入页面未按独立能力守卫')
 expect(guard.includes("anyOf: ['edit:package-template']") && guard.includes("anyOf: ['edit:payment-plan-template']") && guard.includes("anyOf: ['edit:construction-plan-template']"), '模板编辑页缺少负责人/店长权限守卫')
 const catalogManage = read('src/subpackages/quote/pages/catalog/manage.vue')
 const catalogPicker = read('src/components/CatalogPicker.vue')
+const catalogImport = read('src/subpackages/quote/pages/catalog/import.vue')
+const catalogImportResult = read('src/subpackages/quote/pages/catalog/import-result.vue')
 expect(catalogManage.includes("can(session.role, 'view:catalog-cost')") && catalogManage.includes("can(session.role, 'edit:catalog')"), '报价项目库未区分成本可见与维护权限')
-expect(catalogPicker.includes('readonly?: boolean') && catalogPicker.includes("can(session.role, 'view:catalog-cost')"), '报价项目库组件未支持只读与成本裁剪')
+expect(catalogManage.includes("can(session.role, 'act:catalog-import')") && catalogManage.includes("can(session.role, 'act:catalog-delete')"), '财务缺少批量导入或停用/删除入口能力')
+expect(catalogPicker.includes('readonly?: boolean') && catalogPicker.includes('manageActions?: boolean') && catalogPicker.includes("can(session.role, 'view:catalog-cost')"), '报价项目库组件未支持只读、维护动作与成本裁剪')
+expect(catalogImport.includes("can(session.role, 'act:catalog-import')") && !catalogImport.includes("session.role !== 'boss'"), '批量导入页仍按 BOSS 硬编码权限')
+expect(catalogImportResult.includes("can(session.role, 'act:catalog-import')") && !catalogImportResult.includes("session.role !== 'boss'"), '批量导入结果页仍按 BOSS 硬编码权限')
 const packageManage = read('src/subpackages/quote/pages/package-manage.vue')
 expect(packageManage.includes("can(session.role, 'edit:package-template')") && packageManage.includes("can(session.role, 'view:cost')"), '套餐模板未区分维护与成本展示权限')
 const paymentList = read('src/subpackages/plan/pages/payment-list.vue')
@@ -172,4 +191,4 @@ if (failures.length) {
   process.exit(1)
 }
 
-console.log('首页产品契约校验通过：四项指示灯、BOSS 内部能力超集入口、财务工作台承接员工薪酬、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')
+console.log('首页产品契约校验通过：四项指示灯、BOSS 内部能力超集入口、财务报价项目库完整维护能力、负责人二级专业工作台、风险项目、经营动态和“我的”边界均已冻结。')

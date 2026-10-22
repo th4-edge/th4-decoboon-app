@@ -10,6 +10,64 @@
 
 
 
+## FIX-046 · 财务客户经营入口与权限和 BOSS/店长对齐
+
+* 日期：2026-10-22
+* 报告角色：财务
+* 影响模块：App 底部客户 Tab、Web 财务客户菜单、客户列表与详情动作
+* 严重度：P1 线上权限不一致
+
+### 现象
+
+线上财务角色看不到客户 Tab/客户菜单，无法按 BOSS、店长的工作方式查看和经营客户。
+
+### 根因
+
+App 财务权限矩阵缺少 `view:customers` 及客户经营能力；Web 财务静态菜单和路由未声明客户页；后端客户负责人转交、设计指派、批量录入、休眠、画像和标签维护仍残留仅 BOSS/店长校验。
+
+### 修复方案
+
+1. App 财务底部 Tab 增加「客户」，原有 Tab 全部保留；
+2. Web 财务侧栏增加「客户」，路由接入客户工作页；
+3. 财务增加客户查看、跟进、微信/到店、预约量房、转交负责人、指派设计、批量录入等能力；
+4. 后端按财务现有数据范围放行客户动作：总部财务企业范围、门店财务本店范围；
+5. 客户物理删除、企业治理和财务高危动作边界不变。
+
+### 验证
+
+* App：`npm run check:home`、`npm run type-check` 通过；
+* Web：`npm run type-check`、`check:workbenches`、`check:workspaces` 通过；
+* 后端：财务客户 HTTP 验收通过，覆盖本店客户分页、总部财务跨店分页、负责人转交和设计指派。
+
+## FIX-045 · App 财务报价项目库维护权限与 BOSS/店长对齐
+
+* 日期：2026-10-22
+* 报告角色：财务
+* 影响模块：我的 → 经营工具 → 报价项目库、批量导入、导入结果、停用/启用、删除
+* 严重度：P1 线上权限不一致
+
+### 现象
+
+App 线上财务角色进入报价项目库后只能查看，不能编辑；Web 财务已可维护报价项目库。用户进一步确认财务应与 BOSS、店长一样支持批量导入、停用/启用和删除。
+
+### 根因
+
+App 权限矩阵只给店长配置 `edit:catalog`，财务仅有 `view:catalog`；批量导入和导入结果页还残留 `session.role === 'boss'` 页面硬编码；后端 `CatalogContext.requireMaintainer` 与 `CatalogImportContext.requireMaintainer` 也未允许财务，导致即使放开入口也会被服务端拒绝。
+
+### 修复方案
+
+1. App 财务增加 `edit:catalog`、`view:catalog-cost`、`act:catalog-import`、`act:catalog-delete`；
+2. 批量导入页、结果页和路由守卫统一检查 `act:catalog-import`，移除 BOSS 硬编码；
+3. 报价项目库“更多”菜单由 `act:catalog-delete` 控制，财务可停用/启用和删除；
+4. 后端报价项目库高风险维护与批量导入 Context 同步允许财务，其他内部角色仍返回 403；
+5. 标准成本仍仅 BOSS、店长、财务可见。
+
+### 验证
+
+* App：`npm run verify:mp-weixin` 通过；
+* 后端：`CatalogImportContextTest`、`CatalogCostMaintenanceTest`、财务报价项目库 HTTP 验收通过；
+* 后端全量：913 项中仅既有 `ProviderSecurityAcceptanceTest` Provider 数量基线失败（511/518），与本次权限修复无关。
+
 ## FIX-044 · 报价项目库模板下载被域名拦截、未归属页“以后再说”无响应
 
 * 日期：2026-10-21
