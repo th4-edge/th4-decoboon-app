@@ -25,7 +25,7 @@ onLoad(async (q) => {
   const purchaseId = q?.purchaseId || ''
   purchaseItemId.value = q?.purchaseItemId || ''
   if (!purchaseId) {
-    toast('采购单参数缺失')
+    toast('采购单信息不完整，请返回后重新打开')
     setTimeout(() => uni.navigateBack(), 300)
     return
   }

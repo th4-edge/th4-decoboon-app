@@ -53,7 +53,7 @@ async function refresh() {
         :title="current?.summary || '合同变更结果'"
         :subtitle="current?.subtitle"
         :code="journey.projectNo"
-        :meta="fact('pending') && Number(fact('pending')) > 0 ? `${fact('pending')} 项审批中，审批中不计入合同金额` : '审批通过后自动同频'"
+        :meta="fact('pending') && Number(fact('pending')) > 0 ? `${fact('pending')} 项审批中，审批中不计入合同金额` : '审批通过后自动生效'"
         :amount="effectiveAmount && Number(effectiveAmount) !== 0 ? `¥${effectiveAmount}` : ''"
         :address="journey.propertyAddress"
         :status-name="current?.statusName"
@@ -69,21 +69,21 @@ async function refresh() {
       <view v-if="pending" class="ochange__empty jz-card">
         <JzIcon name="history" :size="72" :color="OWNER_COLOR.muted2" />
         <text class="ochange__empty-title">暂无增减项</text>
-        <text class="ochange__empty-sub">施工过程中如需增加或减少项目，由您与设计师线下确认后形成正式变更单；企业审批通过即生效，本页只读展示变更结果。</text>
+        <text class="ochange__empty-sub">施工过程中如需增加或减少项目，设计师会与您确认后形成变更单；审批通过后，您可以在这里查看变更结果。</text>
       </view>
 
       <view v-else class="ochange__block">
         <OwnerFactList :items="items" empty-text="暂无增减项" />
       </view>
 
-      <OwnerSection title="变更留痕" subtitle="企业审批生效后，业主端只读同频">
+      <OwnerSection v-if="items.length" title="变更记录" subtitle="审批通过后生效">
         <OwnerSignoffCard
           tone="approval"
-          title="增减项不是业主在线确认"
-          description="变更由设计师或授权角色在内部发起，企业审批通过即生效。业主端展示变更结果，有异议可随时提出。"
+          title="变更由企业审批后生效"
+          description="审批中的变更不会计入合同金额；审批通过后会自动更新合同金额和后续安排。如对变更内容有疑问，请联系设计师。"
           :operator="items[0]?.facts.find((item) => item.key === 'requestedBy')?.value"
           :time="items[0]?.facts.find((item) => item.key === 'approvedAt')?.value || items[0]?.facts.find((item) => item.key === 'requestedAt')?.value"
-          source="企业审批 · 业主只读"
+          source="企业审批记录"
         />
       </OwnerSection>
 

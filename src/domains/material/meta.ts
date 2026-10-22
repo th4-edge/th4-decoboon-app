@@ -60,7 +60,7 @@ export function materialSheetGuidance(status: MaterialSheetStatus, priceState?: 
       case 'cancelled':
         return { summary: '作业单已取消并保留历史，不能继续请购或采购。', nextStep: '如仍需该材料，请从材料计划重新建单。' }
       default:
-        return { summary: '作业单状态待业务确认。', nextStep: '刷新后仍不明确时，请联系材料员/财务核对。' }
+        return { summary: '作业单状态暂不可确认。', nextStep: '刷新后仍不明确时，请联系材料员/财务核对。' }
     }
   })()
   if (priceState === 'unpriced' || priceState === 'mixed') {

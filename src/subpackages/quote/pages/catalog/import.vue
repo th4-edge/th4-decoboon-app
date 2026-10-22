@@ -24,7 +24,6 @@ const errorRows = ref<CatalogImportRow[]>([])
 const includeSuspected = ref(false)
 const partialConfirmed = ref(false)
 
-const isBoss = computed(() => can(session.role, 'edit:catalog') && session.role === 'boss')
 const suspiciousCount = computed(() => batch.value?.suspectedDuplicateRows ?? 0)
 const willImport = computed(() => (batch.value?.readyRows ?? 0) + (includeSuspected.value ? suspiciousCount.value : 0))
 const willSkipSuspicious = computed(() => (includeSuspected.value ? 0 : suspiciousCount.value))
@@ -36,8 +35,8 @@ onLoad(() => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (session.role !== 'boss') {
-    toast('仅企业负责人可以使用批量导入')
+  if (!can(session.role, 'act:catalog-import')) {
+    toast('当前账号无权批量导入报价项目库')
     setTimeout(() => uni.navigateBack(), 600)
   }
 })
@@ -193,7 +192,7 @@ function openResult() {
         <button class="btn btn--ghost" :disabled="busy" @click="downloadTemplate">下载 V1.0 模板</button>
         <button class="btn" :disabled="busy" @click="chooseFile">从微信聊天选择文件</button>
       </view>
-      <text class="muted">支持 .xlsx / .csv，单文件 ≤10MB、≤2,000 行；仅企业负责人可导入。</text>
+      <text class="muted">支持 .xlsx / .csv，单文件 ≤10MB、≤2,000 行；企业负责人、店长和财务可导入。</text>
       <text v-if="fileName" class="file">当前文件：{{ fileName }}</text>
     </view>
 

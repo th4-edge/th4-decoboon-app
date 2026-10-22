@@ -285,7 +285,7 @@ function formatMetric(metric: ProjectMetricCard) {
 }
 
 function statusLabel(p: Project) {
-  return PROJECT_STATUS_META[p.status]?.label || '待业务确认'
+  return PROJECT_STATUS_META[p.status]?.label || '状态待确认'
 }
 
 function statusColor(p: Project) {

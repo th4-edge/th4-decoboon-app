@@ -310,7 +310,7 @@ function projectStatusTone(status?: string) {
 }
 
 function projectStatusLabel(status?: string) {
-  if (!status) return '待业务确认'
+  if (!status) return '状态待确认'
   return PROJECT_STATUS_META[status as keyof typeof PROJECT_STATUS_META]?.label || '未知状态'
 }
 

@@ -134,7 +134,7 @@ function startBusiness(path: string) {
       <view v-else class="jz-card bd__empty">
         <JzEmpty
           :text="hasAnyEvents ? '该分类暂无经营动态' : '最近 180 天暂无经营动态'"
-          :sub="hasAnyEvents ? '切换其他分类查看，或等待新的业务事件产生' : '经营动态只展示真实业务事实，不会用演示数据填充。当前企业还没有可形成动态的客户、报价、合同、项目或资金记录。'"
+          :sub="hasAnyEvents ? '切换其他分类查看，或等待新的业务事件产生' : '当前企业还没有可形成动态的客户、报价、合同、项目或资金记录。'"
         >
           <view v-if="!hasAnyEvents" class="bd__empty-actions">
             <text class="bd__empty-actions-title">从第一步开始</text>

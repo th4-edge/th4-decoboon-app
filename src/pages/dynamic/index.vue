@@ -99,7 +99,7 @@ function onPickProject(index: number) {
   <view class="dy">
     <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
     <JzPageHeader
-      title="工地同频动态"
+      title="工地动态"
       :subtitle="isCustomer(role) ? '工地现场，实时可见' : '工地现场进度实时同步给业主'"
       :right-text="canReport() ? '写汇报' : ''"
       :right-icon="canReport() ? 'edit' : undefined"

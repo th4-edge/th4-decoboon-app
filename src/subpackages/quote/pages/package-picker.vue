@@ -102,7 +102,7 @@ function clearSelection() {
         <view class="bp-current__main">
           <text class="bp-current__eyebrow">当前选择</text>
           <text class="bp-current__name">{{ selectedName || '已选套餐' }}</text>
-          <text class="bp-current__meta">最终金额由服务端按套餐规则汇算</text>
+          <text class="bp-current__meta">最终金额按套餐规则自动计算</text>
         </view>
         <text class="bp-current__clear" @tap="clearSelection">清除</text>
       </view>

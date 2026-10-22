@@ -99,11 +99,11 @@ async function refresh() {
         <OwnerFactList :items="selections" empty-text="还没有选材记录" />
       </view>
 
-      <OwnerSection title="线下确认登记" subtitle="客户现场选择，设计师登记">
+      <OwnerSection title="确认记录" subtitle="现场选择，设计师登记">
         <OwnerSignoffCard
           tone="offline"
-          title="客户线下确认选材 · 设计师登记"
-          :description="selectionFact('designer') || selectionFact('registeredAt') ? '品牌、规格、花色和空间由客户线下确认，系统展示设计师登记后的选材版本。' : '选材确认在线下完成；当前同步结果尚未返回登记设计师和登记时间。'"
+          title="选材确认记录"
+          :description="selectionFact('designer') || selectionFact('registeredAt') ? '选材确认已登记，可在下方查看登记设计师和时间。' : '选材确认信息正在更新，请稍后查看；如长时间未显示，请联系设计师。'"
           :operator="selectionFact('designer')"
           :time="selectionFact('registeredAt')"
           :source="selectionFact('registrationSource')"

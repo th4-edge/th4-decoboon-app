@@ -98,7 +98,8 @@ const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
 const isBoss = computed(() => session.role === 'boss')
 const isDesigner = computed(() => session.role === 'designer')
-const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value || isDesigner.value)
+const isFinance = computed(() => session.role === 'finance')
+const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value || isDesigner.value || isFinance.value)
 const canSetDormant = computed(() => Boolean(customer.value && canManageDormant.value && !['sign', 'construction', 'done', 'lost', 'dormant'].includes(customer.value.stage)))
 const dormantReasonActions = [
   { label: '装修计划延期', value: 'PlanPostponed' },
@@ -111,7 +112,7 @@ const dormantReasonActions = [
 ]
 const isCustomerOwner = computed(() => Boolean(customer.value?.owner?.id && customer.value.owner.id === session.emp?.id))
 const isAssignedDesigner = computed(() => Boolean(customer.value?.designer?.id && customer.value.designer.id === session.emp?.id))
-const showMarketing = computed(() => isMarketer.value || isStoreManager.value || isTeamLeader.value)
+const showMarketing = computed(() => isMarketer.value || isStoreManager.value || isFinance.value || isTeamLeader.value)
 const canFollow = computed(() => can(session.role, 'act:followCustomer') && customer.value?.stage !== 'dormant')
 const canQuote = computed(() => can(session.role, 'edit:quote'))
 const canRecordWechat = computed(() => can(session.role, 'act:recordWechat'))
@@ -128,14 +129,14 @@ const canScheduleMeasure = computed(() => can(session.role, 'act:scheduleMeasure
   && properties.value.length > 0
   && !hasMeasureRecord.value
   && ['following', 'pendingMeasure'].includes(customer.value.stage)
-  && (!customer.value.designer || isStoreManager.value || session.role === 'boss' || isCustomerOwner.value || isAssignedDesigner.value))
+  && (!customer.value.designer || isStoreManager.value || isFinance.value || session.role === 'boss' || isCustomerOwner.value || isAssignedDesigner.value))
 const canRecordMeasure = computed(() => can(session.role, 'edit:design')
   && !!activeProperty.value && !activeProperty.value.latestMeasureAt)
 const canAssignDesigner = computed(() => can(session.role, 'act:assignDesigner')
   && customer.value?.stage === 'pendingMeasure' && !!customer.value.measureAt)
 /** 字段级变更/指定设计师入口：有 assignDesigner 权限即可，不受阶段限制（设计师离职、客户要求更换等场景）。 */
 const canChangeDesigner = computed(() => can(session.role, 'act:assignDesigner'))
-const canChangeOwner = computed(() => session.role === 'boss' || isStoreManager.value)
+const canChangeOwner = computed(() => session.role === 'boss' || isStoreManager.value || isFinance.value)
 const canDeleteCustomer = computed(() => session.role === 'boss')
 const hasAddress = computed(() => !!customer.value?.addr?.trim())
 const activeProperty = computed(() => properties.value.find((item) => item.id === activePropertyId.value)
@@ -169,7 +170,7 @@ const confirmedQuote = computed(() => propertyQuotes.value.find((item) => item.s
   || propertyQuotes.value.find((item) => item.status === 'accepted')
   || null)
 const activeQuote = computed(() => propertyQuotes.value.find((item) => !['rejected', 'superseded', 'accepted', 'converted'].includes(item.status)) || null)
-const canEditPortrait = computed(() => !['pm', 'finance'].includes(session.role || ''))
+const canEditPortrait = computed(() => ['boss', 'storeManager', 'finance', 'teamLeader', 'marketer', 'designer'].includes(session.role || ''))
 function openPortraitEdit() { uni.navigateTo({ url: `${P.customerPortraitEdit}?customerId=${id.value}` }) }
 function openTagManage() { uni.navigateTo({ url: `${P.customerTagManage}?customerId=${id.value}` }) }
 
@@ -300,7 +301,7 @@ onLoad((query) => {
   }
   if (!id.value) {
     booted.value = true
-    loadError.value = '缺少客户参数'
+    loadError.value = '客户信息不完整，请返回客户列表后重新打开'
   }
 })
 onShow(() => {

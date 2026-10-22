@@ -44,7 +44,7 @@ onLoad(async (query) => {
     return
   }
   if (!inviteId.value && !token.value) {
-    loadError.value = '邀请参数缺失，请重新打开邀请人发送的完整链接。'
+    loadError.value = '邀请信息不完整，请重新打开邀请人发送的链接。'
     return
   }
 

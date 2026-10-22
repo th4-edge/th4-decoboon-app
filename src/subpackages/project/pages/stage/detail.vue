@@ -204,7 +204,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
       <view class="sd__section-head"><text class="jz-section__title">本阶段操作</text><text class="sd__section-tip">推进施工状态并沉淀现场记录</text></view>
     </view>
     <view v-if="!isCustomer(role) && hasStageActions" class="jz-card sd__ops">
-      <text class="sd__ops-note">阶段开工、现场汇报和验收会同步到项目动态，便于项目经理与业主同频。</text>
+      <text class="sd__ops-note">阶段开工、现场汇报和验收会同步到项目动态，方便项目经理和业主查看同一进度。</text>
       <button v-if="canOpen" class="jz-btn jz-btn--primary jz-btn--block sd__action-btn" @tap="start"><JzIcon name="arrow-right" :size="28" :color="TOKEN_COLOR.white" /><text>开始「{{ stage.name }}」</text></button>
       <button v-if="canMarkNotApplicable" class="jz-btn jz-btn--plain jz-btn--block sd__op sd__action-btn" @tap="markNotApplicable"><JzIcon name="info" :size="28" :color="TOKEN_COLOR.primary" /><text>判定本项不涉及</text></button>
       <button v-if="canReport" class="jz-btn jz-btn--ghost jz-btn--block sd__op sd__action-btn" @tap="report"><JzIcon name="camera" :size="28" :color="TOKEN_COLOR.primary" /><text>现场汇报（打卡/照片）</text></button>

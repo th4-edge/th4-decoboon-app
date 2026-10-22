@@ -31,7 +31,7 @@ const items = [
 
 onLoad(async (query) => {
   fromEmpId.value = query?.empId || ''
-  if (!fromEmpId.value) { toast('员工参数缺失'); return }
+  if (!fromEmpId.value) { toast('员工信息不完整，请返回后重新选择员工'); return }
   try {
     const [employee, page, summary] = await Promise.all([
       identityApi.memberInfo(fromEmpId.value),

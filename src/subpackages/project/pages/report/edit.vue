@@ -147,7 +147,7 @@ async function save() {
       <view class="jz-between rp__vis">
         <view>
           <text class="rp__vis-title">同步给业主</text>
-          <text class="rp__vis-sub">开启后客户同频可见</text>
+          <text class="rp__vis-sub">开启后业主可见</text>
         </view>
         <switch :checked="visibleToCustomer" :color="TOKEN_COLOR.primaryBase" style="transform:scale(0.8);" @change="onVis" />
       </view>

@@ -116,11 +116,11 @@ async function refresh() {
         </view>
       </template>
 
-      <OwnerSection title="线下确认登记" subtitle="客户线下确认，员工登记事实">
+      <OwnerSection title="确认记录" subtitle="线下确认，线上登记">
         <OwnerSignoffCard
           tone="offline"
-          title="客户线下确认 · 员工登记"
-          :description="fact('acceptedBy') || fact('acceptedAt') ? '报价确认在线下完成，本页展示系统已经同步的登记结果。' : '报价确认在线下完成；当前同步结果尚未返回登记人和确认时间。'"
+          title="报价确认记录"
+          :description="fact('acceptedBy') || fact('acceptedAt') ? '确认信息已登记，可在下方查看登记人和确认时间。' : '确认信息正在更新，请稍后查看；如长时间未显示，请联系设计师。'"
           :operator="fact('acceptedBy')"
           :time="fact('acceptedAt')"
           :source="fact('registrationSource')"

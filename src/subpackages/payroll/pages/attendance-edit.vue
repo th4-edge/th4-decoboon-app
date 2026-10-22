@@ -123,7 +123,7 @@ async function submit() {
           <text class="pay-scheme-days__label">月应出勤天数</text>
           <text class="pay-scheme-days__value">{{ schemeLoading ? '读取中' : !selectedEmployee ? '选择员工后读取' : scheduledDays ? `${scheduledDays} 天` : '未找到当月生效方案' }}</text>
         </view>
-        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤快照' : '按所选工资月份匹配生效薪酬方案；保存后写入当月考勤快照' }}</text>
+        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤记录' : '按所选工资月份匹配生效薪酬方案；保存后写入当月考勤记录' }}</text>
       </view>
 
       <view class="pay-grid">

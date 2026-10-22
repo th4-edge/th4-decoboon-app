@@ -69,7 +69,7 @@ onUnmounted(stopPoll)
 
 async function load() {
   if (!designId.value) {
-    loadError.value = '缺少设计方案参数'
+    loadError.value = '设计方案信息不完整，请返回后重新打开'
     return
   }
   loadingData.value = true
@@ -206,7 +206,7 @@ function failText(code?: string): string {
     AI_MODEL_REQUEST_FAILED: 'AI 模型请求失败',
     AI_MODEL_UNAVAILABLE: 'AI 模型暂时不可用',
     AI_MODEL_INTERRUPTED: 'AI 生成任务被中断',
-    AI_MODEL_BAD_RESPONSE: 'AI 模型未返回有效图片',
+    AI_MODEL_BAD_RESPONSE: '图片生成失败，请稍后重试',
     AI_GENERATION_START_FAILED: 'AI 生成启动失败',
     AI_GENERATION_FAILED: 'AI 生成执行失败'
   } as Record<string, string>)[code || ''] || '生成失败，请稍后重试'
@@ -311,7 +311,7 @@ function now(): string {
 
       <view v-if="task?.status === 'designerConfirmed'" class="jz-card ag__gate">
         <JzIcon :name="confirmedDeliverable ? 'check-circle' : 'alert-circle'" :size="34" :color="confirmedDeliverable ? TOKEN_COLOR.success : TOKEN_COLOR.warning" />
-        <view><text>{{ confirmedDeliverable ? '已确认并回写当前方案，可作为正式方案内容' : '已确认版本尚未匹配当前方案封面或区域图片' }}</text><text>正式 HTML/PDF 能力尚未开放，当前页面不提供正式交付按钮。</text></view>
+        <view><text>{{ confirmedDeliverable ? '已确认并回写当前方案，可作为正式方案内容' : '已确认版本尚未匹配当前方案封面或区域图片' }}</text><text>当前仅支持生成预览，正式交付文件暂不提供。</text></view>
       </view>
     </view>
   </view>

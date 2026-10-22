@@ -374,7 +374,7 @@ function avatarOf(m: ProjectMember) {
             </view>
             <view class="pd__hero-avatar pd__hero-avatar--more" v-if="members.length > teamAvatars.length">+{{ members.length - teamAvatars.length }}</view>
           </view>
-          <view class="pd__hero-team-link"><text class="pd__hero-team-text">同频成员 {{ members.length }} 人</text><JzIcon name="chevron-right" :size="24" color="rgba(255,255,255,.9)" /></view>
+          <view class="pd__hero-team-link"><text class="pd__hero-team-text">项目成员 {{ members.length }} 人</text><JzIcon name="chevron-right" :size="24" color="rgba(255,255,255,.9)" /></view>
         </view>
       </view>
     </view>
@@ -401,7 +401,7 @@ function avatarOf(m: ProjectMember) {
 
     <view v-if="isOwner" class="jz-card pd__journey" @tap="goJourney">
       <view class="pd__journey-icon"><JzIcon name="home" :size="34" :color="TOKEN_COLOR.primary" /></view>
-      <view class="jz-grow"><text class="pd__journey-title">项目旅程</text><text class="pd__journey-sub">量房、设计、报价、合同、材料、施工、验收和款项全链路同频</text></view>
+      <view class="jz-grow"><text class="pd__journey-title">项目旅程</text><text class="pd__journey-sub">量房、设计、报价、合同、材料、施工、验收和款项集中查看</text></view>
       <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text3" />
     </view>
 
@@ -678,7 +678,7 @@ function avatarOf(m: ProjectMember) {
     <!-- ⑦ 成员 -->
     <view v-else class="pd__tab-body">
       <view class="jz-between pd__member-head">
-        <text class="pd__member-title">同频成员（{{ members.length }}）</text>
+        <text class="pd__member-title">项目成员（{{ members.length }}）</text>
         <view class="jz-row" style="gap:12rpx;align-items:center;">
           <button v-if="canShowOwnerQrcode" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="goOwnerQrcode"><JzIcon name="scan" :size="24" :color="TOKEN_COLOR.white" /><text>业主项目码</text></button>
           <button v-if="canInviteOwner" class="jz-btn jz-btn--ghost jz-btn--sm pd__action-btn" @tap="goInviteOwner"><JzIcon name="user-plus" :size="24" :color="TOKEN_COLOR.primary" /><text>邀请卡片</text></button>
@@ -693,7 +693,7 @@ function avatarOf(m: ProjectMember) {
         </view>
       </view>
       <view class="pd__member-tip jz-card">
-        <text class="pd__member-tip-title">同频说明</text>
+        <text class="pd__member-tip-title">成员查看说明</text>
         <text class="pd__member-tip-text">业主通过「业主邀请」加入，仅可见本工地进度、动态与验收；员工按岗位在权限矩阵内读写。</text>
       </view>
     </view>

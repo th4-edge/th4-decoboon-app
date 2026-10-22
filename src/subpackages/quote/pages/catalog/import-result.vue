@@ -5,6 +5,7 @@ import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { catalogApi } from '@/domains/catalog/api'
 import type { CatalogImportBatch, CatalogImportRow } from '@/domains/catalog/model'
+import { can } from '@/roles/permission'
 import { confirmDanger, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
@@ -46,8 +47,8 @@ onLoad((options) => {
     uni.reLaunch({ url: P.login })
     return
   }
-  if (session.role !== 'boss') {
-    toast('仅企业负责人可以查看批量导入结果')
+  if (!can(session.role, 'act:catalog-import')) {
+    toast('当前账号无权查看批量导入结果')
     setTimeout(() => uni.navigateBack(), 600)
   }
 })

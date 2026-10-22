@@ -187,7 +187,7 @@ function switchAccount() {
           <JzBrandLogo class="owner-enter__logo" variant="white" :size="88" />
           <view class="jz-grow">
             <text class="owner-enter__title">{{ invite.projectName || '我的家' }}</text>
-            <text class="owner-enter__sub">{{ invite.propertyAddress || '项目进度同频' }}</text>
+            <text class="owner-enter__sub">{{ invite.propertyAddress || '装修进度随时查看' }}</text>
           </view>
         </view>
         <view class="owner-enter__info">

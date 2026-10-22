@@ -103,7 +103,7 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
     </scroll-view>
 
     <JzSkeleton v-if="loading && !items.length" :rows="4" />
-    <view v-else-if="!shown.length" class="dr__empty"><JzEmpty text="当前范围没有设计方案" sub="调整状态或搜索条件后重试；没有数据不等于接口失败" /></view>
+    <view v-else-if="!shown.length" class="dr__empty"><JzEmpty text="当前范围没有设计方案" sub="调整筛选条件后重试；如仍为空，可稍后再查看" /></view>
     <view v-else class="dr__list">
       <view v-for="item in shown" :key="item.id" class="jz-card dr__card" @tap="openDetail(item)">
         <view class="dr__head">

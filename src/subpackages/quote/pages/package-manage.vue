@@ -80,7 +80,7 @@ function createQuote(templateId: string) {
         <text class="pm__hero-count">{{ templates.length }} 套</text>
       </view>
       <text class="pm__hero-value">{{ readyCount }} 套可使用 · {{ templates.length - readyCount }} 套配置中</text>
-      <text class="pm__hero-sub">{{ canEdit ? '套餐是企业标准报价模板，客户报价生成后保存独立快照，修改模板不影响历史报价。' : '只读查看企业套餐模板；套餐调整由企业负责人或店长维护。' }}</text>
+      <text class="pm__hero-sub">{{ canEdit ? '套餐是企业标准报价模板，客户报价生成后保存独立版本，修改模板不影响历史报价。' : '只读查看企业套餐模板；套餐调整由企业负责人或店长维护。' }}</text>
     </view>
 
     <!-- 列表 -->

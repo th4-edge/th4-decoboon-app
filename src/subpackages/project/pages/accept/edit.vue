@@ -233,7 +233,7 @@ async function submit() {
         <text class="ac__title">{{ stage.sort }}. {{ stage.name }} · 验收</text>
         <JzTag :text="acceptance ? summaryTag.label : '待验收'" :color="acceptance ? summaryTag.color : STATUS_COLOR.pending" />
       </view>
-      <text class="ac__sub">验收通过后，阶段自动完结并进入下一阶段（同频闭环）</text>
+      <text class="ac__sub">验收通过后，阶段自动完成并进入下一阶段</text>
     </view>
 
     <!-- ① 验收单汇总（含业主确认拍板） -->

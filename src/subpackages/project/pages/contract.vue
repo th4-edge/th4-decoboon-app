@@ -348,13 +348,13 @@ function nodeColor(status?: string) {
       </view>
       <view class="jz-card cw__scope">
         <view class="cw__scope-head">
-          <text class="cw__scope-note">签约时冻结的合同行快照，共 {{ lines.length }} 项 · 合计 {{ money(linesTotal) }}</text>
+          <text class="cw__scope-note">签约时冻结的合同明细，共 {{ lines.length }} 项 · 合计 {{ money(linesTotal) }}</text>
           <view class="cw__view-tools">
             <view class="cw__view-tool" :class="{ 'cw__view-tool--on': detailView === 'region' }" @tap="detailView = 'region'">按区域</view>
             <view class="cw__view-tool" :class="{ 'cw__view-tool--on': detailView === 'category' }" @tap="detailView = 'category'">按类型</view>
           </view>
         </view>
-        <JzEmpty v-if="!lines.length" text="合同范围待补充" sub="合同生成时会冻结报价行快照" />
+        <JzEmpty v-if="!lines.length" text="合同范围待补充" sub="合同生成时会冻结报价明细" />
         <view v-for="group in groupedLines" v-else :key="group.key" class="cw__group">
           <view class="cw__group-head" @tap="toggleGroup(group.key)">
             <view class="cw__group-left">

@@ -50,7 +50,7 @@ export const ROLE_TABS: Record<RoleKey, RoleTab[]> = {
   marketer: [TAB.home, TAB.customer, TAB.project, TAB.mine],
   designer: [TAB.home, TAB.design, TAB.quote, TAB.project, TAB.mine],
   pm: [TAB.home, TAB.customer, TAB.project, TAB.mine],
-  finance: [TAB.home, TAB.finance, TAB.project, TAB.material, TAB.mine],
+  finance: [TAB.home, TAB.customer, TAB.finance, TAB.project, TAB.material, TAB.mine],
   customer: [
     { key: 'home', label: '我的家', icon: 'home', path: P.home },
     { key: 'project', label: '进度', icon: 'briefcase', path: P.projectList },
@@ -73,7 +73,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   boss: [
     { key: 'customer', label: '客户经营', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'design-workbench', label: '设计工作台', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
-    { key: 'design-review', label: '设计方案运营查看', icon: 'eye', path: P.designReview, capability: 'view:design-review' },
+    { key: 'design-review', label: '设计方案', icon: 'eye', path: P.designReview, capability: 'view:design-review' },
     { key: 'quotes', label: '报价谈单', icon: 'file-text', path: P.quoteList, capability: 'view:quote' },
     { key: 'sign', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractConfirm' },
     { key: 'projects', label: '项目工地', icon: 'briefcase', path: P.projectList, capability: 'view:allProjects' },
@@ -147,6 +147,7 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
   /* 财务首页入口 = 今日待办队列（对象+状态），不重复财务 Tab 的功能目录；
      纯功能目录（收付凭证/资金台账/项目账本等）统一由财务 Tab 承载。 */
   finance: [
+    { key: 'customers', label: '客户', icon: 'users', path: P.customerList, capability: 'view:customers' },
     { key: 'receivable-outstanding', label: '待收工程款', icon: 'file-text', path: `${P.financeReceivables}?filter=outstanding`, capability: 'view:finance' },
     { key: 'receivable-overdue', label: '逾期应收', icon: 'alert-circle', path: `${P.financeReceivables}?filter=overdue`, capability: 'view:finance' },
     { key: 'payable-outstanding', label: '待付账款', icon: 'wallet', path: P.financePayables, capability: 'view:finance' },

@@ -17,9 +17,12 @@ import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const pickerVisible = ref(true)
 const pickerRef = ref<InstanceType<typeof CatalogPicker> | null>(null)
-// 标准采购成本敏感：仅企业负责人 / 店长可见（后端同样裁剪，前端仅控制展示）。
+// 标准采购成本敏感：仅企业负责人、店长、财务可见（后端同样裁剪，前端仅控制展示）。
 const canViewCost = computed(() => can(session.role, 'view:catalog-cost'))
 const canEdit = computed(() => can(session.role, 'edit:catalog'))
+// 批量导入与停用/删除属于高风险维护，仅开放给负责人、店长和财务。
+const canImport = computed(() => can(session.role, 'act:catalog-import'))
+const canManageActions = computed(() => can(session.role, 'act:catalog-delete'))
 const authorized = ref(false)
 const recentBatches = ref<CatalogImportBatch[]>([])
 const templateDownloading = ref(false)
@@ -111,10 +114,10 @@ onLoad(() => {
   }
   authorized.value = true
   void loadBrandSuggestions()
-  if (canEdit.value) void loadRecentBatches()
+  if (canImport.value) void loadRecentBatches()
 })
 
-/** 最近导入记录（仅 BOSS，PRD §4.2） */
+/** 最近导入记录（负责人、店长、财务，PRD §4.2）。 */
 async function loadRecentBatches() {
   try {
     recentBatches.value = await catalogApi.importBatchPage({ size: 3 })
@@ -124,18 +127,18 @@ async function loadRecentBatches() {
 }
 
 function openImport() {
-  if (!canEdit.value) return
+  if (!canImport.value) return
   uni.navigateTo({ url: P.catalogImport })
 }
 
 function openImportResult(batchId: string) {
-  if (!canEdit.value) return
+  if (!canImport.value) return
   uni.navigateTo({ url: `${P.catalogImportResult}?batchId=${batchId}` })
 }
 
 /** 下载 V1.0 标准模板 */
 async function downloadTemplate() {
-  if (!canEdit.value || templateDownloading.value) return
+  if (!canImport.value || templateDownloading.value) return
   templateDownloading.value = true
   try {
     loading('准备模板…')
@@ -411,6 +414,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
       :type="type"
       :manage="true"
       :readonly="!canEdit"
+      :manage-actions="canManageActions"
       :include-inactive="true"
       :title="canEdit ? '报价项目库维护' : '报价项目库'"
       @update:visible="!$event && closePicker()"
@@ -419,7 +423,7 @@ async function doToggle(item: CatalogItem, active: boolean) {
       @toggle="onToggle"
       @delete="confirmDelete"
     >
-      <template v-if="canEdit" #manage-toolbar>
+      <template v-if="canImport" #manage-toolbar>
         <view class="cm__import">
           <view class="cm__import-head">
             <view><text class="cm__import-title">批量导入报价项目库</text><text class="cm__import-sub">按 V1.0 模板在电脑整理，手机上传预览后确认导入</text></view>

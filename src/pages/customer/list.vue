@@ -45,7 +45,8 @@ const isBoss = computed(() => session.role === 'boss')
 const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
-const canBatchImport = computed(() => isBoss.value || isStoreManager.value)
+const isFinance = computed(() => session.role === 'finance')
+const canBatchImport = computed(() => isBoss.value || isStoreManager.value || isFinance.value)
 const loading = ref(false)
 const loadingMore = ref(false)
 const loadError = ref('')
@@ -97,7 +98,7 @@ const ALL_FILTERS: { key: 'all' | CustomerStage | 'assign'; label: string }[] = 
 ]
 const filters = computed(() => isMarketer.value
   ? ALL_FILTERS.filter((item) => ['all', 'intention', 'following', 'pendingMeasure', 'lost', 'dormant'].includes(item.key))
-  : isBoss.value || isStoreManager.value || isTeamLeader.value
+  : isBoss.value || isStoreManager.value || isFinance.value || isTeamLeader.value
     ? [{ key: 'assign' as const, label: '待指派设计' }, ...ALL_FILTERS]
     : ALL_FILTERS)
 
@@ -255,6 +256,7 @@ const currentBossGroup = computed(() => selectedOwnerId.value
 const pageSubtitle = computed(() => {
   if (isBoss.value) return '全公司客户经营与转化'
   if (isStoreManager.value) return '门店客户经营与跟进'
+  if (isFinance.value) return '客户经营与跟进'
   if (isTeamLeader.value) return '团队客户经营与协同'
   if (isMarketer.value) return '我的客户跟进与转化'
   return '当前范围内的客户经营'
@@ -581,7 +583,7 @@ function bossBusinessAmount(customer: Customer) {
       <view class="cl__golden-foot"><text>已加微信 {{ goldenStats.wechat }}</text><text>待量房 {{ goldenStats.pending }}</text></view>
     </view>
 
-    <view v-if="isStoreManager" class="jz-card cl__dispatch" @tap="filter = 'assign'">
+    <view v-if="isStoreManager || isFinance" class="jz-card cl__dispatch" @tap="filter = 'assign'">
       <view class="cl__dispatch-icon"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /></view>
       <view class="jz-grow">
         <text class="cl__dispatch-title">{{ stageCount.assign || 0 }} 位客户等待指派设计师</text>
@@ -665,7 +667,7 @@ function bossBusinessAmount(customer: Customer) {
             <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" :color="TOKEN_COLOR.text2" />
             <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" :color="TOKEN_COLOR.text2" />
             <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" :color="TOKEN_COLOR.text2" />
-            <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
+            <JzTag v-else-if="(isStoreManager || isFinance) && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
             <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
           </view>
           <view v-if="isMarketer && c.stage !== 'dormant'" class="cl__item-foot"><JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" /><text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text></view>

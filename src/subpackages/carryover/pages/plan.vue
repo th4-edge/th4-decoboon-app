@@ -50,7 +50,7 @@ const needReason = computed(() => item.value?.status === 'locked' || item.value?
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   itemId.value = query?.itemId || query?.id || ''
-  if (!itemId.value) toast('缺少承接项目参数')
+  if (!itemId.value) toast('项目信息不完整，请返回后重新选择承接项目')
 })
 onShow(() => { if (itemId.value) void load() })
 onPullDownRefresh(async () => { await load(); uni.stopPullDownRefresh() })

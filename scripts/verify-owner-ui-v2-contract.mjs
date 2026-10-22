@@ -45,7 +45,7 @@ for (const page of [
 
 contains('src/subpackages/project/pages/owner-change.vue', 'tone="approval"', '增减项必须使用审批生效语义')
 notContains('src/subpackages/project/pages/owner-change.vue', '确认变更', '业主端不得出现增减项在线确认动作')
-contains('src/subpackages/project/pages/owner-material-plan.vue', '材料到场不需要业主确认', '材料计划必须明确无需业主确认')
+contains('src/subpackages/project/pages/owner-material-plan.vue', '材料到场由装企现场记录', '材料计划必须明确由装企记录到场')
 notContains('src/subpackages/project/pages/owner-material-plan.vue', 'confirmArrival', '材料计划不得出现确认到场动作')
 
 contains('src/components/owner/OwnerFactHero.vue', 'OwnerPreviewBanner', 'Owner Hero 必须承载预览安全层')

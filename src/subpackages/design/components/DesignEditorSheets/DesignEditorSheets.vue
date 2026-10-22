@@ -83,7 +83,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         </view>
         <text class="ds__field-label">区域名称 *</text>
         <input v-model="spaceName" class="jz-form-input ds__space-name-input" placeholder="如主卧、次卧、北卧、生活阳台" />
-        <text class="ds__field-label">区域尺寸（长/宽为量房快照）</text>
+        <text class="ds__field-label">区域尺寸（长/宽为量房记录）</text>
         <text class="ds__field-hint">长宽只记录现场粗测用于对照，系统不据此推算面积和周长。</text>
         <view class="ds__dim-grid">
           <view class="ds__dim-item">

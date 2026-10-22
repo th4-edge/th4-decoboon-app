@@ -69,7 +69,7 @@ export const HELP_QUICK_STARTS: Record<string, HelpQuickStart> = {
     steps: [
       { title: '查看待设计房屋', description: '只处理被指派给自己的客户和房屋。', result: '知道自己先做哪一套', actionLabel: '设计工作台', actionPath: '/subpackages/design/pages/workbench' },
       { title: '完成诉求和方案', description: '记录客户诉求、区域和施工主材分项。', result: '方案可以进入报价', actionLabel: '设计工作台', actionPath: '/subpackages/design/pages/workbench' },
-      { title: '生成并提交报价', description: '金额由系统计算，成本不完整时不要制造利润。', result: '客户可以确认报价', actionLabel: '报价工作台', actionPath: '/subpackages/quote/pages/workbench' },
+      { title: '生成并提交报价', description: '金额会自动计算；成本不完整时，利润和毛利率暂不显示。', result: '客户可以确认报价', actionLabel: '报价工作台', actionPath: '/subpackages/quote/pages/workbench' },
       { title: '跟进主材选材', description: '项目推进后逐项确认品牌、规格、颜色和型号。', result: '客户确认结果可以用于采购参考', actionLabel: '选材工作台', actionPath: '/subpackages/project/pages/selection-board' }
     ]
   },
@@ -89,7 +89,7 @@ export const HELP_QUICK_STARTS: Record<string, HelpQuickStart> = {
     steps: [
       { title: '查看应收应付', description: '合同生效、采购到货后形成财务事实。', result: '知道何时收款、付款', actionLabel: '财务工作台', actionPath: '/pages/finance/index' },
       { title: '登记收付款', description: '每次收付款必须有项目、对象和金额。', result: '资金台账和项目对得上', actionLabel: '收付款台账', actionPath: '/subpackages/finance/pages/ledger' },
-      { title: '检查成本和利润', description: '成本不完整时保持空值并提示“成本未完整”。', result: '经营报表不制造假利润', actionLabel: '项目财务', actionPath: '/subpackages/finance/pages/projects' }
+      { title: '检查成本和利润', description: '成本不完整时显示“成本未完整”，不展示利润。', result: '经营报表不制造假利润', actionLabel: '项目财务', actionPath: '/subpackages/finance/pages/projects' }
     ]
   },
   customer: {
@@ -117,7 +117,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: 'cannot-see-customer', category: '权限与数据', title: '看不到某个客户或项目', summary: '装得清按企业、门店、团队、本人和项目参与关系控制数据范围。', symptoms: ['同事能看到客户，自己看不到', '项目列表数量少于实际项目'], reason: '当前账号不在客户归属、项目参与关系或管理范围内。', actions: ['确认自己的角色和所属门店或团队', '让店长、团队负责人或老板检查负责人和项目成员', '不要通过修改链接或猜测编号尝试访问其他项目']
   },
   {
-    id: 'quote-cost-incomplete', category: '设计报价', title: '报价成本不完整，利润不能显示', summary: '缺少应计成本时，系统不会用 0 代替并计算利润。', symptoms: ['利润或毛利率显示为空', '页面提示“成本未完整”'], reason: '项目存在缺少标准成本、采购价或人工成本的材料和施工项。', actions: ['先补齐报价项目、供应商采购价或人工成本', '重新生成或刷新报价', '成本未补齐前不要对外使用利润和毛利率'], actionLabel: '维护报价项目库', actionPath: '/subpackages/quote/pages/catalog/manage', roles: ['boss', 'storeManager', 'finance']
+    id: 'quote-cost-incomplete', category: '设计报价', title: '报价成本不完整，利润不能显示', summary: '缺少应计成本时，利润和毛利率暂不显示，不会按 0 计算。', symptoms: ['利润或毛利率显示为空', '页面提示“成本未完整”'], reason: '项目存在缺少标准成本、采购价或人工成本的材料和施工项。', actions: ['先补齐报价项目、供应商采购价或人工成本', '重新生成或刷新报价', '成本未补齐前不要对外使用利润和毛利率'], actionLabel: '维护报价项目库', actionPath: '/subpackages/quote/pages/catalog/manage', roles: ['boss', 'storeManager', 'finance']
   },
   {
     id: 'contract-no-project', category: '合同与项目', title: '合同签了，为什么还不能创建项目', summary: '签约和合同生效是两个不同状态。', symptoms: ['合同显示“已签约”但没有项目', '创建项目按钮不可用'], reason: '正常业务只有合同生效后才能创建项目。', actions: ['打开合同工作台确认当前状态', '完成合同生效动作', '合同生效后再进入项目创建'], actionLabel: '查看项目合同', actionPath: '/subpackages/project/pages/contract', roles: ['boss', 'storeManager', 'teamLeader', 'designer']
@@ -126,16 +126,16 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: 'selection-not-visible', category: '主材选材', title: '看不到主材选材入口', summary: '选材从合同材料清单发起，只对有项目权限的角色开放。', symptoms: ['项目详情没有“主材选材”', '设计师或客户看不到选材清单'], reason: '合同尚未生效、项目尚未创建，或当前账号不在项目参与范围内。', actions: ['确认合同已生效且项目已创建', '确认账号属于项目成员或业主授权范围', '由设计师从项目或合同工作台进入选材'], actionLabel: '查看项目', actionPath: '/pages/project/list'
   },
   {
-    id: 'material-sheet-time', category: '材料采购', title: '作业单的测量、配送、安装和到场时间有什么区别', summary: '作业单记录现场计划时间；要求到场和实际到场在材料计划、采购与到场记录中确认。', symptoms: ['不知道测量日期和到场日期分别填在哪', '提交请购时提示测量字段必填', '作业单有配送日期但看不到实际到场'], reason: '作业单承载现场测量/配送/安装计划，不承载系统时间戳和实际到场事实；当前品类模板可能把测量字段设为必填。', actions: ['在作业单详情确认测量、配送、安装计划日期', '标 * 的模板必填字段补齐后再提交请购', '实际到场数量与日期到材料计划/到场确认中登记'], actionLabel: '材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
+    id: 'material-sheet-time', category: '材料采购', title: '作业单的测量、配送、安装和到场时间有什么区别', summary: '作业单记录现场计划时间；要求到场和实际到场在材料计划、采购与到场记录中确认。', symptoms: ['不知道测量日期和到场日期分别填在哪', '提交请购时提示测量字段必填', '作业单有配送日期但看不到实际到场'], reason: '作业单记录测量、配送和安装计划；实际到场以材料计划或到场记录为准。当前品类可能要求填写测量时间。', actions: ['在作业单详情确认测量、配送、安装计划日期', '标 * 的模板必填字段补齐后再提交请购', '实际到场数量与日期到材料计划/到场确认中登记'], actionLabel: '材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
   },
   {
-    id: 'material-sheet-cancel', category: '材料采购', title: '作业单为什么不能直接取消', summary: '未进入采购前可取消并保留原因；进入采购后必须走调整或退货。', symptoms: ['作业单详情没有取消入口', '提示已进入采购，材料与数量锁定', '取消后仍能看到历史单据'], reason: '作业单一旦进入采购，采购单和应付事实已经形成，不能靠取消作业单抹掉；已到货扣减必须走退货。', actions: ['确认作业单是否已经下单或到场', '未进入采购时填写取消原因后取消', '已下单未到走采购调整，已到货走退货或增减项'], actionLabel: '查看材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
+    id: 'material-sheet-cancel', category: '材料采购', title: '作业单为什么不能直接取消', summary: '未进入采购前可取消并保留原因；进入采购后必须走调整或退货。', symptoms: ['作业单详情没有取消入口', '提示已进入采购，材料与数量锁定', '取消后仍能看到历史单据'], reason: '作业单进入采购后，取消会影响采购和付款记录；请按实际情况走采购调整或退货。', actions: ['确认作业单是否已经下单或到场', '未进入采购时填写取消原因后取消', '已下单未到走采购调整，已到货走退货或增减项'], actionLabel: '查看材料计划', actionPath: '/subpackages/project/pages/material-plan-workbench', roles: ['designer', 'pm', 'boss', 'storeManager', 'finance']
   },
   {
     id: 'material-sheet-order', category: '材料采购', title: '提交请购后在哪里下单', summary: '材料下单统一从主材作业单发起，财务在 App 内直接下单；旧的材料计划直采入口已下线。', symptoms: ['作业单显示待下单但找不到采购入口', '材料计划页面没有“去下单”按钮'], reason: '提交请购后，作业单进入财务下单队列；材料计划只展示需求与履约进度，不再直接创建采购单。', actions: ['财务打开主材下单工作台', '选择已提交请购的作业单', '选择供应商、填写本次数量和可空单价后确认下单'], actionLabel: '主材下单工作台', actionPath: '/subpackages/project/pages/material-sheet', roles: ['finance', 'boss', 'storeManager']
   },
   {
-    id: 'material-settlement-app', category: '材料采购', title: '主材结算怎么确认、撤销后成本怎么变', summary: '结算价是实际成本唯一来源；同一采购明细只能结算一次，撤销后回到成本待结算。', symptoms: ['采购已到场但利润仍为空', '结算单确认后想改结算价', '月结和逐单结算不知道选哪个'], reason: '采购价只是暂估；结算价确认后才会修正应付并收敛实际成本。逐单优先，月结只结算尚未逐单结算的差额。', actions: ['打开 App 主材结算查看可结算明细', '未定价行按对账结果填写结算价', '逐单或按月结确认；如需纠错先撤销结算再重结'], actionLabel: '主材结算', actionPath: '/subpackages/finance/pages/material-settlement', roles: ['finance', 'boss', 'storeManager']
+    id: 'material-settlement-app', category: '材料采购', title: '主材结算怎么确认、撤销后成本怎么变', summary: '结算价是实际成本唯一来源；同一采购明细只能结算一次，撤销后回到成本待结算。', symptoms: ['采购已到场但利润暂不显示', '结算单确认后想改结算价', '月结和逐单结算不知道选哪个'], reason: '采购价只是暂估；结算价确认后才会修正应付并收敛实际成本。逐单优先，月结只结算尚未逐单结算的差额。', actions: ['打开 App 主材结算查看可结算明细', '未定价行按对账结果填写结算价', '逐单或按月结确认；如需纠错先撤销结算再重结'], actionLabel: '主材结算', actionPath: '/subpackages/finance/pages/material-settlement', roles: ['finance', 'boss', 'storeManager']
   },
   {
     id: 'upload-failed', category: '异常处理', title: '照片、视频或文件上传失败', summary: '通常是微信权限、网络或单个文件过大导致。', symptoms: ['选择照片后一直上传中', '提示文件上传失败或下载地址过期'], reason: '未授权相机或相册、网络中断，或文件超过当前上传限制。', actions: ['在微信设置中允许相机、相册或文件权限', '切换稳定网络后重试', '重新选择文件；刷新后仍失败时提交反馈并保留问题时间']
@@ -144,7 +144,7 @@ export const HELP_TOPICS: HelpTopic[] = [
     id: 'owner-cannot-see', category: '业主与验收', title: '业主看不到自己的项目', summary: '业主必须使用接收邀请的微信，并成功接受项目授权。', symptoms: ['装修公司员工能看到项目，业主看不到', '业主打开后提示没有项目'], reason: '业主微信未完成邀请绑定，或使用员工账号代替业主登录。', actions: ['使用装修公司发送邀请的同一个微信打开小程序', '重新接受项目邀请', '不要使用员工微信代替业主确认验收']
   },
   {
-    id: 'stage-status-conflict', category: '异常处理', title: '项目状态和当前阶段看起来不一致', summary: '状态与阶段必须由同一业务事实推导；发现冲突应记录反馈。', symptoms: ['项目显示待验收，但正在整改', '当前阶段为空或与页面其他位置不一致'], reason: '可能是页面数据未刷新、历史数据缺失，或状态投影暂时不一致。', actions: ['先下拉刷新并重新进入项目', '记录项目名称、页面和看到的两处矛盾', '提交意见反馈，不要在冲突状态下继续确认验收或结算']
+    id: 'stage-status-conflict', category: '异常处理', title: '项目状态和当前阶段看起来不一致', summary: '项目状态和当前阶段应保持一致；如发现冲突，请先刷新并记录反馈。', symptoms: ['项目显示待验收，但正在整改', '当前阶段为空或与页面其他位置不一致'], reason: '可能是页面数据未刷新或历史数据缺失，导致状态暂时不一致。', actions: ['先下拉刷新并重新进入项目', '记录项目名称、页面和看到的两处矛盾', '提交意见反馈，不要在冲突状态下继续确认验收或结算']
   },
   {
     id: 'feedback-progress', category: '异常处理', title: '提交问题后不知道谁在处理', summary: '反馈会记录处理人、处理状态和回复。', symptoms: ['反馈列表只看到“处理中”', '不知道多久能解决'], reason: '问题已经进入处理队列，但尚未完成回复或关闭。', actions: ['打开反馈列表查看处理人和最新回复', '如果问题影响继续操作，点击联系客服补充说明', '提供发生页面、操作步骤和期望结果，便于快速定位'], actionLabel: '查看我的反馈', actionPath: '/subpackages/project/pages/feedback-list'

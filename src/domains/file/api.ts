@@ -78,7 +78,7 @@ export const fileApi = {
     if (options.projectId) formData.projectId = options.projectId
     const grants = await uploadRequest<RawFileGrant[]>('file/private/grant', filePath, formData)
     const grant = grants?.[0]
-    if (!grant.path) throw new Error('文件上传未返回存储路径')
+    if (!grant.path) throw new Error('文件上传失败，请重新选择文件后重试')
     return {
       path: grant.path,
       url: grant.url ? absoluteUrl(grant.url) : absoluteUrl(`/file/private/download?path=${encodeURIComponent(grant.path)}`),

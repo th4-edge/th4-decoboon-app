@@ -36,7 +36,7 @@ function toggleAsset(id: string) {
 async function generate() {
   if (busy.value || !content.value) return
   if (!selectedAssetIds.value.length) { toast('请至少选择一条素材'); return }
-  if (!videoSelected.value) { toast('P0 直通成片至少需要一条视频素材'); return }
+  if (!videoSelected.value) { toast('请至少选择一条视频素材'); return }
   if (!caption.value.trim()) { toast('请填写发布文案'); return }
   busy.value = true
   try {
@@ -50,7 +50,7 @@ async function generate() {
 
 <template>
   <view class="ecc">
-    <view class="ecc__hero jz-card"><text class="ecc__title">生成我的成片</text><text class="ecc__sub">P0 使用多视频片段服务端渲染，统一竖版、拼接并叠加文案字幕。</text></view>
+    <view class="ecc__hero jz-card"><text class="ecc__title">生成我的成片</text><text class="ecc__sub">所选视频将统一生成竖版成片，并自动添加文案和字幕。</text></view>
     <view class="ecc__card jz-card">
       <text class="ecc__label">选择素材 *</text>
       <view class="ecc__assets">

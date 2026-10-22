@@ -416,7 +416,7 @@ function validateEffectiveInputs() {
       </view>
 
       <view class="pc__tip">
-        <text>合同生效后，系统自动冻结报价与合同行快照，并生成施工阶段、任务、材料计划和应收计划。后续金额调整必须通过合同变更单完成。</text>
+        <text>合同生效后，系统自动锁定报价与合同明细，并生成施工阶段、任务、材料计划和应收计划。后续金额调整必须通过合同变更单完成。</text>
       </view>
     </view>
 

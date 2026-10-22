@@ -131,7 +131,7 @@ async function save(publish = false) {
 
 <template>
   <view class="cpe">
-    <JzPageHeader :title="pageTitle" subtitle="阶段和工期内置于项目，历史合同快照不受影响" />
+    <JzPageHeader :title="pageTitle" subtitle="阶段和工期内置于项目，历史合同记录不受影响" />
     <view class="cpe__body">
       <view class="cpe__card jz-card">
         <text class="cpe__section-title">模板信息</text>

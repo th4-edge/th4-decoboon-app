@@ -27,7 +27,7 @@ const sitePhotos = ref<string[]>([])
 const submitting = ref(false)
 
 /**
- * 量房原始区域（DEC-069）：量房测的是房屋原始结构，原始区域挂在量房单下；
+ * 量房原始区域：量房测的是房屋原始结构，原始区域挂在量房单下；
  * 量房完成后**冻结**（需修正必须重新量房/复尺），设计方案只继承作起点、二者不联动。
  */
 interface RegionDraft {
@@ -250,7 +250,7 @@ async function save() {
       <text class="mr__group mr__group--gap">原始区域实测（原始结构）</text>
       <text class="mr__hint">
         量房测的是房屋原始结构。原始区域面积/周长按 CAD 计算结果录入；保存后量房完成即冻结，
-        需要修正必须重新量房（复尺）。新建方案会继承它作结构起点，之后可在方案内改造，二者不联动（DEC-069）。
+        需要修正必须重新量房（复尺）。新建方案会继承它作结构起点，之后可在方案内改造，二者不联动。
       </text>
       <view v-if="existingRegions.length" class="mr__regions">
         <view v-for="region in existingRegions" :key="region.id" class="mr__region-chip">

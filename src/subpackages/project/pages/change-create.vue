@@ -313,7 +313,7 @@ function targetLabel(row: DraftRow): string {
 }
 
 function targetMeta(row: DraftRow): string {
-  if (!row.target) return '名称、规格、单位与单价由服务端按项目库快照冻结'
+  if (!row.target) return '名称、规格、单位和单价按报价项目库记录锁定'
   return [row.target.brand, row.target.spec].filter(Boolean).join(' · ') || '报价项目库目标分项'
 }
 
@@ -419,7 +419,7 @@ function schedulePreview() {
   previewTimer = setTimeout(() => { void refreshPreview() }, 400)
 }
 
-/** 服务端试算：与正式提交同源；试算失败即阻断提交，不用前端兜底掩盖未确认。 */
+/** 金额核对：与正式提交同源；试算失败即阻断提交，不用前端兜底掩盖未确认。 */
 async function refreshPreview(manual = false) {
   if (previewLoading.value) return
   if (!contractId.value || !rows.value.length || !rows.value.every(rowReady)) {
@@ -446,7 +446,7 @@ async function refreshPreview(manual = false) {
 
 function previewDeltaAt(index: number): string {
   const item = preview.value?.items?.[index]
-  if (!item || item.amountDelta === undefined) return '待试算'
+  if (!item || item.amountDelta === undefined) return '待核对'
   const value = Number(item.amountDelta || 0)
   return `${value > 0 ? '+' : ''}${money(value)}`
 }
@@ -483,7 +483,7 @@ async function submit() {
     return
   }
   if (!reason.value.trim()) { toast('请填写变更原因', 'none'); return }
-  if (!preview.value) { toast('请先完成服务端试算', 'none'); return }
+  if (!preview.value) { toast('请先完成金额核对', 'none'); return }
   if (negativeWarning.value) { toast('变更后合同金额不能小于 0', 'none'); return }
   submitting.value = true
   try {
@@ -607,11 +607,11 @@ async function submit() {
         <view class="cc__money-row"><text>变更前合同额</text><text class="cc__money-num">{{ money(beforeAmount) }}</text></view>
         <view class="cc__money-row cc__money-row--hero">
           <text>本次变更</text>
-          <text class="cc__money-num">{{ previewAmount === null ? '待试算' : `${previewAmount > 0 ? '+' : ''}${money(previewAmount)}` }}</text>
+          <text class="cc__money-num">{{ previewAmount === null ? '待核对' : `${previewAmount > 0 ? '+' : ''}${money(previewAmount)}` }}</text>
         </view>
         <view class="cc__money-row">
           <text>变更后合同额</text>
-          <text class="cc__money-num">{{ afterAmount === null ? '待试算' : money(afterAmount) }}</text>
+          <text class="cc__money-num">{{ afterAmount === null ? '待核对' : money(afterAmount) }}</text>
         </view>
         <text v-if="costIncomplete" class="cc__hint cc__hint--inverse">成本未完整：利润与毛利率暂不可确认。</text>
         <text v-if="negativeWarning" class="cc__danger">变更后合同金额不能小于 0</text>
@@ -619,13 +619,13 @@ async function submit() {
 
       <view class="jz-card cc__block">
         <view class="jz-between cc__block-head">
-          <text class="cc__block-title">服务端试算</text>
-          <text class="cc__block-add" @tap="refreshPreview(true)">{{ previewLoading ? '试算中…' : '重新试算' }}</text>
+          <text class="cc__block-title">金额核对</text>
+          <text class="cc__block-add" @tap="refreshPreview(true)">{{ previewLoading ? '核对中…' : '重新核对' }}</text>
         </view>
-        <text class="cc__hint">金额、当前有效剩余与目标快照由服务端计算；试算未通过不能提交。</text>
+        <text class="cc__hint">系统会核对可变更量和金额；核对未通过时暂不能提交。</text>
         <text v-if="pendingRowsHint" class="cc__warn">{{ pendingRowsHint }}</text>
         <text v-else-if="previewError" class="cc__warn">{{ previewError }}</text>
-        <text v-else-if="!preview" class="cc__hint">明细已就绪，正在获取服务端试算…</text>
+        <text v-else-if="!preview" class="cc__hint">明细已就绪，正在核对金额…</text>
       </view>
 
       <view class="jz-card cc__block">
@@ -647,7 +647,7 @@ async function submit() {
       <view class="sp__header">
         <view class="sp__header-main">
           <text class="sp__title">选择来源分项</text>
-          <text class="sp__sub">从合同原行或已生效增减项中选择；剩余量、待审批占用和可变更量以服务端为准。</text>
+          <text class="sp__sub">从合同原行或已生效增减项中选择；剩余量、待审批占用和可变更量由系统核对。</text>
         </view>
         <view class="sp__close" @tap="showSource = false">
           <JzIcon name="close" :size="26" :color="TOKEN_COLOR.text3" />

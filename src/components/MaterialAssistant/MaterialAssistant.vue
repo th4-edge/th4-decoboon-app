@@ -239,7 +239,7 @@ function retry() {
 
         <view v-else class="ma__intro">
           <text class="ma__intro-title">基于当前上下文问一个材料问题</text>
-          <text class="ma__intro-text">回答只基于当前页面材料和已登记规则；没有依据、越权或超出范围时会明确说明，不会用兜底话术伪装成功。</text>
+          <text class="ma__intro-text">回答基于当前页面材料和业务规则；依据不足或超出权限时会明确说明。</text>
         </view>
       </scroll-view>
 
@@ -258,7 +258,7 @@ function retry() {
           <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="!question.trim() || loading" @tap="ask()">发送</button>
         </view>
       </view>
-      <text class="ma__boundary">助手不会审批、付款、删除或修改权限；金额/成本以服务端口径为准。</text>
+      <text class="ma__boundary">助手只提供信息查询，不会审批、付款、删除或修改权限；金额和成本以当前业务记录为准。</text>
     </JzSheet>
   </view>
 </template>

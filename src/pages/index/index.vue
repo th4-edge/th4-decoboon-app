@@ -70,7 +70,7 @@ const activeGuestFeature = ref(0)
 const guestFeatures: Array<{ key: string; title: string; subtitle: string; icon: IconName; color: string; points: string[] }> = [
   { key: 'customer', title: '客户经营', subtitle: '从线索到签约，客户跟进不断档', icon: 'users', color: TOKEN_COLOR.primary, points: ['客户档案与跟进记录集中管理', '量房、设计、报价按阶段流转', '经营指标与风险提醒及时可见'] },
   { key: 'design', title: '方案报价', subtitle: '设计、报价、谈单在线协同', icon: 'edit', color: TOKEN_COLOR.purple, points: ['设计方案与图纸统一归档', '项目清单支持多版本报价', '成本与销售价分角色查看'] },
-  { key: 'project', title: '项目履约', subtitle: '进度、任务、现场留证同频', icon: 'briefcase', color: TOKEN_COLOR.warning, points: ['施工计划与节点任务拆解', '现场进度、照片和问题留痕', '验收、整改线上闭环'] },
+  { key: 'project', title: '项目履约', subtitle: '进度、任务与现场记录同步', icon: 'briefcase', color: TOKEN_COLOR.warning, points: ['施工计划与节点任务拆解', '现场进度、照片和问题留痕', '验收、整改线上闭环'] },
   { key: 'finance', title: '经营财务', subtitle: '应收应付与成本利润一屏掌握', icon: 'chart', color: TOKEN_COLOR.success, points: ['收款计划与资金台账对应', '采购、材料成本按事实归集', '经营报表支撑管理决策'] }
 ]
 
@@ -636,7 +636,7 @@ const orgLine = computed(() => {
 
 /** 门店 / 团队 / 视图说明 */
 const orgSubLine = computed(() => {
-  if (isCustomer(role.value)) return '业主同频视图 · 仅可见我的工地'
+  if (isCustomer(role.value)) return '业主查看视图 · 仅显示我的工地'
   const parts = [emp.value?.store?.name, emp.value?.team?.name].filter(Boolean)
   if (parts.length) return parts.join(' · ')
   if (role.value === 'boss') return '全公司经营视图'
@@ -1005,7 +1005,7 @@ const projectSectionTitle = computed(() => {
         </template>
       </view>
 
-      <!-- 经营动态：BOSS 只看经营事件，其他角色保持工地同频动态 -->
+      <!-- 经营动态：BOSS 只看经营事件，其他角色保持工地动态 -->
       <view class="home__section">
         <view class="jz-section">
           <text class="jz-section__title">{{ role === 'boss' ? '经营动态' : '最新动态' }}</text>

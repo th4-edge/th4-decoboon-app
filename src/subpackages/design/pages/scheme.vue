@@ -406,7 +406,7 @@ function openSpace(space?: DesignSpace) {
 async function saveSpace() {
   if (!designId.value) { await saveBase(); if (!designId.value) return }
   if (!spaceName.value.trim()) { toast('请填写区域名称'); return }
-  // DEC-062：面积与周长是实测工程量基数，必须由设计师按 CAD 录入；长宽只是量房快照，可留空。
+  // DEC-062：面积与周长是实测工程量基数，必须由设计师按 CAD 录入；长宽只是量房记录，可留空。
   if (!(Number(measuredArea.value) > 0)) { toast('请填写实测面积（㎡）'); return }
   if (!(Number(measuredPerimeter.value) > 0)) { toast('请填写实测周长（m）'); return }
   loading('保存区域…')
@@ -593,7 +593,7 @@ async function saveItem() {
   }
 }
 async function deleteItem(item: DesignItem) {
-  const ok = await confirm('删除分项', `确认删除“${item.name}”？已生成报价快照的分项不能删除。`, '删除')
+  const ok = await confirm('删除分项', `确认删除“${item.name}”？已生成报价的分项不能删除。`, '删除')
   if (!ok) return
   loading('删除分项…')
   try {
@@ -719,7 +719,7 @@ function handleMoreAction(index: number) {
       <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">设计说明</text><textarea v-model="description" class="jz-form-textarea" maxlength="500" placeholder="说明户型优化、动线、收纳和家庭成员适配" /></view>
     </view>
     <view v-else-if="activeTab === 'space'" class="ds__section">
-      <view class="ds__section-head"><view><text class="ds__section-title">区域工程量</text><text class="ds__section-sub">实测面积与周长按 CAD 录入；长宽为量房快照</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openSpace()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增区域</text></button></view>
+      <view class="ds__section-head"><view><text class="ds__section-title">区域工程量</text><text class="ds__section-sub">实测面积与周长按 CAD 录入；长宽为量房记录</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openSpace()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增区域</text></button></view>
       <view v-if="spaces.length" class="ds__space-list">
         <view v-for="space in spaces" :key="space.id" class="jz-card ds__space-card">
           <view class="ds__space-head" @tap="openSpace(space)">
@@ -737,8 +737,8 @@ function handleMoreAction(index: number) {
             </view>
           </view>
           <view class="ds__space-dims">
-            <view class="ds__space-dim"><text class="ds__space-dim-label">快照长</text><text class="ds__space-dim-value">{{ space.length || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
-            <view class="ds__space-dim"><text class="ds__space-dim-label">快照宽</text><text class="ds__space-dim-value">{{ space.width || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
+            <view class="ds__space-dim"><text class="ds__space-dim-label">开间</text><text class="ds__space-dim-value">{{ space.length || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
+            <view class="ds__space-dim"><text class="ds__space-dim-label">进深</text><text class="ds__space-dim-value">{{ space.width || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
             <view class="ds__space-dim"><text class="ds__space-dim-label">层高</text><text class="ds__space-dim-value">{{ space.height || '-' }}</text><text class="ds__space-dim-unit">m</text></view>
             <view class="ds__space-dim ds__space-dim--perimeter"><text class="ds__space-dim-label">实测周长</text><text class="ds__space-dim-value">{{ space.perimeter != null ? space.perimeter : '待补' }}</text><text class="ds__space-dim-unit">{{ space.perimeter != null ? 'm' : '' }}</text></view>
           </view>
@@ -748,7 +748,7 @@ function handleMoreAction(index: number) {
           </view>
         </view>
       </view>
-      <view v-else class="jz-card"><JzEmpty text="尚未录入区域工程量" sub="点击“新增区域”录入量房快照与实测面积/周长" /></view>
+      <view v-else class="jz-card"><JzEmpty text="尚未录入区域工程量" sub="点击“新增区域”录入量房记录与实测面积/周长" /></view>
     </view>
     <view v-else class="ds__section ds__section--split">
       <view class="ds__section-head"><view><text class="ds__section-title jz-clamp-1">{{ currentTabMeta.label }}</text><text class="ds__section-sub">{{ currentTabMeta.count }} 个分项 · 合计 {{ money(totalItemAmountByTab) }}</text></view><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="openItem()"><JzIcon name="plus" :size="22" :color="TOKEN_COLOR.primary" /><text>新增分项</text></button></view>

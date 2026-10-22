@@ -131,20 +131,20 @@ function joinedText(value?: string | number) {
       <view v-if="!emps.length" class="mb__empty">暂无团队成员</view>
     </view>
 
-    <view class="jz-section"><text class="jz-section__title">业主同频（{{ custs.length }}）</text></view>
+    <view class="jz-section"><text class="jz-section__title">业主成员（{{ custs.length }}）</text></view>
     <view class="jz-card mb__list">
       <view v-for="m in custs" :key="m.id" class="mb__row">
         <JzAvatar :name="m.customer?.name" :color="ROLE_META.customer.color" :size="76" />
         <view class="jz-grow mb__who">
           <view class="jz-row"><text class="mb__name">{{ m.customer?.name }}</text><JzTag text="业主" :color="ROLE_META.customer.color" /></view>
-          <text class="mb__meta">{{ m.customer?.phone ? m.customer.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '' }} · 仅同频可见</text>
+          <text class="mb__meta">{{ m.customer?.phone ? m.customer.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '' }} · 业主可见</text>
         </view>
       </view>
-      <view v-if="!custs.length" class="mb__empty">尚未邀请业主，同频闭环需要业主加入</view>
+      <view v-if="!custs.length" class="mb__empty">尚未邀请业主，邀请后业主可查看项目和进度</view>
     </view>
 
     <view class="mb__actions">
-      <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>邀请业主同频</text></button>
+      <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>邀请业主查看</text></button>
       <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" :color="TOKEN_COLOR.primary" /><text>邀请设计师 / 项目经理加入团队</text></button>
     </view>
     <!-- 员工选择（工地下发岗位） -->

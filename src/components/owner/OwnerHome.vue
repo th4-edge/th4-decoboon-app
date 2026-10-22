@@ -67,7 +67,7 @@ const records = computed<RecordEntry[]>(() => {
       return {
         key,
         ...meta,
-        summary: fact?.summary || fact?.statusName || '记录待同步',
+        summary: fact?.summary || fact?.statusName || '待更新',
         count: fact?.items?.length || 0
       }
     })
@@ -245,7 +245,7 @@ function memberMark(roleName: string, name: string) {
       <view class="owner-home__section-head">
         <view>
           <text class="owner-home__section-title">{{ timelineTitle }}</text>
-          <text class="owner-home__section-sub">现场事实与过程留证</text>
+          <text class="owner-home__section-sub">现场记录与过程留证</text>
         </view>
         <text class="owner-home__section-more" @tap="openJourney">看完整历程</text>
       </view>

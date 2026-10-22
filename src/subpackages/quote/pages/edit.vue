@@ -349,7 +349,7 @@ async function save() {
           <view class="qe__biz-icon"><JzIcon name="home" :size="34" :color="TOKEN_COLOR.primary" /></view>
           <view class="qe__biz-main">
             <text class="qe__biz-name">{{ propertyLabel || '选择客户房屋' }}</text>
-            <text class="qe__biz-meta">{{ property ? [property.address, `${property.area || 0}㎡`, property.layout].filter(Boolean).join(' · ') : '房屋按客户归属显式选择，不使用第一条兜底' }}</text>
+            <text class="qe__biz-meta">{{ property ? [property.address, `${property.area || 0}㎡`, property.layout].filter(Boolean).join(' · ') : '请选择客户名下的房屋' }}</text>
           </view>
           <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text4" />
         </view>

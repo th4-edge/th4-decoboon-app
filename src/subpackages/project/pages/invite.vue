@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 邀请业主同频。
+ * 邀请业主查看项目。
  *
  * 历史坑（FIX-042）：本页曾在结果区展示「业主邀请令牌」明文，与已收敛的口径冲突
  * （员工邀请页 `subpackages/company/pages/invite.vue` 已明确「不使用邀请令牌」）。
@@ -75,7 +75,7 @@ function maskPhone(value: string): string {
 function copy() {
   if (!generated.value) return
   uni.setClipboardData({
-    data: `【装得清】${project.value?.name || ''} 已开通进度同频，请用本机微信打开「装得清」小程序并验证手机号，即可查看装修进度、材料与验收。`,
+    data: `【装得清】${project.value?.name || ''} 已开通装修进度查看，请用本机微信打开「装得清」小程序并验证手机号，即可查看装修进度、材料与验收。`,
     success: () => toast('邀请语已复制，可配合邀请卡片发给业主', 'success')
   })
 }
@@ -87,7 +87,7 @@ function share() {
 
 // 邀请一次性，朋友圈分享无法携带页面参数，因此显式关闭朋友圈入口。
 useShare(() => ({
-  title: `${project.value?.name || '我的家'} · 装得清进度同频`,
+  title: `${project.value?.name || '我的家'} · 装得清装修进度`,
   path: invitePath()
 }), null)
 </script>
@@ -95,7 +95,7 @@ useShare(() => ({
 <template>
   <view class="pi" v-if="project">
     <view class="pi__card jz-card">
-      <text class="pi__title">邀请业主同频</text>
+      <text class="pi__title">邀请业主查看</text>
       <text class="pi__sub">填写业主手机号生成邀请，用微信分享邀请卡片；业主授权手机号后仅可见「{{ project.name }}」的进度、动态与验收</text>
 
       <view class="pi__field"><text class="pi__label">业主称呼</text><input v-model="customerName" placeholder="例：王先生" /></view>
@@ -121,7 +121,7 @@ useShare(() => ({
     </view>
 
     <view class="pi__flow jz-card">
-      <text class="pi__flow-title">业主同频闭环</text>
+      <text class="pi__flow-title">业主查看流程</text>
       <view class="pi__step"><text class="pi__step-idx">1</text><text class="pi__step-text">填写业主手机号并生成邀请卡片</text></view>
       <view class="pi__step"><text class="pi__step-idx">2</text><text class="pi__step-text">微信分享卡片给业主，业主授权手机号（须与预留号码一致）</text></view>
       <view class="pi__step"><text class="pi__step-idx">3</text><text class="pi__step-text">业主进入「我的家」随时查看进度与动态</text></view>

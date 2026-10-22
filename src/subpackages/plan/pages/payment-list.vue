@@ -120,7 +120,7 @@ async function setDefault(plan: PaymentPlanTemplate) {
 
 <template>
   <view class="ppt">
-    <JzPageHeader title="付款计划模板" subtitle="企业自定义合同收款节点，历史合同快照不受影响" :right-text="canEdit ? '新建' : ''" :right-icon="canEdit ? 'plus' : undefined" @right="createBlank" />
+    <JzPageHeader title="付款计划模板" subtitle="企业自定义合同收款节点，历史合同记录不受影响" :right-text="canEdit ? '新建' : ''" :right-icon="canEdit ? 'plus' : undefined" @right="createBlank" />
 
     <view class="ppt__notice jz-card">
       <JzIcon name="info" :size="34" :color="TOKEN_COLOR.primary" />

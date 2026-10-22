@@ -21,7 +21,7 @@ const pillars: { icon: IconName; title: string; description: string }[] = [
 
 const moduleCards: { icon: IconName; title: string; subtitle: string }[] = [
   { icon: 'user', title: '客户经营', subtitle: '线索、跟进、量房与转化' },
-  { icon: 'file-text', title: '设计报价', subtitle: '方案分项、价格快照与版本' },
+  { icon: 'file-text', title: '设计报价', subtitle: '方案分项、价格记录与版本' },
   { icon: 'briefcase', title: '项目履约', subtitle: '任务、日报、验收与整改' },
   { icon: 'package', title: '供应链成本', subtitle: '供应商、库存、采购与成本' },
   { icon: 'wallet', title: '财务经营', subtitle: '应收、应付、回款与利润' },

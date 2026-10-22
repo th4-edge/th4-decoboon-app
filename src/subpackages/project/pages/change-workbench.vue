@@ -242,7 +242,7 @@ function addressText(group: BossContractChangeGroup) {
   <view class="ccw">
     <JzPageHeader
       title="增减项经营"
-      subtitle="在途审批 · 客户确认 · 合同金额与材料落地"
+      subtitle="在途审批 · 生效结果 · 合同金额与材料联动"
       :right-text="canCreate ? '发起' : ''"
       :right-icon="canCreate ? 'plus-square' : undefined"
       back
@@ -306,8 +306,8 @@ function addressText(group: BossContractChangeGroup) {
       <!-- 合同金额与利润投影 -->
       <view class="jz-card ccw__portfolio">
         <view class="ccw__portfolio-head">
-          <text class="ccw__portfolio-title">合同金额与经营投影</text>
-          <text class="ccw__portfolio-hint">全部在途确认后的读时投影</text>
+          <text class="ccw__portfolio-title">合同金额与经营结果</text>
+          <text class="ccw__portfolio-hint">全部在途确认后的经营结果</text>
         </view>
         <view class="ccw__portfolio-flow">
           <view class="ccw__portfolio-cell">
@@ -340,7 +340,7 @@ function addressText(group: BossContractChangeGroup) {
             <text v-else class="ccw__portfolio-sub">{{ money(report.receivableOutstandingTotal) }}</text>
           </view>
         </view>
-        <text class="ccw__portfolio-note">预计毛利按「合同投影 −（预计成本 + 在途及已确认变更成本）」读时计算，不等于最终财务利润；成本不完整时不显示数字。</text>
+        <text class="ccw__portfolio-note">预计毛利按「合同金额 −（预计成本 + 在途及已确认变更成本）」计算；成本未完整时不显示数字。</text>
       </view>
 
       <!-- 日期窗口 -->

@@ -32,7 +32,7 @@ const groups = computed(() => records.map((item) => {
   const fact = section(item.sectionKey || item.key)
   return {
     ...item,
-    summary: fact?.summary || fact?.statusName || '记录待同步',
+    summary: fact?.summary || fact?.statusName || '待更新',
     count: fact?.items?.length || 0
   }
 }))

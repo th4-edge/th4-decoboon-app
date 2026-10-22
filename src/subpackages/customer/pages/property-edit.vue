@@ -52,7 +52,7 @@ onLoad(async (q) => {
   customerId.value = q?.customerId || ''
   propertyId.value = q?.propertyId || ''
   if (!customerId.value) {
-    toast('缺少客户参数')
+    toast('客户信息不完整，请返回客户列表后重新打开')
     return
   }
   try {

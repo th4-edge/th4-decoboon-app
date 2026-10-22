@@ -30,6 +30,8 @@ export type Capability =
   | 'view:catalog'
   | 'edit:catalog'
   | 'view:catalog-cost'
+  | 'act:catalog-import'
+  | 'act:catalog-delete'
   | 'view:package-template'
   | 'edit:package-template'
   | 'view:payment-plan-template'
@@ -106,7 +108,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
-    'edit:catalog', 'view:catalog-cost',
+    'edit:catalog', 'view:catalog-cost', 'act:catalog-import', 'act:catalog-delete',
     'edit:package-template',
     'edit:payment-plan-template',
     'edit:construction-plan-template',
@@ -171,7 +173,9 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
-    'view:catalog',
+    'view:customers', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
+    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteCustomer',
+    'view:catalog', 'edit:catalog', 'view:catalog-cost', 'act:catalog-import', 'act:catalog-delete',
     'view:selection-board', 'view:rectify',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
     'view:design', 'view:design-review', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',

@@ -107,7 +107,7 @@ function openJourney() {
       <view class="owner-progress__section-head">
         <view>
           <text class="owner-progress__section-title">现场记录</text>
-          <text class="owner-progress__section-sub">项目团队上传的过程事实</text>
+          <text class="owner-progress__section-sub">项目团队上传的过程记录</text>
         </view>
         <text class="owner-progress__more" @tap="openJourney">装修历程</text>
       </view>

@@ -23,11 +23,11 @@ function preview(urls: string[], current: string) {
 
       <view class="orr__dims">
         <view class="orr__dim">
-          <text class="orr__dim-label">快照长</text>
+          <text class="orr__dim-label">开间</text>
           <text class="orr__dim-value">{{ region.length || '—' }}<text class="orr__unit">m</text></text>
         </view>
         <view class="orr__dim">
-          <text class="orr__dim-label">快照宽</text>
+          <text class="orr__dim-label">进深</text>
           <text class="orr__dim-value">{{ region.width || '—' }}<text class="orr__unit">m</text></text>
         </view>
         <view class="orr__dim">

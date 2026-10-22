@@ -64,13 +64,13 @@ function openSelection() {
         :status-name="current?.statusName"
       />
 
-      <OwnerSection title="材料履约概览" subtitle="只展示业主可见的计划事实">
+      <OwnerSection title="材料履约概览" subtitle="材料下单与到场进度">
         <OwnerFactGrid :facts="facts" :columns="3" empty-text="材料计划尚未形成" />
       </OwnerSection>
 
       <OwnerSection
         title="材料明细"
-        subtitle="选材确认、材料下单和到场是不同事实"
+        subtitle="选材、下单和到场分别记录"
         :action-text="plans.length ? '查看选材' : ''"
         @action="openSelection"
       >
@@ -84,11 +84,11 @@ function openSelection() {
         <OwnerFactList v-else :items="plans" :show-amount="false" empty-text="还没有材料计划" />
       </OwnerSection>
 
-      <OwnerSection title="记录边界" subtitle="为什么这里没有“确认到场”按钮">
+      <OwnerSection title="到场说明" subtitle="由装企现场记录">
         <OwnerSignoffCard
           tone="record"
-          title="材料到场不需要业主确认"
-          description="到场由项目经理或材料员记录，业主拥有知情权和异议权。到场记录不会阻断施工，也不代表质量验收通过。"
+          title="材料到场由装企现场记录"
+          description="项目经理或材料员会记录到场情况，您可以随时查看。如需确认材料质量，请以阶段验收结果为准。"
           source="装企执行记录 · 装得清保存"
         />
       </OwnerSection>

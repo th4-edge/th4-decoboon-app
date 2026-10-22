@@ -43,7 +43,7 @@ onLoad(async (query) => {
   id.value = query?.id || ''
   propertyId.value = query?.propertyId || ''
   if (!id.value) {
-    toast('缺少客户参数')
+    toast('客户信息不完整，请返回客户列表后重新打开')
     setTimeout(() => uni.navigateBack(), 300)
     return
   }

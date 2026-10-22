@@ -54,7 +54,7 @@ async function submit() {
     })
     loginAsToken(token.token)
     const profile = await identityApi.sessionInfo(token.token)
-    if (!profile.currentEmployee) throw new Error('企业创建后未返回员工身份')
+    if (!profile.currentEmployee) throw new Error('企业已创建，但账号信息加载失败，请重新登录后查看')
     loginAsEmployee(profile.currentEmployee, token.token, profile)
     hideLoading()
     toast('创建成功，已赠送免费试用', 'success')

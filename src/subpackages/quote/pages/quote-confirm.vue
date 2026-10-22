@@ -66,7 +66,7 @@ onLoad((query) => {
   customerId.value = query?.customerId || ''
   propertyId.value = query?.propertyId || ''
   if (!designId.value || !customerId.value) {
-    toast('缺少报价参数')
+    toast('报价信息不完整，请返回报价列表后重新打开')
     setTimeout(() => uni.navigateBack(), 500)
     return
   }

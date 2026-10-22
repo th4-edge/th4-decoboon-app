@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.65",
+  "version": "1.0.66",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -18,6 +18,7 @@
     "check:release-env": "node scripts/verify-release-env.mjs",
     "check:subpackages": "node scripts/check-subpackages.mjs",
     "check:ui": "node scripts/check-ui-conventions.mjs",
+    "check:client-copy": "node scripts/check-client-copy.mjs",
     "check:onboarding": "node scripts/verify-onboarding-contract.mjs",
     "check:registration": "node scripts/verify-registration-flow-contract.mjs",
     "check:document": "node scripts/verify-document-contract.mjs",
@@ -31,7 +32,7 @@
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
     "check:numeric-inputs": "node scripts/verify-numeric-input-display.mjs",
     "check:refund-amount": "node scripts/verify-refund-amount.mjs",
-    "verify:mp-weixin": "npm run check:version && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:selectors && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
+    "verify:mp-weixin": "npm run check:version && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:client-copy && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:selectors && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
     "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
     "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs",
     "record:site": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json",

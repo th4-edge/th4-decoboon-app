@@ -189,7 +189,7 @@ async function doLogout() {
 <template>
   <view class="mine">
     <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
-    <JzPageHeader title="我的" :subtitle="isCustomer(role) ? '业主同频账号' : '企业协同账号'" />
+    <JzPageHeader title="我的" :subtitle="isCustomer(role) ? '业主账号' : '企业账号'" />
 
     <view class="mine__profile" :style="{ backgroundColor: roleMeta.soft }" @tap="openProfile">
       <JzEmployeeAvatar v-if="session.emp" :src="session.emp.avatarUrl || session.user?.avatarUrl || ''" :name="displayName()" :role="session.emp.role" :status="session.emp.status" :size="96" />
