@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue'
-import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { computed, ref, onUnmounted, watch } from 'vue'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import { workbenchApi } from '@/domains/workbench/api'
 import type { SignWorkbenchItem } from '@/domains/workbench/model'
-import { money } from '@/core/format'
 import { toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
@@ -16,75 +15,120 @@ import JzTag from '@/components/JzTag.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
+import ListFooter from '@/components/ListFooter/ListFooter.vue'
 
+const PAGE_SIZE = 20
 const items = ref<SignWorkbenchItem[]>([])
+const total = ref(0)
+const currentPage = ref(1)
 const loading = ref(false)
-const activeFilter = ref<'all' | 'pending' | 'fulfilling' | 'done'>('all')
+const loadingMore = ref(false)
+const loadMoreError = ref('')
+const hasMore = ref(false)
+const keyword = ref('')
+const activeFilter = ref<'all' | 'toCreate' | 'waitingConfirm' | 'effective'>('all')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
-/** 履约中/已完成按项目状态划分，不按合同状态；未生成项目时保持待立项。 */
+/** 履约中按项目状态划分，不按合同状态；未生成项目时保持待立项。 */
 const FULFILLING_STATUSES = ['preparing', 'ongoing', 'suspended', 'accepting']
-const DONE_STATUSES = ['finished', 'settled']
 
 function isFulfilling(item: SignWorkbenchItem) {
   return item.converted && FULFILLING_STATUSES.includes(item.projectStatus || '')
 }
-function isDone(item: SignWorkbenchItem) {
-  return item.converted && DONE_STATUSES.includes(item.projectStatus || '')
-}
 
 const filters = [
   { key: 'all', label: '全部' },
-  { key: 'pending', label: '待签约' },
-  { key: 'fulfilling', label: '履约中' },
-  { key: 'done', label: '已完成' }
+  { key: 'toCreate', label: '待发起合同' },
+  { key: 'waitingConfirm', label: '待企业确认' },
+  { key: 'effective', label: '已生效' }
 ] as const
 
-const filtered = computed(() => {
-  if (activeFilter.value === 'all') return items.value
-  if (activeFilter.value === 'pending') return items.value.filter((i) => !i.converted)
-  if (activeFilter.value === 'fulfilling') return items.value.filter(isFulfilling)
-  return items.value.filter(isDone)
-})
+const pagePendingCount = computed(() => items.value.filter((item) => !item.converted).length)
+const pageFulfillingCount = computed(() => items.value.filter(isFulfilling).length)
 
 /** FIX-038：设计师可发起/登记合同，店长和企业负责人可复核、确认签约和生效。 */
 const canPrepare = computed(() => can(session.role, 'act:contractPrepare'))
 const canConfirm = computed(() => can(session.role, 'act:contractConfirm'))
 const canEnterContract = computed(() => canPrepare.value || canConfirm.value)
 
-const counts = computed(() => ({
-  all: items.value.length,
-  pending: items.value.filter((i) => !i.converted).length,
-  fulfilling: items.value.filter(isFulfilling).length,
-  done: items.value.filter(isDone).length
-}))
-
-/** 履约中合同的当前合同金额合计（含已确认变更）。 */
+/** 分页后金额合计只代表当前页，页面必须显式写“本页”，禁止冒充全量经营指标。 */
 const fulfillingAmount = computed(() =>
   items.value.filter(isFulfilling).reduce((sum, i) => sum + Number(i.currentAmount || i.acceptedAmount || 0), 0)
 )
 
-/** 待签约总金额（核心经营指标） */
 const pendingAmount = computed(() =>
   items.value.filter((i) => !i.converted).reduce((sum, i) => sum + (i.acceptedAmount || 0), 0)
 )
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
-uni.$on('sign-workbench:refresh', refresh)
+onShow(() => { if (isLoggedIn()) refresh(true) })
+onPullDownRefresh(() => refresh(true).finally(() => uni.stopPullDownRefresh()))
+onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
+const handleWorkbenchRefresh = () => { void refresh(true) }
+uni.$on('sign-workbench:refresh', handleWorkbenchRefresh)
+watch(keyword, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { void refresh(true) }, 320)
+})
 
-async function refresh() {
+async function refresh(reset = true) {
+  if (reset) currentPage.value = 1
   loading.value = true
+  loadMoreError.value = ''
   try {
-    items.value = await workbenchApi.sign()
+    const result = await workbenchApi.sign({
+      current: currentPage.value,
+      size: PAGE_SIZE,
+      filter: activeFilter.value,
+      keyword: keyword.value
+    })
+    items.value = result.list
+    total.value = result.total
+    hasMore.value = result.hasMore
   } catch (error) {
-    toastError(error, '签约工作台加载失败')
+    items.value = []
+    total.value = 0
+    hasMore.value = false
+    toastError(error, '待我签约加载失败')
   } finally {
     loading.value = false
   }
 }
 
-onUnmounted(() => { uni.$off('sign-workbench:refresh', refresh) })
+async function loadMore(): Promise<void> {
+  if (!hasMore.value || loadingMore.value) return
+  loadingMore.value = true
+  loadMoreError.value = ''
+  try {
+    const next = currentPage.value + 1
+    const result = await workbenchApi.sign({
+      current: next,
+      size: PAGE_SIZE,
+      filter: activeFilter.value,
+      keyword: keyword.value
+    })
+    const existing = new Set(items.value.map((item) => item.quoteId))
+    items.value = [...items.value, ...result.list.filter((item) => !existing.has(item.quoteId))]
+    currentPage.value = next
+    total.value = result.total
+    hasMore.value = result.hasMore
+  } catch (error) {
+    loadMoreError.value = error instanceof Error ? error.message : '加载更多失败'
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+function changeFilter(key: typeof activeFilter.value): void {
+  if (activeFilter.value === key) return
+  activeFilter.value = key
+  void refresh(true)
+}
+
+onUnmounted(() => {
+  uni.$off('sign-workbench:refresh', handleWorkbenchRefresh)
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 function openCustomer(custId: string, propertyId: string) {
   uni.navigateTo({ url: `${P.customerDetail}?id=${custId}${propertyId ? `&propertyId=${propertyId}` : ''}` })
@@ -132,56 +176,61 @@ function riskColor(level: string): string {
 
 <template>
   <view class="wb">
-    <JzPageHeader :title="canConfirm ? '企业合同确认' : canPrepare ? '我的合同签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
+    <JzPageHeader :title="canConfirm ? '企业合同确认' : canPrepare ? '待我签约' : '签约工作台'" :subtitle="`${session.company?.name || ''} · 报价已确认待签约`"  back />
 
     <!-- 签约与履约概览 -->
     <view class="wb__summary jz-card">
       <view class="wb__summary-item">
-        <text class="wb__summary-label">待签约</text>
-        <text class="wb__summary-value">{{ counts.pending }}</text>
+        <text class="wb__summary-label">已加载待签约</text>
+        <text class="wb__summary-value">{{ pagePendingCount }}</text>
         <text class="wb__summary-unit">单</text>
       </view>
       <view class="wb__summary-divider" />
       <view class="wb__summary-item">
-        <text class="wb__summary-label">待签约金额</text>
+        <text class="wb__summary-label">已加载待签约金额</text>
         <JzMoney :value="pendingAmount" />
       </view>
       <view class="wb__summary-divider" />
       <view class="wb__summary-item">
-        <text class="wb__summary-label">履约中</text>
-        <text class="wb__summary-value">{{ counts.fulfilling }}</text>
+        <text class="wb__summary-label">已加载履约中</text>
+        <text class="wb__summary-value">{{ pageFulfillingCount }}</text>
         <text class="wb__summary-unit">单</text>
       </view>
       <view class="wb__summary-divider" />
       <view class="wb__summary-item">
-        <text class="wb__summary-label">履约中金额</text>
+        <text class="wb__summary-label">已加载履约中金额</text>
         <JzMoney :value="fulfillingAmount" />
       </view>
     </view>
 
+    <view class="wb__search-wrap">
+      <view class="wb__search">
+        <JzIcon name="search" :size="32" :color="TOKEN_COLOR.text3" />
+        <input v-model="keyword" placeholder="搜索客户、手机号、小区或报价编号" placeholder-class="wb__placeholder" />
+      </view>
+    </view>
     <view class="wb__filters">
       <view
         v-for="f in filters"
         :key="f.key"
         class="wb__filter"
         :class="{ 'wb__filter--active': activeFilter === f.key }"
-        @tap="activeFilter = f.key"
+        @tap="changeFilter(f.key)"
       >
         <text>{{ f.label }}</text>
-        <text class="wb__filter-count">{{ counts[f.key] }}</text>
       </view>
     </view>
 
     <view class="wb__body">
-      <view v-if="!loading && filtered.length === 0" class="jz-card wb__empty">
+      <view v-if="!loading && items.length === 0" class="jz-card wb__empty">
         <JzEmpty
-          :text="activeFilter === 'pending' ? '暂无待签约客户' : activeFilter === 'fulfilling' ? '暂无履约中合同' : activeFilter === 'done' ? '暂无已完成合同' : '暂无签约记录'"
-          sub="客户确认报价后会出现在这里，签约生效后进入合同履约档案"
+          :text="activeFilter === 'toCreate' ? '暂无待创建合同' : activeFilter === 'waitingConfirm' ? '暂无待企业确认合同' : activeFilter === 'effective' ? '暂无已生效合同' : '暂无符合条件的签约任务'"
+          sub="切换筛选或清空搜索；客户确认报价后会出现在这里，签约生效后进入合同履约档案"
         />
       </view>
 
       <view
-        v-for="item in filtered"
+        v-for="item in items"
         :key="`${item.custId}:${item.propertyId}:${item.quoteId}`"
         class="jz-card wb__item"
         :class="{ 'wb__item--danger': !item.converted && riskLevel(item.stayDays) === 'danger' }"
@@ -251,6 +300,8 @@ function riskColor(level: string): string {
       </view>
     </view>
 
+    <ListFooter v-if="!loading && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
+
     <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.signWorkbench" />
   </view>
@@ -258,6 +309,10 @@ function riskColor(level: string): string {
 
 <style lang="scss" scoped>
 .wb { min-height: 100vh; background: $jzb-bg-page; }
+.wb__search-wrap { padding: $jzb-space-4 $jzb-page-pad 0; background: $jzb-bg-card; }
+.wb__search { display: flex; align-items: center; gap: 12rpx; height: 76rpx; padding: 0 22rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; }
+.wb__search input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font-sm; }
+.wb__placeholder { color: $jzb-text-4; }
 .wb__summary {
   display: flex; align-items: center; justify-content: space-around;
   margin: $jzb-space-4 $jzb-page-pad; padding: $jzb-space-5 0;
@@ -269,11 +324,12 @@ function riskColor(level: string): string {
 .wb__summary-divider { width: 1rpx; height: 64rpx; background: $jzb-border-light; }
 .wb__filters {
   display: flex; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad;
+  overflow-x: auto; white-space: nowrap;
   background: $jzb-bg-card; border-bottom: 1rpx solid $jzb-border;
   position: sticky; top: 0; z-index: $jzb-z-sticky;
 }
 .wb__filter {
-  display: flex; align-items: center; gap: 8rpx;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8rpx;
   padding: 12rpx 24rpx; border-radius: $jzb-radius-pill;
   background: $jzb-bg-hover; font-size: $jzb-font-sm; color: $jzb-text-2;
 }

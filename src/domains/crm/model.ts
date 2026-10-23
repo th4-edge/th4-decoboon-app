@@ -3,6 +3,36 @@ import type { Employee } from '@/domains/identity/model'
 export type CustomerSource = 'lead' | 'referral' | 'walkin' | 'old' | 'video' | 'other' | 'batch'
 export type CustomerStage = 'intention' | 'following' | 'pendingMeasure' | 'quote' | 'sign' | 'construction' | 'done' | 'lost' | 'dormant'
 
+export type CustomerLossScope = 'Customer' | 'Property'
+export type CustomerLossStage = 'FollowUp' | 'Measure' | 'Design' | 'Negotiation' | 'Signing'
+export type CustomerLossReason =
+  | 'ChoseOtherCompany'
+  | 'PriceBudgetMismatch'
+  | 'DesignUnsatisfied'
+  | 'ScheduleMismatch'
+  | 'SelfOrRelative'
+  | 'ProjectCancelled'
+  | 'ServiceTrust'
+  | 'Other'
+
+export interface CustomerLossRecord {
+  id: string
+  scope: CustomerLossScope
+  stage: CustomerLossStage
+  fromStatus?: string
+  reasonCode: CustomerLossReason
+  reasonText?: string
+  competitorName?: string
+  lostAt?: string
+  lostByName?: string
+  propertyId?: string
+  propertyName?: string
+  restoredAt?: string
+  restoredByName?: string
+  restoreStatus?: string
+  restoreNote?: string
+}
+
 export type CustomerTagCategory = 'source' | 'behavior' | 'intent' | 'demand' | 'preference' | 'value' | 'risk'
 export type CustomerTagScope = 'system' | 'manual'
 
@@ -83,6 +113,19 @@ export interface Customer {
   restoredAt?: string
   restoredByName?: string
   projectId?: string
+  lossId?: string
+  lossScope?: CustomerLossScope
+  lossStage?: CustomerLossStage
+  lossReason?: CustomerLossReason
+  lossReasonText?: string
+  competitorName?: string
+  lostAt?: string
+  lostByName?: string
+  lossPropertyId?: string
+  lossPropertyName?: string
+  lossFromStatus?: string
+  activeLossCount?: number
+  partialLoss?: boolean
   createdAt?: string
   /** 只读投影：系统标签 + 人工标签 */
   tags?: CustomerTag[]
@@ -148,6 +191,19 @@ export interface StoreScopeInfo {
   storeId?: string
   storeName?: string
   unassignedCount: number
+}
+
+/** 设计师待跟进队列：服务端分桶计数 + 当前页客户。 */
+export interface MyCustomerOverviewReport {
+  asOf?: string
+  metrics: CustomerMetricCard[]
+  stageCounts: CustomerStageCount[]
+  followCounts: CustomerStageCount[]
+  customers: Customer[]
+  current: number
+  size: number
+  total: number
+  hasMore: boolean
 }
 
 export interface CustomerOverviewReport {

@@ -3,7 +3,7 @@ import { fileApi } from '@/domains/file/api'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Customer, CustomerBatchItem, CustomerBatchPreview, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag, StoreScopeInfo } from './model'
+import type { Customer, CustomerBatchItem, CustomerBatchPreview, CustomerFollow, CustomerGrade, CustomerMetricCard, CustomerOverviewReport, MyCustomerOverviewReport, CustomerStage, CustomerStageCount, CustomerTag, StoreScopeInfo, CustomerLossRecord } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 
@@ -82,6 +82,19 @@ export function normalizeCustomer(raw: RawRecord): Customer {
     dormantByName: dormantBy?.name || undefined,
     restoredAt: raw.restoredAt || undefined,
     restoredByName: restoredBy?.name || undefined,
+    lossId: raw.lossId == null ? undefined : String(raw.lossId),
+    lossScope: enumOrUndefined(raw.lossScope) as Customer['lossScope'],
+    lossStage: enumOrUndefined(raw.lossStage) as Customer['lossStage'],
+    lossReason: enumOrUndefined(raw.lossReason) as Customer['lossReason'],
+    lossReasonText: raw.lossReasonText || undefined,
+    competitorName: raw.competitorName || undefined,
+    lostAt: raw.lostAt || undefined,
+    lostByName: raw.lostBy?.name || undefined,
+    lossPropertyId: raw.lossPropertyId == null ? undefined : String(raw.lossPropertyId),
+    lossPropertyName: raw.lossPropertyName || undefined,
+    lossFromStatus: enumOrUndefined(raw.lossFromStatus),
+    activeLossCount: raw.activeLossCount == null ? undefined : Number(raw.activeLossCount),
+    partialLoss: raw.partialLoss === true,
     measureRequestedAt: raw.measureRequestedAt,
     handedOffAt: raw.handedOffAt,
     projectId: raw.projectId == null ? undefined : String(raw.projectId),
@@ -238,6 +251,26 @@ function normalizeStoreScope(raw: unknown): StoreScopeInfo | undefined {
   }
 }
 
+export function normalizeLoss(raw: RawRecord): CustomerLossRecord {
+  return {
+    id: String(raw.lossId ?? ''),
+    scope: enumValue(raw.scope) as CustomerLossRecord['scope'],
+    stage: enumValue(raw.stage) as CustomerLossRecord['stage'],
+    fromStatus: enumOrUndefined(raw.fromStatus),
+    reasonCode: enumValue(raw.reasonCode) as CustomerLossRecord['reasonCode'],
+    reasonText: raw.reasonText || undefined,
+    competitorName: raw.competitorName || undefined,
+    lostAt: raw.lostAt || undefined,
+    lostByName: raw.lostBy?.name || undefined,
+    propertyId: raw.property?.propertyId == null ? undefined : String(raw.property.propertyId),
+    propertyName: [raw.property?.community, raw.property?.building, raw.property?.roomNo].filter(Boolean).join(' ') || undefined,
+    restoredAt: raw.restoredAt || undefined,
+    restoredByName: raw.restoredBy?.name || undefined,
+    restoreStatus: enumOrUndefined(raw.restoreStatus),
+    restoreNote: raw.restoreNote || undefined
+  }
+}
+
 export const crmApi = {
   overview: async (query: { current?: number; size?: number; keyword?: string; stage?: string; sort?: string; storeId?: string; ownerId?: string } = {}): Promise<CustomerOverviewReport> => {
     const raw = await post<RawRecord>('customer/customer/overview', {
@@ -276,6 +309,40 @@ export const crmApi = {
       hasMore: raw.hasMore === true
     }
   },
+  /** 设计师待跟进队列：分桶计数、关键词、排序和分页均由服务端完成。 */
+  myCustomerOverview: async (query: { current?: number; size?: number; keyword?: string; sort?: string; followFilter?: string } = {}): Promise<MyCustomerOverviewReport> => {
+    const current = query.current ?? 1
+    const size = query.size ?? 20
+    const raw = (await post<RawRecord>('customer/my-customer/overview', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      sort: query.sort || 'due',
+      followFilter: query.followFilter || 'all'
+    })) as RawRecord
+    return {
+      asOf: raw.asOf ? String(raw.asOf) : undefined,
+      metrics: (Array.isArray(raw.metrics) ? raw.metrics : []).map((item) => {
+        const row = item as RawRecord
+        return {
+          key: String(row.key ?? ''),
+          label: String(row.label ?? ''),
+          value: Number(row.value ?? 0),
+          valueType: String(row.valueType ?? 'count'),
+          status: String(row.status ?? 'normal'),
+          subText: String(row.subText ?? '')
+        }
+      }),
+      stageCounts: (Array.isArray(raw.stageCounts) ? raw.stageCounts : []).map(normalizeStageCount),
+      followCounts: (Array.isArray(raw.followCounts) ? raw.followCounts : []).map(normalizeStageCount),
+      customers: (Array.isArray(raw.customers) ? raw.customers : []).map((item) => normalizeCustomer(item as RawRecord)),
+      current: Number(raw.current ?? current),
+      size: Number(raw.size ?? size),
+      total: Number(raw.total ?? 0),
+      hasMore: raw.hasMore === true
+    }
+  },
+
   page: async (query: CustomerPageQuery = {}): Promise<PageData<Customer>> => {
     const current = query.current ?? 1
     const size = query.size ?? 20
@@ -295,6 +362,37 @@ export const crmApi = {
     const uri = session.role === 'pm' ? 'project/manager/customer/info' : 'customer/customer/info'
     return post<RawRecord>(uri, { customerId: id }).then(normalizeCustomer)
   },
+
+  markLost: (payload: {
+    customerId: string
+    propertyId?: string
+    scope: 'Customer' | 'Property'
+    stage: string
+    reasonCode: string
+    reasonText?: string
+    competitorName?: string
+    expectedStatus?: string
+    requestId?: string
+  }) =>
+    post<RawRecord>('customer/loss/save', {
+      ...payload,
+      reasonText: payload.reasonText?.trim() || undefined,
+      competitorName: payload.competitorName?.trim() || undefined,
+      requestId: payload.requestId || `app-loss-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }),
+
+  restoreLoss: (lossId: string, restoreStatus?: string, restoreNote?: string, requestId?: string) =>
+    post<RawRecord>('customer/loss/update', {
+      lossId,
+      restoreStatus,
+      restoreNote: restoreNote?.trim() || undefined,
+      requestId: requestId || `app-restore-loss-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    }),
+
+  lossHistory: async (customerId: string) =>
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('customer/loss/page', {
+      customerId, current: 1, size: 20
+    })).map((raw) => normalizeLoss(raw)),
 
   setDormant: (customerId: string, reasonCode: string, reasonText?: string, expectedStatus?: string) =>
     post<RawRecord>('customer/customer/dormant', {
