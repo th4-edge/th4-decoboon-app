@@ -1,5 +1,6 @@
 import { post, listOf, upload as uploadRequest } from '@/core/http'
 import { runtime } from '@/config'
+import { session } from './session'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, Store, Team, UserProfile } from './model'
@@ -230,6 +231,7 @@ function normalizeInvite(raw: RawRecord): InviteCode {
     inviter: raw.inviter ? normalizeEmployee(raw.inviter) : undefined,
     role: normalizeRole(raw.role),
     status: statusMap[enumValue(raw.status)] || 'pending',
+    reusedPending: raw.reusedPending === true,
     expireAt: raw.expireTime,
     team: normalizeTeam(raw.team),
     createdAt: raw.createTime?.dateTime ?? raw.createTime,
@@ -286,10 +288,13 @@ export const identityApi = {
   rejectInvite: async (inviteId: string, phone: string, reason?: string) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/reject', { inviteId, phone, reason })),
 
-  storeList: async (currentOnly?: boolean): Promise<Store[]> =>
-    listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
+  storeList: async (currentOnly?: boolean): Promise<Store[]> => {
+    // 未归属企业的登录用户只有 Credentials，没有 Employee 身份；门店接口不是其业务入口。
+    if (!session.emp) return []
+    return listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
       .map(normalizeStore)
-      .filter((item): item is Store => !!item),
+      .filter((item): item is Store => !!item)
+  },
 
   switchCompany: async (inviteId: string, reason?: string) =>
     normalizeEmployee(await post<RawRecord>('user/user/switch-company', { inviteId, reason })),
@@ -389,11 +394,12 @@ export const identityApi = {
     return listOf(result).map(normalizeInvite)
   },
 
-  createInvite: async (inviteName: string, invitePhone: string, role: EmployeeRole, options: { teamId?: string; teamName?: string } = {}) =>
+  createInvite: async (inviteName: string, invitePhone: string, role: EmployeeRole, options: { storeId?: string; teamId?: string; teamName?: string } = {}) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/save', {
       inviteName,
       invitePhone,
       role: ROLE_API_MAP[role],
+      storeId: options.storeId || undefined,
       teamId: options.teamId || undefined,
       teamName: options.teamName || undefined
     })), 

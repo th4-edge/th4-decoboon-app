@@ -145,6 +145,8 @@ export interface InviteCode {
   inviter?: Employee
   createBy?: string
   status: 'valid' | 'pending' | 'used' | 'accepted' | 'expired' | 'cancelled' | 'rejected'
+  /** 后端幂等创建时返回已有待接受邀请，仅用于界面提示，不持久化。 */
+  reusedPending?: boolean
   expireAt?: string
   createdAt?: string
 }
