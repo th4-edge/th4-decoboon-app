@@ -12,6 +12,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const inviteName = ref('')
 const telNo = ref('')
@@ -217,6 +218,7 @@ function expiryText(invite: InviteCode): string {
       </view>
     </view>
   </view>
+  <JzConfirmDialog />
 </template>
 
 <style lang="scss" scoped>

@@ -14,6 +14,8 @@ const required = [
   ['待接受邀请列表', invite, 'identityApi.invites()'],
   ['待接受邀请重新分享', invite, 'open-type="share"'],
   ['待接受邀请取消', invite, 'identityApi.deleteInvite'],
+  ['取消邀请确认弹窗宿主', invite, '<JzConfirmDialog />'],
+  ['确认弹窗组件导入', invite, "components/JzConfirmDialog.vue"],
   ['无员工身份不调用门店接口', identityApi, 'if (!session.emp) return []']
 ]
 const missing = required.filter(([, source, token]) => !source.includes(token)).map(([label]) => label)
