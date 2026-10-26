@@ -18,8 +18,8 @@ const required = [
   ['分享标题包含岗位', invite, 'roleName(invite.role)'],
   ['过期邀请不进入待接受列表', invite, 'expiresAt > now'],
   ['待接受邀请取消', invite, 'identityApi.deleteInvite'],
-  ['取消邀请确认弹窗宿主', invite, '<JzConfirmDialog />'],
-  ['确认弹窗组件导入', invite, "components/JzConfirmDialog.vue"],
+  ['取消邀请页内确认', invite, 'class="ci-local-confirm"'],
+  ['取消邀请确认动作', invite, 'confirmCancel'],
   ['无员工身份不调用门店接口', identityApi, 'if (!session.emp) return []']
 ]
 const missing = required.filter(([, source, token]) => !source.includes(token)).map(([label]) => label)

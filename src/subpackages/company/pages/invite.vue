@@ -6,13 +6,12 @@ import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
 import type { EmployeeRole, InviteCode, Store } from '@/domains/identity/model'
 import { session } from '@/domains/identity/session'
-import { confirm, toast, toastError } from '@/composables/toast'
+import { toast, toastError } from '@/composables/toast'
 import { useShare } from '@/composables/share'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
-import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 const inviteName = ref('')
 const telNo = ref('')
@@ -24,6 +23,7 @@ const pendingInvites = ref<InviteCode[]>([])
 const pendingLoading = ref(false)
 const pendingError = ref('')
 const cancellingId = ref('')
+const cancelCandidate = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const shareTarget = ref<InviteCode | null>(null)
 
@@ -146,15 +146,20 @@ function pickStore(label: string): void {
   if (hit) storeId.value = hit.id
 }
 
-async function cancelInvite(invite: InviteCode): Promise<void> {
+function requestCancel(invite: InviteCode): void {
   if (cancellingId.value) return
-  const ok = await confirm('取消邀请', `确定取消「${invite.inviteName || maskPhone(invite.telNo)}」的待接受邀请？取消后需重新创建。`, '取消邀请')
-  if (!ok) return
+  cancelCandidate.value = invite
+}
+
+async function confirmCancel(): Promise<void> {
+  const invite = cancelCandidate.value
+  if (!invite || cancellingId.value) return
   cancellingId.value = invite.id
   try {
     await identityApi.deleteInvite(invite.id)
     if (generated.value?.id === invite.id) generated.value = null
     if (shareTarget.value?.id === invite.id) shareTarget.value = null
+    cancelCandidate.value = null
     await loadPendingInvites()
     toast('邀请已取消', 'success')
   } catch (error) {
@@ -241,14 +246,24 @@ function expiryText(invite: InviteCode): string {
             </view>
             <view class="ci-pending__actions">
               <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" :data-invite-id="invite.id" @touchstart="prepareShare(invite)" @tap="prepareShare(invite)">微信分享</button>
-              <button class="jz-btn jz-btn--text ci-pending__cancel" :loading="cancellingId === invite.id" @tap="cancelInvite(invite)">取消邀请</button>
+              <button class="jz-btn jz-btn--text ci-pending__cancel" :loading="cancellingId === invite.id" @tap="requestCancel(invite)">取消邀请</button>
             </view>
           </view>
         </view>
       </view>
     </view>
   </view>
-  <JzConfirmDialog />
+
+  <view v-if="cancelCandidate" class="ci-local-confirm" @tap="cancelCandidate = null">
+    <view class="ci-local-confirm__card" @tap.stop>
+      <text class="ci-local-confirm__title">取消邀请</text>
+      <text class="ci-local-confirm__content">确定取消「{{ cancelCandidate.inviteName || maskPhone(cancelCandidate.telNo) }}」的待接受邀请？取消后需重新创建。</text>
+      <view class="ci-local-confirm__actions">
+        <button class="jz-btn jz-btn--neutral jz-grow" @tap="cancelCandidate = null">保留邀请</button>
+        <button class="jz-btn jz-btn--primary jz-grow" :loading="cancellingId === cancelCandidate.id" @tap="confirmCancel">确认取消</button>
+      </view>
+    </view>
+  </view>
 </template>
 
 <style lang="scss" scoped>
@@ -287,4 +302,9 @@ function expiryText(invite: InviteCode): string {
 .ci-pending__actions { display: flex; align-items: center; gap: 12rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
 .ci-pending__share { flex: 1; }
 .ci-pending__cancel { flex: 0 0 auto; color: $jzb-danger; }
+.ci-local-confirm { position: fixed; z-index: $jzb-z-modal; inset: 0; display: flex; align-items: center; justify-content: center; padding: 40rpx; background: rgba(15, 23, 42, .48); }
+.ci-local-confirm__card { width: 100%; padding: 34rpx 30rpx 28rpx; border-radius: $jzb-radius-lg; background: $jzb-bg-card; box-shadow: $jzb-shadow-elevated; }
+.ci-local-confirm__title { display: block; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 750; }
+.ci-local-confirm__content { display: block; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.65; }
+.ci-local-confirm__actions { display: flex; gap: 16rpx; margin-top: 30rpx; }
 </style>
