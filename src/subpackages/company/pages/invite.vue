@@ -25,7 +25,6 @@ const pendingLoading = ref(false)
 const pendingError = ref('')
 const cancellingId = ref('')
 const submitting = ref(false)
-const shareTarget = ref<InviteCode | null>(null)
 
 const roles: { value: EmployeeRole; label: string }[] = [
   { value: 'storeManager', label: '店长' },
@@ -66,8 +65,14 @@ async function loadPendingInvites(): Promise<void> {
   pendingError.value = ''
   try {
     const invites = await identityApi.invites()
+    const now = Date.now()
     pendingInvites.value = invites
       .filter((item) => item.type === 'member' && item.status === 'pending')
+      .filter((item) => {
+        if (!item.expireAt) return true
+        const expiresAt = new Date(item.expireAt.replace(' ', 'T')).getTime()
+        return Number.isNaN(expiresAt) || expiresAt > now
+      })
       .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
   } catch (error) {
     pendingError.value = error instanceof Error ? error.message : '待接受邀请暂不可确认'
@@ -76,11 +81,30 @@ async function loadPendingInvites(): Promise<void> {
   }
 }
 
-useShare(() => {
-  const invite = shareTarget.value
+interface ShareMessage {
+  target?: { dataset?: Record<string, unknown> }
+}
+
+function companyDisplayName(invite: InviteCode): string {
+  return invite.company?.name || '装得清企业'
+}
+
+function shareTitle(invite: InviteCode): string {
+  return `${companyDisplayName(invite)}邀请你加入 · ${roleName(invite.role)}`
+}
+
+function inviteForShare(message?: ShareMessage): InviteCode | null {
+  const inviteId = String(message?.target?.dataset?.inviteId || '')
+  if (!inviteId) return null
+  if (generated.value?.id === inviteId) return generated.value
+  return pendingInvites.value.find((item) => item.id === inviteId) || null
+}
+
+useShare((message) => {
+  const invite = inviteForShare(message)
   return invite
-    ? { title: `${invite.inviteName || '新成员'}，邀请你加入装得清企业`, path: `${P.inviteAccept}?inviteId=${invite.id}` }
-    : { title: '装得清 · 员工邀请', path: P.login }
+    ? { title: shareTitle(invite), path: `${P.inviteAccept}?inviteId=${invite.id}` }
+    : { title: '装得清 · 企业邀请', path: P.login }
 }, null)
 
 async function create(): Promise<void> {
@@ -92,7 +116,6 @@ async function create(): Promise<void> {
     generated.value = await identityApi.createInvite(inviteName.value.trim(), telNo.value, role.value, {
       storeId: requiresStoreChoice.value ? storeId.value : undefined
     })
-    shareTarget.value = generated.value
     inviteName.value = ''
     telNo.value = ''
     await loadPendingInvites()
@@ -114,10 +137,6 @@ function pickStore(label: string): void {
   if (hit) storeId.value = hit.id
 }
 
-function prepareShare(invite: InviteCode): void {
-  shareTarget.value = invite
-}
-
 async function cancelInvite(invite: InviteCode): Promise<void> {
   if (cancellingId.value) return
   const ok = await confirm('取消邀请', `确定取消「${invite.inviteName || maskPhone(invite.telNo)}」的待接受邀请？取消后需重新创建。`, '取消邀请')
@@ -126,7 +145,6 @@ async function cancelInvite(invite: InviteCode): Promise<void> {
   try {
     await identityApi.deleteInvite(invite.id)
     if (generated.value?.id === invite.id) generated.value = null
-    if (shareTarget.value?.id === invite.id) shareTarget.value = null
     await loadPendingInvites()
     toast('邀请已取消', 'success')
   } catch (error) {
@@ -184,7 +202,7 @@ function expiryText(invite: InviteCode): string {
         <text class="ci-result__name">{{ generated.inviteName }}</text>
         <text class="ci-result__phone">{{ maskPhone(generated.telNo) }} · {{ roleName(generated.role) }} · {{ generated.store?.name || storeLabel }}</text>
         <text class="ci-result__hint">{{ generatedHint }}</text>
-        <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share" @touchstart="prepareShare(generated)" @tap="prepareShare(generated)">微信分享邀请卡片</button>
+        <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share" :data-invite-id="generated.id">微信分享邀请卡片</button>
       </view>
 
       <view class="ci-pending">
@@ -210,7 +228,7 @@ function expiryText(invite: InviteCode): string {
               </view>
             </view>
             <view class="ci-pending__actions">
-              <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" @touchstart="prepareShare(invite)" @tap="prepareShare(invite)">微信分享</button>
+              <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" :data-invite-id="invite.id">微信分享</button>
               <button class="jz-btn jz-btn--text ci-pending__cancel" :loading="cancellingId === invite.id" @tap="cancelInvite(invite)">取消邀请</button>
             </view>
           </view>

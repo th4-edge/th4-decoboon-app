@@ -10,6 +10,11 @@ import { P, runtime } from '@/config'
  */
 export const SHARE_IMAGE = '/static/brand/logo-mark-color.png'
 
+export interface ShareMessage {
+  from?: 'button' | 'menu'
+  target?: { dataset?: Record<string, unknown> }
+}
+
 export interface ShareCard {
   /** 分享标题：以收到的人为主语写场景，不写"分享装得清"。 */
   title: string
@@ -26,9 +31,9 @@ export interface ShareCard {
  * 既不可控也无法按场景区分。本组合式函数统一分享图与兜底文案，
  * 页面只负责给出当前场景的标题和路径。
  */
-export function useShare(getCard: () => ShareCard, timelineTitle?: string | null): void {
-  onShareAppMessage(() => {
-    const card = getCard()
+export function useShare(getCard: (message?: ShareMessage) => ShareCard, timelineTitle?: string | null): void {
+  onShareAppMessage((message) => {
+    const card = getCard(message as ShareMessage)
     return {
       title: card.title || runtime.appName,
       path: card.path || P.home,
