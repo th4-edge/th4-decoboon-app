@@ -25,6 +25,7 @@ const pendingLoading = ref(false)
 const pendingError = ref('')
 const cancellingId = ref('')
 const submitting = ref(false)
+const shareTarget = ref<InviteCode | null>(null)
 
 const roles: { value: EmployeeRole; label: string }[] = [
   { value: 'storeManager', label: '店长' },
@@ -86,7 +87,7 @@ interface ShareMessage {
 }
 
 function companyDisplayName(invite: InviteCode): string {
-  return invite.company?.name || '装得清企业'
+  return invite.company?.name || session.company?.name || '装得清企业'
 }
 
 function shareTitle(invite: InviteCode): string {
@@ -95,15 +96,22 @@ function shareTitle(invite: InviteCode): string {
 
 function inviteForShare(message?: ShareMessage): InviteCode | null {
   const inviteId = String(message?.target?.dataset?.inviteId || '')
-  if (!inviteId) return null
-  if (generated.value?.id === inviteId) return generated.value
-  return pendingInvites.value.find((item) => item.id === inviteId) || null
+  if (inviteId) {
+    if (generated.value?.id === inviteId) return generated.value
+    const fromList = pendingInvites.value.find((item) => item.id === inviteId)
+    if (fromList) return fromList
+  }
+  return shareTarget.value
+}
+
+function prepareShare(invite: InviteCode): void {
+  shareTarget.value = invite
 }
 
 useShare((message) => {
   const invite = inviteForShare(message)
   return invite
-    ? { title: shareTitle(invite), path: `${P.inviteAccept}?inviteId=${invite.id}` }
+    ? { title: shareTitle(invite), path: `${P.inviteAccept}?inviteId=${invite.id}`, imageUrl: invite.company?.logo }
     : { title: '装得清 · 企业邀请', path: P.login }
 }, null)
 
@@ -116,6 +124,7 @@ async function create(): Promise<void> {
     generated.value = await identityApi.createInvite(inviteName.value.trim(), telNo.value, role.value, {
       storeId: requiresStoreChoice.value ? storeId.value : undefined
     })
+    shareTarget.value = generated.value
     inviteName.value = ''
     telNo.value = ''
     await loadPendingInvites()
@@ -145,6 +154,7 @@ async function cancelInvite(invite: InviteCode): Promise<void> {
   try {
     await identityApi.deleteInvite(invite.id)
     if (generated.value?.id === invite.id) generated.value = null
+    if (shareTarget.value?.id === invite.id) shareTarget.value = null
     await loadPendingInvites()
     toast('邀请已取消', 'success')
   } catch (error) {
@@ -202,7 +212,8 @@ function expiryText(invite: InviteCode): string {
         <text class="ci-result__name">{{ generated.inviteName }}</text>
         <text class="ci-result__phone">{{ maskPhone(generated.telNo) }} · {{ roleName(generated.role) }} · {{ generated.store?.name || storeLabel }}</text>
         <text class="ci-result__hint">{{ generatedHint }}</text>
-        <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share" :data-invite-id="generated.id">微信分享邀请卡片</button>
+        <text class="ci-share-preview">微信聊天卡片标题预览：{{ shareTitle(generated) }}</text>
+        <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share" :data-invite-id="generated.id" @touchstart="prepareShare(generated)" @tap="prepareShare(generated)">微信分享邀请卡片</button>
       </view>
 
       <view class="ci-pending">
@@ -225,10 +236,11 @@ function expiryText(invite: InviteCode): string {
                 <text class="ci-pending__name">{{ invite.inviteName || maskPhone(invite.telNo) }}</text>
                 <text class="ci-pending__meta">{{ roleName(invite.role) }} · {{ invite.store?.name || '门店待确认' }} · {{ maskPhone(invite.telNo) }}</text>
                 <text class="ci-pending__expire">{{ expiryText(invite) }}</text>
+                <text class="ci-pending__share-preview">聊天卡片：{{ shareTitle(invite) }}</text>
               </view>
             </view>
             <view class="ci-pending__actions">
-              <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" :data-invite-id="invite.id">微信分享</button>
+              <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" :data-invite-id="invite.id" @touchstart="prepareShare(invite)" @tap="prepareShare(invite)">微信分享</button>
               <button class="jz-btn jz-btn--text ci-pending__cancel" :loading="cancellingId === invite.id" @tap="cancelInvite(invite)">取消邀请</button>
             </view>
           </view>
@@ -254,7 +266,8 @@ function expiryText(invite: InviteCode): string {
 .ci-result__head { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ci-result__name { display: block; margin-top: 26rpx; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .ci-result__phone { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
-.ci-result__hint { display: block; margin: 16rpx 0 26rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; line-height: 1.6; }
+.ci-result__hint { display: block; margin-top: 16rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; line-height: 1.6; }
+.ci-share-preview { display: block; margin: 12rpx 0 26rpx; padding: 14rpx 16rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border: 1rpx solid $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.5; }
 .ci-field__readonly { flex: 1; min-width: 0; text-align: right; color: $jzb-text-2; font-size: $jzb-font; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-pending { margin-top: 34rpx; }
 .ci-pending__head { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 0 4rpx 18rpx; }
@@ -270,6 +283,7 @@ function expiryText(invite: InviteCode): string {
 .ci-pending__name { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .ci-pending__meta { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .ci-pending__expire { display: block; margin-top: 4rpx; color: $jzb-text-4; font-size: 20rpx; }
+.ci-pending__share-preview { display: block; margin-top: 8rpx; color: $jzb-primary-dark; font-size: 20rpx; line-height: 1.5; }
 .ci-pending__actions { display: flex; align-items: center; gap: 12rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
 .ci-pending__share { flex: 1; }
 .ci-pending__cancel { flex: 0 0 auto; color: $jzb-danger; }
