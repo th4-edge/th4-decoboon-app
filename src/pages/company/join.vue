@@ -1,20 +1,13 @@
 <script setup lang="ts">
 /**
- * 无归属选择页（P0 重构）。
+ * 未归属选择页。
  *
- * 历史问题（用户反馈）：本页原先要求"手填邀请编号/邀请链接"，**同页下方还有"创建企业"**，
- * 且用正则猜测输入是"员工邀请 / 业主邀请"，业主看不懂、员工容易误点创建企业（建出错误企业，不可逆）。
- *
- * 现在只做一件事：**让用户自己说清楚"我是谁"**。
- * - 业主：进业主专用页（无参数时也会给引导）
- * - 员工：默认收起，点开才展示"粘贴店长发来的邀请链接"
- * - 注册企业：独立入口，不与邀请混排
- * - 以后再说：允许离开，下次登录重新判定（不强制注册）
+ * 员工加入必须从管理员发送的微信邀请卡片直接进入；本页不再要求粘贴链接或手输编号，
+ * 避免把内部邀请标识暴露给一线员工和业主。
  */
 import { computed, ref } from 'vue'
 import { P } from '@/config'
-import { identityApi } from '@/domains/identity/api'
-import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
+import { confirm } from '@/composables/toast'
 import { logout, session } from '@/domains/identity/session'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -23,23 +16,9 @@ import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
 declare const wx: { reLaunch: (options: { url: string }) => void }
 
-/** 员工入口默认收起，避免业主/新用户误入 */
-const showEmployeeJoin = ref(false)
-const inviteInput = ref('')
-const submitting = ref(false)
-
+const showEmployeeHelp = ref(false)
 const displayName = computed(() => session.user?.nickname || '用户')
 const displayPhone = computed(() => session.user?.phone || '未绑定手机号')
-
-/** 只解析"员工邀请"：支持邀请编号或邀请链接中的 inviteId，不再猜测业主 token。 */
-function parseEmployeeInvite(raw: string): string | null {
-  const value = raw.trim()
-  if (!value) return null
-  const matched = /[?&]inviteId=([^&#]+)/.exec(value)
-  if (matched) return decodeURIComponent(matched[1])
-  if (/^\d{6,}$/.test(value)) return value
-  return null
-}
 
 function goOwnerEnter() { uni.navigateTo({ url: P.ownerEnter }) }
 function goRegisterCompany() { uni.navigateTo({ url: P.enterprise }) }
@@ -56,34 +35,8 @@ function reLaunchAfterLogout(url: string) {
   }, 0)
 }
 
-async function openEmployeeInvite() {
-  const inviteId = parseEmployeeInvite(inviteInput.value)
-  if (!inviteId) {
-    toast('请粘贴店长发您的邀请链接，或输入邀请编号')
-    return
-  }
-  if (submitting.value) return
-  submitting.value = true
-  loading('正在校验邀请…')
-  try {
-    await identityApi.invitationInfo(inviteId)
-    hideLoading()
-    uni.navigateTo({ url: `${P.inviteAccept}?inviteId=${encodeURIComponent(inviteId)}` })
-  } catch (error) {
-    hideLoading()
-    toastError(error, '邀请不存在或已失效，请让邀请人重新发送')
-  } finally {
-    submitting.value = false
-  }
-}
-
 function later() {
-  // 历史坑（FIX-024）：这里不能只回首页。未归属用户仍带 user 会话时，
-  // pages/index/index.vue 会再次强制跳回本页，形成“以后再说一直在原页”的死循环。
-  // 选择暂不加入即结束本次未归属登录，回到游客首页；下次主动登录时再询问。
   if (session.token && session.sessionType === 'user' && !session.emp) logout()
-  // 历史坑：logout 会同步触发本页重渲染，立即 reLaunch 会被当前事件周期吞掉。
-  // 移到下一事件循环后使用微信原生路由，确保用户真正回到游客首页。
   reLaunchAfterLogout(P.home)
 }
 
@@ -120,29 +73,22 @@ async function relogin() {
       </view>
 
       <!-- 员工 -->
-      <view class="entry-card jz-card" @tap="showEmployeeJoin = !showEmployeeJoin">
+      <view class="entry-card jz-card" @tap="showEmployeeHelp = !showEmployeeHelp">
         <view class="entry-card__icon"><JzIcon name="users" :size="32" :color="TOKEN_COLOR.primary" /></view>
         <view class="jz-grow">
           <text class="entry-card__title">我是装修公司员工，要加入企业</text>
-          <text class="entry-card__desc">使用公司发给您的邀请加入；没有邀请请联系公司管理员</text>
+          <text class="entry-card__desc">请直接打开管理员通过微信发送的邀请卡片；没有邀请请联系公司管理员重新发送</text>
         </view>
-        <JzIcon :name="showEmployeeJoin ? 'chevron-down' : 'chevron-right'" :size="26" :color="TOKEN_COLOR.text3" />
+        <JzIcon :name="showEmployeeHelp ? 'chevron-down' : 'chevron-right'" :size="26" :color="TOKEN_COLOR.text3" />
       </view>
-      <view v-if="showEmployeeJoin" class="entry-employee jz-card">
-        <text class="entry-employee__label">粘贴店长发您的邀请链接</text>
-        <input
-          v-model="inviteInput"
-          class="entry-employee__input"
-          type="text"
-          placeholder="在此粘贴邀请链接，或输入邀请编号"
-          placeholder-class="entry-employee__placeholder"
-          confirm-type="done"
-          @confirm="openEmployeeInvite"
-        />
-        <button class="jz-btn jz-btn--primary jz-btn--block" :loading="submitting" :disabled="submitting" @tap="openEmployeeInvite">
-          查看邀请
-        </button>
-        <text class="entry-employee__hint">最快的方式：直接在微信聊天里点开邀请链接。</text>
+      <view v-if="showEmployeeHelp" class="entry-employee jz-card">
+        <view class="entry-employee__guide">
+          <JzIcon name="users" :size="34" :color="TOKEN_COLOR.primary" />
+          <view class="jz-grow">
+            <text class="entry-employee__label">在微信聊天中打开邀请卡片</text>
+            <text class="entry-employee__hint">邀请会核对你的微信手机号与管理员预留手机号是否一致，确认后即可加入企业。</text>
+          </view>
+        </view>
       </view>
 
       <!-- 注册企业 -->
@@ -191,13 +137,9 @@ async function relogin() {
 .entry-card__title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .entry-card__desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
 .entry-employee { padding: 24rpx; margin: -6rpx 0 18rpx; }
+.entry-employee__guide { display: flex; align-items: flex-start; gap: 16rpx; }
 .entry-employee__label { display: block; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 600; }
-.entry-employee__input {
-  margin: 16rpx 0 18rpx; padding: 0 22rpx; height: 88rpx; line-height: 88rpx;
-  background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm;
-}
-.entry-employee__placeholder { color: $jzb-text-4; }
-.entry-employee__hint { display: block; margin-top: 14rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.6; }
+.entry-employee__hint { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.6; }
 .entry-foot { margin-top: 40rpx; text-align: center; }
 .entry-foot__hint { display: block; margin: 6rpx 0 20rpx; color: $jzb-text-4; font-size: 20rpx; line-height: 1.6; }
 .entry-foot__link { color: $jzb-primary-dark; font-size: $jzb-font-xs; }

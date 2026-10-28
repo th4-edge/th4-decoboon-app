@@ -227,10 +227,26 @@
           }
         },
         {
+          "path": "pages/designer-followup-workbench",
+          "style": {
+            "navigationBarTitleText": "待我跟进",
+            "backgroundColor": "#F4F7F8",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
           "path": "pages/portrait-edit",
           "style": {
             "navigationBarTitleText": "客户画像",
             "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/designer-measure-workbench",
+          "style": {
+            "navigationBarTitleText": "待我量房",
+            "backgroundColor": "#F4F7F8",
+            "enablePullDownRefresh": true
           }
         },
         {
@@ -269,25 +285,9 @@
           }
         },
         {
-          "path": "pages/designer-followup-workbench",
-          "style": {
-            "navigationBarTitleText": "待我跟进",
-            "backgroundColor": "#F4F7F8",
-            "enablePullDownRefresh": true
-          }
-        },
-        {
           "path": "pages/measure-workbench",
           "style": {
             "navigationBarTitleText": "量房经营工作台",
-            "backgroundColor": "#F4F7F8",
-            "enablePullDownRefresh": true
-          }
-        },
-        {
-          "path": "pages/designer-measure-workbench",
-          "style": {
-            "navigationBarTitleText": "待我量房",
             "backgroundColor": "#F4F7F8",
             "enablePullDownRefresh": true
           }

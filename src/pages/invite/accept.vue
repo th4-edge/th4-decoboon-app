@@ -21,6 +21,13 @@ const invite = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const loadError = ref('')
 const { handlePhoneNumber } = useWxPhoneAuth()
+const pageTitle = computed(() => {
+  const company = invite.value?.company?.name
+  return company ? `${company}邀请你加入` : '企业邀请'
+})
+const pageSubtitle = computed(() => invite.value
+  ? `岗位：${roleLabel()} · 请使用预留手机号确认`
+  : '请确认邀请企业与岗位')
 const statusText = computed(() => {
   const status = invite.value?.status
   if (status === 'pending') return '邀请有效'
@@ -126,7 +133,7 @@ function roleLabel() {
 
 <template>
   <view class="invite-page">
-    <JzPageHeader title="加入企业" subtitle="手机号快捷登录后校验邀请归属" />
+    <JzPageHeader :title="pageTitle" :subtitle="pageSubtitle" />
     <view class="invite-body">
       <view v-if="invite" class="invite-card jz-card">
         <view class="invite-company">
