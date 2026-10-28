@@ -21,6 +21,14 @@ const loadError = ref('')
 const customPlans = computed(() => plans.value.filter((item) => item.source === 'company'))
 const baselinePlans = computed(() => plans.value.filter((item) => item.source === 'baseline'))
 const canEdit = computed(() => can(session.role, 'edit:construction-plan-template'))
+const latestByCode = computed(() => {
+  const latest = new Map<string, ConstructionPlanTemplate>()
+  for (const item of customPlans.value) {
+    const current = latest.get(item.code)
+    if (!current || item.version > current.version) latest.set(item.code, item)
+  }
+  return latest
+})
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => {
@@ -45,8 +53,8 @@ async function load() {
 
 function statusText(plan: ConstructionPlanTemplate) {
   if (plan.status === 'draft') return '草稿'
-  if (plan.status === 'disabled') return '已停用'
-  return '已启用'
+  if (plan.status === 'disabled') return plan.currentEnabled ? '已停用' : `历史版本 V${plan.version}`
+  return plan.currentEnabled ? '当前启用' : `历史版本 V${plan.version}`
 }
 
 function statusColor(plan: ConstructionPlanTemplate) {
@@ -55,9 +63,25 @@ function statusColor(plan: ConstructionPlanTemplate) {
   return TOKEN_COLOR.success
 }
 
+function isLatest(plan: ConstructionPlanTemplate): boolean {
+  return !!plan.templateId && latestByCode.value.get(plan.code)?.templateId === plan.templateId
+}
+
+function canEditPlan(plan: ConstructionPlanTemplate): boolean {
+  return canEdit.value && plan.status === 'draft' && isLatest(plan)
+}
+
+function canBuildNext(plan: ConstructionPlanTemplate): boolean {
+  return canEdit.value && plan.status !== 'draft' && isLatest(plan)
+}
+
+function canUseAsCurrent(plan: ConstructionPlanTemplate): boolean {
+  return plan.status === 'enabled' && plan.currentEnabled
+}
+
 function createBlank() { uni.navigateTo({ url: P.constructionPlanTemplateEdit }) }
 function edit(plan: ConstructionPlanTemplate) {
-  if (!canEdit.value || !plan.templateId) return
+  if (!canEditPlan(plan) || !plan.templateId) return
   uni.navigateTo({ url: `${P.constructionPlanTemplateEdit}?id=${plan.templateId}` })
 }
 
@@ -78,8 +102,39 @@ async function copyBaseline(plan: ConstructionPlanTemplate) {
   }
 }
 
+async function buildNext(plan: ConstructionPlanTemplate) {
+  if (!canBuildNext(plan) || !plan.templateId) return
+  try {
+    const draft = await planApi.buildConstruction(plan.templateId)
+    toast('已创建下一版草稿', 'success')
+    await load()
+    if (draft.templateId) uni.navigateTo({ url: `${P.constructionPlanTemplateEdit}?id=${draft.templateId}` })
+  } catch (error) {
+    toastError(error, '创建下一版失败')
+  }
+}
+
+async function upgradeBaseline(plan: ConstructionPlanTemplate, baseline: ConstructionPlanTemplate) {
+  if (!canBuildNext(plan) || !plan.templateId || !baseline.code) return
+  if (!await confirm('升级平台基线', `将基于平台“${baseline.name}”v${baseline.version} 创建新草稿；当前启用版本在发布前继续有效。`, '创建升级草稿')) return
+  try {
+    const draft = await planApi.buildConstruction(plan.templateId, baseline.code)
+    toast('平台基线升级草稿已创建', 'success')
+    await load()
+    if (draft.templateId) uni.navigateTo({ url: `${P.constructionPlanTemplateEdit}?id=${draft.templateId}` })
+  } catch (error) {
+    toastError(error, '平台基线升级失败')
+  }
+}
+
+function newerBaseline(plan: ConstructionPlanTemplate): ConstructionPlanTemplate | undefined {
+  const sourceVersion = Number(plan.sourceBaselineVersion || 0)
+  const sourceCode = plan.sourceBaselineCode || plan.code
+  return baselinePlans.value.find((item) => item.code === sourceCode && item.version > sourceVersion)
+}
+
 async function publish(plan: ConstructionPlanTemplate) {
-  if (!canEdit.value || !plan.templateId) return
+  if (!canEdit.value || !plan.templateId || !isLatest(plan) || plan.status !== 'draft') return
   try {
     await planApi.publishConstruction(plan.templateId)
     toast('模板已启用', 'success')
@@ -90,7 +145,7 @@ async function publish(plan: ConstructionPlanTemplate) {
 }
 
 async function disable(plan: ConstructionPlanTemplate) {
-  if (!canEdit.value || !plan.templateId) return
+  if (!canEdit.value || !plan.templateId || !canUseAsCurrent(plan)) return
   if (!await confirm('停用施工计划', `确认停用“${plan.name}”？历史合同不受影响。`, '停用')) return
   try {
     await planApi.disableConstruction(plan.templateId)
@@ -102,7 +157,7 @@ async function disable(plan: ConstructionPlanTemplate) {
 }
 
 async function setDefault(plan: ConstructionPlanTemplate) {
-  if (!canEdit.value || !plan.templateId) return
+  if (!canEdit.value || !plan.templateId || !canUseAsCurrent(plan)) return
   try {
     await planApi.defaultConstruction(plan.templateId)
     toast('已设为默认施工计划', 'success')
@@ -136,15 +191,17 @@ async function setDefault(plan: ConstructionPlanTemplate) {
                 <view class="cpt__name-row"><text class="cpt__name">{{ plan.name }}</text><JzTag v-if="plan.defaultPlan" text="默认" :color="TOKEN_COLOR.primary" /><JzTag :text="statusText(plan)" :color="statusColor(plan)" /></view>
                 <text class="cpt__meta">v{{ plan.version }} · {{ plan.stages.length }} 个阶段 · {{ plan.totalDays }} 天</text>
               </view>
-              <JzIcon v-if="canEdit" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
+              <JzIcon v-if="canEditPlan(plan)" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" @tap="edit(plan)" />
             </view>
             <text class="cpt__desc">{{ plan.description || '暂无说明' }}</text>
             <view class="cpt__preview"><text v-for="stage in plan.stages" :key="stage.code">{{ stage.name }} {{ stage.defaultDays }}天</text></view>
-            <view v-if="canEdit" class="cpt__actions">
-              <button class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="edit(plan)">编辑</button>
-              <button v-if="plan.status !== 'enabled'" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="publish(plan)">启用</button>
-              <button v-if="plan.status === 'enabled' && !plan.defaultPlan" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="setDefault(plan)">设为默认</button>
-              <button v-if="plan.status === 'enabled'" class="jz-btn jz-btn--plain jz-btn--sm cpt__danger" @tap.stop="disable(plan)">停用</button>
+            <view v-if="canEditPlan(plan) || canBuildNext(plan) || canUseAsCurrent(plan)" class="cpt__actions">
+              <button v-if="canEditPlan(plan)" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="edit(plan)">编辑草稿</button>
+              <button v-if="canEditPlan(plan)" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="publish(plan)">启用</button>
+              <button v-if="canBuildNext(plan)" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="buildNext(plan)">创建下一版</button>
+              <button v-if="canBuildNext(plan) && newerBaseline(plan)" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="upgradeBaseline(plan, newerBaseline(plan)!)">升级平台 v{{ newerBaseline(plan)!.version }}</button>
+              <button v-if="canUseAsCurrent(plan) && !plan.defaultPlan" class="jz-btn jz-btn--plain jz-btn--sm" @tap.stop="setDefault(plan)">设为默认</button>
+              <button v-if="canUseAsCurrent(plan)" class="jz-btn jz-btn--plain jz-btn--sm cpt__danger" @tap.stop="disable(plan)">停用</button>
             </view>
           </view>
         </view>

@@ -10,7 +10,51 @@ export interface WorkbenchCustomerBase {
   stayDays: number
 }
 
-/** 设计师工作台列表项 */
+/** 设计师待量房任务：客户 + 房屋级；状态、风险和主行动由服务端返回。 */
+export interface DesignerMeasureTask {
+  taskKey: string
+  customerId: string
+  customerName: string
+  telNo: string
+  customerStatus: string
+  customerStatusName: string
+  propertyId: string | null
+  propertyLabel: string
+  community: string
+  building: string
+  roomNo: string
+  address: string
+  area: number | null
+  layout: string
+  propertyStatus: string
+  propertyStatusName: string
+  measureId: string | null
+  measureStatus: string | null
+  scheduledAt: string | null
+  scheduleStateKey: string | null
+  scheduleStateName: string | null
+  completedAt: string | null
+  stateKey: string
+  stateLabel: string
+  riskLevel: string
+  riskReason: string
+  mainActionKey: string
+  mainActionLabel: string
+  nextActionKey: string | null
+  nextActionLabel: string | null
+  secondaryActionKey: string | null
+  secondaryActionLabel: string | null
+  completionHint: string | null
+  route: string | null
+  allowed: boolean
+  blockReason: string | null
+  sitePhotoCount: number
+  structureImageCount: number
+  attachmentCount: number
+  requirementCount: number
+  designCount: number
+  priority: number
+}
 
 /** 企业负责人设计经营指标与明细。 */
 export interface BossDesignItem {

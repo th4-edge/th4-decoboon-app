@@ -15,6 +15,7 @@ const templateId = ref('')
 const name = ref('')
 const description = ref('')
 const sort = ref(0)
+const declaredTotalDays = ref(1)
 const stages = ref<ConstructionStageTemplate[]>([])
 const loading = ref(false)
 const submitting = ref(false)
@@ -24,15 +25,16 @@ const acceptanceOptions = [
   { value: 'ConstructionDone', label: '施工完成' },
   { value: 'AcceptanceDone', label: '验收完成' }
 ]
-const totalDays = computed(() => stages.value.reduce((sum, stage) => sum + Number(stage.defaultDays || 0), 0))
+const stageDaysTotal = computed(() => stages.value.reduce((sum, stage) => sum + Number(stage.defaultDays || 0), 0))
 const canSubmit = computed(() => name.value.trim().length > 0 && stages.value.length > 0
+  && Number(declaredTotalDays.value) > 0
   && stages.value.every((stage) => stage.name.trim() && stage.code.trim() && Number(stage.defaultDays) > 0)
   && new Set(stages.value.map((stage) => stage.code.trim())).size === stages.value.length)
 const pageTitle = computed(() => templateId.value ? '编辑施工计划' : '新建施工计划')
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
-  if (session.role !== 'boss') { uni.reLaunch({ url: P.mine }); return }
+  if (!['boss', 'storeManager'].includes(session.role || '')) { uni.reLaunch({ url: P.mine }); return }
   templateId.value = String(query?.id || '')
   void load()
 })
@@ -47,12 +49,18 @@ async function load() {
       const fallback = await planApi.catalog()
       current = fallback.constructionPlans.find((item) => item.templateId === templateId.value)
     }
+    if (current && current.status !== 'draft') {
+      toast('已启用或已停用的版本不可原地修改，请从列表创建下一版')
+      setTimeout(() => uni.navigateBack(), 600)
+      return
+    }
     if (current) apply(current)
     else if (templateId.value) {
       toast('施工计划模板不存在', 'none')
       setTimeout(() => uni.navigateBack(), 500)
     } else {
       name.value = '企业施工计划'
+      declaredTotalDays.value = 1
       stages.value = [newStage(1)]
     }
   } catch (error) {
@@ -66,6 +74,7 @@ function apply(plan: ConstructionPlanTemplate) {
   name.value = plan.name
   description.value = plan.description
   sort.value = plan.sort
+  declaredTotalDays.value = plan.totalDays
   stages.value = plan.stages.map((stage) => ({ ...stage }))
 }
 
@@ -96,6 +105,7 @@ function payload() {
     name: name.value.trim(),
     description: description.value.trim(),
     sort: sort.value,
+    totalDays: Number(declaredTotalDays.value || 0),
     stages: stages.value.map((stage, index) => ({
       code: stage.code || `STAGE_${index + 1}`,
       name: stage.name.trim(),
@@ -140,7 +150,10 @@ async function save(publish = false) {
         <view class="cpe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
       </view>
 
-      <view class="cpe__summary jz-card"><text>标准总工期</text><text>{{ totalDays }} 天</text></view>
+      <view class="cpe__summary jz-card">
+        <view><text>声明标准总工期</text><text class="cpe__summary-hint">阶段工期合计 {{ stageDaysTotal }} 天，仅作相对权重</text></view>
+        <view class="cpe__summary-input"><input v-model="declaredTotalDays" type="number" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text>天</text></view>
+      </view>
       <view class="cpe__section-head"><text>施工阶段</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="addStage">添加阶段</button></view>
       <view v-for="(stage, index) in stages" :key="stage.code" class="cpe__card cpe__stage jz-card">
         <view class="cpe__stage-head"><text>第 {{ index + 1 }} 阶段</text><view class="cpe__remove" @tap="removeStage(index)"><JzIcon name="trash" :size="28" :color="TOKEN_COLOR.danger" /></view></view>
@@ -180,7 +193,10 @@ async function save(publish = false) {
 .cpe__field input { flex: 1; min-width: 0; text-align: right; }
 .cpe__unit { position: absolute; right: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .cpe__summary { display: flex; align-items: center; justify-content: space-between; padding: 22rpx 24rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
-.cpe__summary text:last-child { color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; }
+.cpe__summary > view:first-child { display: flex; flex-direction: column; gap: 4rpx; }
+.cpe__summary-hint { color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cpe__summary-input { display: flex; align-items: center; gap: 8rpx; color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; }
+.cpe__summary-input input { width: 120rpx; color: $jzb-primary-dark; font-size: $jzb-font-lg; font-weight: 750; text-align: right; }
 .cpe__stage-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10rpx; color: $jzb-text-1; font-weight: 700; }
 .cpe__remove { padding: 8rpx; }
 </style>

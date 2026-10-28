@@ -8,7 +8,7 @@ import type { PayrollItem, PayrollSheet } from '@/domains/payroll/model'
 import { PAYROLL_ITEM_STATUS_META, PAYROLL_SHEET_STATUS_META } from '@/domains/payroll/meta'
 import { session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import { confirmAction, confirmDanger, hideLoading, loading as showLoading, toast, toastError } from '@/composables/toast'
+import { confirmAction, confirmDanger, hideLoading, loading as showLoading, promptText, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -27,6 +27,10 @@ const items = ref<PayrollItem[]>([])
 const loading = ref(false)
 const confirming = ref(false)
 const deleting = ref(false)
+const submittingReview = ref(false)
+const returningDraft = ref(false)
+const canSubmitReview = ref(can(session.role, 'edit:payroll'))
+const canReturn = ref(can(session.role, 'confirm:payroll'))
 const canConfirm = ref(can(session.role, 'confirm:payroll'))
 
 /** DEC-046/BR-038：确认前必须逐项校验，阻断时给出可执行的下一步。 */
@@ -105,6 +109,44 @@ function resolveBlocker(action?: BlockerAction) {
   if (action === 'rebuild') return goRebuild()
 }
 
+async function submitReview() {
+  if (!sheet.value || !canSubmitReview.value || submittingReview.value || sheet.value.status !== 'draft') return
+  if (blockers.value.length) { toast(blockers.value[0].text); return }
+  const ok = await confirmAction({
+    title: '提交工资单复核',
+    content: `提交 ${sheet.value.period} 工资单后进入待确认；BOSS 可直接确认或退回草稿。`,
+    confirmText: '提交复核'
+  })
+  if (!ok) return
+  submittingReview.value = true
+  showLoading('提交中')
+  try {
+    sheet.value = await payrollApi.submitSheetReview(sheet.value.id)
+    hideLoading()
+    toast('工资单已提交复核', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '提交复核失败')
+  } finally { submittingReview.value = false }
+}
+
+async function returnToDraft() {
+  if (!sheet.value || !canReturn.value || returningDraft.value || sheet.value.status !== 'pending') return
+  const reason = await promptText('退回工资单', '请输入退回原因', '退回后工资单恢复为草稿，可继续修正。')
+  if (reason === null) return
+  if (!reason.trim()) { toast('退回原因不能为空'); return }
+  returningDraft.value = true
+  showLoading('退回中')
+  try {
+    sheet.value = await payrollApi.returnSheetToDraft(sheet.value.id, reason.trim())
+    hideLoading()
+    toast('工资单已退回草稿', 'success')
+  } catch (error) {
+    hideLoading()
+    toastError(error, '退回工资单失败')
+  } finally { returningDraft.value = false }
+}
+
 async function confirmSheet() {
   if (!sheet.value || !canConfirm.value || confirming.value || !editableStatus.value) return
   if (blockers.value.length) { toast(blockers.value[0].text); return }
@@ -142,6 +184,10 @@ async function confirmSheet() {
         <view><text>扣款合计</text><text>{{ money(sheet.totalDeductionAmount) }}</text></view>
         <view><text>考勤</text><text>{{ sheet.attendanceComplete ? '已完整' : '未完整' }}</text></view>
         <view><text>提成</text><text>{{ sheet.commissionComplete ? '已结清' : '有未结清' }}</text></view>
+      </view>
+      <view v-if="sheet.remark" class="hint-card jz-card return-reason">
+        <JzIcon name="info" :size="28" :color="TOKEN_COLOR.warning" />
+        <text class="hint-card__text">{{ sheet.remark }}</text>
       </view>
       <view v-if="hints.length" class="hint-card jz-card">
         <view v-for="hint in hints" :key="hint.key" class="hint-card__row">
@@ -182,6 +228,8 @@ async function confirmSheet() {
       </view>
       <JzEmpty v-if="!items.length" text="暂无工资项" sub="先生成工资单草稿并补齐考勤、提成和归属" />
       <button v-if="session.role === 'boss' && sheet.status === 'draft'" class="jz-btn jz-btn--danger jz-btn--block" :disabled="deleting" @tap="removeDraft">删除草稿</button>
+      <button v-if="canSubmitReview && sheet.status === 'draft'" class="jz-btn jz-btn--ghost jz-btn--block" :disabled="submittingReview || blockers.length > 0" @tap="submitReview">{{ blockers.length ? '请先处理阻断项' : '提交复核' }}</button>
+      <button v-if="canReturn && sheet.status === 'pending'" class="jz-btn jz-btn--ghost jz-btn--block" :disabled="returningDraft" @tap="returnToDraft">退回草稿</button>
       <button v-if="canConfirm && editableStatus" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirmDisabled" @tap="confirmSheet">{{ confirmDisabled && !confirming ? '请先处理阻断项' : '确认工资单' }}</button>
     </view>
   </view>
@@ -212,6 +260,7 @@ async function confirmSheet() {
 .hint-card__row { display: flex; align-items: flex-start; gap: 12rpx; }
 .hint-card__text { flex: 1; min-width: 0; color: $jzb-text-2; font-size: 22rpx; line-height: 1.5; }
 .hint-card__action { flex: none; color: $jzb-primary; font-size: 22rpx; font-weight: 650; }
+.return-reason { display: flex; align-items: center; gap: 12rpx; border-left: 8rpx solid $jzb-warning; }
 .blocker-card { margin-top: 22rpx; padding: 26rpx 28rpx; border-left: 8rpx solid $jzb-warning; }
 .blocker-card__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .blocker-card__row { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; }

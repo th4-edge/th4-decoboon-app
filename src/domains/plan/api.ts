@@ -39,8 +39,11 @@ function normalizePaymentPlan(raw: RawRecord): PaymentPlanTemplate {
     description: text(raw.description),
     sort: number(raw.sort),
     source: valueOf(raw.source) === 'Company' ? 'company' : 'baseline',
+    sourceBaselineCode: raw.sourceBaselineCode ? String(raw.sourceBaselineCode) : undefined,
+    sourceBaselineVersion: raw.sourceBaselineVersion ? number(raw.sourceBaselineVersion, 1) : undefined,
     status: normalizeStatus(valueOf(raw.status)),
     defaultPlan: raw.defaultPlan === true,
+    currentEnabled: raw.currentEnabled === true,
     nodes: (Array.isArray(raw.nodes) ? raw.nodes : []).map((item) => {
       const node = item as RawRecord
       return {
@@ -67,8 +70,11 @@ function normalizeConstructionPlan(raw: RawRecord): ConstructionPlanTemplate {
     totalDays: number(raw.totalDays),
     sort: number(raw.sort),
     source: valueOf(raw.source) === 'Company' ? 'company' : 'baseline',
+    sourceBaselineCode: raw.sourceBaselineCode ? String(raw.sourceBaselineCode) : undefined,
+    sourceBaselineVersion: raw.sourceBaselineVersion ? number(raw.sourceBaselineVersion, 1) : undefined,
     status: normalizeStatus(valueOf(raw.status)),
     defaultPlan: raw.defaultPlan === true,
+    currentEnabled: raw.currentEnabled === true,
     stages: (Array.isArray(raw.stages) ? raw.stages : []).map((item) => {
       const stage = item as RawRecord
       return {
@@ -118,6 +124,7 @@ export function normalizeContractConstructionPlan(raw: RawRecord | null | undefi
     planId: raw.planId ? String(raw.planId) : undefined,
     sourceCode: text(raw.sourceCode),
     sourceVersion: number(raw.sourceVersion, 1),
+    sourceTotalDays: raw.sourceTotalDays ? number(raw.sourceTotalDays) : undefined,
     name: text(raw.name),
     startDate: raw.startDate ? String(raw.startDate) : undefined,
     endDate: raw.endDate ? String(raw.endDate) : undefined,
@@ -149,6 +156,8 @@ export const planApi = {
     normalizePaymentPlan(await post<RawRecord>('plan/payment-template/save', paymentPayload(input))),
   updatePayment: async (input: PaymentPlanTemplateInput): Promise<PaymentPlanTemplate> =>
     normalizePaymentPlan(await post<RawRecord>('plan/payment-template/update', paymentPayload(input))),
+  buildPayment: async (templateId: string, sourceBaselineCode?: string): Promise<PaymentPlanTemplate> =>
+    normalizePaymentPlan(await post<RawRecord>('plan/payment-template/build', { templateId, sourceBaselineCode })),
   publishPayment: async (templateId: string): Promise<PaymentPlanTemplate> =>
     normalizePaymentPlan(await post<RawRecord>('plan/payment-template/publish', { templateId })),
   disablePayment: async (templateId: string): Promise<PaymentPlanTemplate> =>
@@ -159,6 +168,8 @@ export const planApi = {
     normalizeConstructionPlan(await post<RawRecord>('plan/construction-template/save', constructionPayload(input))),
   updateConstruction: async (input: ConstructionPlanTemplateInput): Promise<ConstructionPlanTemplate> =>
     normalizeConstructionPlan(await post<RawRecord>('plan/construction-template/update', constructionPayload(input))),
+  buildConstruction: async (templateId: string, sourceBaselineCode?: string): Promise<ConstructionPlanTemplate> =>
+    normalizeConstructionPlan(await post<RawRecord>('plan/construction-template/build', { templateId, sourceBaselineCode })),
   publishConstruction: async (templateId: string): Promise<ConstructionPlanTemplate> =>
     normalizeConstructionPlan(await post<RawRecord>('plan/construction-template/publish', { templateId })),
   disableConstruction: async (templateId: string): Promise<ConstructionPlanTemplate> =>
@@ -200,6 +211,7 @@ function constructionPayload(input: ConstructionPlanTemplateInput) {
     name: input.name,
     description: input.description,
     sort: input.sort ?? 0,
+    totalDays: input.totalDays,
     stages: input.stages
   }
 }

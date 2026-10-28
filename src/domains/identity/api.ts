@@ -334,8 +334,12 @@ export const identityApi = {
 
   memberInfo: async (empId: string) => normalizeEmployee(await post<RawRecord>('company/member/info', { empId })),
 
-  updateMember: async (empId: string, role: EmployeeRole) =>
-    normalizeEmployee(await post<RawRecord>('company/member/update', { empId, role: ROLE_API_MAP[role] })),
+  updateMember: async (empId: string, role: EmployeeRole, options: { storeId?: string } = {}) =>
+    normalizeEmployee(await post<RawRecord>('company/member/update', {
+      empId,
+      role: ROLE_API_MAP[role],
+      storeId: options.storeId || undefined
+    })),
 
   memberHandover: async (empId: string) =>
     post<Record<string, any>>('company/member/handover', { empId }),
@@ -389,11 +393,12 @@ export const identityApi = {
     return listOf(result).map(normalizeInvite)
   },
 
-  createInvite: async (inviteName: string, invitePhone: string, role: EmployeeRole, options: { teamId?: string; teamName?: string } = {}) =>
+  createInvite: async (inviteName: string, invitePhone: string, role: EmployeeRole, options: { storeId?: string; teamId?: string; teamName?: string } = {}) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/save', {
       inviteName,
       invitePhone,
       role: ROLE_API_MAP[role],
+      storeId: options.storeId || undefined,
       teamId: options.teamId || undefined,
       teamName: options.teamName || undefined
     })), 

@@ -18,10 +18,12 @@ export type Capability =
   | 'view:material'
   | 'view:supply'
   | 'view:finance'
+  | 'view:expense'
   | 'view:worker'
   | 'edit:worker'
   | 'edit:doc-template'
   | 'edit:finance'
+  | 'edit:expense'
   | 'view:contract'
   | 'view:quote'
   | 'view:cost'
@@ -92,6 +94,9 @@ const INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES: Capability[] = [
   'view:feedback'
 ]
 
+/** 所有在岗内部员工都可提交本人费用；服务端继续按 Owner/Company/Store 强制数据范围。 */
+const INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES: Capability[] = ['view:expense', 'edit:expense']
+
 /**
  * 内部岗位能力矩阵。BOSS 在运行时取全部内部岗位能力的并集，
  * 外部主体专属能力（如业主本人确认）不进入内部矩阵。
@@ -106,6 +111,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
   ],
   storeManager: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    ...INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
     'edit:catalog', 'view:catalog-cost', 'act:catalog-import', 'act:catalog-delete',
@@ -115,7 +121,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:selection-board', 'view:rectify',
     'view:design', 'view:design-review', 'edit:design', 'act:talk',
     'view:owner-preview',
-    'view:myProjects', 'view:customers', 'view:team', 'view:quote', 'view:finance', 'view:supply',
+    'view:myProjects', 'view:customers', 'view:quote', 'view:finance', 'view:supply',
     // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
     'edit:finance',
     'act:receiptReverse',
@@ -123,6 +129,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:schedule', 'view:task', 'edit:quote',
     // 店长可开启施工阶段（2026-09-23 用户裁决），任务推进在任务详情按节点留证完成
     'act:startStage',
+    'act:report',
     'act:quote', 'act:contractPrepare', 'act:contractConfirm', 'act:projectCreate',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
     'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'act:stageNotApplicable',
@@ -132,6 +139,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
   teamLeader: [],
   marketer: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    ...INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES,
     'view:design', 'view:quote',
     'view:myProjects', 'view:customers',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
@@ -139,18 +147,20 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
   ],
   designer: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    ...INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES,
     'view:worker',
     'view:catalog',
     'view:selection-board', 'view:rectify',
     'view:design', 'edit:design', 'act:talk',
     'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
-    'edit:project', 'edit:plan', 'act:report', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
-    'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure',
-    'edit:quote', 'act:quote', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance', 'view:ownPayslip', 'view:commission'
+    'edit:project', 'edit:plan', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
+    'act:recordWechat', 'act:recordVisit', 'act:scheduleMeasure', 'view:measure-workbench',
+    'edit:quote', 'act:quote', 'act:acceptRequest', 'act:inviteCustomer', 'act:issue', 'view:notice', 'view:performance', 'view:ownPayslip', 'view:commission'
   ],
   pm: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    ...INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES,
     'view:worker', 'edit:worker',
     'view:catalog',
     'view:selection-board', 'view:rectify',
@@ -162,6 +172,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
   ],
   finance: [
     ...INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES,
+    ...INTERNAL_EXPENSE_SELF_SERVICE_CAPABILITIES,
     'edit:doc-template',
     'view:worker',
     'view:customers', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',

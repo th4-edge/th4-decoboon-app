@@ -58,7 +58,7 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    items.value = await packApi.templates()
+    items.value = await packApi.availableTemplates()
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '套餐模板加载失败'
   } finally {

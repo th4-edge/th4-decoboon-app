@@ -33,10 +33,11 @@ const block = (role) => {
   const match = permission.match(new RegExp(`${role}: \\[([\\s\\S]*?)\\n  \\]`))
   return match?.[1] || ''
 }
-for (const role of ['storeManager', 'teamLeader', 'designer', 'pm']) {
+for (const role of ['storeManager', 'designer', 'pm']) {
   must(block(role).includes("'view:owner-preview'"), `${role} 必须具备 view:owner-preview`)
 }
-for (const role of ['marketer', 'finance']) {
+// DEC-082：TeamLeader 仅保留历史数据解码，不再获得任何应用能力。
+for (const role of ['teamLeader', 'marketer', 'finance']) {
   must(!block(role).includes("'view:owner-preview'"), `${role} 不得获得 view:owner-preview`)
 }
 

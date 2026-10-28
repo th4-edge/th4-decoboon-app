@@ -18,6 +18,8 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 type DirectionFilter = 'all' | LedgerDirection
 type DateFilter = 'all' | 'today' | 'd3' | 'd7' | 'm1' | 'm3' | 'm6' | 'year'
@@ -189,11 +191,13 @@ async function issueVoucher() {
 function openVouchers() {
   uni.navigateTo({ url: P.financeVouchers })
 }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page" :class="{ 'fin-page--selecting': selecting }">
     <JzPageHeader title="资金台账" subtitle="每一笔收支可追溯至项目与业务来源" :right-text="editable ? '记一笔' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
 
     <view v-if="canIssueVoucher && !selecting" class="fin-voucher-entry jz-card">
       <view class="fin-voucher-entry__head">

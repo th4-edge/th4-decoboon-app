@@ -1,28 +1,89 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { JourneyPriceGroup, JourneyPriceRow } from '@/domains/journey/model'
+import type { QuoteGroup } from '@/domains/trade/model'
 import { OWNER_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 
-const props = withDefaults(defineProps<{
-  groups: JourneyPriceGroup[]
-  showPrice?: boolean
-  unitLabel?: string
-}>(), {
-  showPrice: true,
-  unitLabel: '项'
-})
-
-const totalRows = computed(() => props.groups.reduce((sum, group) => sum + group.rows.length, 0))
-const grandTotal = computed(() => props.groups.reduce((sum, group) => sum + Number(group.total || 0), 0))
-
-/** 只有品牌/规格这类"是什么"的短信息进副行，"怎么做"的施工工艺单独成块。 */
-function metaText(row: JourneyPriceRow) {
-  return [row.brand, row.spec].filter(Boolean).join(' · ')
+interface DisplayRow {
+  key: string
+  name: string
+  category?: string
+  brand?: string
+  spec?: string
+  unit?: string
+  quantity?: string | number
+  amount?: number | null
+  type?: string
+  craft?: string
+  criterion?: string
+  sourceCount?: number
+  sourceRegionNames?: string[]
 }
 
-function qtyText(row: JourneyPriceRow) {
+interface DisplayGroup {
+  key: string
+  name: string
+  amount?: number | null
+  rows: DisplayRow[]
+}
+
+const props = withDefaults(defineProps<{
+  groups?: JourneyPriceGroup[]
+  quoteGroups?: QuoteGroup[]
+  showPrice?: boolean
+  unitLabel?: string
+  totalAmount?: number | null
+  unavailable?: boolean
+}>(), {
+  groups: () => [],
+  quoteGroups: () => [],
+  showPrice: true,
+  unitLabel: '项',
+  unavailable: false
+})
+
+/** 仅做展示模型适配；区域/类型分组和金额均来自服务端。 */
+const displayGroups = computed<DisplayGroup[]>(() => {
+  if (props.quoteGroups.length) {
+    return props.quoteGroups.map((group) => ({
+      key: group.key,
+      name: group.name,
+      amount: group.amount,
+      rows: group.items.map((item) => ({
+        key: item.typeRowId || item.id,
+        name: item.name,
+        category: item.category,
+        brand: item.brand,
+        spec: item.spec,
+        unit: item.unit,
+        quantity: item.quantity,
+        amount: item.amount,
+        type: group.type,
+        craft: item.craft,
+        sourceCount: item.sourceCount,
+        sourceRegionNames: item.sourceRegionNames
+      }))
+    }))
+  }
+  return props.groups.map((group) => ({
+    key: group.key,
+    name: group.name,
+    amount: group.total == null || group.total === '' ? null : Number(group.total),
+    rows: group.rows.map((row) => ({ ...row, amount: row.amount == null || row.amount === '' ? null : Number(row.amount) }))
+  }))
+})
+
+const totalRows = computed(() => displayGroups.value.reduce((sum, group) => sum + group.rows.length, 0))
+
+/** 只有品牌/规格这类"是什么"的短信息进副行，"怎么做"的施工工艺单独成块。 */
+function metaText(row: DisplayRow) {
+  const source = row.sourceRegionNames?.length ? `来源：${row.sourceRegionNames.join('、')}` : ''
+  return [row.brand, row.spec, source].filter(Boolean).join(' · ')
+}
+
+function qtyText(row: DisplayRow) {
   if (row.quantity == null || row.quantity === '') return '数量待确认'
   if (Number(row.quantity) === 0) return '赠送'
   return `${row.quantity}${row.unit || ''}`
@@ -54,17 +115,18 @@ function jumpTo(index: number) {
 </script>
 
 <template>
-  <view v-if="!groups.length" class="opgroup__empty">清单待完善</view>
+  <view v-if="unavailable" class="opgroup__empty">报价分组暂不可确认，请稍后刷新重试</view>
+  <view v-else-if="!displayGroups.length" class="opgroup__empty">暂无报价清单</view>
   <view v-else class="opgroup">
     <!-- 区域索引：全部区域平铺换行，不再用横向滚动条把后面的区域藏起来 -->
     <view class="opgroup__index">
       <view class="opgroup__index-head">
-        <text class="opgroup__index-title">共 {{ groups.length }} 个区域 · {{ totalRows }} {{ unitLabel }}</text>
-        <JzMoney v-if="showPrice" class="opgroup__index-total" :value="grandTotal" />
+        <text class="opgroup__index-title">共 {{ displayGroups.length }} 个分组 · {{ totalRows }} {{ unitLabel }}</text>
+        <JzMoney v-if="showPrice && totalAmount != null" class="opgroup__index-total" :value="totalAmount" />
       </view>
       <view class="opgroup__chips">
         <view
-          v-for="(group, index) in groups"
+          v-for="(group, index) in displayGroups"
           :key="group.key"
           class="opgroup__chip"
           @tap="jumpTo(index)"
@@ -78,7 +140,7 @@ function jumpTo(index: number) {
 
     <!-- 每个区域一张卡：区域永远全部可见，明细默认收缩，点标题展开 -->
     <view
-      v-for="(group, index) in groups"
+      v-for="(group, index) in displayGroups"
       :id="anchorId(index)"
       :key="group.key"
       class="opgroup__group jz-card"
@@ -94,7 +156,7 @@ function jumpTo(index: number) {
           <text class="opgroup__region">{{ group.name }}</text>
           <text class="opgroup__sum">{{ group.rows.length }} {{ unitLabel }} · 点击{{ isExpanded(index) ? '收起' : '展开' }}</text>
         </view>
-        <JzMoney v-if="showPrice && group.total" class="opgroup__subtotal" :value="Number(group.total || 0)" />
+        <text v-if="showPrice" class="opgroup__subtotal">{{ group.amount == null ? '暂不可确认' : `¥${Number(group.amount).toFixed(2)}` }}</text>
         <JzIcon :name="isExpanded(index) ? 'chevron-down' : 'chevron-right'" :size="26" :color="OWNER_COLOR.muted2" />
       </view>
 
@@ -102,12 +164,13 @@ function jumpTo(index: number) {
         <view v-for="row in group.rows" :key="row.key" class="opgroup__row">
           <view class="opgroup__row-title">
             <text class="opgroup__row-name">{{ row.name }}</text>
-            <JzMoney v-if="showPrice" class="opgroup__row-amount" :value="Number(row.amount || 0)" />
+            <text v-if="showPrice" class="opgroup__row-amount">{{ row.amount == null ? '暂不可确认' : `¥${Number(row.amount).toFixed(2)}` }}</text>
           </view>
 
-          <view v-if="row.type || row.category" class="opgroup__row-tags">
+          <view v-if="row.type || row.category || row.sourceCount" class="opgroup__row-tags">
             <text v-if="row.type" class="opgroup__tag">{{ row.type }}</text>
             <text v-if="row.category" class="opgroup__tag opgroup__tag--soft">{{ row.category }}</text>
+            <text v-if="(row.sourceCount || 0) > 1" class="opgroup__tag opgroup__tag--soft">合并 {{ row.sourceCount }} 行</text>
           </view>
 
           <!-- 施工工艺：业主最关心的"这活儿到底怎么做"，用品牌色块单独强调 -->
@@ -130,9 +193,9 @@ function jumpTo(index: number) {
       </view>
     </view>
 
-    <view v-if="showPrice && groups.length > 1" class="opgroup__total">
-      <text class="opgroup__total-label">全部区域合计</text>
-      <JzMoney class="opgroup__total-value" :value="grandTotal" />
+    <view v-if="showPrice && totalAmount != null" class="opgroup__total">
+      <text class="opgroup__total-label">报价合计</text>
+      <JzMoney class="opgroup__total-value" :value="totalAmount" />
     </view>
   </view>
 </template>

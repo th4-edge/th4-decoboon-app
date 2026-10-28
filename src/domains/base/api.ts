@@ -49,7 +49,7 @@ export const baseApi = {
 
   /** 礼包模板直接复用 pack/template/page。 */
   giftPacks: async (): Promise<GiftPack[]> => {
-    const templates = await packApi.templates()
+    const templates = await packApi.availableTemplates()
     return templates.map((item) => ({
       id: item.id,
       name: item.name,

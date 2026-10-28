@@ -151,6 +151,7 @@ const groups = computed(() => {
   if (employee && can(role.value, 'view:selection-board')) business.push(cell('package', '选材工作台', '在建项目选材进度、卡点与下一步', () => uni.navigateTo({ url: P.selectionBoard })))
   if (employee && can(role.value, 'view:rectify')) business.push(cell('alert-circle', '整改跟进', '被驳回、待整改复验的阶段', () => uni.navigateTo({ url: P.rectifyBoard })))
   if (employee && can(role.value, 'view:feedback')) business.push(cell('alert-circle', '客户意见投诉', '受理、回复和关闭客户事项', () => uni.navigateTo({ url: P.feedbackList })))
+  if (employee && can(role.value, 'view:expense')) business.push(cell('file-text', '费用与报销', '提交本人费用、查看审批进度与退回意见', () => uni.navigateTo({ url: P.financeExpenses })))
   if (employee && can(role.value, 'view:finance')) business.push(cell('file-text', '收付凭证', '按企业版式打印收款单与付款单', () => uni.navigateTo({ url: P.financeVouchers })))
   if (role.value === 'marketer') business.push(cell('chart', '我的业绩', '客户转化与项目经营', () => uni.navigateTo({ url: P.performance })))
   if (role.value === 'teamLeader') business.push(cell('chart', '团队业绩', '团队客户、报价、项目与风险', () => uni.navigateTo({ url: P.performance })))

@@ -256,7 +256,7 @@ defineExpose({
             </view>
             <view class="cp__formula"><text>{{ modeLabel(item.pricingMode) }}</text><text class="jz-clamp-2">{{ item.formula }}</text></view>
             <view v-if="item.craft" class="cp__craft jz-clamp-2">{{ item.craft }}</view>
-            <view class="cp__item-foot"><text>{{ item.category }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage && !readonly && manageActions" class="cp__item-more" @tap.stop="openManageActions(item)"><text>更多</text></view><text v-else-if="manage && readonly" class="cp__readonly">只读</text><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else-if="!manage" class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
+            <view class="cp__item-foot"><text>{{ item.category }}</text><text class="cp__revision">R{{ item.revision }}</text><text v-if="manage && canViewCost" class="cp__cost">{{ costText(item) }}</text><view v-if="manage && !readonly && manageActions" class="cp__item-more" @tap.stop="openManageActions(item)"><text>更多</text></view><text v-else-if="manage && readonly" class="cp__readonly">只读</text><view v-else-if="multiple" class="jz-btn jz-btn--ghost jz-btn--sm">{{ selectedIds.has(item.id) ? '已选择' : '加入选择' }}</view><view v-else-if="!manage" class="jz-btn jz-btn--primary jz-btn--sm">选择该项目</view></view>
           </view>
           <view v-if="loading" class="cp__loading">正在加载…</view>
           <view v-else-if="hasMore" class="cp__more" @tap="loadMore">加载更多</view>
@@ -328,6 +328,7 @@ defineExpose({
 .cp__formula text:first-child { flex-shrink: 0; color: $jzb-primary-dark; font-weight: 650; }
 .cp__craft { margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .cp__item-foot { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cp__revision { color: $jzb-text-4; font-variant-numeric: tabular-nums; }
 .cp__cost { margin-left: auto; color: $jzb-primary-dark; font-weight: 650; white-space: nowrap; }
 .cp__empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40rpx 32rpx; }
 .cp__empty-action { margin-top: 24rpx; display: inline-flex; align-items: center; gap: 6rpx; }

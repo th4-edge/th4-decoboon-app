@@ -12,6 +12,8 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.adjustmentPage({ current, size }).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
@@ -21,11 +23,13 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="pay-page">
     <JzPageHeader title="提成负向调整" subtitle="退款、离职、跨期调整进入下期工资抵扣" right-icon="refresh" @right="refresh" />
+    <FinanceStoreScope />
     <view class="pay-body">
       <PageState v-if="loadError && !items.length" state="error" title="调整记录暂不可确认" :subtitle="loadError" @retry="refresh" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />

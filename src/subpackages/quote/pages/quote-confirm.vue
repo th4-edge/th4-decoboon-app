@@ -81,7 +81,7 @@ async function load() {
     const [scheme, info, packageTemplates] = await Promise.all([
       designApi.scheme(designId.value),
       crmApi.info(customerId.value),
-      packApi.templates()
+      packApi.availableTemplates()
     ])
     design.value = scheme
     customer.value = info

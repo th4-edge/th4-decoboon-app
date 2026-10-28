@@ -11,6 +11,8 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 interface LedgerRow {
   partner?: { id?: string; name?: string; settlementMode?: string; settlementDays?: number; cutoffDay?: number }
@@ -73,10 +75,12 @@ function openPayables(row: LedgerRow) {
   const partnerId = row.partner?.id
   uni.navigateTo({ url: partnerId ? `${P.financePayables}?partnerId=${partnerId}` : P.financePayables })
 }
+useFinanceStoreScope(() => load())
 </script>
 
 <template>
   <view class="fp">
+    <FinanceStoreScope />
     <view class="fp__head jz-card">
       <view class="fp__head-top">
         <view class="fp__head-copy">

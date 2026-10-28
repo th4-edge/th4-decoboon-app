@@ -20,6 +20,8 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const editable = ref(can(session.role, 'edit:payroll'))
 const selectedPeriod = ref(localMonth())
@@ -82,11 +84,13 @@ async function removeDraft(item: PayrollSheet) {
     deletingId.value = ''
   }
 }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="pay-page">
     <JzPageHeader title="工资单" subtitle="可补发历史月份；确认后生成实发工资应付" :right-text="editable ? '生成' : ''" :right-icon="editable ? 'plus' : undefined" @right="buildSelected" />
+    <FinanceStoreScope />
     <view class="pay-body">
       <view class="sheet-period jz-card">
         <view class="sheet-period__copy">

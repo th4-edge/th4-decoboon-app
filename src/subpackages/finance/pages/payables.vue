@@ -17,6 +17,8 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 type Filter = 'all' | PayableType
 const projectId = ref('')
@@ -69,11 +71,13 @@ function pay(item: Payable) { if (editable.value && !item.estimated && item.outs
 function progress(item: Payable) { return item.estimated ? 0 : Math.min(100, Math.round(item.paidAmount / Math.max(item.amount, 1) * 100)) }
 function amountText(item: Payable) { return item.estimated ? '待定价' : money(item.amount) }
 function outstandingText(item: Payable) { return item.estimated ? '待结算' : money(item.outstandingAmount) }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader :title="title" subtitle="材料款、项目款、工资与费用统一付款计划" :right-text="editable ? '新增应付' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
 
     <view class="fin-hero">
       <text class="fin-hero__label">{{ title }}总额</text>

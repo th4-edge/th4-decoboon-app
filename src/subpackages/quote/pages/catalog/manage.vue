@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import type { CatalogImportBatch, CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
+import type { CatalogImportBatch, CatalogItem, CatalogPricingMode, CatalogRevision, CatalogType } from '@/domains/catalog/model'
 import { catalogApi } from '@/domains/catalog/api'
 import { chooseImages as selectImages } from '@/domains/file/choose-media'
 import { fileApi } from '@/domains/file/api'
@@ -28,6 +28,11 @@ const recentBatches = ref<CatalogImportBatch[]>([])
 const templateDownloading = ref(false)
 const editorOpen = ref(false)
 const editingId = ref('')
+const editingRevision = ref(0)
+const historyOpen = ref(false)
+const historyLoading = ref(false)
+const historyError = ref('')
+const historyRows = ref<CatalogRevision[]>([])
 const type = ref<CatalogType>('construction')
 const code = ref('')
 const category = ref('')
@@ -60,6 +65,10 @@ const brandSuggestions = ref<string[]>([])
 const brandSuggestionsLoading = ref(false)
 const brandFocused = ref(false)
 let brandBlurTimer: ReturnType<typeof setTimeout> | undefined
+
+const REVISION_LABELS: Record<string, string> = {
+  Create: '新增', Update: '更新', Disable: '停用', Enable: '启用', Delete: '删除'
+}
 
 const typeOptions: { value: CatalogType; label: string }[] = [
   { value: 'construction', label: '施工' }, { value: 'material', label: '主材' },
@@ -235,6 +244,7 @@ function closePicker() {
 function create(value: CatalogType) {
   if (!canEdit.value) return
   editingId.value = ''
+  editingRevision.value = 0
   type.value = value
   code.value = ''
   category.value = ''
@@ -265,8 +275,14 @@ function create(value: CatalogType) {
 }
 
 function edit(item: CatalogItem) {
-  if (!canEdit.value) return
+  if (!canEdit.value) {
+    editingId.value = item.id
+    editingRevision.value = item.revision
+    void openHistory(item)
+    return
+  }
   editingId.value = item.id
+  editingRevision.value = item.revision
   type.value = item.type
   code.value = item.code || ''
   category.value = item.category
@@ -349,10 +365,11 @@ async function save() {
       countertop: countertop.value.trim() || undefined,
       active: active.value,
       sort: 0,
+      revision: editingRevision.value || undefined,
       images:uploadedImages
     }
-    if (editingId.value) await catalogApi.update(input)
-    else await catalogApi.save(input)
+    const saved = editingId.value ? await catalogApi.update(input) : await catalogApi.save(input)
+    editingRevision.value = saved.revision
     editorOpen.value = false
     pickerRef.value?.refresh()
     toast('报价项目已保存', 'success')
@@ -381,7 +398,7 @@ async function confirmDelete(item: CatalogItem) {
   if (!confirmed) return
   loading('删除中…')
   try {
-    await catalogApi.remove(item.id)
+    await catalogApi.remove(item)
     hideLoading()
     toast('项目已删除', 'success')
     pickerRef.value?.refresh()
@@ -390,6 +407,37 @@ async function confirmDelete(item: CatalogItem) {
     const message = error instanceof Error && error.message ? error.message : '删除失败，请稍后重试'
     toast(message)
   }
+}
+
+async function openHistory(item?: CatalogItem) {
+  const itemId = item?.id || editingId.value
+  if (!itemId) return
+  historyOpen.value = true
+  historyLoading.value = true
+  historyError.value = ''
+  historyRows.value = []
+  try {
+    const result = await catalogApi.revisionPage(itemId, 1, 50)
+    historyRows.value = result.list
+  } catch (error) {
+    historyError.value = error instanceof Error ? error.message : '变更历史暂不可确认，请稍后重试'
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+function revisionSummary(row: CatalogRevision): string {
+  if (!row.snapshotJson) return '当前角色可查看变更时间与操作人'
+  try {
+    const snapshot = JSON.parse(row.snapshotJson) as Record<string, unknown>
+    return [snapshot.code, snapshot.name, snapshot.category].filter(Boolean).join(' · ') || '变更内容已留存'
+  } catch {
+    return '变更内容已留存'
+  }
+}
+
+function revisionTime(value?: string): string {
+  return value ? value.replace('T', ' ').slice(0, 16) : '时间不可确认'
 }
 
 async function doToggle(item: CatalogItem, active: boolean) {
@@ -443,9 +491,12 @@ async function doToggle(item: CatalogItem, active: boolean) {
       </template>
     </CatalogPicker>
 
-    <JzSheet :visible="editorOpen" :title="editingId ? '编辑库内项目' : '新增库内项目'" max-height="92vh" @close="editorOpen = false">
+    <JzSheet :visible="editorOpen" :title="editingId ? `编辑库内项目 · R${editingRevision}` : '新增库内项目'" max-height="92vh" @close="editorOpen = false">
       <view class="cm__editor">
-        <text class="cm__sub">销售价和标准成本独立维护，合同签约时按当时成本冻结</text>
+        <view class="cm__revision-row">
+          <text class="cm__sub">{{ editingId ? `当前修订 R${editingRevision} · 保存后自动留下变更记录` : '销售价和标准成本独立维护，合同签约时按当时成本冻结' }}</text>
+          <button v-if="editingId" class="jz-btn jz-btn--ghost jz-btn--sm" :disabled="saving" @tap="openHistory()">变更历史</button>
+        </view>
         <scroll-view scroll-y class="cm__body">
           <text class="cm__label">项目类型</text>
           <view class="jz-chip-row"><view v-for="item in typeOptions" :key="item.value" class="jz-chip" :class="{ 'jz-chip--active': type === item.value }" @tap="type = item.value">{{ item.label }}</view></view>
@@ -547,6 +598,28 @@ async function doToggle(item: CatalogItem, active: boolean) {
         <view class="catalog-editor__actions"><button class="jz-btn jz-btn--neutral" :disabled="saving" @tap="editorOpen = false">取消</button><button class="jz-btn jz-btn--primary jz-grow" :loading="saving" :disabled="saving" @tap="save">保存报价项目</button></view>
       </view>
     </JzSheet>
+
+    <JzSheet :visible="historyOpen" title="报价项目变更历史" max-height="82vh" @close="historyOpen = false">
+      <view class="cm__history">
+        <view v-if="historyLoading" class="cm__history-state">正在读取变更记录…</view>
+        <view v-else-if="historyError" class="cm__history-state cm__history-state--error">
+          <text>{{ historyError }}</text>
+          <button class="jz-btn jz-btn--ghost jz-btn--sm" @tap="openHistory()">重新加载</button>
+        </view>
+        <view v-else-if="!historyRows.length" class="cm__history-state">当前项目暂无修订记录</view>
+        <scroll-view v-else scroll-y class="cm__history-list">
+          <view v-for="row in historyRows" :key="row.id" class="cm__history-row">
+            <view class="cm__history-head">
+              <text class="cm__history-revision">R{{ row.revision }}</text>
+              <text class="cm__history-type">{{ REVISION_LABELS[row.changeType] || row.changeType }}</text>
+              <text class="cm__history-time">{{ revisionTime(row.changedAt) }}</text>
+            </view>
+            <text class="cm__history-summary">{{ revisionSummary(row) }}</text>
+            <text class="cm__history-operator">操作人：{{ row.changedBy?.name || '历史操作人不可确认' }}</text>
+          </view>
+        </scroll-view>
+      </view>
+    </JzSheet>
   </view>
     <JzConfirmDialog />
 </template>
@@ -563,6 +636,19 @@ async function doToggle(item: CatalogItem, active: boolean) {
 
 .cm__editor { display: flex; flex-direction: column; height: calc(92vh - 32rpx); }
 .cm__sub { display: block; margin-bottom: 14rpx; color: $jzb-text-3; font-size: $jzb-font-sm; line-height: 1.5; }
+.cm__revision-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
+.cm__revision-row .cm__sub { flex: 1; }
+.cm__history { height: 62vh; display: flex; flex-direction: column; }
+.cm__history-state { display: flex; flex-direction: column; align-items: center; gap: 18rpx; padding: 64rpx 24rpx; color: $jzb-text-3; font-size: $jzb-font-sm; text-align: center; }
+.cm__history-state--error { color: $jzb-danger; }
+.cm__history-list { flex: 1; min-height: 0; }
+.cm__history-row { display: flex; flex-direction: column; gap: 8rpx; padding: 22rpx 0; border-bottom: 1rpx solid $jzb-border-light; }
+.cm__history-head { display: flex; align-items: center; gap: 12rpx; }
+.cm__history-revision { color: $jzb-text-1; font-size: 30rpx; font-weight: 700; }
+.cm__history-type { padding: 2rpx 10rpx; border-radius: 999rpx; background: $jzb-bg-hover; color: $jzb-primary; font-size: $jzb-font-xs; }
+.cm__history-time { margin-left: auto; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cm__history-summary { color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.5; }
+.cm__history-operator { color: $jzb-text-3; font-size: $jzb-font-xs; }
 /* scroll-view 在 flex 容器中必须显式高度约束（flex:1 + height:0 + min-height:0）才能滚动，
    否则内容溢出却无法滚动，导致下方字段与保存按钮不可达 */
 .cm__body { flex: 1; min-height: 0; box-sizing: border-box; padding: 6rpx 0 24rpx; }

@@ -3,7 +3,7 @@ import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { toast } from '@/composables/toast'
 
-/** TeamLeader 页面只有在绑定团队后才能形成有效数据范围。 */
+/** TeamLeader 页面只有在绑定团队后才能形成有效数据范围；Team 冻结后仍保留历史兼容。 */
 export function useTeamContext() {
   const missingTeam = computed(() => session.role === 'teamLeader' && !session.emp?.team?.id)
 

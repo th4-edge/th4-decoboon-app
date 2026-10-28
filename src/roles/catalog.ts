@@ -114,10 +114,12 @@ export const ROLE_ACTIONS: Record<RoleKey, RoleAction[]> = {
     // 且“合同签约”直接进空表单。这里按 App 设计师高频动作排序：先阶段待办，再对象和工具。
     // 2026-10-08：按 DEC-041 / BR-035，设计师是增减项主责发起人，新增“增减项”入口
     // （落到按“我负责的项目”过滤的项目选择器，见 ANS-BIZ-20261008-005）。
+    { key: 'followup-workbench', label: '待我跟进', icon: 'clock', path: P.designerFollowupWorkbench, capability: 'act:followCustomer' },
+    { key: 'measure-workbench', label: '待我量房', icon: 'ruler', path: P.designerMeasureWorkbench, capability: 'view:measure-workbench' },
     { key: 'design-workbench', label: '待我设计', icon: 'edit', path: P.designWorkbench, capability: 'edit:design' },
-    { key: 'quote-workbench', label: '待我报价', icon: 'file-text', path: P.quoteWorkbench, capability: 'view:quote' },
+    { key: 'quote-workbench', label: '待我谈单', icon: 'file-text', path: P.quoteWorkbench, capability: 'view:quote' },
     // FIX-038：设计师负责发起/登记合同，最终确认签约和生效立项由企业负责人或店长完成。
-    { key: 'sign-workbench', label: '合同签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractPrepare' },
+    { key: 'sign-workbench', label: '待我签约', icon: 'shield-check', path: P.signWorkbench, capability: 'act:contractPrepare' },
     { key: 'contract-change', label: '增减项', icon: 'file-text', path: P.projectChangePicker },
     { key: 'requirements', label: '客户诉求', icon: 'message', path: P.designRequirements, capability: 'edit:design' },
     { key: 'customers', label: '我的客户', icon: 'user', path: P.customerList, capability: 'view:customers' },

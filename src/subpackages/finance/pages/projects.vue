@@ -18,6 +18,8 @@ import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { toastError } from '@/composables/toast'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const filter = ref<'all' | 'risk' | 'settle'>('all')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -51,11 +53,13 @@ async function loadTotals() {
 }
 
 function open(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId=${id}` }) }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader title="项目账本" subtitle="按项目核算合同、回款、成本与利润" right-icon="refresh" @right="refreshAll" />
+    <FinanceStoreScope />
 
     <view class="fin-hero">
       <text class="fin-hero__label">在建项目合同规模</text>

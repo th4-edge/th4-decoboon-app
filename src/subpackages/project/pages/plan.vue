@@ -7,7 +7,7 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
 import type { Project, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
-import { STAGE_STATUS_META } from '@/domains/project/meta'
+import { STAGE_STATUS_META, stageAcceptanceModeLabel } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
@@ -184,8 +184,8 @@ function openCarryoverPlan() {
             <view class="plan__idx" :style="{ backgroundColor: STAGE_STATUS_META[s.status].color }">{{ s.sort }}</view>
             <view>
               <text class="plan__name">{{ s.name }}</text>
-              <text v-if="s.status !== 'notApplicable'" class="plan__date">计划 {{ s.plannedStart?.slice(5) }} ~ {{ s.plannedEnd?.slice(5) }}</text>
-              <text v-else class="plan__date">本项不涉及 · 不占项目进度</text>
+              <text v-if="s.status !== 'notApplicable'" class="plan__date">计划 {{ s.plannedStart?.slice(5) }} ~ {{ s.plannedEnd?.slice(5) }} · {{ stageAcceptanceModeLabel(s.acceptanceMode) }}</text>
+              <text v-else class="plan__date">本项不涉及 · 不占项目进度 · 验收方式 {{ stageAcceptanceModeLabel(s.acceptanceMode) }}</text>
             </view>
           </view>
           <JzTag :text="STAGE_STATUS_META[s.status].label" :color="STAGE_STATUS_META[s.status].color" />

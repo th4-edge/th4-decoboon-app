@@ -82,6 +82,12 @@ function normalizeLine(raw: RawRecord): PackageLine {
 function normalizeTemplate(raw: RawRecord): PackageTemplate {
   return {
     id: String(raw.id ?? raw.templateId ?? ''),
+    code: raw.code ?? '',
+    version: Number(raw.version ?? 1),
+    status: raw.status ?? 'Draft',
+    currentPublished: raw.currentPublished === true,
+    publishedAt: dateTimeValue(raw.publishedAt),
+    snapshotHash: raw.snapshotHash ?? undefined,
     name: raw.name ?? '',
     area: Number(raw.area ?? 0),
     price: Number(raw.price ?? 0),
@@ -101,8 +107,19 @@ export const packApi = {
     size: 100
   })).map(normalizeTemplate),
 
+  availableTemplates: async () => listOf(await post<RawRecord[]>('pack/template/list', {})).map(normalizeTemplate),
+
   template: (templateId: string) =>
     post<RawRecord>('pack/template/info', { templateId }).then(normalizeTemplate),
+
+  publishTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/publish', { templateId }).then(normalizeTemplate),
+
+  disableTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/disable', { templateId }).then(normalizeTemplate),
+
+  buildNextVersion: (templateId: string) =>
+    post<RawRecord>('pack/template/build', { templateId }).then(normalizeTemplate),
 
   saveTemplate: (input: PackageTemplateInput) =>
     post<RawRecord>(input.templateId ? 'pack/template/update' : 'pack/template/save', {

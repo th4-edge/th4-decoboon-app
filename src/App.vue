@@ -2,6 +2,7 @@
 import { onLaunch, onShow } from '@dcloudio/uni-app'
 import { initSession, loginAsCustomer, loginAsEmployee, loginAsUser, logout, session } from '@/domains/identity/session'
 import { identityApi } from '@/domains/identity/api'
+import { loadStoreScope } from '@/domains/identity/storeScope'
 import { P } from '@/config'
 import { canVisit, hasRouteRule } from '@/roles/guard'
 import { ProviderRequestError } from '@/core/http'
@@ -16,7 +17,10 @@ onShow(() => {
     rejectFrozenRole('团队负责人角色已冻结，请联系企业负责人改为其他岗位')
     return
   }
-  refreshIdentity().finally(scheduleRouteGuard)
+  refreshIdentity().finally(() => {
+    if (session.token && session.role) void loadStoreScope()
+    scheduleRouteGuard()
+  })
 })
 
 /**
@@ -59,13 +63,15 @@ function rejectFrozenRole(message: string): void {
   if (frozenRoleRedirecting) return
   frozenRoleRedirecting = true
   logout()
-  uni.showModal({
-    title: '账号状态已变更',
-    content: message || '团队负责人角色已冻结，请联系企业负责人改为其他岗位',
-    showCancel: false,
+  uni.reLaunch({
+    url: P.login,
     complete: () => {
       frozenRoleRedirecting = false
-      uni.reLaunch({ url: P.login })
+      uni.showToast({
+        title: message || '团队负责人角色已冻结，请联系企业负责人改为其他岗位',
+        icon: 'none',
+        duration: 3000
+      })
     }
   })
 }

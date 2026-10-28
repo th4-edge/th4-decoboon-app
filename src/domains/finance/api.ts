@@ -6,6 +6,7 @@ import { normalizeProject } from '@/domains/project/api'
 import type { Project } from '@/domains/project/model'
 import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
+import { storeScopeRequestId } from '@/domains/identity/storeScope'
 import { normalizeWorker } from '@/domains/labor/api'
 import type {
   FinanceProjectReport, FinanceSummary, FundAccount, Ledger, LedgerDirection,
@@ -313,7 +314,7 @@ function normalizeVoucher(raw: Raw) {
 export const financeApi = {
   /** 供应商应付台账：按供应商聚合待付、逾期与最近到期日。 */
   partnerLedger: async (params: { partnerId?: string; overdueOnly?: boolean } = {}): Promise<PartnerLedgerReport> => {
-    const raw = await post<Raw>('finance/partner-ledger/report', params)
+    const raw = await post<Raw>('finance/partner-ledger/report', { ...params, storeId: storeScopeRequestId.value })
     return {
       rows: Array.isArray(raw.rows) ? raw.rows : [],
       partnerCount: num(raw.partnerCount),
@@ -324,15 +325,15 @@ export const financeApi = {
     }
   },
 
-  summary: async () => normalizeSummary(await post<Raw>('finance/summary/report', {})),
+  summary: async () => normalizeSummary(await post<Raw>('finance/summary/report', { storeId: storeScopeRequestId.value })),
   projectPage: async (params: { projectId?: string; status?: string; keyword?: string; current?: number; size?: number } = {}) =>
-    paged(await post<PageResult<Raw> | Raw[]>('finance/project/page', { current: 1, size: 100, ...params }), normalizeProjectReport),
+    paged(await post<PageResult<Raw> | Raw[]>('finance/project/page', { current: 1, size: 100, ...params, storeId: storeScopeRequestId.value }), normalizeProjectReport),
   projectReport: async (projectId: string) => normalizeProjectReport(await post<Raw>('finance/project/report', { projectId })),
   receivables: async (params: { projectId?: string; type?: ReceivableType; status?: ReceivableStatus; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/receivable/page', {
       current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId,
       type: params.type ? RECEIVABLE_TYPE_API[params.type] : undefined, status: params.status,
-      keyword: params.keyword
+      keyword: params.keyword, storeId: storeScopeRequestId.value
     }), normalizeReceivable),
   saveReceivable: async (input: { projectId: string; name: string; stageName?: string; type: ReceivableType; amount: number; dueDate: string; invoiceRequired?: boolean; invoiceNo?: string; remark?: string }) =>
     normalizeReceivable(await post<Raw>('finance/receivable/save', { ...input, type: RECEIVABLE_TYPE_API[input.type] })),
@@ -343,7 +344,7 @@ export const financeApi = {
       dueDate: input.dueDate, invoiceRequired: input.invoiceRequired, invoiceNo: input.invoiceNo, remark: input.remark
     })),
   receipts: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
-    paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceipt),
+    paged(await post<PageResult<Raw> | Raw[]>('finance/receipt/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, storeId: storeScopeRequestId.value }), normalizeReceipt),
   receiptInfo: async (receiptId: string) =>
     normalizeReceipt(await post<Raw>('finance/receipt/info', { receiptId })),
   reverseReceipt: async (input: { receiptId: string; reasonType: ReceiptReversalReason; reason: string; reversalAt: string; idempotencyKey: string }) =>
@@ -351,21 +352,21 @@ export const financeApi = {
   createReceipt: async (input: { projectId: string; receivableId: string; amount: number; account: FundAccount; receivedAt: string; payerName?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizeReceipt(await post<Raw>('finance/receipt/save', { ...input, account: ACCOUNT_API[input.account] })),
   refunds: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
-    paged(await post<PageResult<Raw> | Raw[]>('finance/refund/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizeReceiptRefund),
+    paged(await post<PageResult<Raw> | Raw[]>('finance/refund/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, storeId: storeScopeRequestId.value }), normalizeReceiptRefund),
   createRefund: async (input: { receiptId: string; amount: number; account: FundAccount; refundAt: string; reason?: string; idempotencyKey: string }) =>
     normalizeReceiptRefund(await post<Raw>('finance/refund/save', { ...input, account: ACCOUNT_API[input.account] })),
   payables: async (params: { projectId?: string; type?: PayableType; status?: PayableStatus; urgent?: boolean; keyword?: string; current?: number; size?: number } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('finance/payable/page', {
       current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, urgent: params.urgent,
       type: params.type ? PAYABLE_TYPE_API[params.type] : undefined, status: params.status,
-      keyword: params.keyword
+      keyword: params.keyword, storeId: storeScopeRequestId.value
     }), normalizePayable),
   savePayable: async (input: { projectId?: string; materialPlanId?: string; name: string; type: PayableType; payeeEmployeeId?: string; payeeName?: string; period?: string; amount: number; dueDate: string; urgent?: boolean; sourceNo?: string; remark?: string }) =>
     normalizePayable(await post<Raw>('finance/payable/save', { ...input, type: PAYABLE_TYPE_API[input.type] })),
   updatePayable: async (input: { id: string; name?: string; amount?: number; dueDate?: string; urgent?: boolean; period?: string; remark?: string }) =>
     normalizePayable(await post<Raw>('finance/payable/update', { payableId: input.id, name: input.name, amount: input.amount, dueDate: input.dueDate, urgent: input.urgent, period: input.period, remark: input.remark })),
   payments: async (params: { projectId?: string; current?: number; size?: number } = {}) =>
-    paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId }), normalizePayment),
+    paged(await post<PageResult<Raw> | Raw[]>('finance/payment/page', { current: params.current ?? 1, size: params.size ?? 200, projectId: params.projectId, storeId: storeScopeRequestId.value }), normalizePayment),
   createPayment: async (input: { payableId: string; amount: number; account: FundAccount; paidAt: string; payeeName?: string; workerId?: string; transactionNo?: string; voucherUrl?: string; remark?: string; idempotencyKey: string }) =>
     normalizePayment(await post<Raw>('finance/payment/save', { ...input, account: ACCOUNT_API[input.account] })),
   /** 工资付款补录工人：后端只更新 Payment.worker，并按方案 A 同号重渲染已有单张工资凭证。 */
@@ -405,7 +406,7 @@ export const financeApi = {
     }
   },
   voucherReport: async (params: { projectId?: string; status?: string; keyword?: string; type?: string; startDate?: string; endDate?: string } = {}): Promise<VoucherReport> => {
-    const raw = await post<Raw>('document/voucher/report', params)
+    const raw = await post<Raw>('document/voucher/report', { ...params, storeId: storeScopeRequestId.value })
     return {
       count: num(raw.count), totalAmount: num(raw.totalAmount),
       receiptAmount: num(raw.receiptAmount), paymentAmount: num(raw.paymentAmount),
@@ -463,19 +464,22 @@ export const financeApi = {
     normalizeSettlement(await post<Raw>('finance/settlement/retention-release', { settlementId: id, releasedAt })),
   /** 凭证记录分页：服务端按企业数据范围过滤。 */
   vouchers: async (params: {
-    projectId?: string; status?: string; keyword?: string; type?: string
+    projectId?: string; expenseId?: string; status?: string; keyword?: string; type?: string
     startDate?: string; endDate?: string; current?: number; size?: number
   } = {}) =>
     paged(await post<PageResult<Raw> | Raw[]>('document/voucher/page', {
       current: params.current ?? 1, size: params.size ?? 100,
-      projectId: params.projectId, status: params.status, keyword: params.keyword,
-      type: params.type, startDate: params.startDate, endDate: params.endDate
+      projectId: params.projectId, expenseId: params.expenseId, status: params.status, keyword: params.keyword,
+      type: params.type, startDate: params.startDate, endDate: params.endDate,
+      storeId: storeScopeRequestId.value
     }), normalizeVoucher),
   /** 常用项目：按凭证出单频次排序（近 90 天），无凭证时返回空。 */
   frequentProjects: async (size = 8): Promise<Project[]> =>
-    listOf(await post<Raw[]>('document/frequent-project/list', { size })).map(normalizeProject),
+    listOf(await post<Raw[]>('document/frequent-project/list', { size, storeId: storeScopeRequestId.value })).map(normalizeProject),
 
   /** 生成凭证：单笔直接生成；多笔需满足"收款方/付款方 + 项目 + 款项类型"三者相同。 */
   buildVoucher: async (ledgerIds: string[]) =>
-    normalizeVoucher(await post<Raw>('document/voucher/build', { ledgerIds }))
+    normalizeVoucher(await post<Raw>('document/voucher/build', { ledgerIds })),
+  buildPaymentVoucher: async (paymentId: string, presetCode?: string) =>
+    normalizeVoucher(await post<Raw>('document/voucher/build', { paymentId, presetCode }))
 }

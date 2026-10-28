@@ -1,3 +1,4 @@
+import type { QuoteGroup } from '@/domains/trade/model'
 export interface JourneyFact {
   key: string
   label: string
@@ -97,6 +98,10 @@ export interface JourneyItem {
   media: JourneyMedia[]
   regions: JourneyRegion[]
   priceGroups: JourneyPriceGroup[]
+  regionGroups: QuoteGroup[]
+  typeGroups: QuoteGroup[]
+  /** 服务端是否拿到了原始报价行；用于区分“空报价”和“分组暂不可确认”。 */
+  hasSourceLines: boolean
 }
 
 export interface CustomerJourney {

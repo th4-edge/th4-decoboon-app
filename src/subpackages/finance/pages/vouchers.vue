@@ -20,6 +20,8 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 type PeriodKey = 'all' | 'd3' | 'd7' | 'd15' | 'd30' | 'month' | 'lastMonth' | 'year' | 'custom'
 type ProjectStatusFilter = 'all' | 'active' | 'done' | 'paused'
@@ -423,11 +425,13 @@ function safePdfName(fileName?: string): string {
 }
 
 void bootSheetSources()
+useFinanceStoreScope(() => load())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader title="收付凭证" subtitle="按项目与月份查找，可打印归档" right-text="模板" @right="goTemplates" />
+    <FinanceStoreScope />
 
     <view class="fin-body">
       <!-- 首次使用引导 -->

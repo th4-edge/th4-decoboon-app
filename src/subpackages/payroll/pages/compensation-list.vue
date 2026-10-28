@@ -19,6 +19,8 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzTag from '@/components/JzTag.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const { items, loading, loadingMore, loadError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.compensationPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
@@ -64,11 +66,13 @@ async function remove(item: CompensationScheme) {
     deletingId.value = ''
   }
 }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="comp-page">
     <JzPageHeader title="薪酬方案" subtitle="员工固定工资与生效期" :right-text="editable ? '新增' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
     <view class="comp-body">
       <PageState v-if="loadError && !items.length" state="error" title="薪酬数据暂不可确认" :subtitle="loadError" @retry="refresh" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="4" />

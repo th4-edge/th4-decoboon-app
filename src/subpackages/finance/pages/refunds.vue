@@ -15,6 +15,8 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const editable = computed(() => can(session.role, 'edit:finance'))
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -28,11 +30,13 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
 function addRefund() { uni.navigateTo({ url: `${P.financeReceipts}?refund=1` }) }
 function openProject(id: string) { uni.navigateTo({ url: `${P.financeProject}?projectId=${id}` }) }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader title="客户退款" subtitle="退款独立留痕，并联动已发提成下期调整" :right-text="editable ? '登记退款' : ''" :right-icon="editable ? 'plus' : undefined" @right="addRefund" />
+    <FinanceStoreScope />
     <view class="fin-section"><text class="fin-section__title">退款记录</text><text class="fin-section__more">按原收款追溯</text></view>
     <view class="fin-body">
       <PageState v-if="loadError && !items.length" state="error" title="退款记录暂不可确认" :subtitle="loadError" @retry="refresh" />

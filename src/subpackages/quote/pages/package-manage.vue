@@ -7,7 +7,7 @@ import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { PackageTemplate } from '@/domains/pack/model'
 import { money, timeText } from '@/core/format'
-import { toastError } from '@/composables/toast'
+import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
@@ -19,12 +19,41 @@ const loading = ref(false)
 const templates = ref<PackageTemplate[]>([])
 const canEdit = computed(() => can(session.role, 'edit:package-template'))
 const canViewCost = computed(() => can(session.role, 'view:cost'))
+const busyId = ref('')
 
 interface TemplateStats {
   sectionCount: number
   lineCount: number
   ready: boolean
   grossMargin: number
+}
+
+function statusLabel(tpl: PackageTemplate): string {
+  if (tpl.status === 'Published') return tpl.currentPublished ? `已发布 V${tpl.version}` : `历史版本 V${tpl.version}`
+  if (tpl.status === 'Disabled') return `已停用 V${tpl.version}`
+  return `草稿 V${tpl.version}`
+}
+
+function statusColor(tpl: PackageTemplate): string {
+  if (tpl.status === 'Published' && tpl.currentPublished) return TOKEN_COLOR.success
+  if (tpl.status === 'Draft') return TOKEN_COLOR.warning
+  return TOKEN_COLOR.text4
+}
+
+function isLatest(tpl: PackageTemplate): boolean {
+  return (latestByCode.value.get(tpl.code || tpl.id)?.id || '') === tpl.id
+}
+
+function canEditTemplate(tpl: PackageTemplate): boolean {
+  return canEdit.value && tpl.status === 'Draft' && isLatest(tpl)
+}
+
+function canBuildNext(tpl: PackageTemplate): boolean {
+  return canEdit.value && tpl.status !== 'Draft' && isLatest(tpl)
+}
+
+function canCreateQuote(tpl: PackageTemplate): boolean {
+  return tpl.status === 'Published' && tpl.currentPublished
 }
 
 function statsOf(tpl: PackageTemplate): TemplateStats {
@@ -42,6 +71,16 @@ function statsOf(tpl: PackageTemplate): TemplateStats {
     grossMargin
   }
 }
+
+const latestByCode = computed(() => {
+  const latest = new Map<string, PackageTemplate>()
+  for (const item of templates.value) {
+    const key = item.code || item.id
+    const current = latest.get(key)
+    if (!current || item.version > current.version) latest.set(key, item)
+  }
+  return latest
+})
 
 const readyCount = computed(() => templates.value.filter((t) => statsOf(t).ready).length)
 
@@ -66,8 +105,64 @@ function edit(templateId = '') {
   uni.navigateTo({ url: `${P.packageEdit}${query}` })
 }
 
-function createQuote(templateId: string) {
-  uni.navigateTo({ url: `${P.quoteEdit}?mode=package&templateId=${templateId}` })
+function createQuote(template: PackageTemplate) {
+  if (!canCreateQuote(template)) {
+    toast('只有当前发布版本可以生成新报价')
+    return
+  }
+  uni.navigateTo({ url: `${P.quoteEdit}?mode=package&templateId=${template.id}` })
+}
+
+async function publish(item: PackageTemplate) {
+  if (!canEditTemplate(item)) return
+  if (!statsOf(item).ready) {
+    toast('请先配置至少一个分区和项目行')
+    return
+  }
+  const ok = await confirm('发布套餐', `发布 V${item.version} 后不可原地修改，历史报价不受影响。`, '发布')
+  if (!ok) return
+  busyId.value = item.id
+  try {
+    await packApi.publishTemplate(item.id)
+    await load()
+    toast('套餐已发布', 'success')
+  } catch (error) {
+    toastError(error, '套餐发布失败')
+  } finally {
+    busyId.value = ''
+  }
+}
+
+async function buildNext(item: PackageTemplate) {
+  if (!canEdit.value) return
+  const ok = await confirm('创建下一版', `将基于 ${item.code || item.name} V${item.version} 创建新草稿，当前发布版本继续可用。`, '创建下一版')
+  if (!ok) return
+  busyId.value = item.id
+  try {
+    const draft = await packApi.buildNextVersion(item.id)
+    await load()
+    uni.navigateTo({ url: `${P.packageEdit}?templateId=${draft.id}` })
+  } catch (error) {
+    toastError(error, '下一版本创建失败')
+  } finally {
+    busyId.value = ''
+  }
+}
+
+async function disable(item: PackageTemplate) {
+  if (!canEdit.value || !canCreateQuote(item)) return
+  const ok = await confirm('停用套餐', `停用 V${item.version} 后不能用于新报价，历史报价、合同和项目不受影响。`, '停用')
+  if (!ok) return
+  busyId.value = item.id
+  try {
+    await packApi.disableTemplate(item.id)
+    await load()
+    toast('套餐已停用', 'success')
+  } catch (error) {
+    toastError(error, '套餐停用失败')
+  } finally {
+    busyId.value = ''
+  }
 }
 </script>
 
@@ -92,22 +187,22 @@ function createQuote(templateId: string) {
         class="jz-card pm__item"
       >
         <!-- 标题行 -->
-        <view class="pm__item-head" @tap="canEdit && edit(item.id)">
+        <view class="pm__item-head" @tap="canEditTemplate(item) && edit(item.id)">
           <view class="jz-grow">
             <view class="pm__name-row">
               <text class="pm__name">{{ item.name }}</text>
               <JzTag
-                :text="statsOf(item).ready ? '可使用' : '配置中'"
-                :color="statsOf(item).ready ? TOKEN_COLOR.success : TOKEN_COLOR.warning"
+                :text="statusLabel(item)"
+                :color="statusColor(item)"
                 :size="'sm'"
               />
             </view>
             <text class="pm__meta">
-              {{ item.area }}㎡标准 · {{ statsOf(item).sectionCount }}个分区 · {{ statsOf(item).lineCount }}项
+              {{ item.code || '套餐编码待生成' }} · {{ item.area }}㎡标准 · {{ statsOf(item).sectionCount }}个分区 · {{ statsOf(item).lineCount }}项
               <text v-if="item.updatedAt"> · 更新于{{ timeText(item.updatedAt) }}</text>
             </text>
           </view>
-          <JzIcon v-if="canEdit" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
+          <JzIcon v-if="canEditTemplate(item)" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
 
         <!-- 金额行 -->
@@ -132,13 +227,25 @@ function createQuote(templateId: string) {
 
         <!-- 操作行 -->
         <view class="pm__actions">
-          <view class="pm__action pm__action--primary" @tap="createQuote(item.id)">
+          <view v-if="canCreateQuote(item)" class="pm__action pm__action--primary" @tap="createQuote(item)">
             <JzIcon name="file-text" :size="28" :color="TOKEN_COLOR.primaryBase" />
             <text>生成报价</text>
           </view>
-          <view v-if="canEdit" class="pm__action" @tap="edit(item.id)">
+          <view v-if="canEditTemplate(item)" class="pm__action" @tap="edit(item.id)">
             <JzIcon name="edit" :size="28" :color="TOKEN_COLOR.text3" />
-            <text>编辑配置</text>
+            <text>编辑草稿</text>
+          </view>
+          <view v-if="canEditTemplate(item)" class="pm__action" @tap="publish(item)">
+            <JzIcon name="check" :size="28" :color="TOKEN_COLOR.success" />
+            <text>{{ busyId === item.id ? '处理中' : '发布' }}</text>
+          </view>
+          <view v-if="canBuildNext(item)" class="pm__action" @tap="buildNext(item)">
+            <JzIcon name="plus" :size="28" :color="TOKEN_COLOR.text3" />
+            <text>创建下一版</text>
+          </view>
+          <view v-if="canCreateQuote(item)" class="pm__action pm__action--danger" @tap="disable(item)">
+            <JzIcon name="close" :size="28" :color="TOKEN_COLOR.danger" />
+            <text>停用</text>
           </view>
         </view>
       </view>
@@ -301,5 +408,10 @@ function createQuote(templateId: string) {
 .pm__action--primary {
   background: $jzb-primary-lighter;
   color: $jzb-primary-dark;
+}
+
+.pm__action--danger {
+  color: $jzb-danger;
+  background: $jzb-danger-soft;
 }
 </style>

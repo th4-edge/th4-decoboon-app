@@ -20,6 +20,8 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -117,11 +119,13 @@ async function linkWorker(worker: Worker) {
     workerSubmitting.value = false
   }
 }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader title="付款记录" subtitle="付款自动核销应付并生成资金流水；成本按应付/到货口径归集" :right-text="editable ? '登记付款' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
 
     <view class="fin-hero">
       <text class="fin-hero__label">累计业务付款</text>

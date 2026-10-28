@@ -18,6 +18,9 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { activeStoreName } from '@/domains/identity/storeScope'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const summary = ref<FinanceSummary | null>(null)
 const metricDefinitions = ref<MetricDefinition[]>([])
@@ -51,7 +54,7 @@ const storeName = computed(() => session.emp?.store?.name || '本店')
 const pageTitle = computed(() => (storeScoped.value ? '本店财务记账台' : '财务工作台'))
 const pageSubtitle = computed(() => (storeScoped.value
   ? `${session.company?.name || '当前企业'} · ${storeName.value} · 本店经营资金与项目账务`
-  : `${session.company?.name || '当前企业'} · 经营资金与项目账务`))
+  : `${session.company?.name || '当前企业'} · ${activeStoreName.value} · 经营资金与项目账务`))
 
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
 onShow(() => {
@@ -165,6 +168,16 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
       { key: 'projects', label: '项目账本', icon: 'briefcase', tone: TOKEN_COLOR.primaryLighter, path: P.financeProjects },
       { key: 'vouchers', label: '收付凭证', icon: 'doc', tone: TOKEN_COLOR.bgPage, path: P.financeVouchers }
     ]
+  },
+  {
+    key: 'expense',
+    title: '费用与报销',
+    description: '员工提交证据，负责人审批，财务只复核补充',
+    items: [
+      { key: 'expenses', label: '费用中心', icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, path: P.financeExpenses },
+      { key: 'expensePending', label: '待处理费用', icon: 'clock', tone: TOKEN_COLOR.warningSoft, path: `${P.financeExpenses}?status=Submitted` },
+      { key: 'expenseCreate', label: '提交费用', icon: 'edit', tone: TOKEN_COLOR.successSoft, path: P.financeExpenseEdit, requiresEdit: true }
+    ]
   }
 ])
 
@@ -175,11 +188,13 @@ function openQuick(item: FinanceQuickItem) {
   }
   go(item.path)
 }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="fin-page fin-page--tab">
     <JzPageHeader :title="pageTitle" :subtitle="pageSubtitle" right-icon="refresh" @right="refresh" />
+    <FinanceStoreScope />
 
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">当前账面现金余额</text>

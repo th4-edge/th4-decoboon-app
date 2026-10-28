@@ -237,8 +237,8 @@ function openCustomer(id: string) {
   uni.navigateTo({ url: `${P.customerDetail}?id=${id}` })
 }
 
-function openTeam() {
-  uni.navigateTo({ url: P.teamList })
+function openMembers() {
+  uni.navigateTo({ url: P.companyMembers })
 }
 
 function openQuotes() {
@@ -390,7 +390,7 @@ function measureText(value?: string) {
 
 <template>
   <view class="md" :class="{ 'md--design-focus': designWorkspaceFocused }">
-    <JzPageHeader :title="isBoss ? '方案设计经营' : isTeamLeader ? '团队派单' : '设计调度'" :subtitle="isBoss ? '全企业 · 客户方案、报价、谈单与确认' : `${scopeName} · 客户转化与交付协同`" :right-text="isTeamLeader ? '团队成员' : isBoss ? '企业团队' : '门店团队'" @right="openTeam" />
+    <JzPageHeader :title="isBoss ? '方案设计经营' : isTeamLeader ? '团队派单' : '设计调度'" :subtitle="isBoss ? '全企业 · 客户方案、报价、谈单与确认' : `${scopeName} · 客户转化与交付协同`" :right-text="'成员管理'" @right="openMembers" />
 
     <view class="md__summary jz-card">
       <view class="md__summary-main">
@@ -416,12 +416,12 @@ function measureText(value?: string) {
       <template v-if="isBoss">
         <view class="md__quick-item" @tap="openQuotes"><JzIcon name="file-text" :size="38" :color="TOKEN_COLOR.purple" /><text>报价谈单</text><text class="md__quick-num">{{ (bossDesign?.quoteDraftCount || 0) + (bossDesign?.quoteSubmittedCount || 0) }}</text></view>
         <view class="md__quick-item" @tap="openSign"><JzIcon name="shield-check" :size="38" :color="TOKEN_COLOR.primary" /><text>合同签约</text><text class="md__quick-num">{{ bossDesign?.confirmedCount || 0 }}</text></view>
-        <view class="md__quick-item" @tap="openTeam"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /><text>企业团队</text><text class="md__quick-num">{{ designersOnline }}</text></view>
+        <view class="md__quick-item" @tap="openMembers"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /><text>成员管理</text><text class="md__quick-num">{{ designersOnline }}</text></view>
       </template>
       <template v-else>
         <view class="md__quick-item" @tap="openQuotes"><JzIcon name="file-text" :size="38" :color="TOKEN_COLOR.purple" /><text>报价池</text><text class="md__quick-num">{{ report?.pendingQuoteCount || 0 }}</text></view>
         <view class="md__quick-item" @tap="openProjects"><JzIcon name="briefcase" :size="38" :color="TOKEN_COLOR.primary" /><text>项目工地</text><text class="md__quick-num">{{ report?.projectCount || 0 }}</text></view>
-        <view class="md__quick-item" @tap="openTeam"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /><text>{{ isTeamLeader ? '团队成员' : '门店团队' }}</text><text class="md__quick-num">{{ report?.memberCount || 0 }}</text></view>
+        <view class="md__quick-item" @tap="openMembers"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /><text>成员管理</text><text class="md__quick-num">{{ report?.memberCount || 0 }}</text></view>
       </template>
     </view>
 
@@ -580,7 +580,7 @@ function measureText(value?: string) {
           </view>
           <view class="md__designer-foot"><text>最终报价接受率 {{ perf.conversionRate }}%</text><text>动态 {{ perf.reportCount }} 条</text></view>
         </view>
-        <JzEmpty v-if="!performances.length" :text="isTeamLeader ? '团队暂无设计师' : '门店暂无设计师'" :sub="isTeamLeader ? '请先在团队成员中邀请设计师加入' : '请先在门店团队中邀请设计师加入'" />
+        <JzEmpty v-if="!performances.length" :text="isTeamLeader ? '团队暂无设计师' : '门店暂无设计师'" :sub="isTeamLeader ? '请先在成员管理中邀请设计师加入' : '请先在成员管理中邀请设计师加入'" />
       </view>
     </template>
 

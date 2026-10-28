@@ -4,7 +4,7 @@ import { dateTimeValue } from '@/core/format'
 import { normalizeEmployee } from '@/domains/identity/api'
 import type {
   CatalogImportBatch, CatalogImportRow, CatalogImportRowStatus, CatalogImportStatus,
-  CatalogItem, CatalogPricingMode, CatalogTree, CatalogType
+  CatalogItem, CatalogPricingMode, CatalogRevision, CatalogRevisionType, CatalogTree, CatalogType
 } from './model'
 import { fileApi } from '@/domains/file/api'
 
@@ -90,6 +90,7 @@ export function normalizeCatalogItem(raw: RawRecord): CatalogItem {
     images: raw.images,
     active: raw.active !== false,
     sort: number(raw.sort),
+    revision: number(raw.revision ?? 1),
     maintainer: raw.maintainer ? normalizeEmployee(raw.maintainer) : undefined,
     updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)
   }
@@ -135,6 +136,14 @@ export interface CatalogInput {
   images?: string[]
   active?: boolean
   sort?: number
+  revision?: number
+  durationDays?: number
+  lossRate?: number
+  minimumOrder?: number
+  leadTimeDays?: number
+  warrantyMonths?: number
+  board?: string
+  countertop?: string
 }
 
 
@@ -201,6 +210,20 @@ function normalizeImportRow(raw: RawRecord): CatalogImportRow {
     costPending: raw.costPending === true,
     itemId: raw.item?.itemId ? String(raw.item.itemId) : undefined,
     itemCode: raw.item?.code
+  }
+}
+
+function normalizeCatalogRevision(raw: RawRecord): CatalogRevision {
+  const changeType = enumValue(raw.changeType) as CatalogRevisionType
+  return {
+    id: String(raw.id ?? raw.revisionId ?? ''),
+    revision: Number(raw.revision ?? 1),
+    changeType: ['Create', 'Update', 'Disable', 'Enable', 'Delete'].includes(changeType) ? changeType : 'Update',
+    itemCode: raw.itemCode,
+    snapshotJson: raw.snapshotJson,
+    snapshotHash: raw.snapshotHash,
+    changedBy: raw.changedBy ? normalizeEmployee(raw.changedBy) : undefined,
+    changedAt: dateTimeValue(raw.changedAt ?? raw.createTime?.dateTime ?? raw.createTime)
   }
 }
 
@@ -287,6 +310,18 @@ export const catalogApi = {
     }
   },
 
+  revisionPage: async (itemId: string, current = 1, size = 30) => {
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('catalog/item/revision/page', {
+      itemId,
+      current,
+      size
+    })
+    return {
+      list: listOf(result).map(normalizeCatalogRevision),
+      total: Array.isArray(result) ? result.length : Number(result.totalElements ?? result.total ?? 0)
+    }
+  },
+
   save: (input: CatalogInput) =>
     post<RawRecord>('catalog/item/save', {
       type: TYPE_API[input.type],
@@ -306,7 +341,14 @@ export const catalogApi = {
       criterion: input.criterion,
       description: input.description,
       images: input.images?.map((path) => fileApi.storagePath(path) || path),
-      sort: input.sort
+      sort: input.sort,
+      durationDays: input.durationDays,
+      lossRate: input.lossRate,
+      minimumOrder: input.minimumOrder,
+      leadTimeDays: input.leadTimeDays,
+      warrantyMonths: input.warrantyMonths,
+      board: input.board,
+      countertop: input.countertop
     }).then(signCatalogItem),
 
   update: (input: CatalogInput) =>
@@ -330,12 +372,20 @@ export const catalogApi = {
       description: input.description,
       images: input.images?.map((path) => fileApi.storagePath(path) || path),
       active: input.active,
-      sort: input.sort
+      sort: input.sort,
+      revision: input.revision,
+      durationDays: input.durationDays,
+      lossRate: input.lossRate,
+      minimumOrder: input.minimumOrder,
+      leadTimeDays: input.leadTimeDays,
+      warrantyMonths: input.warrantyMonths,
+      board: input.board,
+      countertop: input.countertop
     }).then(signCatalogItem),
 
   /** 删除报价项目：无下游引用时硬删除（明细与图片同事务删除）。 */
-  remove: (itemId: string) =>
-    post<RawRecord>('catalog/item/delete', { itemId }).then(normalizeCatalogItem),
+  remove: (item: CatalogItem) =>
+    post<RawRecord>('catalog/item/delete', { itemId: item.id, revision: item.revision }).then(normalizeCatalogItem),
 
   /** 启用/停用项目，复用当前完整数据，仅切换 active 字段 */
   toggleActive: (item: CatalogItem, active: boolean) =>
@@ -358,6 +408,14 @@ export const catalogApi = {
       description: item.description,
       images: item.images?.map((path) => fileApi.storagePath(path) || path),
       active,
-      sort: item.sort
+      sort: item.sort,
+      revision: item.revision,
+      durationDays: item.durationDays,
+      lossRate: item.lossRate,
+      minimumOrder: item.minimumOrder,
+      leadTimeDays: item.leadTimeDays,
+      warrantyMonths: item.warrantyMonths,
+      board: item.board,
+      countertop: item.countertop
     }).then(signCatalogItem)
 }

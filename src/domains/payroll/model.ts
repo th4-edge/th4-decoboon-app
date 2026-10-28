@@ -57,6 +57,7 @@ export interface PayrollSheet {
   totalNetAmount: number
   confirmedBy?: Employee
   confirmedAt?: string
+  remark?: string
   createdAt?: string
 }
 

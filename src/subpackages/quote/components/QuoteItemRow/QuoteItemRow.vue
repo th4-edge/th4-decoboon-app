@@ -50,7 +50,7 @@ const tag = computed(() => {
 })
 
 const effectiveQuantity = computed(() => props.displayQuantity ?? props.item.quantity)
-const effectiveAmount = computed(() => props.displayAmount ?? (Number(props.item.amount || 0) || Number(props.item.price || 0) * Number(props.item.quantity || 0)))
+const effectiveAmount = computed<number | null>(() => props.displayAmount ?? props.item.amount ?? null)
 const effectiveSpace = computed(() => props.spaceLabel || props.item.space?.name || '')
 const merged = computed(() => props.sourceCount > 1)
 
@@ -90,7 +90,7 @@ const componentsText = computed(() => {
       <text v-if="componentsText" class="qir__formula">组件：{{ componentsText }}</text>
     </view>
     <text class="qir__price" :class="{ 'qir__price--deducted': isDeducted }">
-      {{ money(effectiveAmount) }}
+      {{ effectiveAmount == null ? '暂不可确认' : money(effectiveAmount) }}
     </text>
   </view>
 </template>

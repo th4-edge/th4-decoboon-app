@@ -2,6 +2,7 @@ import { post } from '@/core/http'
 import type { PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import { normalizeEmployee } from '@/domains/identity/api'
+import { storeScopeRequestId } from '@/domains/identity/storeScope'
 import { normalizeProject } from '@/domains/project/api'
 import type { Employee } from '@/domains/identity/model'
 import type { Project } from '@/domains/project/model'
@@ -67,6 +68,7 @@ function normalizeSheet(raw: Raw): PayrollSheet {
     totalNetAmount: num(raw.totalNetAmount),
     confirmedBy: raw.confirmedBy ? employee(raw.confirmedBy) : undefined,
     confirmedAt: raw.confirmedAt,
+    remark: raw.remark,
     createdAt: raw.createTime?.dateTime ?? raw.createTime
   }
 }
@@ -205,15 +207,15 @@ const page = async <T>(uri: string, params: Raw, normalize: (raw: Raw) => T, cur
     .list.map(normalize)
 
 export const payrollApi = {
-  workbench: async (period?: string) => normalizeWorkbench(await post<Raw>('payroll/workbench/report', { period })),
-  employeePage: async () => page('payroll/employee/page', {}, employee, 1, 200),
+  workbench: async (period?: string) => normalizeWorkbench(await post<Raw>('payroll/workbench/report', { period, storeId: storeScopeRequestId.value })),
+  employeePage: async () => page('payroll/employee/page', { storeId: storeScopeRequestId.value }, employee, 1, 200),
   employeePickerPage: async (params: Raw = {}, current = 1, size = 20) => {
-    const result = await post<PageResult<Raw> | Raw[]>('payroll/employee/page', { ...params, current, size })
+    const result = await post<PageResult<Raw> | Raw[]>('payroll/employee/page', { ...params, storeId: storeScopeRequestId.value, current, size })
     const resultPage = toPageData(result, current, size)
     return { ...resultPage, list: resultPage.list.map(employee) }
   },
 
-  compensationPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/compensation/page', params, normalizeCompensation, current, size),
+  compensationPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/compensation/page', { ...params, storeId: storeScopeRequestId.value }, normalizeCompensation, current, size),
   compensationInfo: async (schemeId: string) => normalizeCompensation(await post<Raw>('payroll/compensation/info', { schemeId })),
   compensationForMonth: async (empId: string, month: string) =>
     normalizeCompensation(await post<Raw>('payroll/compensation/info', { empId, month })),
@@ -224,32 +226,34 @@ export const payrollApi = {
   deleteCompensation: async (schemeId: string) =>
     post<Raw>('payroll/compensation/delete', { schemeId }),
 
-  attendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', params, normalizeAttendance, current, size),
+  attendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', { ...params, storeId: storeScopeRequestId.value }, normalizeAttendance, current, size),
   attendanceInfo: async (summaryId: string) => normalizeAttendance(await post<Raw>('attendance/summary/info', { summaryId })),
   saveAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/save', input)),
   updateAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/update', input)),
   deleteAttendance: async (summaryId: string) =>
     post<Raw>('attendance/summary/delete', { summaryId }),
 
-  sheetPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/sheet/page', params, normalizeSheet, current, size),
+  sheetPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/sheet/page', { ...params, storeId: storeScopeRequestId.value }, normalizeSheet, current, size),
   sheetInfo: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/info', { sheetId })),
   buildSheet: async (period: string) => normalizeSheet(await post<Raw>('payroll/sheet/build', { period })),
+  submitSheetReview: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/update', { sheetId, status: 'Pending' })),
+  returnSheetToDraft: async (sheetId: string, reason: string) => normalizeSheet(await post<Raw>('payroll/sheet/update', { sheetId, status: 'Draft', reason })),
   confirmSheet: async (sheetId: string) => normalizeSheet(await post<Raw>('payroll/sheet/update', { sheetId })),
   deleteSheet: async (sheetId: string) => post<Raw>('payroll/sheet/delete', { sheetId }),
 
-  itemPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/item/page', params, normalizeItem, current, size),
-  storePayrollPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/store-payroll/page', params, normalizeItem, current, size),
+  itemPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/item/page', { ...params, storeId: storeScopeRequestId.value }, normalizeItem, current, size),
+  storePayrollPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/store-payroll/page', { ...params, storeId: storeScopeRequestId.value }, normalizeItem, current, size),
 
-  commissionPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/commission/page', params, normalizeCommission, current, size),
+  commissionPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/commission/page', { ...params, storeId: storeScopeRequestId.value }, normalizeCommission, current, size),
   saveCommission: async (input: { empId: string; projectId: string; contractAmount: number; manualRate: number; commissionAmount?: number; remark?: string }) =>
     normalizeCommission(await post<Raw>('payroll/commission/save', input)),
   releasePage: async (commissionId: string, current = 1, size = 20) => page('payroll/commission/release/page', { commissionId }, normalizeRelease, current, size),
-  adjustmentPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/commission/adjustment/page', params, normalizeAdjustment, current, size),
+  adjustmentPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/commission/adjustment/page', { ...params, storeId: storeScopeRequestId.value }, normalizeAdjustment, current, size),
 
   myPayslipPage: async (current = 1, size = 20) => page('payroll/payslip/my/page', {}, normalizePayslip, current, size),
   payslipInfo: async (payslipId: string) => normalizePayslip(await post<Raw>('payroll/payslip/info', { payslipId })),
 
-  employeePayablePage: async (params: Raw = {}, current = 1, size = 20) => page('finance/payment/employee/page', params, normalizeEmployeePayable, current, size),
+  employeePayablePage: async (params: Raw = {}, current = 1, size = 20) => page('finance/payment/employee/page', { ...params, storeId: storeScopeRequestId.value }, normalizeEmployeePayable, current, size),
 
   createEmployeePayment: async (input: { payableIds: string[]; amount: number; account?: string; paidAt: string; batchNo?: string; idempotencyKey: string; remark?: string }) =>
     post<Raw>('finance/payment/employee/save', input)

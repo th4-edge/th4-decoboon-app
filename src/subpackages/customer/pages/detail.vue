@@ -5,7 +5,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can } from '@/roles/permission'
-import type { Customer, CustomerFollow } from '@/domains/crm/model'
+import type { Customer, CustomerFollow, CustomerLossStage } from '@/domains/crm/model'
 import type { ContentAttributionConfidence, ContentAttributionType, LeadTouch } from '@/domains/content/model'
 import type { Project } from '@/domains/project/model'
 import type { Property } from '@/domains/property/model'
@@ -66,6 +66,16 @@ const dormantSheetOpen = ref(false)
 const dormantTextOpen = ref(false)
 const dormantReason = ref('')
 const dormantReasonText = ref('')
+const lossScopeSheetOpen = ref(false)
+const lossStageSheetOpen = ref(false)
+const lossReasonSheetOpen = ref(false)
+const lossTextOpen = ref(false)
+const lossScope = ref<'Property' | 'Customer'>('Customer')
+const lossStage = ref<CustomerLossStage | ''>('')
+const lossReason = ref('')
+const lossReasonText = ref('')
+const lossRequestId = ref('')
+const restoreLossRequestId = ref('')
 /** FIX-006：评级依据从独立卡片改为评级标签旁的 ? 图标，点击弹出浮层。 */
 const showGradePopup = ref(false)
 
@@ -101,6 +111,30 @@ const isDesigner = computed(() => session.role === 'designer')
 const isFinance = computed(() => session.role === 'finance')
 const canManageDormant = computed(() => isBoss.value || isMarketer.value || isStoreManager.value || isDesigner.value || isFinance.value)
 const canSetDormant = computed(() => Boolean(customer.value && canManageDormant.value && !['sign', 'construction', 'done', 'lost', 'dormant'].includes(customer.value.stage)))
+const canManageLoss = computed(() => canManageDormant.value)
+const canMarkLoss = computed(() => Boolean(customer.value && canManageLoss.value && !['sign', 'construction', 'done', 'lost'].includes(customer.value.stage)))
+const canRestoreLoss = computed(() => Boolean((customer.value?.stage === 'lost' || customer.value?.partialLoss) && customer.value.lossId && canManageLoss.value))
+const lossScopeActions = computed(() => [
+  ...(activeProperty.value ? [{ label: `本次房屋：${activeProperty.value.community || activeProperty.value.address || activeProperty.value.id}`, value: 'Property' as const }] : []),
+  { label: '客户全部装修意向', value: 'Customer' as const }
+])
+const lossStageActions: Array<{ label: string; value: CustomerLossStage }> = [
+  { label: '待我跟进', value: 'FollowUp' },
+  { label: '待我量房', value: 'Measure' },
+  { label: '待我设计', value: 'Design' },
+  { label: '待我谈单', value: 'Negotiation' },
+  { label: '待我签约', value: 'Signing' }
+]
+const lossReasonActions = [
+  { label: '选择了其他装修公司', value: 'ChoseOtherCompany' },
+  { label: '价格或预算不匹配', value: 'PriceBudgetMismatch' },
+  { label: '设计方案不满意', value: 'DesignUnsatisfied' },
+  { label: '工期或开工时间不匹配', value: 'ScheduleMismatch' },
+  { label: '自装或亲友装修', value: 'SelfOrRelative' },
+  { label: '装修计划取消', value: 'ProjectCancelled' },
+  { label: '服务或信任问题', value: 'ServiceTrust' },
+  { label: '其他', value: 'Other' }
+]
 const dormantReasonActions = [
   { label: '装修计划延期', value: 'PlanPostponed' },
   { label: '预算或方案未定', value: 'BudgetUndecided' },
@@ -110,6 +144,14 @@ const dormantReasonActions = [
   { label: '线索待核实', value: 'LeadPendingVerification' },
   { label: '其他', value: 'Other' }
 ]
+function lossStageLabel(value?: CustomerLossStage): string {
+  return lossStageActions.find((item) => item.value === value)?.label || '阶段待确认'
+}
+
+function lossReasonLabel(value?: string): string {
+  return lossReasonActions.find((item) => item.value === value)?.label || '流失原因待确认'
+}
+
 const isCustomerOwner = computed(() => Boolean(customer.value?.owner?.id && customer.value.owner.id === session.emp?.id))
 const isAssignedDesigner = computed(() => Boolean(customer.value?.designer?.id && customer.value.designer.id === session.emp?.id))
 const showMarketing = computed(() => isMarketer.value || isStoreManager.value || isFinance.value || isTeamLeader.value)
@@ -415,6 +457,102 @@ function openDormantAction() {
   dormantSheetOpen.value = true
 }
 
+function openLossAction(mode: 'mark' | 'restore') {
+  if (!customer.value || !canManageLoss.value) return
+  if (mode === 'restore' && (customer.value.stage === 'lost' || customer.value.partialLoss)) {
+    if (!restoreLossRequestId.value) restoreLossRequestId.value = `app-restore-loss-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    void confirm(customer.value.partialLoss ? '恢复已流失房屋' : '恢复流失客户', '恢复后该房屋会按当前真实阶段重新进入工作台；原流失记录仍保留。是否继续？', '确认恢复')
+      .then((ok) => { if (ok) void submitRestoreLoss() })
+    return
+  }
+  if (!canMarkLoss.value) return
+  lossScope.value = activeProperty.value ? 'Property' : 'Customer'
+  lossStage.value = suggestedLossStage()
+  lossReason.value = ''
+  lossReasonText.value = ''
+  if (!lossRequestId.value) lossRequestId.value = `app-loss-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  if (activeProperty.value) lossScopeSheetOpen.value = true
+  else lossStageSheetOpen.value = true
+}
+
+function suggestedLossStage(): CustomerLossStage {
+  if (confirmedQuote.value) return 'Signing'
+  if (quotes.value.length || activeQuote.value) return 'Negotiation'
+  if (designs.value.length || activeProperty.value?.latestMeasureAt) return 'Design'
+  if (customer.value?.measureAt) return 'Measure'
+  return 'FollowUp'
+}
+
+function selectLossScope(index: number) {
+  const action = lossScopeActions.value[index]
+  if (!action) return
+  lossScope.value = action.value
+  lossStageSheetOpen.value = true
+}
+
+function selectLossStage(index: number) {
+  const action = lossStageActions[index]
+  if (!action) return
+  lossStage.value = action.value
+  lossReasonSheetOpen.value = true
+}
+
+function selectLossReason(index: number) {
+  const action = lossReasonActions[index]
+  if (!action) return
+  lossReason.value = action.value
+  if (action.value === 'Other') {
+    lossTextOpen.value = true
+    return
+  }
+  void submitLoss('')
+}
+
+async function submitLoss(reasonText: string) {
+  if (!customer.value || !lossStage.value || !lossReason.value) return
+  if (lossReason.value === 'Other' && !reasonText.trim()) {
+    toast('请填写流失原因')
+    lossTextOpen.value = true
+    return
+  }
+  loading('保存中…')
+  try {
+    await crmApi.markLost({
+      customerId: customer.value.id,
+      propertyId: lossScope.value === 'Property' ? activeProperty.value?.id : undefined,
+      scope: lossScope.value,
+      stage: lossStage.value,
+      reasonCode: lossReason.value,
+      reasonText: reasonText.trim() || undefined,
+      expectedStatus: stageApi(customer.value.stage),
+      requestId: lossRequestId.value
+    })
+    toast('已标记客户流失', 'success')
+    lossRequestId.value = ''
+    lossTextOpen.value = false
+    await load()
+  } catch (error) {
+    toastError(error, '客户流失操作失败')
+  } finally {
+    hideLoading()
+  }
+}
+
+async function submitRestoreLoss() {
+  if (!customer.value?.lossId) return
+  loading('恢复中…')
+  try {
+    await crmApi.restoreLoss(customer.value.lossId, undefined, undefined, restoreLossRequestId.value)
+    toast('已恢复客户', 'success')
+    restoreLossRequestId.value = ''
+    await load()
+  } catch (error) {
+    toastError(error, '恢复失败')
+  } finally {
+    hideLoading()
+  }
+}
+
 function selectDormantReason(index: number) {
   const action = dormantReasonActions[index]
   if (!action) return
@@ -704,6 +842,26 @@ function viewMeasure(property: Property) {
       </button>
     </view>
 
+    <view v-if="canManageLoss && (canMarkLoss || canRestoreLoss)" class="cd__contact-actions">
+      <button v-if="canRestoreLoss" class="jz-btn jz-btn--plain jz-btn--block cd__loss-action" @tap="openLossAction('restore')">
+        {{ customer.partialLoss ? '恢复已流失房屋' : '恢复流失客户' }}
+      </button>
+      <button v-if="canMarkLoss" class="jz-btn jz-btn--plain jz-btn--block cd__loss-action" @tap="openLossAction('mark')">
+        标记客户流失
+      </button>
+    </view>
+
+    <view v-if="customer.stage === 'lost' || customer.partialLoss" class="jz-card cd__loss-card">
+      <view class="cd__loss-head">
+        <text class="cd__loss-title">{{ customer.stage === 'lost' ? '已流失' : '部分房屋已流失' }}</text>
+        <text v-if="customer.lossStage" class="cd__loss-stage">{{ lossStageLabel(customer.lossStage) }}</text>
+      </view>
+      <text class="cd__loss-reason">{{ lossReasonLabel(customer.lossReason) }}</text>
+      <text v-if="customer.lossPropertyName" class="cd__loss-property">房屋：{{ customer.lossPropertyName }}</text>
+      <text v-if="customer.competitorName" class="cd__loss-property">对比公司：{{ customer.competitorName }}</text>
+      <text v-if="customer.lossReasonText" class="cd__loss-note">{{ customer.lossReasonText }}</text>
+    </view>
+
     <SalesSteps
       :value="salesStage"
       :action-label="primaryAction?.label || ''"
@@ -898,6 +1056,43 @@ function viewMeasure(property: Property) {
   />
 
   <JzActionSheet
+    :visible="lossScopeSheetOpen"
+    title="选择流失范围"
+    :actions="lossScopeActions"
+    @select="selectLossScope"
+    @update:visible="lossScopeSheetOpen = $event"
+  />
+
+  <JzActionSheet
+    :visible="lossStageSheetOpen"
+    title="选择流失阶段"
+    :actions="lossStageActions"
+    @select="selectLossStage"
+    @update:visible="lossStageSheetOpen = $event"
+  />
+
+  <JzActionSheet
+    :visible="lossReasonSheetOpen"
+    title="选择流失原因"
+    :actions="lossReasonActions"
+    @select="selectLossReason"
+    @update:visible="lossReasonSheetOpen = $event"
+  />
+
+  <JzInputDialog
+    v-model:visible="lossTextOpen"
+    v-model="lossReasonText"
+    title="填写流失原因"
+    label="其他原因"
+    description="请记录客户原话或明确决策，不写推测"
+    placeholder="例如：客户已与其他装修公司签约"
+    multiline
+    :maxlength="500"
+    confirm-text="确认流失"
+    @confirm="submitLoss(lossReasonText)"
+  />
+
+  <JzActionSheet
     :visible="dormantSheetOpen"
     title="选择休眠原因"
     :actions="dormantReasonActions"
@@ -1001,7 +1196,15 @@ function viewMeasure(property: Property) {
 .cd__role-divider { width: 1rpx; height: 48rpx; margin: 0 24rpx; background: $jzb-border-light; }
 .cd__contact-actions { display: flex; gap: 16rpx; margin: 0 24rpx 18rpx; }
 .cd__contact-actions .jz-btn { margin: 0; }
-.cd__loading { padding: 40rpx 28rpx 0; } .cd__properties { white-space: nowrap; padding: 0 24rpx 4rpx; } .cd__property-row { display: inline-flex; gap: 16rpx; }
+.cd__loading { padding: 40rpx 28rpx 0; }
+.cd__loss-action { color: $jzb-danger !important; border-color: $jzb-danger-soft !important; }
+.cd__loss-card { margin: 0 24rpx 16rpx; padding: 24rpx; border: 1rpx solid $jzb-danger-soft; background: $jzb-danger-soft; }
+.cd__loss-head { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.cd__loss-title { color: $jzb-danger; font-size: 28rpx; font-weight: 700; }
+.cd__loss-stage { color: $jzb-danger; font-size: 22rpx; }
+.cd__loss-reason { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: 26rpx; }
+.cd__loss-property, .cd__loss-note { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: 22rpx; line-height: 1.5; }
+ .cd__properties { white-space: nowrap; padding: 0 24rpx 4rpx; } .cd__property-row { display: inline-flex; gap: 16rpx; }
 .cd__property-empty { margin: 0 24rpx 18rpx; }
 .cd__inline-error { margin: 0 24rpx 18rpx; padding: 22rpx 24rpx; display: flex; align-items: center; gap: 12rpx; color: $jzb-danger; font-size: $jzb-font-sm; }
 .cd__inline-error-action { margin-left: auto; font-weight: 650; }

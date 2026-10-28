@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue'
-import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { computed, ref, onUnmounted, watch } from 'vue'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -14,11 +14,20 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
+import ListFooter from '@/components/ListFooter/ListFooter.vue'
 
+const PAGE_SIZE = 20
 const items = ref<DesignWorkbenchItem[]>([])
+const total = ref(0)
+const currentPage = ref(1)
 const loading = ref(false)
+const loadingMore = ref(false)
+const loadMoreError = ref('')
+const hasMore = ref(false)
+const keyword = ref('')
 const activeFilter = ref<'all' | 'Pending' | 'Doing' | 'Done'>('all')
 const isStoreManager = computed(() => session.role === 'storeManager')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const filters = [
   { key: 'all', label: '全部' },
@@ -27,35 +36,74 @@ const filters = [
   { key: 'Done', label: '方案完成' }
 ] as const
 
-const filtered = computed(() => {
-  if (activeFilter.value === 'all') return items.value
-  return items.value.filter((item) => item.designStatus === activeFilter.value)
+onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
+onShow(() => { if (isLoggedIn()) void refresh(true) })
+onPullDownRefresh(() => refresh(true).finally(() => uni.stopPullDownRefresh()))
+onReachBottom(() => { if (!loading.value && !loadingMore.value && hasMore.value) void loadMore() })
+const handleWorkbenchRefresh = () => { void refresh(true) }
+uni.$on('design-workbench:refresh', handleWorkbenchRefresh)
+watch(keyword, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { void refresh(true) }, 320)
+})
+onUnmounted(() => {
+  uni.$off('design-workbench:refresh', handleWorkbenchRefresh)
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
-const counts = computed(() => ({
-  all: items.value.length,
-  Pending: items.value.filter((i) => i.designStatus === 'Pending').length,
-  Doing: items.value.filter((i) => i.designStatus === 'Doing').length,
-  Done: items.value.filter((i) => i.designStatus === 'Done').length
-}))
-
-onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
-onShow(() => { if (isLoggedIn()) refresh() })
-onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
-uni.$on('design-workbench:refresh', refresh)
-
-async function refresh() {
+async function refresh(reset = true) {
+  if (reset) currentPage.value = 1
   loading.value = true
+  loadMoreError.value = ''
   try {
-    items.value = await workbenchApi.design()
+    const result = await workbenchApi.design({
+      current: currentPage.value,
+      size: PAGE_SIZE,
+      keyword: keyword.value,
+      filter: activeFilter.value
+    })
+    items.value = result.list
+    total.value = result.total
+    hasMore.value = result.hasMore
   } catch (error) {
-    toastError(error, '设计工作台加载失败')
+    items.value = []
+    total.value = 0
+    hasMore.value = false
+    toastError(error, '待我设计加载失败')
   } finally {
     loading.value = false
   }
 }
 
-onUnmounted(() => { uni.$off('design-workbench:refresh', refresh) })
+async function loadMore(): Promise<void> {
+  if (!hasMore.value || loadingMore.value || loading.value) return
+  loadingMore.value = true
+  loadMoreError.value = ''
+  try {
+    const next = currentPage.value + 1
+    const result = await workbenchApi.design({
+      current: next,
+      size: PAGE_SIZE,
+      keyword: keyword.value,
+      filter: activeFilter.value
+    })
+    const existing = new Set(items.value.map((item) => `${item.custId}:${item.propertyId || ''}`))
+    items.value = [...items.value, ...result.list.filter((item) => !existing.has(`${item.custId}:${item.propertyId || ''}`))]
+    currentPage.value = next
+    total.value = result.total
+    hasMore.value = result.hasMore
+  } catch (error) {
+    loadMoreError.value = error instanceof Error ? error.message : '加载更多失败'
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+function changeFilter(key: typeof activeFilter.value): void {
+  if (activeFilter.value === key) return
+  activeFilter.value = key
+  void refresh(true)
+}
 
 function openCustomer(custId: string, propertyId: string | null) {
   uni.navigateTo({ url: `${P.customerDetail}?id=${custId}${propertyId ? `&propertyId=${propertyId}` : ''}` })
@@ -113,28 +161,31 @@ function workbenchPriceLabel(item: DesignWorkbenchItem): string {
 
 <template>
   <view class="wb">
-    <JzPageHeader :title="isStoreManager ? '门店设计方案' : '设计工作台'" :subtitle="`${session.company?.name || ''} · ${isStoreManager ? '本店客户设计推进' : '待设计客户房屋'}`" />
+    <JzPageHeader :title="isStoreManager ? '门店设计方案' : '待我设计'" :subtitle="`${session.company?.name || ''} · ${isStoreManager ? '本店客户设计推进' : '待设计客户房屋'}`" />
 
+    <view class="wb__search-wrap">
+      <view class="wb__search">
+        <JzIcon name="search" :size="32" :color="TOKEN_COLOR.text3" />
+        <input v-model="keyword" placeholder="搜索客户、手机号、小区或房屋" placeholder-class="wb__placeholder" />
+      </view>
+    </view>
     <view class="wb__filters">
       <view
         v-for="f in filters"
         :key="f.key"
         class="wb__filter"
         :class="{ 'wb__filter--active': activeFilter === f.key }"
-        @tap="activeFilter = f.key"
-      >
-        <text>{{ f.label }}</text>
-        <text class="wb__filter-count">{{ counts[f.key] }}</text>
-      </view>
+        @tap="changeFilter(f.key)"
+      >{{ f.label }}</view>
     </view>
 
     <view class="wb__body">
-      <view v-if="!loading && filtered.length === 0" class="jz-card wb__empty">
+      <view v-if="!loading && items.length === 0" class="jz-card wb__empty">
         <JzEmpty :text="isStoreManager ? '本店暂无设计方案' : '暂无待设计客户'" :sub="isStoreManager ? '本店客户进入设计阶段后会出现在这里' : '客户量房并分配设计师后会出现在这里'" />
       </view>
 
       <view
-        v-for="item in filtered"
+        v-for="item in items"
         :key="`${item.custId}:${item.propertyId || ''}`"
         class="jz-card wb__item"
         @tap="openCustomer(item.custId, item.propertyId)"
@@ -199,6 +250,8 @@ function workbenchPriceLabel(item: DesignWorkbenchItem): string {
       </view>
     </view>
 
+    <ListFooter v-if="!loading && items.length" :loading="loadingMore" :has-more="hasMore" :error="loadMoreError" @retry="loadMore" />
+
     <view class="jz-tabbar-gap" />
     <JzTabBar :current="P.designWorkbench" />
   </view>
@@ -206,13 +259,18 @@ function workbenchPriceLabel(item: DesignWorkbenchItem): string {
 
 <style lang="scss" scoped>
 .wb { min-height: 100vh; background: $jzb-bg-page; }
+.wb__search-wrap { padding: $jzb-space-3 $jzb-page-pad 0; background: $jzb-bg-card; }
+.wb__search { display: flex; align-items: center; gap: 12rpx; height: 72rpx; padding: 0 22rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; }
+.wb__search input { flex: 1; min-width: 0; font-size: $jzb-font-sm; color: $jzb-text-1; }
+.wb__placeholder { color: $jzb-text-4; }
 .wb__filters {
-  display: flex; gap: $jzb-space-3; padding: $jzb-space-4 $jzb-page-pad;
+  display: flex; gap: $jzb-space-3; padding: $jzb-space-3 $jzb-page-pad $jzb-space-4;
+  overflow-x: auto; white-space: nowrap;
   background: $jzb-bg-card; border-bottom: 1rpx solid $jzb-border;
   position: sticky; top: 0; z-index: $jzb-z-sticky;
 }
 .wb__filter {
-  display: flex; align-items: center; gap: 8rpx;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8rpx;
   padding: 12rpx 24rpx; border-radius: $jzb-radius-pill;
   background: $jzb-bg-hover; font-size: $jzb-font-sm; color: $jzb-text-2;
 }

@@ -10,6 +10,8 @@ import { toastError } from '@/composables/toast'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const projectId = ref('')
 const projectName = ref('')
@@ -82,11 +84,13 @@ function openSettlement() {
 function projectLine(sheet: MaterialOrderSheet) {
   return [sheet.projectName, sheet.propertyAddress].filter(Boolean).join(' · ')
 }
+useFinanceStoreScope(() => load())
 </script>
 
 <template>
   <view class="ms">
     <JzPageHeader :title="isWorkbench ? '主材下单工作台' : '主材下单'" :subtitle="isWorkbench ? '全公司待请购/待下单作业单；财务在 App 内直接下单与结算' : '按品类成单：设计师建单 → 项目经理测量确认 → 财务在 App 下单'" back />
+    <FinanceStoreScope />
 
     <view v-if="loading" class="ms__hint">加载中…</view>
     <template v-else>

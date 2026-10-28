@@ -4,7 +4,7 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
-import type { ContractLine, ContractStatus, ContractWorkbench } from '@/domains/trade/model'
+import type { ContractFactNode, ContractLine, ContractStatus, ContractWorkbench } from '@/domains/trade/model'
 import { documentApi } from '@/domains/document/api'
 import { money } from '@/core/format'
 import { hideLoading, loading, toastError } from '@/composables/toast'
@@ -94,6 +94,35 @@ async function load() {
 }
 
 const contract = computed(() => workbench.value?.contract || null)
+const upstreamFacts = computed(() => workbench.value?.upstreamFacts || [])
+const downstreamFacts = computed(() => workbench.value?.downstreamFacts || [])
+const sourceGaps = computed(() => workbench.value?.sourceGaps || [])
+
+function factTypeLabel(fact: ContractFactNode): string {
+  const labels: Record<string, string> = {
+    Customer: '客户', Property: '房屋', Measure: '量房', Design: '设计方案', Quote: '报价', Contract: '合同',
+    Project: '项目', ContractChange: '增减项', MaterialPlan: '材料', Acceptance: '验收', Receivable: '应收', Cost: '成本'
+  }
+  return labels[fact.factType || ''] || fact.title || fact.objectType || '事实'
+}
+
+function factMeta(fact: ContractFactNode): string {
+  return [
+    fact.version == null ? '' : `V${fact.version}`,
+    fact.statusName || fact.status || '',
+    fact.businessTime ? fact.businessTime.slice(0, 10) : '',
+    fact.actorName || ''
+  ].filter(Boolean).join(' · ')
+}
+
+function openFact(fact: ContractFactNode): void {
+  const path = fact.navigationPath || ''
+  const id = fact.objectId || ''
+  if (!id) return
+  if (path.startsWith('quote:')) uni.navigateTo({ url: `${P.quoteDetail}?id=${id}` })
+  else if (path.startsWith('design:')) uni.navigateTo({ url: `${P.designScheme}?id=${id}` })
+  else if (path.startsWith('project:')) uni.navigateTo({ url: `${P.projectDetail}?id=${id}` })
+}
 const statusMeta = computed(() => {
   const status = contract.value?.status
   return status ? CONTRACT_STATUS_META[status] : { label: '未知', color: TOKEN_COLOR.text3 }
@@ -251,6 +280,61 @@ function nodeColor(status?: string) {
       <view v-if="changeAmount !== 0" class="cw__delta">
         <JzIcon name="history" :size="26" :color="TOKEN_COLOR.white" />
         <text>较签约额 {{ changeAmount > 0 ? '增加' : '减少' }} {{ money(Math.abs(changeAmount)) }}</text>
+      </view>
+    </view>
+
+    <!-- 合同事实链 -->
+    <view class="cw__section">
+      <view class="cw__head"><text class="cw__title">签约依据与履约事实</text></view>
+      <view class="jz-card cw__facts">
+        <view class="cw__facts-group">
+          <text class="cw__facts-label">签约上游</text>
+          <view
+            v-for="fact in upstreamFacts"
+            :key="fact.nodeId"
+            class="cw__fact"
+            :class="{ 'cw__fact--link': fact.navigationPath && fact.objectId }"
+            @tap="openFact(fact)"
+          >
+            <view class="cw__fact-main">
+              <text class="cw__fact-type">{{ factTypeLabel(fact) }}</text>
+              <text class="cw__fact-title">{{ fact.title || '—' }}</text>
+              <text v-if="fact.summary" class="cw__fact-summary">{{ fact.summary }}</text>
+            </view>
+            <view class="cw__fact-side">
+              <JzMoney v-if="fact.amount !== undefined" :value="fact.amount" />
+              <text class="cw__fact-meta">{{ factMeta(fact) }}</text>
+              <JzIcon v-if="fact.navigationPath && fact.objectId" name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" />
+            </view>
+          </view>
+          <view v-for="gap in sourceGaps" :key="gap" class="cw__fact cw__fact--gap">
+            <text class="cw__fact-title">{{ gap }}</text>
+            <text class="cw__fact-meta">来源事实暂不可确认</text>
+          </view>
+        </view>
+
+        <view class="cw__facts-group">
+          <text class="cw__facts-label">履约下游</text>
+          <view
+            v-for="fact in downstreamFacts"
+            :key="fact.nodeId"
+            class="cw__fact"
+            :class="{ 'cw__fact--link': fact.navigationPath && fact.objectId }"
+            @tap="openFact(fact)"
+          >
+            <view class="cw__fact-main">
+              <text class="cw__fact-type">{{ factTypeLabel(fact) }}</text>
+              <text class="cw__fact-title">{{ fact.title || '—' }}</text>
+              <text v-if="fact.summary" class="cw__fact-summary">{{ fact.summary }}</text>
+            </view>
+            <view class="cw__fact-side">
+              <JzMoney v-if="fact.amount !== undefined" :value="fact.amount" />
+              <text class="cw__fact-meta">{{ factMeta(fact) }}</text>
+              <JzIcon v-if="fact.navigationPath && fact.objectId" name="chevron-right" :size="22" :color="TOKEN_COLOR.text4" />
+            </view>
+          </view>
+          <view v-if="!downstreamFacts.length" class="cw__empty-line">尚无履约事实</view>
+        </view>
       </view>
     </view>
 
@@ -501,6 +585,19 @@ function nodeColor(status?: string) {
 .cw__hero { padding: 20rpx 32rpx 40rpx; background: linear-gradient(135deg, $jzb-primary-dark 0%, $jzb-primary 100%); color: $jzb-text-inverse; }
 .cw__no { font-size: $jzb-font-sm; opacity: .82; }
 .cw__name { display: block; margin-top: 12rpx; font-size: $jzb-font-md; font-weight: 600; }
+.cw__facts { padding: 22rpx 24rpx; }
+.cw__facts-group + .cw__facts-group { margin-top: 22rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border; }
+.cw__facts-label { display: block; margin-bottom: 10rpx; font-size: $jzb-font-sm; font-weight: 700; color: $jzb-text-2; }
+.cw__fact { display: flex; align-items: flex-start; justify-content: space-between; gap: 18rpx; padding: 16rpx 0; border-bottom: 1rpx solid $jzb-border; }
+.cw__fact:last-child { border-bottom: none; padding-bottom: 0; }
+.cw__fact--link:active { opacity: .72; }
+.cw__fact--gap { color: $jzb-warning; }
+.cw__fact-main { flex: 1; min-width: 0; }
+.cw__fact-type { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; }
+.cw__fact-title { display: block; margin-top: 4rpx; font-size: $jzb-font; font-weight: 650; color: $jzb-text-1; }
+.cw__fact-summary { display: block; margin-top: 5rpx; font-size: $jzb-font-xs; line-height: 1.55; color: $jzb-text-3; }
+.cw__fact-side { display: flex; flex-direction: column; align-items: flex-end; gap: 5rpx; flex-shrink: 0; }
+.cw__fact-meta { font-size: 22rpx; color: $jzb-text-4; text-align: right; }
 .cw__amounts { display: flex; margin-top: 28rpx; }
 .cw__amount-item { flex: 1; min-width: 0; }
 .cw__amount-label { display: block; font-size: $jzb-font-xs; opacity: .78; margin-bottom: 6rpx; }

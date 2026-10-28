@@ -1,5 +1,6 @@
 import { post } from '@/core/http'
-import type { BossContractChangeGroup, BossContractChangeItem, BossContractChangePeriod, BossContractChangeReport, BossDesignReport, BossMeasureDesignerGroup, BossMeasureItem, BossMeasureMarketerGroup, BossMeasureReport, BossMeasureSourceGroup, BossQuoteReport, DesignWorkbenchItem, QuoteWorkbenchItem, SignWorkbenchItem } from './model'
+import { toPageData, type PageData, type PageResult } from '@/domains/common/model'
+import type { BossContractChangeGroup, BossContractChangeItem, BossContractChangePeriod, BossContractChangeReport, BossDesignReport, BossMeasureDesignerGroup, BossMeasureItem, BossMeasureMarketerGroup, BossMeasureReport, BossMeasureSourceGroup, BossQuoteReport, DesignWorkbenchItem, DesignerMeasureTask, QuoteWorkbenchItem, SignWorkbenchItem } from './model'
 
 type Raw = Record<string, unknown>
 
@@ -601,6 +602,53 @@ function normalizeBossContractChangeReport(raw: Raw): BossContractChangeReport {
   }
 }
 
+function normalizeDesignerMeasureTask(raw: Raw): DesignerMeasureTask {
+  return {
+    taskKey: String(raw.taskKey ?? ''),
+    customerId: String(raw.customerId ?? ''),
+    customerName: String(raw.customerName ?? ''),
+    telNo: String(raw.telNo ?? ''),
+    customerStatus: String(raw.customerStatus ?? ''),
+    customerStatusName: String(raw.customerStatusName ?? ''),
+    propertyId: raw.propertyId ? String(raw.propertyId) : null,
+    propertyLabel: String(raw.propertyLabel ?? ''),
+    community: String(raw.community ?? ''),
+    building: String(raw.building ?? ''),
+    roomNo: String(raw.roomNo ?? ''),
+    address: String(raw.address ?? ''),
+    area: raw.area != null ? Number(raw.area) : null,
+    layout: String(raw.layout ?? ''),
+    propertyStatus: String(raw.propertyStatus ?? ''),
+    propertyStatusName: String(raw.propertyStatusName ?? ''),
+    measureId: raw.measureId ? String(raw.measureId) : null,
+    measureStatus: raw.measureStatus ? String(raw.measureStatus) : null,
+    scheduledAt: raw.scheduledAt ? String(raw.scheduledAt) : null,
+    scheduleStateKey: raw.scheduleStateKey ? String(raw.scheduleStateKey) : null,
+    scheduleStateName: raw.scheduleStateName ? String(raw.scheduleStateName) : null,
+    completedAt: raw.completedAt ? String(raw.completedAt) : null,
+    stateKey: String(raw.stateKey ?? ''),
+    stateLabel: String(raw.stateLabel ?? '状态暂不可确认'),
+    riskLevel: String(raw.riskLevel ?? 'Normal'),
+    riskReason: String(raw.riskReason ?? ''),
+    mainActionKey: String(raw.mainActionKey ?? ''),
+    mainActionLabel: String(raw.mainActionLabel ?? '暂不可执行'),
+    nextActionKey: raw.nextActionKey ? String(raw.nextActionKey) : null,
+    nextActionLabel: raw.nextActionLabel ? String(raw.nextActionLabel) : null,
+    secondaryActionKey: raw.secondaryActionKey ? String(raw.secondaryActionKey) : null,
+    secondaryActionLabel: raw.secondaryActionLabel ? String(raw.secondaryActionLabel) : null,
+    completionHint: raw.completionHint ? String(raw.completionHint) : null,
+    route: raw.route ? String(raw.route) : null,
+    allowed: raw.allowed !== false,
+    blockReason: raw.blockReason ? String(raw.blockReason) : null,
+    sitePhotoCount: Number(raw.sitePhotoCount ?? 0),
+    structureImageCount: Number(raw.structureImageCount ?? 0),
+    attachmentCount: Number(raw.attachmentCount ?? 0),
+    requirementCount: Number(raw.requirementCount ?? 0),
+    designCount: Number(raw.designCount ?? 0),
+    priority: Number(raw.priority ?? 0)
+  }
+}
+
 export const workbenchApi = {
   /** 企业负责人报价谈单客户经营报告 */
   bossQuote: async (): Promise<BossQuoteReport> => {
@@ -622,21 +670,61 @@ export const workbenchApi = {
     const raw = await post<Raw>('statistic/boss/design/report', {})
     return normalizeBossDesign(raw || {})
   },
-  /** 设计工作台：需要出设计方案的客户房屋列表 */
-  design: async (): Promise<DesignWorkbenchItem[]> => {
-    const raw = await post<Raw[]>('statistic/workbench/design/page', {})
-    return (raw || []).map(normalizeDesign)
+  /** 设计师待量房：关键词、状态、排序和分页均由服务端完成。 */
+  measurePage: async (query: { current?: number; size?: number; keyword?: string; state?: string } = {}): Promise<PageData<DesignerMeasureTask>> => {
+    const current = query.current ?? 1
+    const size = query.size ?? 20
+    const raw = await post<PageResult<Raw> | Raw[]>('statistic/designer/measure/page', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      state: query.state || undefined
+    })
+    const page = toPageData(raw, current, size)
+    return { ...page, list: page.list.map(normalizeDesignerMeasureTask) }
   },
 
-  /** 报价工作台：需要编制/跟进报价确认的客户房屋列表 */
-  quote: async (): Promise<QuoteWorkbenchItem[]> => {
-    const raw = await post<Raw[]>('statistic/workbench/quote/page', {})
-    return (raw || []).map(normalizeQuote)
+  /** 设计工作台：服务端完成资格筛选、关键词、设计状态和分页。 */
+  design: async (query: { current?: number; size?: number; keyword?: string; filter?: string } = {}): Promise<PageData<DesignWorkbenchItem>> => {
+    const current = query.current ?? 1
+    const size = query.size ?? 20
+    const raw = await post<PageResult<Raw> | Raw[]>('statistic/workbench/design/page', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      filter: query.filter || 'all'
+    })
+    const page = toPageData(raw, current, size)
+    return { ...page, list: page.list.map(normalizeDesign) }
   },
 
-  /** 签约工作台：报价已确认、待签约立项的客户房屋列表 */
-  sign: async (): Promise<SignWorkbenchItem[]> => {
-    const raw = await post<Raw[]>('statistic/workbench/sign/page', {})
-    return (raw || []).map(normalizeSign)
+  /** 报价工作台：服务端分页、筛选并排除 Dormant 客户。 */
+  quote: async (query: { current?: number; size?: number; filter?: string; keyword?: string; quoteId?: string } = {}): Promise<PageData<QuoteWorkbenchItem>> => {
+    const current = query.current ?? 1
+    const size = query.size ?? 20
+    const raw = await post<PageResult<Raw> | Raw[]>('statistic/workbench/quote/page', {
+      current,
+      size,
+      filter: query.filter || 'all',
+      keyword: query.keyword?.trim() || undefined,
+      quoteId: query.quoteId || undefined
+    })
+    const page = toPageData(raw, current, size)
+    return { ...page, list: page.list.map(normalizeQuote) }
+  },
+
+  /** 签约工作台：服务端分页、筛选并排除 Dormant 客户。 */
+  sign: async (query: { current?: number; size?: number; filter?: string; keyword?: string; quoteId?: string } = {}): Promise<PageData<SignWorkbenchItem>> => {
+    const current = query.current ?? 1
+    const size = query.size ?? 20
+    const raw = await post<PageResult<Raw> | Raw[]>('statistic/workbench/sign/page', {
+      current,
+      size,
+      filter: query.filter || 'all',
+      keyword: query.keyword?.trim() || undefined,
+      quoteId: query.quoteId || undefined
+    })
+    const page = toPageData(raw, current, size)
+    return { ...page, list: page.list.map(normalizeSign) }
   }
 }

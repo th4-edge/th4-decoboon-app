@@ -16,6 +16,8 @@ import JzSkeleton from '@/components/JzSkeleton.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 type Filter = 'all' | 'first' | 'overdue' | 'outstanding' | 'received'
 const projectId = ref('')
@@ -79,11 +81,13 @@ function receive(item: Receivable) {
   uni.navigateTo({ url: `${P.financeEntry}?type=receipt&projectId=${item.project.id}&receivableId=${item.id}` })
 }
 function progress(item: Receivable) { return Math.min(100, Math.round(item.receivedAmount / Math.max(item.amount, 1) * 100)) }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader title="应收计划" subtitle="首期款、进度款、尾款与质保金统一催收" :right-text="editable ? '新增节点' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
 
     <view class="fin-hero">
       <text class="fin-hero__label">全部应收</text>

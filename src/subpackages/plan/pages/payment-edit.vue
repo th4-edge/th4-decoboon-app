@@ -46,7 +46,7 @@ const pageTitle = computed(() => templateId.value ? '编辑付款计划' : '新�
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
-  if (session.role !== 'boss') { uni.reLaunch({ url: P.mine }); return }
+  if (!['boss', 'storeManager'].includes(session.role || '')) { uni.reLaunch({ url: P.mine }); return }
   templateId.value = String(query?.id || '')
   void load()
 })
@@ -61,6 +61,11 @@ async function load() {
       ...construction.constructionPlans.flatMap((item) => item.stages)
     ])
     const current = templateId.value ? management.paymentPlans.find((item) => item.templateId === templateId.value) : undefined
+    if (current && current.status !== 'draft') {
+      toast('已启用或已停用的版本不可原地修改，请从列表创建下一版')
+      setTimeout(() => uni.navigateBack(), 600)
+      return
+    }
     if (current) apply(current)
     else if (templateId.value) {
       toast('付款计划模板不存在', 'none')

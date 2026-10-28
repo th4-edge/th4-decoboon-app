@@ -5,7 +5,7 @@ import { normalizeCustomer } from '../crm/api'
 import { normalizeProperty } from '@/domains/property/api'
 import { normalizeContractConstructionPlan, normalizeContractPaymentPlan } from '../plan/api'
 import { normalizeEmployee } from '@/domains/identity/api'
-import type { Contract, ContractChange, ContractLine, ContractWorkbench, Quote, QuoteGroup, QuoteItem, QuoteMode, QuoteStatus } from './model'
+import type { Contract, ContractChange, ContractFactNode, ContractLine, ContractWorkbench, Quote, QuoteGroup, QuoteItem, QuoteMode, QuoteStatus } from './model'
 import { normalizeScheme } from '../design/api'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
@@ -52,10 +52,13 @@ const CHANGE_TYPE_API: Record<NonNullable<ContractChange['type']>, string> = {
   add: 'Add', remove: 'Remove', replace: 'Replace', quantity: 'Quantity', price: 'Price'
 }
 
-function normalizeItem(raw: RawRecord): QuoteItem {
+export function normalizeQuoteItem(raw: RawRecord): QuoteItem {
+  const itemId = raw.itemId == null ? undefined : String(raw.itemId)
+  const typeRowId = raw.typeRowId == null ? undefined : String(raw.typeRowId)
   return {
     ...raw,
-    id: String(raw.id ?? raw.itemId ?? ''),
+    id: itemId || typeRowId || String(raw.id ?? ''),
+    itemId,
     name: raw.name ?? '',
     type: raw.type ? String(enumValue(raw.type)).toLowerCase() as QuoteItem['type'] : undefined,
     category: raw.category,
@@ -68,9 +71,15 @@ function normalizeItem(raw: RawRecord): QuoteItem {
     manualPrice: Number(raw.manualPrice ?? 0),
     pricingMode: enumValue(raw.pricingMode),
     price: Number(raw.price ?? 0),
-    amount: Number(raw.amount ?? 0),
-    cost: Number(raw.cost ?? 0),
+    amount: raw.amount == null ? undefined : Number(raw.amount),
+    cost: raw.cost == null ? undefined : Number(raw.cost),
+    fixedTotalPrice: raw.fixedTotalPrice == null ? undefined : Number(raw.fixedTotalPrice),
     formula: raw.formula,
+    typeRowId,
+    sourceLineIds: Array.isArray(raw.sourceLineIds) ? raw.sourceLineIds.map((id: unknown) => String(id)) : undefined,
+    sourceRegionIds: Array.isArray(raw.sourceRegionIds) ? raw.sourceRegionIds.map((id: unknown) => id == null ? null : String(id)) : undefined,
+    sourceRegionNames: Array.isArray(raw.sourceRegionNames) ? raw.sourceRegionNames.map((name: unknown) => String(name)) : undefined,
+    sourceCount: raw.sourceCount == null ? undefined : Number(raw.sourceCount),
     craft: raw.craft,
     role: enumValue(raw.role),
     differenceType: enumValue(raw.differenceType),
@@ -86,16 +95,18 @@ function normalizeItem(raw: RawRecord): QuoteItem {
   }
 }
 
-function normalizeGroup(raw: RawRecord): QuoteGroup {
+export function normalizeQuoteGroup(raw: RawRecord): QuoteGroup {
   return {
     key: raw.key ?? raw.category ?? raw.name ?? '',
     name: raw.name ?? raw.category ?? '',
+    groupMode: raw.groupMode ? String(enumValue(raw.groupMode)).toUpperCase() as QuoteGroup['groupMode'] : undefined,
     type: raw.type ? String(enumValue(raw.type)).toLowerCase() as QuoteItem['type'] : undefined,
     category: raw.category,
-    quantity: Number(raw.quantity ?? 0),
-    amount: Number(raw.amount ?? 0),
-    cost: Number(raw.cost ?? 0),
-    items: raw.items ? (raw.items as RawRecord[]).map(normalizeItem) : []
+    unit: raw.unit == null ? undefined : String(enumValue(raw.unit)),
+    quantity: raw.quantity == null ? undefined : Number(raw.quantity),
+    amount: raw.amount == null ? undefined : Number(raw.amount),
+    cost: raw.cost == null ? undefined : Number(raw.cost),
+    items: raw.items ? (raw.items as RawRecord[]).map(normalizeQuoteItem) : []
   }
 }
 
@@ -126,11 +137,12 @@ export function normalizeQuote(raw: RawRecord): Quote {
     taxRate: Number(raw.taxRate ?? 0.05),
     taxAmount: Number(raw.taxAmount ?? 0),
     status: QUOTE_STATUS[enumValue(raw.status)] || 'draft',
-    items: raw.items ? (raw.items as RawRecord[]).map(normalizeItem) : undefined,
-    regionGroups: raw.regionGroups ? (raw.regionGroups as RawRecord[]).map(normalizeGroup) : undefined,
-    constructionGroups: raw.constructionGroups ? (raw.constructionGroups as RawRecord[]).map(normalizeGroup) : undefined,
-    materialGroups: raw.materialGroups ? (raw.materialGroups as RawRecord[]).map(normalizeGroup) : undefined,
-    otherGroups: raw.otherGroups ? (raw.otherGroups as RawRecord[]).map(normalizeGroup) : undefined,
+    items: raw.items ? (raw.items as RawRecord[]).map(normalizeQuoteItem) : undefined,
+    regionGroups: raw.regionGroups ? (raw.regionGroups as RawRecord[]).map(normalizeQuoteGroup) : undefined,
+    typeGroups: raw.typeGroups ? (raw.typeGroups as RawRecord[]).map(normalizeQuoteGroup) : undefined,
+    constructionGroups: raw.constructionGroups ? (raw.constructionGroups as RawRecord[]).map(normalizeQuoteGroup) : undefined,
+    materialGroups: raw.materialGroups ? (raw.materialGroups as RawRecord[]).map(normalizeQuoteGroup) : undefined,
+    otherGroups: raw.otherGroups ? (raw.otherGroups as RawRecord[]).map(normalizeQuoteGroup) : undefined,
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime)
   }
 }
@@ -279,7 +291,7 @@ export const tradeApi = {
     ...input,
     role: input.role ? input.role[0].toUpperCase() + input.role.slice(1) : undefined,
     differenceStatus: input.differenceStatus ? input.differenceStatus[0].toUpperCase() + input.differenceStatus.slice(1) : undefined
-  }).then(normalizeItem),
+  }).then(normalizeQuoteItem),
   deleteQuoteLine: (quoteId: string, itemId: string) =>
     post<boolean>('quote/line/delete', { quoteId, itemId }),
   transition: (id: string, status: QuoteStatus) => {
@@ -555,6 +567,34 @@ function normalizeContractLine(raw: RawRecord): ContractLine {
   }
 }
 
+function normalizeFact(raw: RawRecord): ContractFactNode {
+  return {
+    nodeId: String(raw.nodeId ?? ''),
+    nodeKey: String(raw.nodeKey ?? ''),
+    stage: raw.stage == null ? undefined : String(enumValue(raw.stage)),
+    factType: raw.factType == null ? undefined : String(enumValue(raw.factType)),
+    objectType: raw.objectType == null ? undefined : String(raw.objectType),
+    objectId: raw.objectId == null ? undefined : String(raw.objectId),
+    projectId: raw.projectId == null ? undefined : String(raw.projectId),
+    version: raw.version == null ? undefined : Number(raw.version),
+    current: raw.current !== false,
+    status: raw.status == null ? undefined : String(enumValue(raw.status)),
+    statusName: raw.statusName == null ? undefined : String(raw.statusName),
+    businessTime: raw.businessTime == null ? undefined : String(raw.businessTime),
+    recordedAt: raw.recordedAt == null ? undefined : String(raw.recordedAt),
+    actorName: raw.actorName == null ? undefined : String(raw.actorName),
+    title: raw.title == null ? undefined : String(raw.title),
+    summary: raw.summary == null ? undefined : String(raw.summary),
+    sourceLabel: raw.sourceLabel == null ? undefined : String(raw.sourceLabel),
+    amount: raw.amount == null ? undefined : Number(raw.amount),
+    costComplete: raw.costComplete == null ? undefined : raw.costComplete === true,
+    uncertainty: raw.uncertainty == null ? undefined : String(raw.uncertainty),
+    navigationPath: raw.navigationPath == null ? undefined : String(raw.navigationPath),
+    returnPath: raw.returnPath == null ? undefined : String(raw.returnPath),
+    returnAnchor: raw.returnAnchor == null ? undefined : String(raw.returnAnchor)
+  }
+}
+
 function normalizeContractWorkbench(raw: RawRecord): ContractWorkbench {
   const receivable = raw.receivable || {}
   const cost = raw.cost || {}
@@ -628,6 +668,9 @@ function normalizeContractWorkbench(raw: RawRecord): ContractWorkbench {
       confirmerName: selection.confirmerName,
       confirmedAt: selection.confirmedAt,
       totalCount: Number(selection.totalCount ?? 0)
-    }
+    },
+    upstreamFacts: Array.isArray(raw.upstreamFacts) ? raw.upstreamFacts.map(normalizeFact) : [],
+    downstreamFacts: Array.isArray(raw.downstreamFacts) ? raw.downstreamFacts.map(normalizeFact) : [],
+    sourceGaps: Array.isArray(raw.sourceGaps) ? raw.sourceGaps.map((value: unknown) => String(value)) : []
   }
 }

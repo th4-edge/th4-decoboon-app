@@ -1,4 +1,5 @@
 import { post, listOf } from '@/core/http'
+import { storeScopeRequestId } from '@/domains/identity/storeScope'
 import type { PageResult } from '@/domains/common/model'
 import type {
   DeliveryMode,
@@ -620,7 +621,7 @@ export interface SheetLineInput {
 /** 主材下单作业单：门店/项目维度维护，设计师建单、项目经理测量确认、提交请购。 */
 export const materialSheetApi = {
   list: async (query: { projectId?: string; sheetType?: string; status?: import('./model').MaterialSheetStatus } = {}) =>
-    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/sheet/page', query)).map(normalizeSheet),
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/sheet/page', { ...query, storeId: storeScopeRequestId.value })).map(normalizeSheet),
 
   info: async (sheetId: string) => normalizeSheet(await post<RawRecord>('material/sheet/info', { sheetId })),
 
@@ -858,7 +859,7 @@ function normalizeSettlementPreview(raw: RawRecord): import('./model').Settlemen
 
 export const materialSettlementApi = {
   list: async (supplierId?: string) =>
-    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/page', { supplierId }))
+    listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/page', { supplierId, storeId: storeScopeRequestId.value }))
       .map(normalizeSettlement),
 
   info: async (settlementId: string) =>
@@ -870,7 +871,7 @@ export const materialSettlementApi = {
     period?: string
     purchaseOrderId?: string
     projectId?: string
-  } = {}) => listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/preview', query))
+  } = {}) => listOf(await post<PageResult<RawRecord> | RawRecord[]>('material/settlement/preview', { ...query, storeId: storeScopeRequestId.value }))
     .map(normalizeSettlementPreview),
 
   confirm: async (input: {

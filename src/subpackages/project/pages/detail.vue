@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
 import type { Acceptance } from '@/domains/acceptance/model'
 import type { ProjectMember } from '@/domains/identity/model'
-import type { Project, ProjectStage } from '@/domains/project/model'
+import type { Project, ProjectFactNode, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
 import type { SiteReport } from '@/domains/site/model'
 import type { Contract } from '@/domains/trade/model'
@@ -43,6 +43,7 @@ import MaterialHealthCard from '@/components/MaterialHealthCard/MaterialHealthCa
 import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
 import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
+import ProjectFactPhase from '@/subpackages/project/components/ProjectFactPhase.vue'
 import {
   activateOwnerPreviewFromQuery,
   leaveOwnerPreview,
@@ -63,10 +64,11 @@ const financeReport = ref<FinanceProjectReport | null>(null)
 const materialHealth = ref<MaterialHealthReport | null>(null)
 const materialHealthError = ref('')
 const contract = ref<Contract | null>(null)
-type ProjectTab = 'overview' | 'plan' | 'tasks' | 'feed' | 'members' | 'change' | 'advice'
+type ProjectTab = 'overview' | 'facts' | 'plan' | 'tasks' | 'feed' | 'members' | 'change' | 'advice'
 const tab = ref<ProjectTab>('overview')
 const loading = ref(true)
 const loadError = ref('')
+const pendingFactAnchor = ref('')
 
 // 工地详情是业主最常转发给家人、工长的页面：标题用项目名而非功能名。
 useShare(() => ({
@@ -78,10 +80,19 @@ onLoad((q) => {
   activateOwnerPreviewFromQuery(q)
   if (!isLoggedIn()) uni.reLaunch({ url: P.login })
   id.value = q?.id || ''
+  if (q?.tab === 'facts') tab.value = 'facts'
+  pendingFactAnchor.value = q?.anchor || ''
 })
 onShow(() => {
   if (ownerPreview.active) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
-  if (id.value) load()
+  if (id.value) {
+    void load().then(() => {
+      if (pendingFactAnchor.value) {
+        scrollToFactAnchor(pendingFactAnchor.value)
+        pendingFactAnchor.value = ''
+      }
+    })
+  }
 })
 
 const previewMode = computed(() => ownerPreview.active)
@@ -98,7 +109,7 @@ const canInitiateChange = computed(() => {
   return true
 })
 const TAB_ALL = [
-  { key: 'overview', label: '进度' }, { key: 'plan', label: '计划' },
+  { key: 'overview', label: '进度' }, { key: 'facts', label: '事实' }, { key: 'plan', label: '计划' },
   { key: 'tasks', label: '任务' }, { key: 'feed', label: '动态' }, { key: 'members', label: '成员' }
 ] as const
 /** 业主端固定看这五件事：进度 / 计划 / 增减项 / 动态 / 建议（任务与成员是内部视角，不给业主）。 */
@@ -123,6 +134,7 @@ async function load() {
     const [p, st] = await Promise.all([projectApi.info(id.value), projectApi.stages(id.value)])
     project.value = p || null
     stages.value = st
+    if (isOwner.value && tab.value === 'facts') tab.value = 'overview'
     if (isOwner.value) {
       const [rp, ac, ct, fb] = await Promise.all([
         siteApi.reports(id.value).catch(() => []),
@@ -215,6 +227,7 @@ const myPendingTasks = computed(() => {
 })
 
 const canOpenStage = computed(() => can(role.value, 'act:startStage') && !isOwner.value)
+const canAcceptanceAction = computed(() => can(role.value, 'act:acceptRequest') && !isOwner.value)
 /** 成员切换（设计师/项目经理）：企业负责人或本门店店长（服务端强校验） */
 const canSwitchMember = computed(() => ['boss', 'storeManager'].includes(role.value) && !isOwner.value)
 const hasManager = computed(() => !!project.value?.manager?.id)
@@ -234,6 +247,72 @@ const teamAvatars = computed(() => members.value.filter((m) => m.kind === 'emplo
 /* ---------- actions ---------- */
 function openStage(id2: string) { uni.navigateTo({ url: `${P.stageDetail}?id=${id2}` }) }
 function openTask(id2: string) { uni.navigateTo({ url: `${P.taskDetail}?id=${id2}` }) }
+function factAnchor(nodeId: string) { return `fact-anchor-${nodeId.replace(/[^a-zA-Z0-9_-]/g, '-')}` }
+function routeWith(path: string, params: Record<string, string | number | undefined>) {
+  const query = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== '')
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&')
+  return query ? `${path}?${query}` : path
+}
+function factRoute(node: ProjectFactNode): string | null {
+  const projectId = id.value
+  const customerId = project.value?.customer?.id
+  const propertyId = project.value?.property?.id
+  const contractId = contract.value?.id
+  switch (node.factType) {
+    case 'Customer': return routeWith(P.customerDetail, { id: node.objectId })
+    case 'Property': return routeWith(P.customerDetail, { id: customerId, propertyId: node.objectId })
+    case 'Measure': return routeWith(P.customerMeasureRecord, { customerId, propertyId, projectId })
+    case 'Design':
+      return can(role.value, 'view:design-review') ? routeWith(P.designReviewDetail, { designId: node.objectId }) : null
+    case 'Quote':
+    case 'QuoteAcceptance': return routeWith(P.quoteDetail, { id: node.objectId })
+    case 'Contract': return routeWith(P.projectContract, { projectId, contractId: node.objectId })
+    case 'ConstructionPlan': return routeWith(P.projectPlan, { id: projectId })
+    case 'Stage': return routeWith(P.stageDetail, { id: node.objectId })
+    case 'Task': return routeWith(P.taskDetail, { id: node.objectId })
+    case 'SiteReport': return routeWith(P.reportDaily, { id: projectId })
+    case 'MaterialSelection': return routeWith(P.projectSelection, { projectId, propertyId, contractId })
+    case 'MaterialPlan': return routeWith(P.projectMaterialPlan, { projectId, contractId })
+    case 'Purchase':
+    case 'GoodsReceipt': return routeWith(P.materialSheet, { projectId, projectName: project.value?.name })
+    case 'ContractChange': return routeWith(P.projectChangeDetail, { projectId, contractId, changeId: node.objectId })
+    case 'Acceptance':
+    case 'Rectification':
+    case 'Reinspection': {
+      const stage = node.relations.find((relation) => relation.objectType === 'ProjectStage' || relation.objectType === 'Stage')
+      return stage ? routeWith(P.acceptEdit, { stageId: stage.objectId }) : null
+    }
+    case 'Receivable':
+    case 'Receipt':
+    case 'Payable':
+    case 'Payment':
+    case 'Cost':
+    case 'ProfitSettlement': return canViewFinance.value ? routeWith(P.financeProject, { projectId }) : null
+    case 'Feedback': return routeWith(P.feedbackList, { projectId })
+    default: return null
+  }
+}
+function canOpenFactNode(node: ProjectFactNode) { return Boolean(factRoute(node)) }
+function openFactNode(node: ProjectFactNode) {
+  const target = factRoute(node)
+  const anchor = factAnchor(node.nodeId)
+  if (!target) {
+    scrollToFactAnchor(anchor)
+    return
+  }
+  pendingFactAnchor.value = anchor
+  const returnPath = routeWith(P.projectDetail, { id: id.value, tab: 'facts' })
+  uni.navigateTo({ url: `${target}${target.includes('?') ? '&' : '?'}returnPath=${encodeURIComponent(returnPath)}&returnAnchor=${encodeURIComponent(anchor)}` })
+}
+function scrollToFactAnchor(anchor: string) {
+  nextTick(() => {
+    setTimeout(() => {
+      uni.pageScrollTo({ selector: `#${anchor}`, duration: 200 })
+    }, 50)
+  })
+}
 function goPlan() { uni.navigateTo({ url: `${P.projectPlan}?id=${id.value}` }) }
 function goFinance() { uni.navigateTo({ url: `${P.financeProject}?projectId=${id.value}` }) }
 function goMembers(mode?: 'assign') { uni.navigateTo({ url: `${P.projectMembers}?id=${id.value}${mode ? '&mode=' + mode : ''}` }) }
@@ -518,7 +597,7 @@ function avatarOf(m: ProjectMember) {
               <JzProgress :percent="s.progress" :height="8" :color="STAGE_STATUS_META[s.status].color" />
               <text class="pd__stage-progress-txt">{{ s.progress }}%</text>
             </view>
-            <view v-if="s.status === 'accepting' && canOpenStage" class="pd__stage-accept" @tap.stop="acceptStage(s.id)">提交验收 / 查看验收单</view>
+            <view v-if="s.status === 'accepting' && canAcceptanceAction" class="pd__stage-accept" @tap.stop="acceptStage(s.id)">提交验收 / 查看验收单</view>
           </view>
         </view>
       </view>
@@ -566,7 +645,16 @@ function avatarOf(m: ProjectMember) {
       </view>
     </view>
 
-    <!-- ② 计划 -->
+    <!-- ② 项目事实 -->
+    <view v-else-if="tab === 'facts'">
+      <ProjectFactPhase
+        :trace="project.factTrace"
+        :can-open="canOpenFactNode"
+        @open="openFactNode"
+      />
+    </view>
+
+    <!-- ③ 计划 -->
     <view v-else-if="tab === 'plan'" class="pd__tab-body">
       <view class="jz-between pd__plan-head">
         <text class="pd__plan-title">施工计划 · 按阶段排期</text>
@@ -591,7 +679,7 @@ function avatarOf(m: ProjectMember) {
       </view>
     </view>
 
-    <!-- ③ 任务 -->
+    <!-- ④ 任务 -->
     <view v-else-if="tab === 'tasks'" class="pd__tab-body">
       <view v-if="canEditTask || (role !== 'marketer' && can(role, 'view:notice'))" class="jz-row pd__task-head">
         <button v-if="canEditTask" class="jz-btn jz-btn--primary jz-btn--sm pd__action-btn" @tap="addTask"><JzIcon name="plus" :size="25" :color="TOKEN_COLOR.white" /><text>添加任务</text></button>
@@ -623,7 +711,7 @@ function avatarOf(m: ProjectMember) {
       <JzEmpty v-if="!tasks.length" text="还没有施工任务" :sub="canEditTask ? '点击「新建任务」拆解施工动作' : '项目经理拆解任务后将展示在这里'" />
     </view>
 
-    <!-- ④ 增减项（业主只读：明细在"我的家 · 增减项"） -->
+    <!-- ⑤ 增减项（业主只读：明细在"我的家 · 增减项"） -->
     <view v-else-if="tab === 'change'" class="pd__tab-body">
       <view class="jz-card pd__advice">
         <view class="pd__advice-head">
@@ -641,7 +729,7 @@ function avatarOf(m: ProjectMember) {
       </view>
     </view>
 
-    <!-- ⑤ 建议 / 意见与投诉 -->
+    <!-- ⑥ 建议 / 意见与投诉 -->
     <view v-else-if="tab === 'advice'" class="pd__tab-body">
       <view class="jz-card pd__advice" @tap="goFeedbackList">
         <view class="pd__advice-head">
@@ -668,14 +756,14 @@ function avatarOf(m: ProjectMember) {
       <JzEmpty v-if="!feedbacks.length" text="还没有提交过建议" sub="发现问题或有改进想法，点上方入口直接反馈" />
     </view>
 
-    <!-- ⑥ 动态 -->
+    <!-- ⑦ 动态 -->
     <view v-else-if="tab === 'feed'" class="pd__tab-body">
       <JzReportCard v-for="r in reports" :key="r.id" :report="r" />
       <view v-if="!reports.length" class="jz-card"><JzEmpty text="暂无动态" sub="项目经理/设计师汇报后业主实时可见" /></view>
       <view v-if="canReport" class="pd__feed-btn"><button class="jz-btn jz-btn--primary jz-btn--block pd__action-btn" @tap="report"><JzIcon name="camera" :size="29" :color="TOKEN_COLOR.white" /><text>发起现场汇报</text></button></view>
     </view>
 
-    <!-- ⑦ 成员 -->
+    <!-- ⑧ 成员 -->
     <view v-else class="pd__tab-body">
       <view class="jz-between pd__member-head">
         <text class="pd__member-title">项目成员（{{ members.length }}）</text>

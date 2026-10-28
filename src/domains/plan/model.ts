@@ -20,8 +20,11 @@ export interface PaymentPlanTemplate {
   description: string
   sort: number
   source: PlanTemplateSource
+  sourceBaselineCode?: string
+  sourceBaselineVersion?: number
   status: PlanTemplateStatus
   defaultPlan: boolean
+  currentEnabled: boolean
   nodes: PaymentPlanNodeTemplate[]
 }
 
@@ -43,8 +46,11 @@ export interface ConstructionPlanTemplate {
   totalDays: number
   sort: number
   source: PlanTemplateSource
+  sourceBaselineCode?: string
+  sourceBaselineVersion?: number
   status: PlanTemplateStatus
   defaultPlan: boolean
+  currentEnabled: boolean
   stages: ConstructionStageTemplate[]
 }
 
@@ -63,6 +69,7 @@ export interface ConstructionPlanTemplateInput {
   name: string
   description?: string
   sort?: number
+  totalDays?: number
   stages: ConstructionStageTemplate[]
 }
 
@@ -114,6 +121,7 @@ export interface ContractConstructionPlan {
   planId?: string
   sourceCode: string
   sourceVersion: number
+  sourceTotalDays?: number
   name: string
   startDate?: string
   endDate?: string

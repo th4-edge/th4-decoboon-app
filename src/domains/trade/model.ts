@@ -6,6 +6,7 @@ import type { Employee } from '@/domains/identity/model'
 
 export type QuoteStatus = 'draft' | 'submitted' | 'accepted' | 'rejected' | 'superseded' | 'converted'
 export type QuoteMode = 'package' | 'custom' | 'hybrid'
+export type QuoteViewMode = 'REGION' | 'TYPE'
 export type ContractStatus = 'draft' | 'pendingSign' | 'signed' | 'effective' | 'changing' | 'active' | 'changed' | 'completed' | 'closed' | 'settled' | 'terminated' | 'void'
 
 export interface QuoteComponent {
@@ -18,6 +19,7 @@ export interface QuoteComponent {
 
 export interface QuoteItem {
   id: string
+  itemId?: string
   name: string
   type?: 'general' | 'construction' | 'material' | 'custom' | 'appliance' | 'soft'
   category?: string
@@ -31,8 +33,14 @@ export interface QuoteItem {
   pricingMode?: string
   price: number
   amount?: number
-  cost: number
+  cost?: number
+  fixedTotalPrice?: number
   formula?: string
+  typeRowId?: string
+  sourceLineIds?: string[]
+  sourceRegionIds?: Array<string | null>
+  sourceRegionNames?: string[]
+  sourceCount?: number
   /** 施工工艺快照：生成报价时从设计分项/材料库冻结 */
   craft?: string
   role?: string
@@ -46,11 +54,13 @@ export interface QuoteItem {
 export interface QuoteGroup {
   key: string
   name: string
+  groupMode?: QuoteViewMode
   type?: QuoteItem['type']
   category?: string
+  unit?: string
   quantity?: number
-  amount: number
-  cost: number
+  amount?: number
+  cost?: number
   items: QuoteItem[]
 }
 
@@ -76,6 +86,7 @@ export interface Quote {
   status: QuoteStatus
   items?: QuoteItem[]
   regionGroups?: QuoteGroup[]
+  typeGroups?: QuoteGroup[]
   constructionGroups?: QuoteGroup[]
   materialGroups?: QuoteGroup[]
   otherGroups?: QuoteGroup[]
@@ -263,6 +274,32 @@ export interface ContractWorkbenchSelection {
   totalCount: number
 }
 
+export interface ContractFactNode {
+  nodeId: string
+  nodeKey: string
+  stage?: string
+  factType?: string
+  objectType?: string
+  objectId?: string
+  projectId?: string
+  version?: number
+  current?: boolean
+  status?: string
+  statusName?: string
+  businessTime?: string
+  recordedAt?: string
+  actorName?: string
+  title?: string
+  summary?: string
+  sourceLabel?: string
+  amount?: number
+  costComplete?: boolean
+  uncertainty?: string
+  navigationPath?: string
+  returnPath?: string
+  returnAnchor?: string
+}
+
 /** 合同履约档案聚合：一屏回答钱、货、工、变、选。 */
 export interface ContractWorkbench {
   contract: Contract
@@ -272,4 +309,7 @@ export interface ContractWorkbench {
   progress: ContractWorkbenchProgress
   change: ContractWorkbenchChange
   selection: ContractWorkbenchSelection
+  upstreamFacts: ContractFactNode[]
+  downstreamFacts: ContractFactNode[]
+  sourceGaps: string[]
 }

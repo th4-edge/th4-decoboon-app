@@ -269,9 +269,25 @@
           }
         },
         {
+          "path": "pages/designer-followup-workbench",
+          "style": {
+            "navigationBarTitleText": "待我跟进",
+            "backgroundColor": "#F4F7F8",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
           "path": "pages/measure-workbench",
           "style": {
             "navigationBarTitleText": "量房经营工作台",
+            "backgroundColor": "#F4F7F8",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "pages/designer-measure-workbench",
+          "style": {
+            "navigationBarTitleText": "待我量房",
             "backgroundColor": "#F4F7F8",
             "enablePullDownRefresh": true
           }
@@ -996,6 +1012,29 @@
           "style": {
             "navigationBarTitleText": "付款记录",
             "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/expenses",
+          "style": {
+            "navigationBarTitleText": "费用与报销",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/expense-detail",
+          "style": {
+            "navigationBarTitleText": "费用详情",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/expense-edit",
+          "style": {
+            "navigationBarTitleText": "费用编辑",
             "backgroundColor": "#F4F7F8"
           }
         },

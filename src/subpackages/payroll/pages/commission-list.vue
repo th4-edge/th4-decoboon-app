@@ -14,6 +14,8 @@ import JzIcon from '@/components/JzIcon.vue'
 import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
   (current, size) => payrollApi.commissionPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
@@ -25,11 +27,13 @@ onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 function openAdjustments() { uni.navigateTo({ url: P.payrollAdjustmentList }) }
 function add() { uni.navigateTo({ url: P.payrollCommissionEdit }) }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="pay-page">
     <JzPageHeader title="员工提成" subtitle="签约计提，回款按比例释放，发放后结清" right-text="计提" right-icon="plus" @right="add" />
+    <FinanceStoreScope />
     <view class="pay-body">
       <view class="pay-entry jz-card" @tap="openAdjustments">
         <view><text class="pay-entry__title">提成负向调整</text><text class="pay-entry__sub">退款、离职、跨期调整进入下期工资</text></view>

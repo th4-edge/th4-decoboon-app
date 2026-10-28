@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { moneyParts } from '@/core/format'
 
 /** 金额展示：≥1 万用「万元」（品牌色单位），<1 万用「元」（次要色单位）。 */
-const props = withDefaults(defineProps<{ value?: number; prefix?: string }>(), { prefix: '' })
+const props = withDefaults(defineProps<{ value?: number | null; prefix?: string }>(), { prefix: '' })
 const part = computed(() => moneyParts(props.value))
 </script>
 

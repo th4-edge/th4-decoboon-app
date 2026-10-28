@@ -5,7 +5,7 @@ import type { Employee, ProjectMember } from '@/domains/identity/model'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeProperty } from '@/domains/property/api'
-import type { BusinessOrigin, Project, ProjectAlbumEntry, ProjectContractStage, ProjectMetricCard, ProjectOverviewReport, ProjectRiskLevel, ProjectRiskType, ProjectSortKey, ProjectStage, ProjectStatusCount } from './model'
+import type { BusinessOrigin, Project, ProjectAlbumEntry, ProjectContractStage, ProjectFactNode, ProjectFactSourceGap, ProjectFactStage, ProjectFactTrace, ProjectFactVisibility, ProjectMetricCard, ProjectOverviewReport, ProjectRiskLevel, ProjectRiskType, ProjectSortKey, ProjectStage, ProjectStatusCount, StageAcceptanceMode } from './model'
 import { dateTimeValue } from '@/core/format'
 import { session } from '@/domains/identity/session'
 import { fileApi, type PrivateFileScope } from '@/domains/file/api'
@@ -28,6 +28,28 @@ const STAGE_STATUS: Record<string, ProjectStage['status']> = {
   Todo: 'todo', Doing: 'doing', Accepting: 'accepting', Done: 'done', NotApplicable: 'notApplicable'
 }
 
+const FACT_STAGE: Record<string, ProjectFactStage> = {
+  Source: 'source',
+  PreSale: 'preSale',
+  Signing: 'signing',
+  Fulfillment: 'fulfillment',
+  Change: 'change',
+  Acceptance: 'acceptance',
+  Finance: 'finance',
+  AfterSales: 'afterSales'
+}
+
+const FACT_STAGE_LABEL: Record<ProjectFactStage, string> = {
+  source: '来源',
+  preSale: '售前',
+  signing: '签约',
+  fulfillment: '履约',
+  change: '变更',
+  acceptance: '验收',
+  finance: '财务',
+  afterSales: '售后'
+}
+
 const RISK_LEVEL: Record<string, ProjectRiskLevel> = {
   Normal: 'normal', Attention: 'attention', High: 'high'
 }
@@ -48,6 +70,126 @@ function enumValue(raw: unknown): string {
     return String(value.value ?? value.key ?? '')
   }
   return ''
+}
+
+function enumLabel(raw: unknown): string {
+  if (raw && typeof raw === 'object') {
+    const value = raw as RawRecord
+    if (value.name != null) return String(value.name)
+  }
+  return ''
+}
+
+function numberOrNull(value: unknown): number | null {
+  return value == null || value === '' ? null : Number(value)
+}
+
+function requiredFactText(raw: RawRecord, field: string, label: string): string {
+  const value = raw[field]
+  if (value === null || value === undefined || String(value).trim() === '') {
+    throw new Error(`项目事实${label}暂不可确认`)
+  }
+  return String(value)
+}
+
+function requiredFactStage(raw: RawRecord): ProjectFactStage {
+  const stage = FACT_STAGE[enumValue(raw.stage)]
+  if (!stage) throw new Error('项目事实阶段暂不可确认')
+  return stage
+}
+
+function requiredFactVersion(raw: RawRecord): number {
+  const version = Number(raw.version)
+  if (!Number.isInteger(version) || version < 1) throw new Error('项目事实版本暂不可确认')
+  return version
+}
+
+function requiredFactType(raw: RawRecord): string {
+  const factType = enumValue(raw.factType)
+  if (!factType) throw new Error('项目事实类型暂不可确认')
+  return factType
+}
+
+function normalizeFactNode(raw: RawRecord): ProjectFactNode {
+  const stage = requiredFactStage(raw)
+  if (typeof raw.current !== 'boolean') throw new Error('项目事实当前状态暂不可确认')
+  const visibilityValue = enumValue(raw.visibility)
+  if (visibilityValue !== 'OwnerVisible' && visibilityValue !== 'Internal') {
+    throw new Error('项目事实可见性暂不可确认')
+  }
+  return {
+    nodeId: requiredFactText(raw, 'nodeId', '节点 ID'),
+    nodeKey: requiredFactText(raw, 'nodeKey', '节点键'),
+    stage,
+    stageName: enumLabel(raw.stage) || FACT_STAGE_LABEL[stage],
+    factType: requiredFactType(raw),
+    factTypeName: enumLabel(raw.factType),
+    objectType: requiredFactText(raw, 'objectType', '对象类型'),
+    objectId: requiredFactText(raw, 'objectId', '对象 ID'),
+    projectId: requiredFactText(raw, 'projectId', '项目'),
+    version: requiredFactVersion(raw),
+    current: raw.current,
+    status: raw.status == null ? undefined : String(raw.status),
+    statusName: raw.statusName == null ? undefined : String(raw.statusName),
+    businessTime: dateTimeValue(raw.businessTime) || undefined,
+    recordedAt: dateTimeValue(raw.recordedAt) || undefined,
+    actorName: raw.actorName == null ? undefined : String(raw.actorName),
+    title: raw.title == null ? undefined : String(raw.title),
+    summary: raw.summary == null ? undefined : String(raw.summary),
+    sourceLabel: raw.sourceLabel == null ? undefined : String(raw.sourceLabel),
+    amount: numberOrNull(raw.amount),
+    quantity: numberOrNull(raw.quantity),
+    progress: numberOrNull(raw.progress),
+    costComplete: raw.costComplete == null ? null : raw.costComplete === true,
+    profitAmount: numberOrNull(raw.profitAmount),
+    grossMargin: numberOrNull(raw.grossMargin),
+    uncertainty: raw.uncertainty == null ? undefined : String(raw.uncertainty),
+    parentNodeId: raw.parentNodeId == null ? undefined : String(raw.parentNodeId),
+    relations: (Array.isArray(raw.relations) ? raw.relations : []).map((item: RawRecord) => ({
+      relationType: requiredFactText(item, 'relationType', '关系类型'),
+      objectType: requiredFactText(item, 'objectType', '关系对象类型'),
+      objectId: requiredFactText(item, 'objectId', '关系对象 ID'),
+      version: requiredFactVersion(item)
+    })),
+    visibility: visibilityValue === 'OwnerVisible' ? 'ownerVisible' : 'internal',
+    navigationPath: raw.navigationPath == null ? undefined : String(raw.navigationPath),
+    returnPath: raw.returnPath == null ? undefined : String(raw.returnPath),
+    returnAnchor: raw.returnAnchor == null ? undefined : String(raw.returnAnchor)
+  }
+}
+
+function normalizeFactGap(raw: RawRecord): ProjectFactSourceGap {
+  const stage = requiredFactStage(raw)
+  if (typeof raw.required !== 'boolean') throw new Error('项目事实缺口级别暂不可确认')
+  return {
+    nodeKey: requiredFactText(raw, 'nodeKey', '缺口节点键'),
+    stage,
+    stageName: enumLabel(raw.stage) || FACT_STAGE_LABEL[stage],
+    factType: requiredFactType(raw),
+    factTypeName: enumLabel(raw.factType),
+    label: requiredFactText(raw, 'label', '缺口名称'),
+    reason: requiredFactText(raw, 'reason', '缺口原因'),
+    required: raw.required
+  }
+}
+
+export function normalizeProjectFactTrace(raw: RawRecord): ProjectFactTrace {
+  const projectId = requiredFactText(raw, 'projectId', '项目')
+  if (!Array.isArray(raw.nodes)) throw new Error('项目事实节点暂不可确认')
+  if (!Array.isArray(raw.sourceGaps)) throw new Error('项目事实缺口暂不可确认')
+  const nodes = raw.nodes.map((item: RawRecord) => normalizeFactNode(item))
+  if (nodes.some((node) => node.projectId !== projectId)) {
+    throw new Error('项目事实项目绑定暂不可确认')
+  }
+  return {
+    projectId,
+    projectNo: raw.projectNo == null ? undefined : String(raw.projectNo),
+    projectName: raw.projectName == null ? undefined : String(raw.projectName),
+    defaultViewMode: String(enumValue(raw.defaultViewMode) || 'PHASE').toUpperCase() as ProjectFactTrace['defaultViewMode'],
+    asOf: dateTimeValue(raw.asOf) || undefined,
+    nodes,
+    sourceGaps: raw.sourceGaps.map((item: RawRecord) => normalizeFactGap(item))
+  }
 }
 
 export function normalizeProject(raw: RawRecord): Project {
@@ -96,7 +238,8 @@ export function normalizeProject(raw: RawRecord): Project {
     overdueDays: raw.overdueDays == null ? undefined : Number(raw.overdueDays),
     overdueReceivableCount: raw.overdueReceivableCount == null ? undefined : Number(raw.overdueReceivableCount),
     actualCost: raw.actualCost == null ? undefined : Number(raw.actualCost),
-    contractStage: raw.contractStage ? CONTRACT_STAGE[enumValue(raw.contractStage)] : undefined
+    contractStage: raw.contractStage ? CONTRACT_STAGE[enumValue(raw.contractStage)] : undefined,
+    factTrace: raw.factTrace ? normalizeProjectFactTrace(raw.factTrace) : undefined
   }
 }
 
@@ -116,6 +259,14 @@ function normalizeStatusCount(raw: RawRecord): ProjectStatusCount {
   return { key: String(raw.key ?? ''), label: String(raw.label ?? ''), count: Number(raw.count ?? 0) }
 }
 
+function acceptanceModeOf(value: unknown): StageAcceptanceMode | undefined {
+  const record = value && typeof value === 'object' ? value as Record<string, unknown> : null
+  const text = String(record?.key ?? record?.value ?? value ?? '')
+  return ['None', 'ConstructionDone', 'AcceptanceDone'].includes(text)
+    ? text as StageAcceptanceMode
+    : undefined
+}
+
 function normalizeStage(raw: RawRecord): ProjectStage {
   return {
     ...raw,
@@ -125,6 +276,7 @@ function normalizeStage(raw: RawRecord): ProjectStage {
     stageCode: raw.stageCode,
     sort: Number(raw.sort ?? 0),
     weight: Number(raw.weight ?? 0),
+    acceptanceMode: acceptanceModeOf(raw.acceptanceMode),
     baselineProgress: raw.baselineProgress == null ? undefined : Number(raw.baselineProgress),
     status: STAGE_STATUS[enumValue(raw.status)] || 'todo',
     progress: Number(raw.progress ?? 0),

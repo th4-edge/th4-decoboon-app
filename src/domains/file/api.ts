@@ -17,6 +17,7 @@ export type PrivateFileScope =
   | 'Carryover'
   | 'Content'
   | 'CustomerFollow'
+  | 'Expense'
 
 interface RawFileGrant {
   path?: string

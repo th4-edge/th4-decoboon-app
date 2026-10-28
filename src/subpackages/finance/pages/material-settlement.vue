@@ -13,6 +13,8 @@ import JzTag from '@/components/JzTag.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import MaterialAssistant from '@/components/MaterialAssistant/MaterialAssistant.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 type Tab = 'pending' | 'settlements'
 interface SupplierGroup {
@@ -179,11 +181,13 @@ function settlementStatusLabel(status: MaterialSettlement['status']) {
 function settlementStatusColor(status: MaterialSettlement['status']) {
   return status === 'confirmed' ? TOKEN_COLOR.success : TOKEN_COLOR.text3
 }
+useFinanceStoreScope(() => load())
 </script>
 
 <template>
   <view class="mset">
     <JzPageHeader title="主材结算" subtitle="先填结算价，再按采购单或供应商确认" right-icon="refresh" @right="load" />
+    <FinanceStoreScope />
 
     <view class="mset__tabs">
       <view class="mset__tab" :class="{ 'mset__tab--on': tab === 'pending' }" @tap="tab = 'pending'">待结算</view>

@@ -33,8 +33,16 @@ export interface PackageTemplateItem {
   priority: number
 }
 
+export type PackageTemplateStatus = 'Draft' | 'Published' | 'Disabled'
+
 export interface PackageTemplate {
   id: string
+  code?: string
+  version: number
+  status: PackageTemplateStatus
+  currentPublished: boolean
+  publishedAt?: string
+  snapshotHash?: string
   name: string
   area: number
   price: number

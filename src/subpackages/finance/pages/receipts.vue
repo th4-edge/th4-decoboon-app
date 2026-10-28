@@ -17,6 +17,8 @@ import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const projectId = ref('')
 const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh, loadMore } = usePagedList(
@@ -56,11 +58,13 @@ function openReversal(id: string) {
   if (!canReverse.value || refundMode.value) return
   uni.navigateTo({ url: `${P.financeReceiptReversal}?receiptId=${id}` })
 }
+useFinanceStoreScope(() => refreshAll())
 </script>
 
 <template>
   <view class="fin-page">
     <JzPageHeader :title="refundMode ? '选择原收款' : '收款记录'" :subtitle="refundMode ? '选择一笔收款登记退款' : '收款自动核销应收并生成资金流水'" :right-text="!refundMode && editable ? '登记收款' : ''" :right-icon="!refundMode && editable ? 'plus' : undefined" @right="add" />
+    <FinanceStoreScope />
 
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">累计客户回款</text>

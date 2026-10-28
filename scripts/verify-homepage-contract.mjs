@@ -57,10 +57,14 @@ expect(bossPermissionBlock.includes("'view:workbench'"), '企业负责人缺少�
 
 const designerBlock = actionSection.match(/designer:\s*\[([\s\S]*?)\n\s*\],/)?.[1] || ''
 const designerActions = [...designerBlock.matchAll(/label:\s*'([^']+)'/g)].map((match) => match[1])
+// 当前阶段先冻结五阶段工作队列入口；DPR-D01 的「工作台/客户/签单/项目/我的」
+// 一级导航改造由 PI-20261024-001 / DESIGNER-D2-1 单独交付，不在本脚本中提前冒充完成。
 const requiredDesignerActions = [
+  '待我跟进',
+  '待我量房',
   '待我设计',
-  '待我报价',
-  '合同签约',
+  '待我谈单',
+  '待我签约',
   // 2026-10-08：按 DEC-041 / BR-035，设计师是增减项主责发起人，
   // 入口落在“我负责的项目”选择器（ANS-BIZ-20261008-005）。
   '增减项',

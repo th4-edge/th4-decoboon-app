@@ -87,6 +87,11 @@ async function initialize() {
   loadError.value = ''
   try {
     template.value = await packApi.template(templateId.value)
+    if (template.value.status !== 'Draft') {
+      toast('已发布版本不可原地修改，请从套餐列表创建下一版')
+      setTimeout(() => uni.navigateBack(), 600)
+      return
+    }
     name.value = template.value.name
     area.value = String(template.value.area)
     price.value = String(template.value.price)

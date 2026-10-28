@@ -1,4 +1,4 @@
-import type { ProjectStatus, StageStatus } from './model'
+import type { ProjectStatus, StageAcceptanceMode, StageStatus } from './model'
 import type { IconName } from '@/components/JzIcon.vue'
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 
@@ -9,6 +9,16 @@ export const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: 
   accepting: { label: '待验收', color: STATUS_COLOR.pending },
   finished:  { label: '已完工', color: STATUS_COLOR.done },
   settled:   { label: '已结算', color: STATUS_COLOR.dark }
+}
+
+export const STAGE_ACCEPTANCE_MODE_META: Record<StageAcceptanceMode, { label: string; hint: string }> = {
+  None: { label: '无需验收', hint: '任务与证据满足后由系统完成阶段' },
+  ConstructionDone: { label: '施工完成', hint: '项目经理内部确认施工完成' },
+  AcceptanceDone: { label: '业主验收', hint: '员工提交后由业主本人确认或驳回' }
+}
+
+export function stageAcceptanceModeLabel(mode?: StageAcceptanceMode): string {
+  return mode ? STAGE_ACCEPTANCE_MODE_META[mode].label : '待核验'
 }
 
 export const STAGE_STATUS_META: Record<StageStatus, { label: string; color: string }> = {

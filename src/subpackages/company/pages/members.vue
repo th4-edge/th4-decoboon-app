@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
+import { session } from '@/domains/identity/session'
 import type { Employee } from '@/domains/identity/model'
 import { ROLE_META } from '@/roles/catalog'
 import { confirm, toast, toastError } from '@/composables/toast'
@@ -59,6 +60,13 @@ function roleLabel(member: Employee) {
   return ROLE_META[member.role]?.short || member.role
 }
 
+function canManageMember(member: Employee): boolean {
+  if (member.id === session.emp?.id || member.role === 'boss') return false
+  if (session.role === 'boss') return true
+  if (session.role === 'storeManager') return member.role !== 'storeManager'
+  return false
+}
+
 function detail(member: Employee) {
   uni.navigateTo({ url: `${P.companyMemberDetail}?empId=${member.id}` })
 }
@@ -79,9 +87,20 @@ async function resume(member: Employee) {
 }
 
 async function resign(member: Employee) {
-  if (!await confirm('注销员工', `确认注销 ${member.name}？历史业务归属将保留，员工将立即失去数据访问权限。`, '确认注销')) return
-  try { await identityApi.resignMember(member.id, '管理员注销员工'); await load(); toast('员工已注销', 'success') }
-  catch (error) { toastError(error, '注销失败') }
+  if (!await confirm('办理离职', `确认办理 ${member.name} 的离职？离职后立即失去企业访问权限，历史归属保留。`, '确认离职')) return
+  try {
+    await identityApi.resignMember(member.id, '管理员办理离职', false)
+    await load()
+    toast('员工已离职', 'success')
+  } catch (error) {
+    const force = await confirm('存在未交接责任', '该员工仍有在手责任。确认强制离职并将历史归属保留？', '确认强制离职')
+    if (!force) return
+    try {
+      await identityApi.resignMember(member.id, '管理员确认强制离职', true)
+      await load()
+      toast('员工已强制离职', 'success')
+    } catch (forceError) { toastError(forceError, '离职失败') }
+  }
 }
 </script>
 
@@ -124,7 +143,7 @@ async function resign(member: Employee) {
             <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
           </view>
 
-          <view class="member-card__actions">
+          <view v-if="canManageMember(member)" class="member-card__actions">
             <template v-if="member.status === 'active'">
               <view class="member-action" @tap.stop="handover(member)">
                 <JzIcon name="share" :size="30" :color="TOKEN_COLOR.primary" />
@@ -141,9 +160,11 @@ async function resign(member: Employee) {
             </view>
             <view v-if="member.status !== 'resigned'" class="member-action member-action--danger" @tap.stop="resign(member)">
               <JzIcon name="logout" :size="30" :color="TOKEN_COLOR.danger" />
-              <text>注销</text>
+              <text>离职</text>
             </view>
-            <view v-else class="member-action member-action--muted">
+          </view>
+          <view v-else-if="member.status === 'resigned'" class="member-card__actions">
+            <view class="member-action member-action--muted">
               <JzIcon name="info" :size="30" :color="TOKEN_COLOR.text3" />
               <text>已离职，仅可查看</text>
             </view>

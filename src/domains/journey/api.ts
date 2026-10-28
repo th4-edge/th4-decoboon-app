@@ -1,5 +1,6 @@
 import { post } from '@/core/http'
 import { fileApi } from '@/domains/file/api'
+import { normalizeQuoteGroup } from '@/domains/trade/api'
 import type {
   CustomerJourney, JourneyAction, JourneyFact, JourneyItem, JourneyMedia, JourneyPriceGroup,
   JourneyPriceRow, JourneyRegion, JourneySection, JourneyVendor, JourneyMember,
@@ -91,6 +92,8 @@ async function normalizeItem(raw: RawRecord): Promise<JourneyItem> {
   const media = Array.isArray(raw.media) ? raw.media.map(normalizeMedia) : []
   const regions = Array.isArray(raw.regions) ? raw.regions.map(normalizeRegion) : []
   const priceGroups = Array.isArray(raw.priceGroups) ? raw.priceGroups.map(normalizePriceGroup) : []
+  const regionGroups = Array.isArray(raw.regionGroups) ? raw.regionGroups.map(normalizeQuoteGroup) : []
+  const typeGroups = Array.isArray(raw.typeGroups) ? raw.typeGroups.map(normalizeQuoteGroup) : []
 
   // 一次性为当前业务对象申请短期私有文件地址：留痕影像 + 区域图片 + 主图列表。
   const requested = [
@@ -128,7 +131,12 @@ async function normalizeItem(raw: RawRecord): Promise<JourneyItem> {
     facts: Array.isArray(raw.facts) ? raw.facts.map(normalizeFact) : [],
     media: media.map((m, index) => ({ ...m, url: grantedMedia[index] ?? m.url })),
     regions: regionsResolved,
-    priceGroups
+    priceGroups,
+    regionGroups,
+    typeGroups,
+    hasSourceLines: raw.hasSourceLines == null
+      ? regionGroups.length > 0 || typeGroups.length > 0 || priceGroups.length > 0
+      : Boolean(raw.hasSourceLines)
   }
 }
 

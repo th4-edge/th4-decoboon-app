@@ -37,6 +37,7 @@ export interface CatalogItem {
   images?: string[]
   active: boolean
   sort: number
+  revision: number
   maintainer?: { id: string; name: string }
   updatedAt?: string
 }
@@ -47,6 +48,20 @@ export interface CatalogTree {
   brands: Record<string, string[]>
   specs: Record<string, string[]>
   total: number
+}
+
+export type CatalogRevisionType = 'Create' | 'Update' | 'Disable' | 'Enable' | 'Delete'
+
+/** 报价项目不可变修订记录；无成本权限时 snapshotJson 由后端裁剪。 */
+export interface CatalogRevision {
+  id: string
+  revision: number
+  changeType: CatalogRevisionType
+  itemCode?: string
+  snapshotJson?: string
+  snapshotHash?: string
+  changedBy?: { id: string; name: string }
+  changedAt?: string
 }
 
 export type CatalogImportStatus =

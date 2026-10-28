@@ -9,7 +9,7 @@ import type { Acceptance, AcceptanceRound } from '@/domains/acceptance/model'
 import type { Project, ProjectStage } from '@/domains/project/model'
 import type { Task } from '@/domains/schedule/model'
 import type { SiteReport } from '@/domains/site/model'
-import { STAGE_STATUS_META } from '@/domains/project/meta'
+import { STAGE_STATUS_META, stageAcceptanceModeLabel } from '@/domains/project/meta'
 import { TASK_STATUS_META } from '@/domains/schedule/meta'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
@@ -162,6 +162,7 @@ function openProject() { if (project.value) uni.navigateTo({ url: `${P.projectDe
           <text v-else class="sd__meta-val">-</text>
         </view>
         <view class="sd__meta"><text class="sd__meta-label">权重</text><text class="sd__meta-val">{{ stage.weight }}%</text></view>
+        <view class="sd__meta"><text class="sd__meta-label">验收方式</text><text class="sd__meta-val">{{ stageAcceptanceModeLabel(stage.acceptanceMode) }}</text></view>
       </view>
     </view>
 

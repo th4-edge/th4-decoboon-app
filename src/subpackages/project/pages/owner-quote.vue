@@ -14,25 +14,41 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import { OWNER_COLOR } from '@/styles/tokens'
+import type { QuoteViewMode } from '@/domains/trade/model'
 
 const projectId = ref('')
 const loaded = ref(false)
 const activeIndex = ref(0)
+const viewMode = ref<QuoteViewMode>('REGION')
 const { journey, loading, loadingError, load, section } = useOwnerJourney()
 
 const quote = computed(() => section('quote'))
 const quotes = computed(() => (quote.value?.items || []).filter((item) => item.status !== 'Superseded'))
 const active = computed(() => quotes.value[activeIndex.value])
-const groups = computed(() => active.value?.priceGroups || [])
+const groups = computed(() => viewMode.value === 'TYPE'
+  ? (active.value?.typeGroups || [])
+  : (active.value?.regionGroups || []))
 const facts = computed(() => active.value?.facts || [])
-const totalRows = computed(() => groups.value.reduce((sum, group) => sum + group.rows.length, 0))
+const totalRows = computed(() => groups.value.reduce((sum, group) => sum + group.items.length, 0))
 const pending = computed(() => !loading.value && quotes.value.length === 0)
+const projectionUnavailable = computed(() => Boolean(active.value?.hasSourceLines) && groups.value.length === 0)
 
 function fact(key: string) {
   return facts.value.find((item) => item.key === key)?.value
 }
 
-watch(quotes, () => { activeIndex.value = 0 })
+function optionalAmount(value?: string | number | null): number | null {
+  if (value === undefined || value === null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const quoteAmount = computed(() => optionalAmount(active.value?.amount))
+const subtotalAmount = computed(() => optionalAmount(fact('subtotal')))
+const taxAmount = computed(() => optionalAmount(fact('tax')))
+const amountText = computed(() => quoteAmount.value == null ? '暂不可确认' : money(quoteAmount.value))
+
+watch(quotes, () => { activeIndex.value = 0; viewMode.value = 'REGION' })
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -60,7 +76,7 @@ async function refresh() {
         :subtitle="active?.subtitle"
         :code="journey.projectNo"
         :meta="active?.statusName || quote?.statusName"
-        :amount="active ? money(Number(active.amount || 0)) : ''"
+        :amount="active ? amountText : ''"
         :address="journey.propertyAddress"
         :status-name="quote?.statusName"
       />
@@ -90,7 +106,8 @@ async function refresh() {
         <view class="quote__summary jz-card">
           <view class="quote__summary-row">
             <text>清单小计</text>
-            <JzMoney :value="Number(fact('subtotal') || 0)" />
+            <JzMoney v-if="subtotalAmount != null" :value="subtotalAmount" />
+            <text v-else class="quote__unknown">暂不可确认</text>
           </view>
           <view v-if="fact('discount')" class="quote__summary-row">
             <text>折扣</text>
@@ -98,21 +115,29 @@ async function refresh() {
           </view>
           <view class="quote__summary-row">
             <text>税金</text>
-            <JzMoney :value="Number(fact('tax') || 0)" />
+            <JzMoney v-if="taxAmount != null" :value="taxAmount" />
+            <text v-else class="quote__unknown">暂不可确认</text>
           </view>
           <view class="quote__summary-row quote__summary-row--total">
             <text>报价总额</text>
-            <JzMoney class="quote__summary-total" :value="Number(active?.amount || 0)" />
+            <JzMoney v-if="quoteAmount != null" class="quote__summary-total" :value="quoteAmount" />
+            <text v-else class="quote__unknown quote__summary-total">暂不可确认</text>
           </view>
-          <text class="quote__summary-note">共 {{ groups.length }} 个区域 · {{ totalRows }} 个清单项</text>
+          <text class="quote__summary-note">共 {{ groups.length }} 个{{ viewMode === 'TYPE' ? '类型分组' : '区域' }} · {{ totalRows }} 个清单项</text>
         </view>
 
         <view class="quote__block">
-          <view class="quote__block-head">
-            <text class="quote__block-title">按区域查看报价</text>
-            <text class="quote__block-sub">每个区域包含哪些项目、用了什么材料</text>
+          <view class="quote__block-head quote__block-head--switch">
+            <view>
+              <text class="quote__block-title">{{ viewMode === 'TYPE' ? '按类型查看报价' : '按区域查看报价' }}</text>
+              <text class="quote__block-sub">{{ viewMode === 'TYPE' ? '跨区域同款项目由服务端合并，可查看来源区域' : '每个区域包含哪些项目、用了什么材料' }}</text>
+            </view>
+            <view class="quote__view-switch">
+              <text class="quote__view-option" :class="{ 'quote__view-option--active': viewMode === 'REGION' }" @tap="viewMode = 'REGION'">区域</text>
+              <text class="quote__view-option" :class="{ 'quote__view-option--active': viewMode === 'TYPE' }" @tap="viewMode = 'TYPE'">类型</text>
+            </view>
           </view>
-          <OwnerPriceGroups :groups="groups" :show-price="true" unit-label="项" />
+          <OwnerPriceGroups :quote-groups="groups" :show-price="true" unit-label="项" :total-amount="quoteAmount" :unavailable="projectionUnavailable" />
         </view>
       </template>
 
@@ -120,8 +145,7 @@ async function refresh() {
         <OwnerSignoffCard
           tone="offline"
           title="报价确认记录"
-          :description="fact('acceptedBy') || fact('acceptedAt') ? '确认信息已登记，可在下方查看登记人和确认时间。' : '确认信息正在更新，请稍后查看；如长时间未显示，请联系设计师。'"
-          :operator="fact('acceptedBy')"
+          :description="fact('acceptedAt') ? '确认信息已登记，可在下方查看确认时间。' : '确认信息正在更新，请稍后查看；如长时间未显示，请联系设计师。'"
           :time="fact('acceptedAt')"
           :source="fact('registrationSource')"
         />
@@ -150,8 +174,13 @@ async function refresh() {
 .quote__summary-row--total { margin-top: 8rpx; padding-top: 18rpx; border-top: 1rpx solid $owner-line; font-size: $jzb-font-md; font-weight: 700; color: $owner-ink; }
 .quote__summary-total { font-size: 42rpx; font-weight: 750; color: $owner-forest; }
 .quote__summary-note { display: block; margin-top: 10rpx; font-size: $jzb-font-xs; color: $owner-muted; }
+.quote__unknown { color: $owner-muted; font-size: $jzb-font-sm; font-weight: 600; }
 .quote__block { margin-top: 30rpx; }
 .quote__block-head { padding: 0 32rpx 14rpx; }
+.quote__block-head--switch { display: flex; align-items: flex-end; justify-content: space-between; gap: 20rpx; }
 .quote__block-title { display: block; font-size: $jzb-font-lg; font-weight: 700; }
 .quote__block-sub { display: block; margin-top: 4rpx; font-size: $jzb-font-xs; color: $owner-muted; }
+.quote__view-switch { display: inline-flex; flex-shrink: 0; padding: 4rpx; border-radius: $jzb-radius-pill; background: $owner-card; border: 1rpx solid $owner-line; }
+.quote__view-option { padding: 10rpx 20rpx; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; color: $owner-muted; }
+.quote__view-option--active { background: $owner-moss; color: #fff; font-weight: 700; }
 </style>

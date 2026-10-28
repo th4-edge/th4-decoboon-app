@@ -14,6 +14,7 @@ import { money } from '@/core/format'
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import { confirm, loading, hideLoading, toast, toastError } from '@/composables/toast'
 import { useInputDialog } from '@/composables/inputDialog'
+import { openActionSheet } from '@/composables/dialog'
 import { useShare } from '@/composables/share'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
@@ -72,7 +73,7 @@ const CONTRACT_STATUS_META: Record<Contract['status'], string> = {
   terminated: '已终止', void: '已作废'
 }
 const collapsed = ref<Record<string, boolean>>({})
-const detailView = ref<'region' | 'category'>('region')
+const detailView = ref<'region' | 'type'>('region')
 const ITEM_TYPE_LABEL: Record<string, string> = {
   construction: '施工',
   material: '主材',
@@ -83,126 +84,12 @@ const ITEM_TYPE_LABEL: Record<string, string> = {
   other: '其他'
 }
 
-interface MergedItemMeta {
-  quantity: number
-  amount: number
-  spaceLabel: string
-  sourceCount: number
-}
-
-interface CategoryView {
-  groups: QuoteGroup[]
-  meta: Record<string, MergedItemMeta>
-}
-
-function itemAmount(item: QuoteItem): number {
-  const amount = Number(item.amount || 0)
-  if (amount !== 0) return amount
-  return Number(item.price || 0) * Number(item.quantity || 0)
-}
-
-function detailItemType(item: QuoteItem): NonNullable<QuoteItem['type']> {
-  return item.type || 'general'
-}
-
-function detailItemCategory(item: QuoteItem): string {
-  const category = item.category?.trim()
-  return category || ITEM_TYPE_LABEL[detailItemType(item)] || '其他'
-}
-
-function mergeKey(item: QuoteItem): string {
-  const components = item.components
-    ?.map((component) => `${component.type}:${component.name || ''}:${component.saleAmount}`)
-    .join(',') || ''
-  return [
-    detailItemType(item), detailItemCategory(item), item.name, item.brand || '', item.spec || '', item.unit,
-    item.pricingMode || '', item.price, item.role || '', item.differenceType || '',
-    item.included === false ? 'excluded' : 'included', components
-  ].join('|')
-}
-
-const sourceItems = computed<QuoteItem[]>(() => {
-  const current = quote.value
-  if (!current) return []
-  if (current.items?.length) return current.items
-  const groups = current.regionGroups || [
-    ...(current.constructionGroups || []),
-    ...(current.materialGroups || []),
-    ...(current.otherGroups || [])
-  ]
-  return groups.flatMap((group) => group.items.map((item) => item.space ? item : {
-    ...item,
-    space: { id: group.key, name: group.name }
-  }))
-})
-
-const regionGroups = computed<QuoteGroup[]>(() => {
-  const current = quote.value
-  if (current?.regionGroups?.length) return current.regionGroups
-  const groups = new Map<string, QuoteGroup>()
-  for (const item of sourceItems.value) {
-    const key = item.space?.id ? `space-${item.space.id}` : 'general'
-    const name = item.space?.name || '综合项目'
-    const group = groups.get(key) || { key, name, amount: 0, cost: 0, items: [] }
-    group.amount += itemAmount(item)
-    group.cost += Number(item.cost || 0)
-    group.items.push(item)
-    groups.set(key, group)
-  }
-  return [...groups.values()]
-})
-
-const categoryView = computed<CategoryView>(() => {
-  const groups = new Map<string, QuoteGroup>()
-  const merged = new Map<string, { item: QuoteItem; meta: MergedItemMeta }>()
-  const meta: Record<string, MergedItemMeta> = {}
-
-  for (const source of sourceItems.value) {
-    const type = detailItemType(source)
-    const category = detailItemCategory(source)
-    const groupKey = `${type}-${category}`
-    let group = groups.get(groupKey)
-    if (!group) {
-      group = { key: groupKey, name: category, type, category, amount: 0, cost: 0, items: [] }
-      groups.set(groupKey, group)
-    }
-    group.amount += itemAmount(source)
-    group.cost += Number(source.cost || 0)
-
-    const identity = mergeKey(source)
-    const existing = merged.get(identity)
-    const spaceName = source.space?.name || '综合项目'
-    if (existing) {
-      existing.item.quantity = Number(existing.item.quantity || 0) + Number(source.quantity || 0)
-      existing.item.amount = Number(existing.item.amount || 0) + itemAmount(source)
-      existing.item.cost = Number(existing.item.cost || 0) + Number(source.cost || 0)
-      existing.meta.quantity += Number(source.quantity || 0)
-      existing.meta.amount += itemAmount(source)
-      existing.meta.sourceCount += 1
-      if (!existing.meta.spaceLabel.split('、').includes(spaceName)) {
-        existing.meta.spaceLabel += `、${spaceName}`
-      }
-      meta[existing.item.id] = existing.meta
-      continue
-    }
-
-    const item = { ...source, amount: itemAmount(source) }
-    const itemMeta: MergedItemMeta = {
-      quantity: Number(source.quantity || 0),
-      amount: itemAmount(source),
-      spaceLabel: spaceName,
-      sourceCount: 1
-    }
-    group.items.push(item)
-    merged.set(identity, { item, meta: itemMeta })
-    meta[item.id] = itemMeta
-  }
-
-  return { groups: [...groups.values()], meta }
-})
-
-const detailGroups = computed<QuoteGroup[]>(() => detailView.value === 'region' ? regionGroups.value : categoryView.value.groups)
-const categoryMeta = computed(() => categoryView.value.meta)
+const regionGroups = computed<QuoteGroup[]>(() => quote.value?.regionGroups || [])
+const typeGroups = computed<QuoteGroup[]>(() => quote.value?.typeGroups || [])
+const detailGroups = computed<QuoteGroup[]>(() => detailView.value === 'region' ? regionGroups.value : typeGroups.value)
+const projectionMissing = computed(() =>
+  Boolean(quote.value?.items?.length) && regionGroups.value.length === 0 && typeGroups.value.length === 0
+)
 
 /** 同客户是否有多份报价（切换条仅在 >1 时显示） */
 const hasMultipleQuotes = computed(() => customerQuotes.value.length > 1)
@@ -357,12 +244,23 @@ function openProject() {
 function openAdjust() {
   if (quote.value) uni.navigateTo({ url: `${P.quoteAdjust}?id=${quote.value.id}` })
 }
+async function choosePdfGroupMode(): Promise<'REGION' | 'TYPE' | null> {
+  const index = await openActionSheet({
+    title: '选择报价打印分组',
+    itemList: ['按区域打印', '按类型打印']
+  })
+  if (index == null) return null
+  return index === 1 ? 'TYPE' : 'REGION'
+}
+
 async function openQuotePdf() {
   if (!quote.value || pdfBusy.value) return
+  const groupMode = await choosePdfGroupMode()
+  if (!groupMode) return
   pdfBusy.value = true
   loading('生成报价打印稿…')
   try {
-    const record = await documentApi.buildQuote(quote.value.id)
+    const record = await documentApi.buildQuote(quote.value.id, quote.value.version, groupMode)
     hideLoading()
     await openPdf(record.url, record.fileName)
   } catch (error) {
@@ -676,10 +574,10 @@ async function reviewChange(change: ContractChange, approved: boolean) {
           <text>区域</text>
           <text class="qd__view-count">{{ regionGroups.length }}</text>
         </view>
-        <view class="qd__view-tool" :class="{ 'qd__view-tool--active': detailView === 'category' }" @tap="detailView = 'category'">
-          <JzIcon name="folder" :size="24" :color="detailView === 'category' ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" />
-          <text>分类</text>
-          <text class="qd__view-count">{{ categoryView.groups.length }}</text>
+        <view class="qd__view-tool" :class="{ 'qd__view-tool--active': detailView === 'type' }" @tap="detailView = 'type'">
+          <JzIcon name="folder" :size="24" :color="detailView === 'type' ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" />
+          <text>类型</text>
+          <text class="qd__view-count">{{ typeGroups.length }}</text>
         </view>
       </view>
     </view>
@@ -691,25 +589,24 @@ async function reviewChange(change: ContractChange, approved: boolean) {
               <text v-if="group.type" class="qd__group-type">{{ groupTypeLabel(group.type) }} · </text>{{ group.name }}
             </text>
             <text class="qd__group-count">
-              {{ group.items.length }} 项<text v-if="detailView === 'category'"> · 已合并</text>
+              {{ group.items.length }} 项<text v-if="detailView === 'type'"> · 已合并</text>
             </text>
           </view>
-          <view class="qd__group-right"><text class="qd__group-amount">{{ money(group.amount) }}</text><JzIcon :name="isGroupCollapsed(group.key) ? 'chevron-right' : 'chevron-down'" :size="24" :color="TOKEN_COLOR.text4" /></view>
+          <view class="qd__group-right"><text class="qd__group-amount">{{ group.amount == null ? '暂不可确认' : money(group.amount) }}</text><JzIcon :name="isGroupCollapsed(group.key) ? 'chevron-right' : 'chevron-down'" :size="24" :color="TOKEN_COLOR.text4" /></view>
         </view>
         <template v-if="!isGroupCollapsed(group.key)">
           <QuoteItemRow
-            v-for="item in group.items"
-            :key="item.id"
+            v-for="(item, itemIndex) in group.items"
+            :key="item.typeRowId || item.id || `${group.key}-${itemIndex}`"
             :item="item"
-            :display-quantity="detailView === 'category' ? categoryMeta[item.id]?.quantity : undefined"
-            :display-amount="detailView === 'category' ? categoryMeta[item.id]?.amount : undefined"
-            :space-label="detailView === 'category' ? categoryMeta[item.id]?.spaceLabel : undefined"
-            :source-count="detailView === 'category' ? categoryMeta[item.id]?.sourceCount : undefined"
+            :space-label="detailView === 'type' ? (item.sourceRegionNames || []).join('、') : undefined"
+            :source-count="detailView === 'type' ? item.sourceCount : undefined"
             :quote-mode="quote.mode"
           />
         </template>
       </view>
     </view>
+    <JzEmpty v-else-if="projectionMissing" text="报价分组暂不可确认" sub="当前报价明细暂不可确认，请稍后重新读取" />
     <JzEmpty v-else text="暂无报价明细" sub="设计报价由方案区域中的施工/材料分项自动生成" />
 
     <view class="jz-card qd__facts">

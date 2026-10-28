@@ -6,3 +6,8 @@ unpackage
 .env.local
 
 recordings/
+
+# Local-only verification artifacts
+.playwright-cli/
+output/
+tmp-*.png

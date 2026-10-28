@@ -15,6 +15,8 @@ import PageState from '@/components/PageState/PageState.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
+import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const report = ref<PayrollWorkbenchReport | null>(null)
 const loading = ref(false)
@@ -84,11 +86,13 @@ function openLatestSheet() {
   if (!sheetId) return
   uni.navigateTo({ url: `${P.payrollSheetDetail}?sheetId=${sheetId}` })
 }
+useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="pay-page">
     <JzPageHeader title="员工薪酬" subtitle="工资、提成、考勤与发放统一处理" right-icon="refresh" @right="refresh" />
+    <FinanceStoreScope />
     <PageState v-if="loadError && !report" state="error" title="薪酬数据暂不可确认" :subtitle="loadError" @retry="refresh" />
     <JzSkeleton v-else-if="loading && !report" :rows="6" />
     <view v-else class="pay-body">
