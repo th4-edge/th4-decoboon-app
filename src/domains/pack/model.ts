@@ -39,10 +39,15 @@ export interface PackageTemplate {
   id: string
   code?: string
   version: number
-  status: PackageTemplateStatus
+  /** 旧后端无生命周期字段时保持未知，不用 Draft 伪造。 */
+  status?: PackageTemplateStatus
+  statusKnown?: boolean
   currentPublished: boolean
   publishedAt?: string
   snapshotHash?: string
+  sectionCount?: number
+  lineCount?: number
+  ready?: boolean
   name: string
   area: number
   price: number
@@ -52,7 +57,6 @@ export interface PackageTemplate {
   items?: PackageLine[]
   /** 选择器摘要：服务端批量聚合，不依赖逐套餐加载明细。 */
   itemCount?: number
-  sectionCount?: number
   measures?: Record<string, { price: number; standard: number; remark?: string }>
   createdAt?: string
   updatedAt?: string

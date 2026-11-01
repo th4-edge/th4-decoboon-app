@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { P } from '@/config'
+import { session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { CatalogItem, CatalogPricingMode } from '@/domains/catalog/model'
 import type { PackageLine, PackageSection, PackageTemplate } from '@/domains/pack/model'
 import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -19,6 +23,7 @@ import LineEditSheet from '../components/LineEditSheet/LineEditSheet.vue'
 import CostCheckPanel from '../components/CostCheckPanel/CostCheckPanel.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
+const { brandThemeStyle } = useBrandTheme()
 const templateId = ref('')
 const template = ref<PackageTemplate | null>(null)
 const loadError = ref('')
@@ -41,14 +46,9 @@ const completed = computed<boolean[]>(() => [
   true
 ])
 
-// 分区与项目行
-const sections = computed<PackageSection[]>(() => {
-  const map = new Map<string, PackageSection>()
-  for (const line of template.value?.items || []) {
-    if (line.section?.id) map.set(line.section.id, line.section)
-  }
-  return [...map.values()].sort((a, b) => a.priority - b.priority)
-})
+// 分区与项目行。分区是企业级主数据，不能只从当前套餐的项目行反推，
+// 否则尚未添加项目行的新分区会在保存后立即从界面消失。
+const sections = ref<PackageSection[]>([])
 const lines = computed<PackageLine[]>(() => template.value?.items || [])
 const lineCounts = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = {}
@@ -66,6 +66,7 @@ const linesBySection = computed(() => lines.value.filter((l) => l.section?.id ==
 const pickerVisible = ref(false)
 const editSheetVisible = ref(false)
 const editingLine = ref<PackageLine | null>(null)
+const addingLines = ref(false)
 
 // 实时计算
 const discountedPrice = computed(() => Number(price.value || 0) * (Number(discount.value || 100) / 100))
@@ -77,6 +78,11 @@ const grossMargin = computed(() => {
 const marginLow = computed(() => grossMargin.value < 20 && currentCost.value > 0)
 
 onLoad((query) => {
+  if (!can(session.role, 'edit:package-template')) {
+    toast('当前账号无权维护套餐模板')
+    setTimeout(() => uni.redirectTo({ url: P.packageManage }), 300)
+    return
+  }
   templateId.value = query?.templateId || ''
   void initialize()
 })
@@ -86,12 +92,17 @@ async function initialize() {
   loadingTpl.value = true
   loadError.value = ''
   try {
-    template.value = await packApi.template(templateId.value)
-    if (template.value.status !== 'Draft') {
-      toast('已发布版本不可原地修改，请从套餐列表创建下一版')
-      setTimeout(() => uni.navigateBack(), 600)
+    const [loadedTemplate, loadedSections] = await Promise.all([
+      packApi.template(templateId.value),
+      packApi.sections()
+    ])
+    template.value = loadedTemplate
+    if (template.value.statusKnown && template.value.status !== 'Draft') {
+      toast('已发布或已停用的套餐不可原地修改')
+      setTimeout(() => uni.redirectTo({ url: P.packageManage }), 500)
       return
     }
+    sections.value = loadedSections
     name.value = template.value.name
     area.value = String(template.value.area)
     price.value = String(template.value.price)
@@ -106,10 +117,27 @@ async function initialize() {
   }
 }
 
+function sortSections(list: PackageSection[]): PackageSection[] {
+  return [...list].sort((a, b) => a.priority - b.priority)
+}
+
+function upsertSection(saved: PackageSection) {
+  const next = sections.value.filter((section) => section.id !== saved.id)
+  sections.value = sortSections([...next, saved])
+}
+
 async function reload() {
   if (!templateId.value) return
   try {
-    template.value = await packApi.template(templateId.value)
+    const [loadedTemplate, loadedSections] = await Promise.all([
+      packApi.template(templateId.value),
+      packApi.sections()
+    ])
+    template.value = loadedTemplate
+    sections.value = loadedSections
+    if (!sections.value.some((section) => section.id === activeSectionId.value)) {
+      activeSectionId.value = sections.value[0]?.id || ''
+    }
   } catch (error) {
     toastError(error, '刷新失败')
   }
@@ -178,13 +206,18 @@ async function saveSectionDialog() {
   sectionSaving.value = true
   try {
     if (sectionDialog.mode === 'add') {
-      await packApi.saveSection({ name: value, maxDeleteNum: 1, priority: sections.value.length })
+      const saved = await packApi.saveSection({ name: value, maxDeleteNum: 1, priority: sections.value.length })
+      upsertSection(saved)
+      activeSectionId.value = saved.id
       await reload()
-      activeSectionId.value = sections.value[sections.value.length - 1]?.id || activeSectionId.value
+      activeSectionId.value = saved.id
       toast('分区已新增', 'success')
     } else if (sectionDialog.section) {
-      await packApi.saveSection({ groupId: sectionDialog.section.id, name: value, maxDeleteNum: sectionDialog.section.maxDeleteNum, priority: sectionDialog.section.priority })
+      const saved = await packApi.saveSection({ groupId: sectionDialog.section.id, name: value, maxDeleteNum: sectionDialog.section.maxDeleteNum, priority: sectionDialog.section.priority })
+      upsertSection(saved)
+      activeSectionId.value = saved.id
       await reload()
+      activeSectionId.value = saved.id
       toast('分区已重命名', 'success')
     }
     sectionDialog.visible = false
@@ -197,7 +230,11 @@ async function saveSectionDialog() {
 
 async function removeSection(section: PackageSection) {
   const count = lineCounts.value[section.id] || 0
-  const ok = await confirm('删除套餐分区', `确认删除“${section.name}”？${count > 0 ? `该分区下有 ${count} 个项目行，删除后项目行将变为未分区。` : ''}`, '删除')
+  if (count > 0) {
+    toast(`“${section.name}”下还有 ${count} 个项目行，请先移动或删除项目行`)
+    return
+  }
+  const ok = await confirm('删除套餐分区', `确认删除“${section.name}”？`, '删除')
   if (!ok) return
   try {
     await packApi.deleteSection(section.id)
@@ -219,24 +256,51 @@ function openPicker() {
   pickerVisible.value = true
 }
 
-async function batchAddLines(items: CatalogItem[]) {
-  // 批量添加：逐个调用 saveLine，系数默认1
-  const results = []
-  for (const item of items) {
-    results.push(packApi.saveLine({
-      templateId: templateId.value,
-      sectionId: activeSectionId.value,
-      catalogItemId: item.id,
-      quantityFactor: 1,
-      sort: lines.value.length + results.length
-    }))
+function normalizeSelectedItems(payload: unknown): CatalogItem[] {
+  if (Array.isArray(payload)) return payload as CatalogItem[]
+  if (!payload || typeof payload !== 'object') return []
+  const record = payload as { detail?: unknown; id?: unknown }
+  if (Array.isArray(record.detail)) return record.detail as CatalogItem[]
+  if (record.id != null) return [payload as CatalogItem]
+  return []
+}
+
+async function batchAddLines(payload: unknown) {
+  if (addingLines.value) return
+  const items = normalizeSelectedItems(payload)
+  const unique = [...new Map(items.filter((item) => item?.id).map((item) => [item.id, item])).values()]
+  if (!unique.length) {
+    toast('没有可添加的套餐项目')
+    return
   }
+  const existingIds = new Set(linesBySection.value.map((line) => line.item?.id).filter(Boolean))
+  const candidates = unique.filter((item) => !existingIds.has(item.id))
+  if (!candidates.length) {
+    toast('所选项目已在当前分区中')
+    return
+  }
+  addingLines.value = true
+  let added = 0
   try {
-    await Promise.all(results)
+    for (const item of candidates) {
+      await packApi.saveLine({
+        templateId: templateId.value,
+        sectionId: activeSectionId.value,
+        catalogItemId: item.id,
+        quantityFactor: 1,
+        sort: lines.value.length + added
+      })
+      added += 1
+    }
     await reload()
-    toast(`已添加 ${items.length} 个项目`, 'success')
+    pickerVisible.value = false
+    toast(`已添加 ${added} 个项目${unique.length > candidates.length ? '，重复项目已跳过' : ''}`, 'success')
   } catch (error) {
-    toastError(error, '批量添加失败')
+    await reload()
+    if (added > 0) toast(`已保存 ${added} 个项目，其余项目添加失败`)
+    else toastError(error, '批量添加失败')
+  } finally {
+    addingLines.value = false
   }
 }
 
@@ -291,12 +355,37 @@ function handleFix(type: 'zeroCost' | 'emptySection' | 'noDescription' | 'noLine
   }
 }
 
+// 步骤导航：可回看已进入步骤，但不能跳过未完成项。
+const stepLabels = ['基本信息', '分区', '项目配置', '成本检查']
+
+function firstBlockedStep(index: number): number {
+  for (let cursor = 0; cursor < index; cursor += 1) {
+    if (!completed.value[cursor]) return cursor
+  }
+  return -1
+}
+
+function showBlockedStep(index: number) {
+  const blocked = firstBlockedStep(index)
+  if (blocked >= 0) toast(`请先完成「${stepLabels[blocked]}」`)
+}
+
+function changeStep(index: number) {
+  if (index < 0 || index >= stepLabels.length) return
+  const blocked = firstBlockedStep(index)
+  if (blocked >= 0) {
+    showBlockedStep(index)
+    return
+  }
+  step.value = index
+}
+
 // 底部操作
 function handlePrimary() {
   if (step.value === 0) {
     void saveBasic()
   } else if (step.value < 3) {
-    step.value += 1
+    changeStep(step.value + 1)
   } else {
     uni.navigateBack()
   }
@@ -310,8 +399,8 @@ const primaryText = computed(() => {
 </script>
 
 <template>
-  <view class="pe">
-    <PackageSteps :current="step" :completed="completed" @change="(i: number) => step = i" />
+  <view class="pe" :style="brandThemeStyle">
+    <PackageSteps :current="step" :completed="completed" @change="changeStep" @blocked="showBlockedStep" />
 
     <scroll-view scroll-y class="pe__body">
       <!-- 加载态 -->
@@ -561,7 +650,7 @@ const primaryText = computed(() => {
 .pe__calc {
   margin-top: 24rpx;
   padding: 20rpx 24rpx;
-  background: $jzb-primary-lightest;
+  background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest});
   border-radius: $jzb-radius-sm;
 }
 
@@ -666,7 +755,7 @@ const primaryText = computed(() => {
 .pe__footer-value {
   font-size: $jzb-font-lg;
   font-weight: 750;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
   font-variant-numeric: tabular-nums;
 }
 

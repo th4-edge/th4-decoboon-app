@@ -5,6 +5,9 @@ import { money } from '@/core/format'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
+
+const { brandTheme } = useBrandTheme()
 
 const props = defineProps<{
   template: PackageTemplate | null
@@ -131,7 +134,7 @@ function handleFix(item: WarningItem) {
         </view>
         <view class="ccp__warning-fix" @tap="handleFix(item)">
           <text>去修复</text>
-          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primaryBase" />
+          <JzIcon name="chevron-right" :size="24" :color="brandTheme.primaryDark" />
         </view>
       </view>
     </view>
@@ -173,7 +176,7 @@ function handleFix(item: WarningItem) {
 }
 
 .ccp__overview-value--cost {
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
 
 .ccp__overview-value--warning {
@@ -260,6 +263,6 @@ function handleFix(item: WarningItem) {
   flex-shrink: 0;
   font-size: $jzb-font-sm;
   font-weight: 600;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
 </style>

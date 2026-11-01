@@ -313,6 +313,8 @@ export const tradeApi = {
   }).then(normalizeQuoteItem),
   deleteQuoteLine: (quoteId: string, itemId: string) =>
     post<boolean>('quote/line/delete', { quoteId, itemId }),
+  copyQuoteLine: (quoteId: string, itemId: string) =>
+    post<RawRecord>('quote/line/copy', { quoteId, itemId }).then(normalizeQuoteItem),
   transition: (id: string, status: QuoteStatus) => {
     const statusMap: Record<QuoteStatus, string> = {
       draft: 'Draft', submitted: 'Submitted', accepted: 'Accepted', rejected: 'Rejected', superseded: 'Superseded', converted: 'Converted'

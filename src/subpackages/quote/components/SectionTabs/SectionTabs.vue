@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { PackageSection } from '@/domains/pack/model'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 
 const props = withDefaults(defineProps<{
   sections: PackageSection[]
@@ -15,6 +16,8 @@ const props = withDefaults(defineProps<{
   lineCounts: () => ({}),
   editable: false
 })
+
+const { brandTheme } = useBrandTheme()
 
 const emit = defineEmits<{
   (e: 'change', sectionId: string): void
@@ -58,7 +61,7 @@ function handleTap(sectionId: string) {
         </view>
       </view>
       <view v-if="editable" class="stabs__add" @tap="emit('add')">
-        <JzIcon name="plus" :size="28" :color="TOKEN_COLOR.primaryBase" />
+        <JzIcon name="plus" :size="28" :color="brandTheme.primaryDark" />
         <text class="stabs__add-text">新增</text>
       </view>
     </view>
@@ -84,7 +87,8 @@ function handleTap(sectionId: string) {
   display: inline-flex;
   align-items: center;
   gap: 10rpx;
-  padding: 14rpx 24rpx;
+  min-height: 88rpx;
+  padding: 8rpx 24rpx;
   background: $jzb-bg-hover;
   border-radius: $jzb-radius-pill;
   border: 2rpx solid transparent;
@@ -92,8 +96,8 @@ function handleTap(sectionId: string) {
 }
 
 .stabs__item--active {
-  background: $jzb-primary-lighter;
-  border-color: $jzb-primary;
+  background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter});
+  border-color: var(--jzb-brand-primary, #{$jzb-primary});
 }
 
 .stabs__name {
@@ -103,7 +107,7 @@ function handleTap(sectionId: string) {
 }
 
 .stabs__item--active .stabs__name {
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
 
 .stabs__count {
@@ -112,7 +116,7 @@ function handleTap(sectionId: string) {
 }
 
 .stabs__item--active .stabs__count {
-  color: $jzb-primary;
+  color: var(--jzb-brand-primary, #{$jzb-primary});
 }
 
 .stabs__actions {
@@ -125,8 +129,8 @@ function handleTap(sectionId: string) {
 }
 
 .stabs__action {
-  width: 40rpx;
-  height: 40rpx;
+  width: 72rpx;
+  height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,15 +140,16 @@ function handleTap(sectionId: string) {
   display: inline-flex;
   align-items: center;
   gap: 6rpx;
-  padding: 14rpx 24rpx;
-  border: 2rpx dashed $jzb-primary;
+  min-height: 88rpx;
+  padding: 8rpx 24rpx;
+  border: 2rpx dashed var(--jzb-brand-primary, #{$jzb-primary});
   border-radius: $jzb-radius-pill;
-  background: $jzb-primary-lightest;
+  background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest});
 }
 
 .stabs__add-text {
   font-size: $jzb-font-sm;
   font-weight: 600;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
 </style>

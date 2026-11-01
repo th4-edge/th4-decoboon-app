@@ -32,7 +32,7 @@ expect(login.includes("error.code === 'PHONE_REQUIRED'") && login.includes('phon
 // 未归属用户选择“以后再说”必须真正离开本页，不能回到首页后被再次拦截。
 expect(join.includes('function later()') && join.includes('session.sessionType === \'user\''),
   '未归属页缺少用户类型离场判定')
-expect(join.includes('if (session.token && session.sessionType === \'user\' && !session.emp) logout()'),
+expect(/if \(session\.token && session\.sessionType === 'user' && !session\.emp\) (?:void )?logout\(\)/.test(join),
   '未归属页“以后再说”未清理临时用户会话')
 expect(join.includes('function reLaunchAfterLogout(url: string)')
   && join.includes('wx.reLaunch({ url })')
@@ -54,7 +54,7 @@ expect(ownerEnter.includes('授权后，您可以看到') && ownerEnter.includes
   '业主未授权页缺少产品价值、进入步骤和身份边界说明')
 expect(ownerEnter.includes("message.includes('已绑定装修公司员工身份')") && ownerEnter.includes('业主端需使用业主本人微信进入'),
   '员工微信进入业主端时缺少可理解的恢复提示')
-expect(ownerEnter.includes('if (session.sessionType === \'user\' && !session.emp) logout()'),
+expect(/if \(session\.sessionType === 'user' && !session\.emp\) (?:void )?logout\(\)/.test(ownerEnter),
   '业主空态返回首页前未处理未归属临时会话')
 expect(ownerEnter.includes('function reLaunchAfterLogout(url: string)')
   && ownerEnter.includes('wx.reLaunch({ url })')

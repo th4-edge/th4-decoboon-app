@@ -487,7 +487,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
           <view class="ql__item-head">
             <view class="jz-grow">
               <text class="ql__customer jz-clamp-1">{{ quote.customer?.name || '未关联客户' }}</text>
-              <text class="ql__no jz-clamp-1">{{ quote.no }} · V{{ quote.version }} · {{ quote.design?.name || quote.packageTemplate?.name || quote.customer?.community || '未关联方案' }}</text>
+              <text class="ql__no jz-clamp-1">V{{ quote.version }} · {{ quote.design?.name || quote.packageTemplate?.name || quote.customer?.community || '未关联方案' }}</text>
             </view>
             <view class="ql__status-group">
               <text class="ql__mode" :style="{ color: MODE_META[quote.mode].color, backgroundColor: MODE_META[quote.mode].color + '14' }">{{ MODE_META[quote.mode].label }}</text>

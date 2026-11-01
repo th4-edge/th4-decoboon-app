@@ -13,6 +13,7 @@ import type { Company, CompanySetting } from '@/domains/identity/model'
 import { session } from '@/domains/identity/session'
 import { COMPANY_BRAND_COLORS, DEFAULT_BRAND_COLOR, isValidBrandColor } from '@/domains/identity/brand'
 import { applyBrandTheme, deriveBrandTheme } from '@/domains/identity/brandTheme'
+import { BRAND_COLOR_PRESETS, normalizeBrandColor } from '@/styles/brand-theme'
 import { chooseImages } from '@/domains/file/choose-media'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -26,6 +27,7 @@ const saving = ref(false)
 const logoUploading = ref(false)
 const employeePhones = ref<string[]>([])
 const customColor = ref(DEFAULT_BRAND_COLOR)
+const brandColor = ref(TOKEN_COLOR.primaryBase)
 
 const form = ref({
   title: '',
@@ -80,6 +82,7 @@ function hydrate(loaded: Company) {
     intro: setting.intro || ''
   }
   customColor.value = loaded.color || DEFAULT_BRAND_COLOR
+  brandColor.value = normalizeBrandColor(loaded.color) || TOKEN_COLOR.primaryBase
 }
 
 function syncSession(updated: Company) {
@@ -151,6 +154,7 @@ async function removeLogo() {
 function selectColor(value: string) {
   form.value.color = value
   customColor.value = value || DEFAULT_BRAND_COLOR
+  brandColor.value = normalizeBrandColor(value) || TOKEN_COLOR.primaryBase
   applyBrandTheme(value)
 }
 
@@ -160,6 +164,7 @@ function applyCustomColor() {
     return
   }
   form.value.color = customColor.value.trim().toUpperCase()
+  brandColor.value = normalizeBrandColor(form.value.color) || TOKEN_COLOR.primaryBase
   applyBrandTheme(form.value.color)
 }
 
@@ -200,7 +205,7 @@ async function save() {
       title: value.title.trim(),
       name: value.name.trim(),
       addr: value.addr.trim(),
-      color: value.color,
+      color: normalizeBrandColor(brandColor.value) || TOKEN_COLOR.primaryBase,
       setting: {
         serviceArea: value.serviceArea.trim(),
         serviceTel: value.serviceTel.trim(),
@@ -314,6 +319,21 @@ async function save() {
               <text class="ci-color-head__desc">企业品牌色会生成 App、小程序与 Web 的主题色阶；成功、警告、危险等业务状态色保持不变。</text>
             </view>
             <text class="ci-color-head__current">{{ colorStatus }}</text>
+          </view>
+          <view v-if="editing" class="ci-brand-quick">
+            <text class="ci-brand-quick__label">快捷选择</text>
+            <view class="ci-brand-quick__list">
+              <view
+                v-for="preset in BRAND_COLOR_PRESETS"
+                :key="preset.value"
+                class="ci-brand-quick__item"
+                :class="{ 'ci-brand-quick__item--on': normalizeBrandColor(form.color) === normalizeBrandColor(preset.value) }"
+                @tap="selectColor(preset.value)"
+              >
+                <view class="ci-brand-quick__swatch" :style="{ backgroundColor: preset.value }" />
+                <text>{{ preset.label }}</text>
+              </view>
+            </view>
           </view>
           <view class="ci-color-list">
             <view
@@ -475,6 +495,12 @@ async function save() {
 .ci-color-head__title { display: block; color: $jzb-text-1; font-size: 28rpx; font-weight: 500; }
 .ci-color-head__desc { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: 21rpx; line-height: 1.6; }
 .ci-color-head__current { flex: none; padding: 6rpx 14rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.ci-brand-quick { margin-top: 20rpx; }
+.ci-brand-quick__label { display: block; color: $jzb-text-3; font-size: 20rpx; }
+.ci-brand-quick__list { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
+.ci-brand-quick__item { display: flex; align-items: center; gap: 8rpx; padding: 8rpx 14rpx; color: $jzb-text-2; background: $jzb-bg-hover; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: 20rpx; }
+.ci-brand-quick__item--on { border-color: var(--jzb-primary-a24, rgba(22,163,148,.24)); color: $jzb-primary-dark; background: $jzb-primary-lightest; }
+.ci-brand-quick__swatch { width: 24rpx; height: 24rpx; border-radius: 50%; box-shadow: inset 0 0 0 1rpx rgba(15,23,42,.08); }
 .ci-color-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12rpx; margin-top: 20rpx; }
 .ci-color-item { display: flex; align-items: flex-start; gap: 12rpx; min-height: 92rpx; padding: 14rpx; box-sizing: border-box; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; }
 .ci-color-item--on { border-color: $jzb-primary; background: $jzb-primary-lightest; }

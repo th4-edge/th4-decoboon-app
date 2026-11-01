@@ -29,7 +29,7 @@ expect(list.includes('canBatchImport') && list.includes('batchImport()') && list
   '客户列表缺少企业负责人/店长批量录入入口')
 expect(batch.includes('智能解析并预览') && batch.includes('CustomerBatchItem') && batch.includes('crmApi.batchSave'),
   '批量录入页缺少解析预览→确认录入流程')
-expect(detail.includes('canChangeOwner') && detail.includes('crmApi.save({ id: id.value, owner })'),
+expect(detail.includes('canChangeOwner') && detail.includes('crmApi.save({ id: id.value, owner: employee })'),
   '客户详情缺少负责人变更入口')
 expect(detail.includes('canDeleteCustomer') && detail.includes('crmApi.delete(id.value)'),
   '客户详情缺少企业负责人删除入口')

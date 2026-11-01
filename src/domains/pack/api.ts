@@ -84,10 +84,16 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
     id: String(raw.id ?? raw.templateId ?? ''),
     code: raw.code ?? '',
     version: Number(raw.version ?? 1),
-    status: raw.status ?? 'Draft',
+    status: ['Draft', 'Published', 'Disabled'].includes(enumValue(raw.status))
+      ? enumValue(raw.status) as PackageTemplate['status']
+      : undefined,
+    statusKnown: ['Draft', 'Published', 'Disabled'].includes(enumValue(raw.status)),
     currentPublished: raw.currentPublished === true,
     publishedAt: dateTimeValue(raw.publishedAt),
     snapshotHash: raw.snapshotHash ?? undefined,
+    sectionCount: raw.sectionCount == null ? undefined : Number(raw.sectionCount),
+    lineCount: raw.lineCount == null ? undefined : Number(raw.lineCount),
+    ready: typeof raw.ready === 'boolean' ? raw.ready : undefined,
     name: raw.name ?? '',
     area: Number(raw.area ?? 0),
     price: Number(raw.price ?? 0),
@@ -96,7 +102,6 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
     criterions: raw.criterions,
     items: Array.isArray(raw.items) ? raw.items.map(normalizeLine) : undefined,
     itemCount: raw.itemCount == null ? undefined : Number(raw.itemCount),
-    sectionCount: raw.sectionCount == null ? undefined : Number(raw.sectionCount),
     measures: raw.measures,
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
     updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)
@@ -104,11 +109,6 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
 }
 
 export const packApi = {
-  templates: async () => listOf(await post<PageResult<RawRecord> | RawRecord[]>('pack/template/page', {
-    current: 1,
-    size: 100
-  })).map(normalizeTemplate),
-
   templatePickerPage: async (query: {
     current?: number
     size?: number
@@ -131,6 +131,23 @@ export const packApi = {
 
   availableTemplates: async () => listOf(await post<RawRecord[]>('pack/template/list', {})).map(normalizeTemplate),
 
+  // 套餐分区契约：单页最多 size: 50；当前按 20 条循环取全量，避免大页吞数据。
+  sections: async () => {
+    const all: PackageSection[] = []
+    let current = 1
+    do {
+      const result = await post<PageResult<RawRecord> | RawRecord[]>('pack/section/page', {
+        current,
+        size: 20
+      })
+      const page = toPageData(result, current, 20)
+      all.push(...page.list.map(normalizeSection))
+      if (!page.hasMore) break
+      current += 1
+    } while (true)
+    return all
+  },
+
   template: (templateId: string) =>
     post<RawRecord>('pack/template/info', { templateId }).then(normalizeTemplate),
 
@@ -142,6 +159,9 @@ export const packApi = {
 
   buildNextVersion: (templateId: string) =>
     post<RawRecord>('pack/template/build', { templateId }).then(normalizeTemplate),
+
+  copyTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/copy', { templateId }).then(normalizeTemplate),
 
   saveTemplate: (input: PackageTemplateInput) =>
     post<RawRecord>(input.templateId ? 'pack/template/update' : 'pack/template/save', {

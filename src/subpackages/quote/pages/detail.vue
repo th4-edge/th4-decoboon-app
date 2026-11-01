@@ -386,7 +386,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
   <view class="qd" :class="{ 'qd--with-tools': quote.design }" v-if="quote">
     <view class="qd__hero">
       <view class="jz-between">
-        <text class="qd__no">{{ quote.no }} · V{{ quote.version }}</text>
+        <text class="qd__no">报价 V{{ quote.version }}</text>
         <text class="qd__status">{{ MODE_META[quote.mode] }} · {{ STATUS_META[quote.status].label }}</text>
       </view>
       <text class="qd__amount">{{ money(quote.amount) }}</text>
@@ -435,7 +435,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
             <text class="qd__cq-amount">{{ money(q.amount) }}</text>
             <view class="qd__cq-meta">
               <text>{{ MODE_META[q.mode] }}</text>
-              <text>{{ q.no }}</text>
+              <text>{{ q.version }}版</text>
             </view>
             <view class="qd__cq-foot" :class="{ 'qd__cq-foot--active': q.id === id }">
               <template v-if="q.id === id">

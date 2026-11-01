@@ -384,8 +384,8 @@ onLoad((query) => {
         <label class="tpe__field"><text>模版名称 *</text><input v-model="form.name" maxlength="128" placeholder="例如：三室两厅基础施工模版" /></label>
         <label class="tpe__field"><text>房型 *</text><input v-model="form.houseType" maxlength="64" placeholder="例如：三室两厅一厨两卫" /></label>
         <view class="tpe__field-row">
-          <label class="tpe__field"><text>最小面积（㎡）</text><input v-model="form.areaMin" type="digit" placeholder="可选" /></label>
-          <label class="tpe__field"><text>最大面积（㎡）</text><input v-model="form.areaMax" type="digit" placeholder="可选" /></label>
+          <label class="tpe__field"><text>最小面积（㎡）</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="form.areaMin" type="digit" placeholder="可选" /></label>
+          <label class="tpe__field"><text>最大面积（㎡）</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="form.areaMax" type="digit" placeholder="可选" /></label>
         </view>
         <label class="tpe__field"><text>标签</text><input v-model="form.tags" maxlength="256" placeholder="用逗号分隔，例如：刚需,半包" /></label>
         <view class="tpe__field">
@@ -447,10 +447,10 @@ onLoad((query) => {
         <label class="tpe__field"><text>区域名称 *</text><input v-model="roomForm.name" maxlength="64" placeholder="例如：主卧" /></label>
         <view class="tpe__field"><text>区域类型</text><view class="tpe__chips"><view v-for="type in roomTypes" :key="type.value" class="tpe__chip" :class="{ 'tpe__chip--on': roomForm.roomType === type.value }" @tap="roomForm.roomType = type.value">{{ type.label }}</view></view></view>
         <view class="tpe__field-row">
-          <label class="tpe__field"><text>参考面积 A（㎡）</text><input v-model="roomForm.referenceArea" type="digit" placeholder="可选" /></label>
-          <label class="tpe__field"><text>参考周长 P（m）</text><input v-model="roomForm.referencePerimeter" type="digit" placeholder="可选" /></label>
+          <label class="tpe__field"><text>参考面积 A（㎡）</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="roomForm.referenceArea" type="digit" placeholder="可选" /></label>
+          <label class="tpe__field"><text>参考周长 P（m）</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="roomForm.referencePerimeter" type="digit" placeholder="可选" /></label>
         </view>
-        <label class="tpe__field"><text>同型数量 N</text><input v-model="roomForm.count" type="number" placeholder="默认 1" /></label>
+        <label class="tpe__field"><text>同型数量 N</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="roomForm.count" type="number" placeholder="默认 1" /></label>
         <label class="tpe__field"><text>备注</text><input v-model="roomForm.remark" maxlength="256" placeholder="可选" /></label>
         <view class="tpe__sheet-actions"><button class="jz-btn jz-btn--plain" @tap="roomSheet = false">取消</button><button class="jz-btn jz-btn--primary" :loading="savingRoom" @tap="submitRoom">保存区域</button></view>
       </view>
@@ -461,7 +461,7 @@ onLoad((query) => {
         <view class="jz-card tpe__selected"><text class="tpe__row-title">{{ itemForm.name }}</text><text class="tpe__row-sub">单位 {{ itemForm.unit || '待确认' }} · 归属区域 {{ roomName(itemForm.roomKey) }}</text></view>
         <view class="tpe__field"><text>归属区域</text><view class="tpe__chips"><view class="tpe__chip" :class="{ 'tpe__chip--on': !itemForm.roomKey }" @tap="itemForm.roomKey = ''">综合项目</view><view v-for="room in roomOptions" :key="room.key" class="tpe__chip" :class="{ 'tpe__chip--on': itemForm.roomKey === room.key }" @tap="itemForm.roomKey = room.key">{{ room.label }}</view></view></view>
         <label class="tpe__field"><text>工程量公式</text><input v-model="itemForm.quantityFormula" placeholder="例如：=A，留空则填写固定数量" /></label>
-        <label class="tpe__field"><text>固定数量</text><input v-model="itemForm.defaultQuantity" type="digit" placeholder="无公式时必填，且大于 0" /></label>
+        <label class="tpe__field"><text>固定数量</text><input class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" v-model="itemForm.defaultQuantity" type="digit" placeholder="无公式时必填，且大于 0" /></label>
         <label class="tpe__field"><text>备注</text><input v-model="itemForm.remark" maxlength="256" placeholder="可选" /></label>
         <text class="tpe__hint">请按区域变量填写公式；系统会自动检查公式是否适用于该分项。模版不保存价格。</text>
         <view class="tpe__sheet-actions"><button class="jz-btn jz-btn--plain" @tap="itemSheet = false">取消</button><button class="jz-btn jz-btn--primary" :loading="savingItem" @tap="submitItem">保存分项</button></view>

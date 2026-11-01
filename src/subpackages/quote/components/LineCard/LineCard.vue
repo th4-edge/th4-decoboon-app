@@ -6,6 +6,7 @@ import JzIcon from '@/components/JzIcon.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 
 const props = withDefaults(defineProps<{
   line: PackageLine
@@ -15,6 +16,8 @@ const props = withDefaults(defineProps<{
   standardArea: 100,
   editable: true
 })
+
+const { brandTheme } = useBrandTheme()
 
 const emit = defineEmits<{
   (e: 'edit', line: PackageLine): void
@@ -54,8 +57,8 @@ const pricingLabel: Record<string, string> = {
         <text class="lcard__meta-item">{{ pricingLabel[line.pricingMethod] || line.pricingMethod }}</text>
       </view>
       <view class="lcard__tags">
-        <JzTag :text="line.included ? '默认包含' : '不包含'" :color="line.included ? TOKEN_COLOR.primaryBase : TOKEN_COLOR.text3" :size="'sm'" />
-        <JzTag :text="line.deductible ? '允许扣减' : '不可扣减'" :color="line.deductible ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" :size="'sm'" />
+        <JzTag :text="line.included ? '默认包含' : '不包含'" :color="line.included ? brandTheme.primary : TOKEN_COLOR.text3" :size="'sm'" />
+        <JzTag :text="line.deductible ? '允许扣减' : '不可扣减'" :color="line.deductible ? brandTheme.primaryDark : TOKEN_COLOR.text3" :size="'sm'" />
       </view>
       <text v-if="line.criterions?.length" class="lcard__rule">{{ line.criterions.join('；') }}</text>
     </view>
@@ -183,7 +186,7 @@ const pricingLabel: Record<string, string> = {
   display: block;
   font-size: $jzb-font-md;
   font-weight: 700;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
   font-variant-numeric: tabular-nums;
 }
 

@@ -72,6 +72,7 @@ export interface Company {
   shortName?: string
   city?: string
   logo?: string
+  /** 企业品牌主色，仅接受 #RRGGBB；未配置时使用平台默认主色。 */
   color?: string
   storeName?: string
   brand?: string

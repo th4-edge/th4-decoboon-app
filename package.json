@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.73",
+  "version": "1.0.78",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -24,7 +24,6 @@
     "check:document": "node scripts/verify-document-contract.mjs",
     "check:plan": "node scripts/verify-plan-contract.mjs",
     "check:home": "node scripts/verify-homepage-contract.mjs",
-    "check:company-brand": "node scripts/verify-company-brand-contract.mjs",
     "check:action": "node scripts/verify-action-contract.mjs",
     "check:selectors": "node scripts/verify-selector-contract.mjs",
     "check:contract-sign": "node scripts/verify-contract-sign-contract.mjs",
@@ -33,7 +32,7 @@
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
     "check:numeric-inputs": "node scripts/verify-numeric-input-display.mjs",
     "check:refund-amount": "node scripts/verify-refund-amount.mjs",
-    "verify:mp-weixin": "npm run check:version && npm run check:pagination && npm run check:contract-line-pagination && npm run check:contract-range-pagination && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:client-copy && npm run check:invite-flow && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:company-brand && npm run check:action && npm run check:selectors && npm run audit:selectors && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
+    "verify:mp-weixin": "npm run check:version && npm run check:pagination && npm run check:contract-line-pagination && npm run check:contract-range-pagination && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:client-copy && npm run check:invite-flow && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:company-brand && npm run check:action && npm run check:selectors && npm run audit:selectors && npm run check:package-config && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run check:brand-theme && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
     "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
     "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs",
     "record:site": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json",
@@ -55,14 +54,17 @@
     "check:finance-pickers": "node scripts/verify-finance-entry-picker-contract.mjs",
     "check:finance-payment-worker": "node scripts/verify-finance-worker-backfill-contract.mjs",
     "check:design-items": "node scripts/verify-design-items-contract.mjs",
+    "check:package-config": "node scripts/verify-package-config-contract.mjs",
     "check:contract-change-items": "node scripts/verify-contract-change-item-parity.mjs",
     "check:owner-ui": "node scripts/verify-owner-ui-v2-contract.mjs",
+    "check:invite-flow": "node scripts/verify-invite-flow-contract.mjs",
+    "check:brand-theme": "node scripts/verify-brand-theme-contract.mjs",
     "check:pagination": "node scripts/check-list-pagination.mjs",
     "check:contract-line-pagination": "node scripts/verify-contract-line-pagination-contract.mjs",
     "check:contract-range-pagination": "node scripts/verify-contract-range-pagination-contract.mjs",
     "check:contract-range-pagination:self-test": "node scripts/verify-contract-range-pagination-contract.mjs --self-test",
     "check:contract-line-pagination:self-test": "node scripts/verify-contract-line-pagination-contract.mjs --self-test",
-    "check:invite-flow": "node scripts/verify-invite-flow-contract.mjs",
+    "check:company-brand": "node scripts/verify-company-brand-contract.mjs",
     "audit:selectors": "node scripts/audit-selector-semantics.mjs"
   },
   "dependencies": {

@@ -13,6 +13,7 @@ import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 
 type AreaBand = 'all' | 'small' | 'medium' | 'large' | 'xlarge'
 const areaOptions: Array<{ label: string; value: AreaBand; min?: number; max?: number }> = [
@@ -23,6 +24,7 @@ const areaOptions: Array<{ label: string; value: AreaBand; min?: number; max?: n
   { label: '>160㎡', value: 'xlarge', min: 160 }
 ]
 
+const { brandTheme, brandThemeStyle } = useBrandTheme()
 const selectedId = ref('')
 const selectedName = ref('')
 const keyword = ref('')
@@ -114,10 +116,9 @@ function loadMore() {
   void load(false)
 }
 function templateMeta(item: PackageTemplate) {
-  return {
-    sections: item.sectionCount ?? new Set((item.items || []).map((line) => line.section?.id).filter(Boolean)).size,
-    lines: item.itemCount ?? (item.items || []).length
-  }
+  const lines = item.items || []
+  const sections = new Set(lines.map((line) => line.section?.id).filter(Boolean))
+  return { sections: item.sectionCount ?? sections.size, lines: item.lineCount ?? lines.length }
 }
 function choose(item: PackageTemplate) {
   const meta = templateMeta(item)
@@ -143,11 +144,11 @@ function clearSelection() {
 </script>
 
 <template>
-  <view class="bp-page">
+  <view class="bp-page" :style="brandThemeStyle">
     <JzPageHeader title="选择套餐模板" subtitle="按面积段、套餐内容和价格比较" back />
     <view class="bp-body">
       <view v-if="selectedId" class="bp-current">
-        <view class="bp-current__icon"><JzIcon name="package" :size="32" :color="TOKEN_COLOR.primary" /></view>
+        <view class="bp-current__icon"><JzIcon name="package" :size="32" :color="brandTheme.primaryDark" /></view>
         <view class="bp-current__main">
           <text class="bp-current__eyebrow">当前选择</text>
           <text class="bp-current__name">{{ selectedName || '已选套餐' }}</text>
@@ -194,6 +195,8 @@ function clearSelection() {
             <view class="bp-fact">项目<text class="bp-fact__value">{{ templateMeta(item).lines }} 项</text></view>
             <view v-if="canViewCost" class="bp-fact">标准成本<text class="bp-fact__value">{{ money(item.cost) }}</text></view>
           </view>
+          <view v-if="selectedId === item.id" class="pk-select pk-select--current">当前已选</view>
+          <view v-else class="pk-select" @tap.stop="choose(item)">选择此套餐</view>
         </view>
         <view v-if="loadMoreError" class="bp-footer bp-footer--error" @tap="loadMore"><text>加载更多失败，点击重试</text></view>
         <view v-else-if="hasMore" class="bp-footer" @tap="loadMore"><text>{{ loadingMore ? '加载中' : '加载更多' }}</text></view>
@@ -205,4 +208,7 @@ function clearSelection() {
 
 <style lang="scss" scoped>
 @import '@/styles/business-picker.scss';
+
+.pk-select { min-height: 72rpx; margin-top: 20rpx; display: flex; align-items: center; justify-content: center; color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter}); border: 1rpx solid var(--jzb-brand-border, rgba(22,163,148,.18)); border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; font-weight: 650; }
+.pk-select--current { color: $jzb-text-3; background: $jzb-bg-hover; border-color: $jzb-border-light; }
 </style>

@@ -1,5 +1,6 @@
 import { post, listOf, upload as uploadRequest } from '@/core/http'
 import { runtime } from '@/config'
+import { session } from './session'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
 import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, PendingEntryInvite, Store, Team, UserProfile } from './model'
@@ -95,6 +96,7 @@ function normalizeCompany(raw: RawRecord | null | undefined): Employee['company'
     id: String(raw.id ?? raw.comId ?? ''),
     name: raw.title ?? raw.name ?? '',
     shortName: raw.name,
+    color: typeof raw.color === 'string' ? raw.color : undefined,
     city: raw.addr,
     storeName: store?.name,
     createdAt: raw.createTime?.dateTime ?? raw.createTime
@@ -307,10 +309,13 @@ export const identityApi = {
   rejectInvite: async (inviteId: string, phone: string, reason?: string) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/reject', { inviteId, phone, reason })),
 
-  storeList: async (currentOnly?: boolean): Promise<Store[]> =>
-    listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
+  storeList: async (currentOnly?: boolean): Promise<Store[]> => {
+    // 未归属企业的登录用户只有 Credentials，没有 Employee 身份；门店接口不是其业务入口。
+    if (!session.emp) return []
+    return listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
       .map(normalizeStore)
-      .filter((item): item is Store => !!item),
+      .filter((item): item is Store => !!item)
+  },
 
   /** 主动退出：调用方必须传入当前 token，因为本地会话会先同步清空。 */
   logout: (token?: string) =>
