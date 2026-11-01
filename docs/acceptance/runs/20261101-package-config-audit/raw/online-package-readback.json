@@ -1,0 +1,163 @@
+{
+  "capturedAt": "2026-11-01T09:48:57.630Z",
+  "endpoint": "https://decoboon.joytsing.com/api",
+  "templatePageBytes": 768,
+  "templates": [
+    {
+      "templateId": "242576220057763840",
+      "name": "麦鸿59900套餐",
+      "area": 100,
+      "price": 59900,
+      "discount": 1,
+      "cost": 0,
+      "sectionCount": 0,
+      "lineCount": 0,
+      "infoBytes": 205
+    },
+    {
+      "templateId": "102080338905270670",
+      "name": "麦鸿品质升级套餐",
+      "area": 118,
+      "price": 95539.3,
+      "discount": 0.98,
+      "cost": 72528.71,
+      "sectionCount": 7,
+      "lineCount": 74,
+      "infoBytes": 103484
+    },
+    {
+      "templateId": "102080338905270588",
+      "name": "麦鸿现代简约套餐",
+      "area": 118,
+      "price": 92392.04,
+      "discount": 0.98,
+      "cost": 91402.04,
+      "sectionCount": 7,
+      "lineCount": 74,
+      "infoBytes": 103676
+    }
+  ],
+  "sectionPageBytes": 2033,
+  "sections": [
+    {
+      "groupId": "102080338905270589",
+      "name": "客餐厅",
+      "priority": 0,
+      "lineReferences": 15
+    },
+    {
+      "groupId": "102080338905270605",
+      "name": "主卧",
+      "priority": 1,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270614",
+      "name": "次卧",
+      "priority": 2,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270623",
+      "name": "北卧",
+      "priority": 3,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270632",
+      "name": "厨房",
+      "priority": 4,
+      "lineReferences": 11
+    },
+    {
+      "groupId": "102080338905270644",
+      "name": "卫生间",
+      "priority": 5,
+      "lineReferences": 14
+    },
+    {
+      "groupId": "102080338905270659",
+      "name": "阳台",
+      "priority": 6,
+      "lineReferences": 10
+    },
+    {
+      "groupId": "102080338905270671",
+      "name": "客餐厅",
+      "priority": 0,
+      "lineReferences": 15
+    },
+    {
+      "groupId": "102080338905270687",
+      "name": "主卧",
+      "priority": 1,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270696",
+      "name": "次卧",
+      "priority": 2,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270705",
+      "name": "北卧",
+      "priority": 3,
+      "lineReferences": 8
+    },
+    {
+      "groupId": "102080338905270714",
+      "name": "厨房",
+      "priority": 4,
+      "lineReferences": 11
+    },
+    {
+      "groupId": "102080338905270726",
+      "name": "卫生间",
+      "priority": 5,
+      "lineReferences": 14
+    },
+    {
+      "groupId": "102080338905270741",
+      "name": "阳台",
+      "priority": 6,
+      "lineReferences": 10
+    },
+    {
+      "groupId": "240929924779606016",
+      "name": "基础施工",
+      "priority": 0,
+      "lineReferences": 0
+    },
+    {
+      "groupId": "242576275963641856",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0
+    },
+    {
+      "groupId": "242576311183212544",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0
+    },
+    {
+      "groupId": "242576442100023296",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0
+    },
+    {
+      "groupId": "242576733138583552",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0
+    },
+    {
+      "groupId": "242577375764676608",
+      "name": "1",
+      "priority": 0,
+      "lineReferences": 0
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "capturedAt": "2026-11-01T09:51:56.611Z",
+  "accessMode": "existing valid online Finance token; local role override only for client route access; no write operation",
+  "route": "subpackages/quote/pages/package-edit",
+  "templateId": "242576220057763840",
+  "templateName": "麦鸿59900套餐",
+  "templateLineCount": 0,
+  "sectionCountFromApi": 20,
+  "visibleSectionCount": 20,
+  "allSectionsVisible": true,
+  "unusedAcrossAccessibleTemplates": 6,
+  "emptyTemplateRenderedAsZeroItems": true,
+  "pageTextChecks": {
+    "sectionTitle": true,
+    "addAction": true,
+    "emptySectionHint": true
+  },
+  "mutationPerformed": false,
+  "checks": [
+    {
+      "groupId": "102080338905270589",
+      "name": "客餐厅",
+      "priority": 0,
+      "lineReferences": 15,
+      "expectedVisibleText": "客餐厅0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270605",
+      "name": "主卧",
+      "priority": 1,
+      "lineReferences": 8,
+      "expectedVisibleText": "主卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270614",
+      "name": "次卧",
+      "priority": 2,
+      "lineReferences": 8,
+      "expectedVisibleText": "次卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270623",
+      "name": "北卧",
+      "priority": 3,
+      "lineReferences": 8,
+      "expectedVisibleText": "北卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270632",
+      "name": "厨房",
+      "priority": 4,
+      "lineReferences": 11,
+      "expectedVisibleText": "厨房0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270644",
+      "name": "卫生间",
+      "priority": 5,
+      "lineReferences": 14,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270659",
+      "name": "阳台",
+      "priority": 6,
+      "lineReferences": 10,
+      "expectedVisibleText": "阳台0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270671",
+      "name": "客餐厅",
+      "priority": 0,
+      "lineReferences": 15,
+      "expectedVisibleText": "客餐厅0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270687",
+      "name": "主卧",
+      "priority": 1,
+      "lineReferences": 8,
+      "expectedVisibleText": "主卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270696",
+      "name": "次卧",
+      "priority": 2,
+      "lineReferences": 8,
+      "expectedVisibleText": "次卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270705",
+      "name": "北卧",
+      "priority": 3,
+      "lineReferences": 8,
+      "expectedVisibleText": "北卧0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270714",
+      "name": "厨房",
+      "priority": 4,
+      "lineReferences": 11,
+      "expectedVisibleText": "厨房0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270726",
+      "name": "卫生间",
+      "priority": 5,
+      "lineReferences": 14,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "102080338905270741",
+      "name": "阳台",
+      "priority": 6,
+      "lineReferences": 10,
+      "expectedVisibleText": "阳台0项",
+      "visible": true
+    },
+    {
+      "groupId": "240929924779606016",
+      "name": "基础施工",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "基础施工0项",
+      "visible": true
+    },
+    {
+      "groupId": "242576275963641856",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "242576311183212544",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "242576442100023296",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "242576733138583552",
+      "name": "卫生间",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "卫生间0项",
+      "visible": true
+    },
+    {
+      "groupId": "242577375764676608",
+      "name": "1",
+      "priority": 0,
+      "lineReferences": 0,
+      "expectedVisibleText": "10项",
+      "visible": true
+    }
+  ]
+}
