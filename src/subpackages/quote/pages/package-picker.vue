@@ -58,7 +58,7 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    items.value = await packApi.templates()
+    items.value = await packApi.availableTemplates()
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '套餐模板加载失败'
   } finally {
@@ -68,7 +68,7 @@ async function load() {
 function templateMeta(item: PackageTemplate) {
   const lines = item.items || []
   const sections = new Set(lines.map((line) => line.section?.id).filter(Boolean))
-  return { sections: sections.size, lines: lines.length }
+  return { sections: item.sectionCount ?? sections.size, lines: item.lineCount ?? lines.length }
 }
 function choose(item: PackageTemplate) {
   const meta = templateMeta(item)

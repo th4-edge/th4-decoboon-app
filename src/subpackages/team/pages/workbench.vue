@@ -229,7 +229,7 @@ function acceptanceLabel(raw: string) {
 
         <view class="jz-section"><text class="jz-section__title">项目来源报价</text><text class="pm__business-count">{{ report.quoteCount }} 份</text></view>
         <view v-for="quote in report.recentQuotes.slice(0, 5)" :key="quote.id" class="jz-card pm__quote" @tap="open(`${P.quoteDetail}?id=${quote.id}`)">
-          <view class="jz-grow"><text class="pm__quote-name">{{ quote.customer?.name || quote.no }}</text><text class="pm__quote-meta">{{ quote.no }} · {{ quote.area }}㎡</text></view>
+          <view class="jz-grow"><text class="pm__quote-name">{{ quote.customer?.name || '客户报价' }}</text><text class="pm__quote-meta">V{{ quote.version }} · {{ quote.area }}㎡</text></view>
           <text class="pm__quote-amount">{{ money(quote.amount) }}</text>
         </view>
       </view>

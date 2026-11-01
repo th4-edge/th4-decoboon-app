@@ -28,6 +28,7 @@ const activeType = ref<CatalogType>(props.defaultType)
 const list = ref<CatalogItem[]>([])
 const selected = ref<Set<string>>(new Set())
 const loading = ref(false)
+const confirming = ref(false)
 
 const typeOptions: { value: CatalogType; label: string }[] = [
   { value: 'construction', label: '施工' },
@@ -50,6 +51,7 @@ watch(() => props.visible, (val) => {
   if (val) {
     keyword.value = ''
     selected.value = new Set()
+    confirming.value = false
     void load()
   }
 })
@@ -81,7 +83,8 @@ function isSelected(id: string): boolean {
 }
 
 function confirm() {
-  if (selectedItems.value.length === 0) return
+  if (confirming.value || selectedItems.value.length === 0) return
+  confirming.value = true
   emit('confirm', selectedItems.value)
   emit('close')
 }

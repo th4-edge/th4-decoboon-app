@@ -82,6 +82,18 @@ function normalizeLine(raw: RawRecord): PackageLine {
 function normalizeTemplate(raw: RawRecord): PackageTemplate {
   return {
     id: String(raw.id ?? raw.templateId ?? ''),
+    code: raw.code ?? '',
+    version: Number(raw.version ?? 1),
+    status: ['Draft', 'Published', 'Disabled'].includes(enumValue(raw.status))
+      ? enumValue(raw.status) as PackageTemplate['status']
+      : undefined,
+    statusKnown: ['Draft', 'Published', 'Disabled'].includes(enumValue(raw.status)),
+    currentPublished: raw.currentPublished === true,
+    publishedAt: dateTimeValue(raw.publishedAt),
+    snapshotHash: raw.snapshotHash ?? undefined,
+    sectionCount: raw.sectionCount == null ? undefined : Number(raw.sectionCount),
+    lineCount: raw.lineCount == null ? undefined : Number(raw.lineCount),
+    ready: typeof raw.ready === 'boolean' ? raw.ready : undefined,
     name: raw.name ?? '',
     area: Number(raw.area ?? 0),
     price: Number(raw.price ?? 0),
@@ -98,8 +110,10 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
 export const packApi = {
   templates: async () => listOf(await post<PageResult<RawRecord> | RawRecord[]>('pack/template/page', {
     current: 1,
-    size: 100
+    size: 50
   })).map(normalizeTemplate),
+
+  availableTemplates: async () => listOf(await post<RawRecord[]>('pack/template/list', {})).map(normalizeTemplate),
 
   sections: async () => listOf(await post<PageResult<RawRecord> | RawRecord[]>('pack/section/page', {
     current: 1,
@@ -108,6 +122,15 @@ export const packApi = {
 
   template: (templateId: string) =>
     post<RawRecord>('pack/template/info', { templateId }).then(normalizeTemplate),
+
+  publishTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/publish', { templateId }).then(normalizeTemplate),
+
+  disableTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/disable', { templateId }).then(normalizeTemplate),
+
+  buildNextVersion: (templateId: string) =>
+    post<RawRecord>('pack/template/build', { templateId }).then(normalizeTemplate),
 
   saveTemplate: (input: PackageTemplateInput) =>
     post<RawRecord>(input.templateId ? 'pack/template/update' : 'pack/template/save', {

@@ -147,9 +147,11 @@ async function consumePickerResultsUnsafe() {
     property.value = null
     designId.value = ''
     design.value = null
-    templateId.value = ''
-    template.value = null
-    packageArea.value = ''
+    if (mode.value !== 'package') {
+      templateId.value = ''
+      template.value = null
+      packageArea.value = ''
+    }
     return
   }
 

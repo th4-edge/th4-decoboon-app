@@ -256,7 +256,7 @@ function riskColor(level: string): string {
         <view class="wb__amount-row">
           <view class="wb__amount-label">
             <JzIcon name="file-text" :size="24" :color="TOKEN_COLOR.primary" />
-            <text>确认报价 {{ item.quoteNo }} · v{{ item.version }}</text>
+            <text>确认报价 V{{ item.version }}</text>
           </view>
           <JzMoney :value="item.acceptedAmount" />
         </view>

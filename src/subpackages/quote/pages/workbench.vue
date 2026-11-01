@@ -177,7 +177,7 @@ function actionLabel(status: string): string {
 
         <view class="wb__amount-row">
           <JzMoney :value="item.amount" />
-          <text class="wb__quote-no">{{ item.quoteNo }} · v{{ item.version }}</text>
+          <text class="wb__quote-no">{{ item.version }}版</text>
         </view>
 
         <view class="wb__item-meta">

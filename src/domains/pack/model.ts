@@ -33,8 +33,21 @@ export interface PackageTemplateItem {
   priority: number
 }
 
+export type PackageTemplateStatus = 'Draft' | 'Published' | 'Disabled'
+
 export interface PackageTemplate {
   id: string
+  code?: string
+  version: number
+  /** 旧后端无生命周期字段时保持未知，不用 Draft 伪造。 */
+  status?: PackageTemplateStatus
+  statusKnown?: boolean
+  currentPublished: boolean
+  publishedAt?: string
+  snapshotHash?: string
+  sectionCount?: number
+  lineCount?: number
+  ready?: boolean
   name: string
   area: number
   price: number

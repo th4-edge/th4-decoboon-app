@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { P } from '@/config'
+import { session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { CatalogItem, CatalogPricingMode } from '@/domains/catalog/model'
 import type { PackageLine, PackageSection, PackageTemplate } from '@/domains/pack/model'
@@ -61,6 +64,7 @@ const linesBySection = computed(() => lines.value.filter((l) => l.section?.id ==
 const pickerVisible = ref(false)
 const editSheetVisible = ref(false)
 const editingLine = ref<PackageLine | null>(null)
+const addingLines = ref(false)
 
 // 实时计算
 const discountedPrice = computed(() => Number(price.value || 0) * (Number(discount.value || 100) / 100))
@@ -72,6 +76,11 @@ const grossMargin = computed(() => {
 const marginLow = computed(() => grossMargin.value < 20 && currentCost.value > 0)
 
 onLoad((query) => {
+  if (!can(session.role, 'edit:package-template')) {
+    toast('当前账号无权维护套餐模板')
+    setTimeout(() => uni.redirectTo({ url: P.packageManage }), 300)
+    return
+  }
   templateId.value = query?.templateId || ''
   void initialize()
 })
@@ -86,6 +95,11 @@ async function initialize() {
       packApi.sections()
     ])
     template.value = loadedTemplate
+    if (template.value.statusKnown && template.value.status !== 'Draft') {
+      toast('已发布或已停用的套餐不可原地修改')
+      setTimeout(() => uni.redirectTo({ url: P.packageManage }), 500)
+      return
+    }
     sections.value = loadedSections
     name.value = template.value.name
     area.value = String(template.value.area)
@@ -240,24 +254,51 @@ function openPicker() {
   pickerVisible.value = true
 }
 
-async function batchAddLines(items: CatalogItem[]) {
-  // 批量添加：逐个调用 saveLine，系数默认1
-  const results = []
-  for (const item of items) {
-    results.push(packApi.saveLine({
-      templateId: templateId.value,
-      sectionId: activeSectionId.value,
-      catalogItemId: item.id,
-      quantityFactor: 1,
-      sort: lines.value.length + results.length
-    }))
+function normalizeSelectedItems(payload: unknown): CatalogItem[] {
+  if (Array.isArray(payload)) return payload as CatalogItem[]
+  if (!payload || typeof payload !== 'object') return []
+  const record = payload as { detail?: unknown; id?: unknown }
+  if (Array.isArray(record.detail)) return record.detail as CatalogItem[]
+  if (record.id != null) return [payload as CatalogItem]
+  return []
+}
+
+async function batchAddLines(payload: unknown) {
+  if (addingLines.value) return
+  const items = normalizeSelectedItems(payload)
+  const unique = [...new Map(items.filter((item) => item?.id).map((item) => [item.id, item])).values()]
+  if (!unique.length) {
+    toast('没有可添加的套餐项目')
+    return
   }
+  const existingIds = new Set(linesBySection.value.map((line) => line.item?.id).filter(Boolean))
+  const candidates = unique.filter((item) => !existingIds.has(item.id))
+  if (!candidates.length) {
+    toast('所选项目已在当前分区中')
+    return
+  }
+  addingLines.value = true
+  let added = 0
   try {
-    await Promise.all(results)
+    for (const item of candidates) {
+      await packApi.saveLine({
+        templateId: templateId.value,
+        sectionId: activeSectionId.value,
+        catalogItemId: item.id,
+        quantityFactor: 1,
+        sort: lines.value.length + added
+      })
+      added += 1
+    }
     await reload()
-    toast(`已添加 ${items.length} 个项目`, 'success')
+    pickerVisible.value = false
+    toast(`已添加 ${added} 个项目${unique.length > candidates.length ? '，重复项目已跳过' : ''}`, 'success')
   } catch (error) {
-    toastError(error, '批量添加失败')
+    await reload()
+    if (added > 0) toast(`已保存 ${added} 个项目，其余项目添加失败`)
+    else toastError(error, '批量添加失败')
+  } finally {
+    addingLines.value = false
   }
 }
 

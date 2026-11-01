@@ -512,7 +512,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
               <text class="perf__record-title">{{ quote.customer?.name || '客户报价' }}</text>
               <text class="perf__record-tag" :class="quoteStatusTone(quote.status)">{{ quoteStatusText(quote.status) }}</text>
             </view>
-            <text class="perf__record-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡</text>
+            <text class="perf__record-sub">V{{ quote.version }} · {{ quote.area || 0 }}㎡</text>
           </view>
           <text class="perf__record-amount">{{ money(quote.amount) }}</text>
           <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
@@ -558,7 +558,7 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
               <text class="perf__record-title">{{ quote.customer?.name || '客户报价' }}</text>
               <text class="perf__record-tag" :class="quoteStatusTone(quote.status)">{{ quoteStatusText(quote.status) }}</text>
             </view>
-            <text class="perf__record-sub">{{ quote.no }} · {{ quote.area || 0 }}㎡</text>
+            <text class="perf__record-sub">V{{ quote.version }} · {{ quote.area || 0 }}㎡</text>
           </view>
           <text class="perf__record-amount">{{ money(quote.amount) }}</text>
           <JzIcon class="perf__record-arrow" name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />

@@ -157,7 +157,7 @@ async function deductDifference(line: QuoteItem) {
 <template>
   <view class="qa" v-if="quote">
     <view class="qa__hero">
-      <text class="qa__no">{{ quote.no }} · V{{ quote.version }}</text>
+      <text class="qa__no">报价 V{{ quote.version }}</text>
       <text class="qa__amount">{{ money(quote.amount) }}</text>
       <text class="qa__meta">{{ quote.customer?.name || '未关联客户' }} · {{ quote.area }}㎡ · 草稿报价</text>
     </view>

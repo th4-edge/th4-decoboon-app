@@ -50,12 +50,17 @@ const shown = computed(() => {
 })
 const isEmpty = computed(() => !loading.value && !loadError.value && shown.value.length === 0)
 
+function decoded(value: unknown): string {
+  const raw = String(value || '')
+  try { return decodeURIComponent(raw) } catch { return raw }
+}
+
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   customerId.value = query?.customerId || ''
-  customerName.value = query?.customerName || ''
+  customerName.value = decoded(query?.customerName)
   selectedId.value = query?.selectedId || ''
-  selectedName.value = query?.selectedName || ''
+  selectedName.value = decoded(query?.selectedName)
   if (!customerId.value) {
     loadError.value = '缺少客户上下文，无法选择房屋'
     return
