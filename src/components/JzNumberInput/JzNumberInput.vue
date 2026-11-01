@@ -99,7 +99,7 @@ function onBlur() {
       :maxlength="maxlength"
       :placeholder="placeholder"
       placeholder-class="jz-number-input__placeholder"
-      placeholder-style="text-align: left"
+      placeholder-style="text-align: right"
       @input="onInput"
       @focus="emit('focus')"
       @blur="onBlur"
@@ -124,12 +124,12 @@ function onBlur() {
 }
 .jz-number-input--compact { min-height: 82rpx; padding: 0 20rpx; }
 .jz-number-input:focus-within {
-  border-color: rgba(22, 163, 148, .5);
-  box-shadow: 0 0 0 4rpx rgba(22, 163, 148, .08);
+  border-color: var(--jzb-primary-a50, rgba(22, 163, 148, .5));
+  box-shadow: 0 0 0 4rpx var(--jzb-primary-a08, rgba(22, 163, 148, .08));
 }
 .jz-number-input--disabled { opacity: .58; background: $jzb-bg-hover; }
 .jz-number-input__prefix { flex: none; color: $jzb-text-2; font-size: $jzb-font-md; font-weight: 650; }
-.jz-number-input__placeholder { color: $jzb-text-4; text-align: left; }
+.jz-number-input__placeholder { color: $jzb-text-4; text-align: right; }
 .jz-number-input__control {
   flex: 1;
   min-width: 0;

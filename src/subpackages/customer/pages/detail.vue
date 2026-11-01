@@ -4,17 +4,16 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { can } from '@/roles/permission'
 import type { Customer, CustomerFollow, CustomerLossStage } from '@/domains/crm/model'
 import type { ContentAttributionConfidence, ContentAttributionType, LeadTouch } from '@/domains/content/model'
 import type { Project } from '@/domains/project/model'
 import type { Property } from '@/domains/property/model'
 import type { Quote, QuoteStatus } from '@/domains/trade/model'
-import type { Employee } from '@/domains/identity/model'
 import { CUSTOMER_SOURCE_META, CUSTOMER_STAGE_META } from '@/domains/crm/meta'
 import { crmApi } from '@/domains/crm/api'
 import { leadTouchApi } from '@/domains/content/api'
-import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
 import { propertyApi } from '@/domains/property/api'
 import { tradeApi } from '@/domains/trade/api'
@@ -53,15 +52,12 @@ const talkCount = ref(0)
 const customerProjects = ref<Project[]>([])
 const properties = ref<Property[]>([])
 const activePropertyId = ref('')
-const designers = ref<Employee[]>([])
-const owners = ref<Employee[]>([])
+const employeePickerTarget = ref<'designer' | 'owner' | ''>('')
 const booted = ref(false)
 const loadError = ref('')
 const sectionError = ref('')
 const actionLoading = ref(false)
 const openDesignerOnLoad = ref(false)
-const designerSheetOpen = ref(false)
-const ownerSheetOpen = ref(false)
 const dormantSheetOpen = ref(false)
 const dormantTextOpen = ref(false)
 const dormantReason = ref('')
@@ -323,13 +319,6 @@ const primaryAction = computed<PrimaryAction | null>(() => {
   }
   return null
 })
-const designerActions = computed(() => designers.value.map((item) => ({
-  label: `${item.name}${item.store?.name ? ' · ' + item.store.name : ''}`
-})))
-const ownerActions = computed(() => owners.value.map((item) => ({
-  label: `${item.name}${item.store?.name ? ' · ' + item.store.name : ''}`
-})))
-
 function formatDateTime(value?: string) {
   return value ? value.slice(0, 16).replace('T', ' ') : '—'
 }
@@ -347,6 +336,7 @@ onLoad((query) => {
   }
 })
 onShow(() => {
+  applyEmployeePickerResult()
   if (id.value) void load()
 })
 
@@ -666,51 +656,55 @@ async function recordVisit() {
   }
 }
 
-async function assignDesigner() {
-  actionLoading.value = true
-  try {
-    if (!designers.value.length) {
-      designers.value = (await identityApi.employees()).filter((item) => item.status === 'active')
-    }
-    if (!designers.value.length) {
-      toast('当前范围暂无可指定人员')
-      return
-    }
-    designerSheetOpen.value = true
-  } catch (error) {
-    toastError(error, '可指派人员加载失败')
-  } finally {
-    actionLoading.value = false
-  }
+function assignDesigner() {
+  if (!customer.value) return
+  employeePickerTarget.value = 'designer'
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    `selectedId=${encodeURIComponent(customer.value.designer?.id || '')}`,
+    `selectedName=${encodeURIComponent(customer.value.designer?.name || '')}`
+  ]
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
 
-async function assignOwner() {
-  actionLoading.value = true
-  try {
-    const all = await identityApi.employees()
-    const currentStoreId = session.emp?.store?.id
-    owners.value = all.filter((item) => item.status === 'active'
-      && (session.role === 'boss' || !currentStoreId || item.store?.id === currentStoreId))
-    if (!owners.value.length) {
-      toast('当前范围暂无可转交的客户负责人')
-      return
-    }
-    ownerSheetOpen.value = true
-  } catch (error) {
-    toastError(error, '负责人列表加载失败')
-  } finally {
-    actionLoading.value = false
-  }
+function assignOwner() {
+  if (!customer.value) return
+  employeePickerTarget.value = 'owner'
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    `selectedId=${encodeURIComponent(customer.value.owner?.id || '')}`,
+    `selectedName=${encodeURIComponent(customer.value.owner?.name || '')}`
+  ]
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
 
-async function onOwnerSelect(index: number) {
-  const owner = owners.value[index]
-  if (!owner || !customer.value) return
+async function applyEmployeePickerResult() {
+  const target = employeePickerTarget.value
+  if (!target) return
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  employeePickerTarget.value = ''
+  if (result.action === 'clear' || !customer.value) return
+  const employee = result.value
+  if (target === 'designer') {
+    if (!activeProperty.value?.id) { toast('请先建立并选择装修房屋'); return }
+    loading('正在更新负责设计师…')
+    try {
+      customer.value = await crmApi.handoff(id.value, employee.id, activeProperty.value.id)
+      toast(`已更换负责设计师为 ${employee.name}`, 'success')
+    } catch (error) {
+      toastError(error, '更换负责设计师失败')
+    } finally {
+      hideLoading()
+    }
+    return
+  }
   loading('正在变更客户负责人…')
   try {
-    customer.value = await crmApi.save({ id: id.value, owner })
-    toast(`已变更客户负责人为 ${owner.name}`, 'success')
-    await load()
+    customer.value = await crmApi.save({ id: id.value, owner: employee })
+    toast(`已变更客户负责人为 ${employee.name}`, 'success')
   } catch (error) {
     toastError(error, '变更客户负责人失败')
   } finally {
@@ -733,22 +727,6 @@ async function deleteCustomer() {
     setTimeout(() => uni.navigateBack({ fail: () => uni.reLaunch({ url: P.customerList }) }), 400)
   } catch (error) {
     toastError(error, '客户删除失败')
-  } finally {
-    hideLoading()
-  }
-}
-
-async function onDesignerSelect(index: number) {
-  const designer = designers.value[index]
-  if (!designer) return
-  if (!activeProperty.value?.id) { toast('请先建立并选择装修房屋'); return }
-  loading('正在更新负责设计师…')
-  try {
-    customer.value = await crmApi.handoff(id.value, designer.id, activeProperty.value.id)
-    toast(`已更换负责设计师为 ${designer.name}`, 'success')
-    await load()
-  } catch (error) {
-    toastError(error, '更换负责设计师失败')
   } finally {
     hideLoading()
   }
@@ -1048,14 +1026,6 @@ function viewMeasure(property: Property) {
   />
 
   <JzActionSheet
-    :visible="designerSheetOpen"
-    title="选择负责设计师"
-    :actions="designerActions"
-    @select="onDesignerSelect"
-    @update:visible="designerSheetOpen = $event"
-  />
-
-  <JzActionSheet
     :visible="lossScopeSheetOpen"
     title="选择流失范围"
     :actions="lossScopeActions"
@@ -1113,13 +1083,6 @@ function viewMeasure(property: Property) {
     @confirm="submitDormant(dormantReasonText)"
   />
 
-  <JzActionSheet
-    :visible="ownerSheetOpen"
-    title="选择客户负责人"
-    :actions="ownerActions"
-    @select="onOwnerSelect"
-    @update:visible="ownerSheetOpen = $event"
-  />
     <JzConfirmDialog />
 </template>
 

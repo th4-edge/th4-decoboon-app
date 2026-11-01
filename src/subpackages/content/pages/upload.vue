@@ -126,7 +126,7 @@ async function submit() {
         <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text3" />
       </view>
 
-      <view class="jz-form-row"><text class="jz-form-label">素材标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：主卧水电隐蔽前留证" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">素材标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：主卧水电隐蔽前留证" placeholder-style="text-align: right" /></view>
 
       <text class="cu__label">素材内容 <text class="cu__required">*</text></text>
       <view class="cu__media" @tap="chooseAsset">
@@ -144,7 +144,7 @@ async function submit() {
         <button v-for="item in [{ key: 'native', label: '真实' }, { key: 'test', label: '测试' }, { key: 'demo', label: '演示' }]" :key="item.key" class="cu__segment-btn" :class="{ 'cu__segment-btn--active': truthType === item.key }" @tap="truthType = item.key as ContentTruthType">{{ item.label }}</button>
       </view>
 
-      <view class="jz-form-row"><text class="jz-form-label">标签</text><input v-model="tags" class="jz-form-control" maxlength="500" placeholder="水电, 隐蔽工程, 现场留证" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">标签</text><input v-model="tags" class="jz-form-control" maxlength="500" placeholder="水电, 隐蔽工程, 现场留证" placeholder-style="text-align: right" /></view>
       <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">备注</text><textarea v-model="remark" class="cu__textarea" maxlength="1000" placeholder="补充拍摄位置、阶段或后续用途" /></view>
       <label v-if="canMarkDesensitized" class="cu__check"><input v-model="desensitized" type="checkbox" /><text>已完成脱敏（公开前必须完成）</text></label>
     </view>
@@ -178,10 +178,10 @@ async function submit() {
 .cu__media-empty text:first-child { font-size: 68rpx; line-height: 1; }
 .cu__source-tabs { display: flex; gap: 12rpx; margin-top: 12rpx; }
 .cu__source-tab { flex: 1; min-height: 64rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: #fff; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cu__source-tab--on { color: $jzb-primary-dark; border-color: rgba(14,138,125,.2); background: $jzb-primary-lighter; font-weight: 650; }
+.cu__source-tab--on { color: $jzb-primary-dark; border-color: var(--jzb-primary-a20, rgba(14, 138, 125, .20)); background: $jzb-primary-lighter; font-weight: 650; }
 .cu__segment { display: flex; gap: 12rpx; }
 .cu__segment-btn { flex: 1; min-height: 72rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: #fff; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cu__segment-btn--active { color: $jzb-primary-dark; border-color: rgba(14,138,125,.2); background: $jzb-primary-lighter; font-weight: 700; }
+.cu__segment-btn--active { color: $jzb-primary-dark; border-color: var(--jzb-primary-a20, rgba(14, 138, 125, .20)); background: $jzb-primary-lighter; font-weight: 700; }
 .cu__check { display: flex; align-items: center; gap: 12rpx; margin-top: 22rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .cu__submit { margin-top: 24rpx; }
 </style>

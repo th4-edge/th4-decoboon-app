@@ -24,6 +24,7 @@ import FinanceStoreScope from '@/components/FinanceStoreScope.vue'
 import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const editable = ref(can(session.role, 'edit:payroll'))
+const canDeleteDraft = ref(can(session.role, 'delete:draftPayroll'))
 const selectedPeriod = ref(localMonth())
 const maxPeriod = localMonth()
 const deletingId = ref('')
@@ -67,7 +68,7 @@ async function buildSelected() {
 function open(item: PayrollSheet) { uni.navigateTo({ url: `${P.payrollSheetDetail}?sheetId=${item.id}` }) }
 
 async function removeDraft(item: PayrollSheet) {
-  if (session.role !== 'boss' || item.status !== 'draft' || deletingId.value) return
+  if (!canDeleteDraft.value || item.status !== 'draft' || deletingId.value) return
   const confirmed = await confirmDanger('删除工资单草稿', `确认删除 ${item.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`, '删除')
   if (!confirmed) return
   deletingId.value = item.id
@@ -112,7 +113,7 @@ useFinanceStoreScope(() => refresh())
           <view><text>实发</text><text>{{ money(item.totalNetAmount) }}</text></view>
         </view>
         <view class="sheet-card__actions">
-          <text v-if="session.role === 'boss' && item.status === 'draft'" class="sheet-card__delete" @tap.stop="removeDraft(item)">{{ deletingId === item.id ? '删除中' : '删除草稿' }}</text>
+          <text v-if="canDeleteDraft && item.status === 'draft'" class="sheet-card__delete" @tap.stop="removeDraft(item)">{{ deletingId === item.id ? '删除中' : '删除草稿' }}</text>
           <view class="sheet-card__open"><text>查看工资明细</text><JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primaryBase" /></view>
         </view>
       </view>

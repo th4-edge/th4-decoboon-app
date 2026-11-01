@@ -6,10 +6,9 @@ import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
 import type { Voucher } from '@/domains/finance/model'
 import { projectApi } from '@/domains/project/api'
-import { identityApi } from '@/domains/identity/api'
-import type { Employee } from '@/domains/identity/model'
 import type { Project } from '@/domains/project/model'
 import { isLoggedIn } from '@/domains/identity/session'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { hideLoading, loading, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -53,7 +52,8 @@ const sheetHasMore = ref(false)
 const sheetLoading = ref(false)
 const sheetError = ref('')
 const frequentProjects = ref<Project[]>([])
-const designers = ref<Employee[]>([])
+const projectDesignerName = ref('')
+const employeeFilterOpen = ref(false)
 
 const hasKeyword = computed(() => keyword.value.trim().length > 0)
 const hasFilter = computed(() => hasKeyword.value || typeFilter.value !== 'all' || period.value !== 'all'
@@ -145,7 +145,17 @@ onLoad(() => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   restoreFilter()
 })
-onShow(() => { if (isLoggedIn()) void load() })
+onShow(() => {
+  if (!isLoggedIn()) return
+  const result = consumeEmployeePickerResult()
+  if (result && employeeFilterOpen.value) {
+    employeeFilterOpen.value = false
+    projectDesignerId.value = result.action === 'clear' ? '' : result.value.id
+    projectDesignerName.value = result.action === 'clear' ? '' : result.value.name
+    void loadSheetProjects()
+  }
+  void load()
+})
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
@@ -178,16 +188,7 @@ async function load() {
 
 /** 常用项目与设计师列表：只在进入页面时取一次。 */
 async function bootSheetSources() {
-  try {
-    const [frequent, designerList] = await Promise.all([
-      financeApi.frequentProjects(),
-      identityApi.designers().catch(() => [] as Employee[])
-    ])
-    frequentProjects.value = frequent
-    designers.value = designerList
-  } catch {
-    frequentProjects.value = []
-  }
+  frequentProjects.value = await financeApi.frequentProjects().catch(() => [] as Project[])
 }
 
 /** 当前状态分组对应的服务端状态集合。 */
@@ -243,9 +244,16 @@ function selectSheetStatus(value: ProjectStatusFilter) {
   void loadSheetProjects()
 }
 
-function selectSheetDesigner(value: string) {
-  projectDesignerId.value = value
-  void loadSheetProjects()
+function openSheetDesignerFilter() {
+  employeeFilterOpen.value = true
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    'roles=designer',
+    `selectedId=${encodeURIComponent(projectDesignerId.value)}`,
+    `selectedName=${encodeURIComponent(projectDesignerName.value)}`
+  ]
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
 
 function restoreFilter() {
@@ -602,19 +610,12 @@ useFinanceStoreScope(() => load())
               >{{ option.label }}</view>
             </view>
           </view>
-          <view v-if="designers.length" class="ps__frow">
+          <view class="ps__frow">
             <text class="ps__flabel">设计师</text>
             <view class="ps__chips">
-              <view class="ps__chip" :class="{ 'ps__chip--on': !projectDesignerId }" @tap="selectSheetDesigner('')">全部</view>
-              <view
-                v-for="item in designers"
-                :key="item.id"
-                class="ps__chip ps__chip--person"
-                :class="{ 'ps__chip--on': projectDesignerId === item.id }"
-                @tap="selectSheetDesigner(item.id)"
-              >
-                <JzEmployeeAvatar :src="item.avatarUrl || ''" :name="item.name" :role="item.role" :status="item.status" :size="36" />
-                <text>{{ item.name }}</text>
+              <view class="ps__chip ps__chip--person" :class="{ 'ps__chip--on': projectDesignerId }" @tap="openSheetDesignerFilter">
+                <JzIcon name="user" :size="24" :color="projectDesignerId ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" />
+                <text>{{ projectDesignerName || '选择设计师' }}</text>
               </view>
             </view>
           </view>
@@ -674,7 +675,7 @@ useFinanceStoreScope(() => load())
 .vc-guide__actions { display: flex; gap: 16rpx; margin-top: 22rpx; }
 .vc-guide__btn {
   flex: 1; height: 80rpx; line-height: 80rpx; border-radius: 999rpx; font-size: $jzb-font-sm;
-  color: $jzb-primary-deep; background: $jzb-text-inverse; border: 1rpx solid rgba(22, 163, 148, .24);
+  color: $jzb-primary-deep; background: $jzb-text-inverse; border: 1rpx solid var(--jzb-primary-a24, rgba(22, 163, 148, .24));
 }
 .vc-guide__btn--primary { color: #fff; background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary-deep 100%); border-color: transparent; }
 
@@ -703,7 +704,7 @@ useFinanceStoreScope(() => load())
   color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent;
   border-radius: $jzb-radius-pill; font-size: $jzb-font-xs;
 }
-.vc-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: rgba(22, 163, 148, .24); font-weight: 650; }
+.vc-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a24, rgba(22, 163, 148, .24)); font-weight: 650; }
 .vc-chip--pick { color: $jzb-primary-dark; background: $jzb-text-inverse; border-color: $jzb-border-light; }
 .vc-filters__reset {
   display: flex; align-items: center; justify-content: center; gap: 8rpx; margin-top: 16rpx;
@@ -739,7 +740,7 @@ useFinanceStoreScope(() => load())
   color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent;
   border-radius: $jzb-radius-pill; font-size: $jzb-font-xs;
 }
-.ps__chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: rgba(22, 163, 148, .24); font-weight: 650; }
+.ps__chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a24, rgba(22, 163, 148, .24)); font-weight: 650; }
 .ps__count { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .ps__list { max-height: 52vh; margin-top: 8rpx; }
 .ps__name-row { display: flex; align-items: center; gap: 10rpx; }

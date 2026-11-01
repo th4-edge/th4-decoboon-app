@@ -106,13 +106,10 @@ export function drawShareCard(input: ShareCardInput): Promise<string> {
       ctx.setFillStyle('rgba(255,255,255,0.28)')
       ctx.fillRect(40, SHARE_CARD_HEIGHT - 92, SHARE_CARD_WIDTH - 80, 1)
 
-      // 底部：记录存证署名（受企业配置控制，默认关闭）
+      // 底部：软件提供者固定署名，不随企业配置变化。
       ctx.setFillStyle('rgba(255,255,255,0.72)')
       ctx.setFontSize(18)
-      const credit = input.vendor?.custodianCredit
-        ? '记录存证与保管 · 装得清'
-        : `${vendorName || '装企'} 全程记录`
-      ctx.fillText(credit.slice(0, 24), 40, SHARE_CARD_HEIGHT - 52)
+      ctx.fillText('记录存证与保管 · 装得清', 40, SHARE_CARD_HEIGHT - 52)
     } catch {
       resolve('')
       return

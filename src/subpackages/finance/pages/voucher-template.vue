@@ -376,7 +376,7 @@ async function save() {
             <text class="tpl-label">主色</text>
             <view class="tpl-colors">
               <view
-                v-for="color in ['#0E8A7D', '#2F7D5A', '#1D4E39', '#3B7DE8', '#1A1A17']"
+                v-for="color in ['#2F6E63', '#5C7C6E', '#4F708C', '#A65F46', '#7A5540', '#675D7B', '#3F4B53']"
                 :key="color"
                 class="tpl-color"
                 :class="{ 'tpl-color--on': style.primaryColor.toUpperCase() === color }"

@@ -147,12 +147,12 @@ async function save(publish = false) {
         <text class="cpe__section-title">模板信息</text>
         <view class="cpe__field"><text>模板名称</text><input v-model="name" maxlength="128" placeholder="例如：企业标准八阶段" /></view>
         <view class="cpe__field cpe__field--textarea"><text>说明</text><textarea v-model="description" maxlength="512" auto-height placeholder="描述适用项目或施工组织方式" /></view>
-        <view class="cpe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="cpe__field"><text>排序</text><input v-model.number="sort" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       </view>
 
       <view class="cpe__summary jz-card">
         <view><text>声明标准总工期</text><text class="cpe__summary-hint">阶段工期合计 {{ stageDaysTotal }} 天，仅作相对权重</text></view>
-        <view class="cpe__summary-input"><input v-model="declaredTotalDays" type="number" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text>天</text></view>
+        <view class="cpe__summary-input"><input v-model="declaredTotalDays" type="number" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text>天</text></view>
       </view>
       <view class="cpe__section-head"><text>施工阶段</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="addStage">添加阶段</button></view>
       <view v-for="(stage, index) in stages" :key="stage.code" class="cpe__card cpe__stage jz-card">
@@ -160,7 +160,7 @@ async function save(publish = false) {
         <view class="cpe__field"><text>阶段名称</text><input v-model="stage.name" maxlength="128" placeholder="例如：水电施工" /></view>
         <view class="cpe__field"><text>阶段编码</text><input v-model="stage.code" maxlength="64" placeholder="例如：WATER_ELECTRIC" /></view>
         <view class="cpe__grid">
-          <view class="cpe__field"><text>标准工期</text><input v-model.number="stage.defaultDays" type="number" placeholder="1" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="cpe__unit">天</text></view>
+          <view class="cpe__field"><text>标准工期</text><input v-model.number="stage.defaultDays" type="number" placeholder="1" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="cpe__unit">天</text></view>
           <view class="cpe__field"><text>验收方式</text><JzSelectField variant="plain" :display="acceptanceLabel(stage.acceptanceMode)" :range="acceptanceOptions.map(i => i.label)" :index="Math.max(0, acceptanceOptions.findIndex(i => i.value === stage.acceptanceMode))" @change="stage.acceptanceMode = acceptanceOptions.find(i => i.label === $event)?.value || stage.acceptanceMode" /></view>
         </view>
         <view class="cpe__field cpe__field--textarea"><text>阶段说明</text><textarea v-model="stage.description" maxlength="512" auto-height placeholder="说明施工范围和完成条件" /></view>

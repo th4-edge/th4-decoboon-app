@@ -115,7 +115,7 @@ expect(!home.includes('class="home__stat-detail"'), '统计卡仍常驻展示状
 expect(home.includes('先浏览，再选择登录') && home.includes('浏览期间不会要求登录'),
   '首页缺少游客先浏览、自主登录的审核合规入口')
 expect(!home.includes('if (!isLoggedIn()) goTab(P.login)'), '首页仍在未登录时强制跳转登录')
-expect(login.includes('手机号快捷登录'), '登录页缺少“手机号快捷登录”文案')
+expect(login.includes('账号快捷登录'), '登录页缺少账号快捷登录说明')
 expect(home.includes('装企经营与项目协同系统') && home.includes('负责人、被邀请员工及经项目授权的业主'),
   '首页缺少完整的系统使用范围说明')
 expect(login.includes('装企经营与项目协同系统') && login.includes('面向企业负责人、被邀请员工及经项目授权的业主'),
@@ -126,6 +126,12 @@ expect(login.includes('function exitLogin') && login.includes('暂不登录，�
   '登录页缺少可取消/返回的退出入口')
 expect(!login.includes('微信登录') && !login.includes('微信授权手机号'),
   '登录页仍存在混淆官方元素的可见文案')
+expect(home.includes('业主也有专属入口') && home.includes('我是业主，进入我的家') && home.includes('openOwnerEntry'),
+  '游客首页缺少业主端业务场景和直达入口')
+expect(login.includes('phoneRequired') && login.includes('@tap="quickLogin"') && login.includes('requestWxCode()'),
+  '登录页未先静默识别已绑定的微信身份')
+expect(login.includes('open-type="getPhoneNumber"') && login.includes("error.code === 'PHONE_REQUIRED'"),
+  '登录页未仅在服务端确认首次使用时请求手机号授权')
 expect(!inviteAccept.includes('微信授权手机号'), '邀请接受页仍存在微信授权手机号文案')
 expect(!ownerEnter.includes('微信授权手机号'), '业主进入页仍存在微信授权手机号文案')
 
@@ -163,7 +169,8 @@ const permissionBlock = (role) => permissions.match(new RegExp(`${role}:\\s*\\[(
 const financeCapabilities = permissionBlock('finance')
 const designerPermissions = permissionBlock('designer')
 expect(["'edit:catalog'", "'view:catalog-cost'", "'act:catalog-import'", "'act:catalog-delete'"].every((cap) => financeCapabilities.includes(cap)), '财务未获得与负责人/店长一致的报价项目库维护能力')
-expect(["'view:customers'", "'act:followCustomer'", "'act:recordWechat'", "'act:recordVisit'", "'act:scheduleMeasure'", "'act:assignDesigner'", "'act:inviteCustomer'"].every((cap) => financeCapabilities.includes(cap)), '财务未获得与负责人/店长一致的客户能力')
+expect(["'view:customers'", "'act:followCustomer'", "'act:recordWechat'", "'act:recordVisit'", "'act:scheduleMeasure'", "'act:inviteCustomer'"].every((cap) => financeCapabilities.includes(cap)), '财务未保留客户查看、跟进、量房或客户邀请能力')
+expect(!financeCapabilities.includes("'act:assignDesigner'"), '财务不应承担指派或改派设计师')
 expect(["'edit:catalog'", "'view:catalog-cost'", "'act:catalog-import'", "'act:catalog-delete'"].every((cap) => !designerPermissions.includes(cap)), '设计师不应获得报价项目库维护或成本可见能力')
 const customerList = read('src/pages/customer/list.vue')
 const customerDetail = read('src/subpackages/customer/pages/detail.vue')

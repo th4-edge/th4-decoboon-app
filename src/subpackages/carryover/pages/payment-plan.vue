@@ -138,7 +138,7 @@ async function submit() {
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划金额</text>
-          <input v-model="plan.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+          <input v-model="plan.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
         </view>
         <view class="pp-row">
           <text class="pp-row__label">计划日期</text>

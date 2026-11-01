@@ -142,19 +142,19 @@ async function save() {
       </view>
       <view class="pe__field">
         <text class="pe__label">意向小区</text>
-        <input v-model="community" class="pe__input" maxlength="60" placeholder="例：江南新苑" />
+        <input v-model="community" class="pe__input" maxlength="60" placeholder="例：江南新苑" placeholder-style="text-align: right" />
       </view>
       <view class="pe__field">
         <text class="pe__label">楼栋</text>
-        <input v-model="building" class="pe__input" maxlength="40" placeholder="例：5栋" />
+        <input v-model="building" class="pe__input" maxlength="40" placeholder="例：5栋" placeholder-style="text-align: right" />
       </view>
       <view class="pe__field">
         <text class="pe__label">房号</text>
-        <input v-model="roomNo" class="pe__input" maxlength="40" placeholder="例：1801" />
+        <input v-model="roomNo" class="pe__input" maxlength="40" placeholder="例：1801" placeholder-style="text-align: right" />
       </view>
       <view class="pe__field">
         <text class="pe__label">面积(㎡)</text>
-        <input v-model="area" class="pe__input jz-numeric-input" type="digit" placeholder="例：118" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+        <input v-model="area" class="pe__input jz-numeric-input" type="digit" placeholder="例：118" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
       </view>
       <view class="pe__field" @tap="openLayoutPicker">
         <text class="pe__label">户型</text>

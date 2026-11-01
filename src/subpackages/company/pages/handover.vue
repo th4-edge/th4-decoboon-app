@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import type { Employee } from '@/domains/identity/model'
 import { session } from '@/domains/identity/session'
 import { ROLE_META } from '@/roles/catalog'
@@ -11,18 +12,16 @@ import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
-import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
+import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 
 const fromEmpId = ref('')
 const from = ref<Employee | null>(null)
-const candidates = ref<Employee[]>([])
-const toEmpId = ref('')
+const selectedReceiver = ref<Employee | null>(null)
 const transferProjects = ref(false)
 const handover = ref<Record<string, any> | null>(null)
 const submitting = ref(false)
 const isBoss = computed(() => session.role === 'boss')
-const selectedIndex = computed(() => candidates.value.findIndex(item => item.id === toEmpId.value))
-const selectedCandidate = computed(() => candidates.value[selectedIndex.value])
+const toEmpId = computed(() => selectedReceiver.value?.id || '')
 const items = [
   { key: 'customerCount', label: '客户' }, { key: 'propertyCount', label: '房屋' },
   { key: 'quoteCount', label: '报价' }, { key: 'projectCount', label: '项目' },
@@ -33,19 +32,37 @@ onLoad(async (query) => {
   fromEmpId.value = query?.empId || ''
   if (!fromEmpId.value) { toast('员工信息不完整，请返回后重新选择员工'); return }
   try {
-    const [employee, page, summary] = await Promise.all([
+    const [employee, summary] = await Promise.all([
       identityApi.memberInfo(fromEmpId.value),
-      identityApi.memberPage({ status: 'Active', current: 1, size: 200 }),
       identityApi.memberHandover(fromEmpId.value)
     ])
     from.value = employee
-    candidates.value = page.list.filter(item => item.id !== fromEmpId.value)
     handover.value = summary
   } catch (error) { toastError(error, '交接数据加载失败') }
 })
 
-function pick(label: string) {
-  toEmpId.value = candidates.value.find((item) => `${item.name}（${ROLE_META[item.role]?.short || item.role}）` === label)?.id || ''
+onShow(() => {
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  selectedReceiver.value = result.action === 'clear' ? null : result.value
+})
+
+function openReceiverPicker() {
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    `excludeEmpId=${encodeURIComponent(fromEmpId.value)}`
+  ]
+  if (selectedReceiver.value) {
+    params.push(`selectedId=${encodeURIComponent(selectedReceiver.value.id)}`)
+    params.push(`selectedName=${encodeURIComponent(selectedReceiver.value.name)}`)
+    params.push(`selectedMeta=${encodeURIComponent(receiverMeta(selectedReceiver.value))}`)
+  }
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
+}
+
+function receiverMeta(employee: Employee): string {
+  return [ROLE_META[employee.role]?.label || '未知岗位', employee.store?.name || '未分配门店', employee.team?.name || '未分团队'].join(' · ')
 }
 
 async function submit() {
@@ -73,17 +90,13 @@ async function submit() {
         <view v-for="item in items" :key="item.key"><text>{{ handover?.[item.key] || 0 }}</text><text>{{ item.label }}</text></view>
       </view>
       <view class="jz-card hand-form">
-        <view class="hand-field">
-          <text>接收人</text>
-          <JzSelectField variant="plain" :display="toEmpId ? candidates[selectedIndex]?.name : ''" :range="candidates.map(item => `${item.name}（${ROLE_META[item.role]?.short || item.role}）`)" :index="selectedIndex" placeholder="请选择在职员工" @change="pick" />
-        </view>
-        <view v-if="selectedCandidate" class="hand-receiver">
-          <JzEmployeeAvatar :src="selectedCandidate.avatarUrl || ''" :name="selectedCandidate.name" :role="selectedCandidate.role" :status="selectedCandidate.status" :size="88" />
-          <view class="jz-grow">
-            <text class="hand-receiver__name">{{ selectedCandidate.name }}</text>
-            <text class="hand-receiver__meta">{{ ROLE_META[selectedCandidate.role]?.label || '未知岗位' }} · {{ selectedCandidate.store?.name || '未分配门店' }}</text>
-          </view>
-        </view>
+        <JzEmployeeSelectField
+          :employee="selectedReceiver"
+          label="接收人"
+          placeholder="请选择在职员工"
+          @select="openReceiverPicker"
+          @clear="selectedReceiver = null"
+        />
         <label v-if="isBoss" class="hand-check"><checkbox :checked="transferProjects" @tap="transferProjects = !transferProjects" /><text>同步转移客户、房屋及项目负责人</text></label>
       </view>
       <button class="jz-btn jz-btn--primary jz-btn--block" :loading="submitting" @tap="submit">确认交接</button>

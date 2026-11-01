@@ -1,0 +1,18 @@
+backup=/Users/zhangwei/.decoboon-local/template-acceptance-20261030/before.sql
+backup_sha256=e9a087c787604a82cca82731894673aa1d2eaeca962ce98d22b6c6e8e0f1f692
+cleaned_at=2026-10-30 20:59:45 +0800
+design_template	0
+design_template_version	0
+design_template_room	0
+design_template_item	0
+db_design	0
+db_design_space	0
+db_design_item	0
+db_notice	0
+cust_customer	0
+db_property	0
+catalog_item_revision	0
+catalog_item	0
+db_user_security_log	0
+db_tenant_employee	0
+db_tenant_credentials	0

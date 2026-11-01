@@ -269,8 +269,8 @@ function acceptanceLabel(raw: string) {
 .pm__card-action { display: inline-flex; align-items: center; gap: 4rpx; flex: none; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .pm__tabs { margin-bottom: 16rpx; white-space: nowrap; }
 .pm__tab-row { display: inline-flex; padding: 0 $jzb-page-pad; }
-.pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; background: $jzb-primary-lightest; border: 1rpx solid rgba(22,163,148,.14); border-radius: $jzb-radius-pill; transition: color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
-.pm__tab--on { color: $jzb-text-inverse; background: $jzb-gradient; border-color: transparent; box-shadow: 0 8rpx 20rpx rgba(14,138,125,.20); font-weight: 650; }
+.pm__tab { position: relative; margin-right: 12rpx; padding: 16rpx 22rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a14, rgba(22, 163, 148, .14)); border-radius: $jzb-radius-pill; transition: color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }
+.pm__tab--on { color: $jzb-text-inverse; background: $jzb-gradient; border-color: transparent; box-shadow: 0 8rpx 20rpx var(--jzb-primary-a20, rgba(14, 138, 125, .20)); font-weight: 650; }
 .pm__tab-count { margin-left: 8rpx; padding: 0 8rpx; border-radius: 18rpx; background: rgba(255,255,255,.22); }
 .pm__list { padding: 0 $jzb-page-pad; }
 .pm__project, .pm__task, .pm__acceptance, .pm__material, .pm__business-card { margin-bottom: 16rpx; padding: 24rpx; border-color: rgba(22,163,148,.10); background: $jzb-gradient-surface; box-shadow: 0 8rpx 26rpx rgba(14,138,125,.055); transition: transform $jzb-duration-fast $jzb-ease-out, box-shadow $jzb-duration-fast $jzb-ease-out; }

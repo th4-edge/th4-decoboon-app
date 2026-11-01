@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { materialApi } from '@/domains/material/api'
@@ -20,6 +20,10 @@ const tab = ref<Tab>('purchase')
 const inventory = ref<InventoryStock[]>([])
 const warnings = ref<InventoryStock[]>([])
 const partners = ref<Partner[]>([])
+const partnerCurrent = ref(1)
+const partnerTotal = ref(0)
+const partnerHasMore = ref(false)
+const partnerLoadingMore = ref(false)
 const prices = ref<PartnerPrice[]>([])
 const movements = ref<StockMovement[]>([])
 const purchases = ref<PurchaseOrder[]>([])
@@ -35,21 +39,44 @@ onLoad((q) => {
 })
 onShow(() => refresh())
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
+onReachBottom(() => { if (tab.value === 'partner') void loadMorePartners() })
 
 async function refresh() {
   try {
-    const [stockList, warningList, partnerList, movementList, purchaseList] = await Promise.all([
-      supplyApi.inventory(), supplyApi.warnings(), supplyApi.partners(), supplyApi.movements(),
+    const [stockList, warningList, partnerPage, movementList, purchaseList] = await Promise.all([
+      supplyApi.inventory(), supplyApi.warnings(), supplyApi.partnerPage({ status: 'all', current: 1, size: 20 }), supplyApi.movements(),
       materialApi.purchases()
     ])
     inventory.value = stockList
     warnings.value = warningList
-    partners.value = partnerList
+    partners.value = partnerPage.list
+    partnerCurrent.value = 1
+    partnerTotal.value = partnerPage.total
+    partnerHasMore.value = partnerPage.hasMore
     movements.value = movementList
     purchases.value = purchaseList
     prices.value = canViewCost.value ? await supplyApi.partnerPrices() : []
   } catch (error) {
     toastError(error, '供应商协作数据加载失败')
+  }
+}
+
+async function loadMorePartners() {
+  if (partnerLoadingMore.value || !partnerHasMore.value) return
+  partnerLoadingMore.value = true
+  try {
+    const next = partnerCurrent.value + 1
+    const result = await supplyApi.partnerPage({ status: 'all', current: next, size: 20 })
+    const merged = new Map(partners.value.map((item) => [item.id, item]))
+    result.list.forEach((item) => merged.set(item.id, item))
+    partners.value = [...merged.values()]
+    partnerCurrent.value = next
+    partnerTotal.value = result.total
+    partnerHasMore.value = result.hasMore
+  } catch (error) {
+    toastError(error, '加载更多供应商失败')
+  } finally {
+    partnerLoadingMore.value = false
   }
 }
 
@@ -156,6 +183,8 @@ function receive(purchase: PurchaseOrder) {
         <text class="supply__meta">关联品牌：{{ (item.brands || []).join('、') || '未维护' }}</text>        <view class="supply__metrics"><text>应付 {{ money(item.payableAmount || 0) }}</text><text>已付 {{ money(item.paidAmount || 0) }}</text><text>余额 {{ money(item.outstandingAmount || 0) }}</text></view>
       </view>
       <JzEmpty v-if="!partners.length" text="暂无供应商" />
+      <view v-else-if="partnerHasMore" class="supply__load-more" @tap="loadMorePartners"><text>{{ partnerLoadingMore ? '加载中' : `加载更多（已显示 ${partners.length}/${partnerTotal}）` }}</text></view>
+      <view v-else class="supply__load-more supply__load-more--end"><text>已显示全部 {{ partnerTotal }} 家供应商</text></view>
     </view>
 
     <view v-else-if="tab === 'price'" class="supply__list">
@@ -206,4 +235,6 @@ function receive(purchase: PurchaseOrder) {
 .supply__metrics { display: flex; justify-content: space-between; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
 .supply__actions { display: flex; justify-content: flex-end; margin-top: 18rpx; }
 .supply__add { display: flex; align-items: center; justify-content: center; gap: 8rpx; min-height: 88rpx; color: $jzb-primary-dark; font-size: $jzb-font-sm; font-weight: 650; }
+.supply__load-more { padding: 24rpx; text-align: center; color: $jzb-primary; font-size: $jzb-font-sm; }
+.supply__load-more--end { color: $jzb-text-4; }
 </style>

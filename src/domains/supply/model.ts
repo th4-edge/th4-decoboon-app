@@ -11,6 +11,8 @@ export interface Partner {
   taxNo?: string
   addr?: string
   brands?: string[]
+  paymentCodeImages: string[]
+  paymentCodeImageUrls?: string[]
   settlementTerms?: string
   settlementMode?: string
   settlementDays?: number

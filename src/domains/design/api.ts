@@ -1,6 +1,6 @@
 import { listOf, post } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { PageResult } from '@/domains/common/model'
+import { toPageData, type PageResult } from '@/domains/common/model'
 import { normalizeCustomer } from '../crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
 import { normalizeProperty } from '@/domains/property/api'
@@ -471,28 +471,20 @@ export interface SpaceInput {
   remark?: string
 }
 
-export interface DesignItemInput {
-  designId: string
+export interface DesignItemBatchRow {
   itemId?: string
   spaceId?: string
-  type: DesignItemType
-  category: string
-  name: string
-  brand?: string
-  spec?: string
-  unit: string
+  catalogItemId: string
   quantity: number
-  materialPrice: number
-  manualPrice: number
-  /** null = 成本待维护，0 = 明确零成本 */
-  costPrice: number | null
-  pricingMode: PricingMode
-  criterion?: string
+  quantitySource?: 'formula' | 'manual'
   remark?: string
   sort?: number
-  catalogItemId?: string
-  constructionId?: string
-  materialId?: string
+}
+
+export interface DesignItemsInput {
+  designId: string
+  items: DesignItemBatchRow[]
+  deletedItemIds?: string[]
 }
 
 async function signGenerationTask(raw: RawRecord): Promise<DesignGenerationTask> {
@@ -542,6 +534,28 @@ export const designApi = {
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('design/scheme/page', {
       customerId, current: 1, size: 100
     })).map(signScheme)),
+
+  schemePage: async (query: {
+    customerId: string
+    propertyId?: string
+    keyword?: string
+    statuses?: DesignStatus[]
+    current?: number
+    size?: number
+  }) => {
+    const current = Math.max(1, Math.trunc(query.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('design/scheme/page', {
+      customerId: query.customerId,
+      propertyId: query.propertyId,
+      keyword: query.keyword?.trim() || undefined,
+      statuses: query.statuses?.map((status) => DESIGN_STATUS_API[status]),
+      current,
+      size
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeScheme) }
+  },
 
   scheme: (designId: string) =>
     post<RawRecord>('design/scheme/info', { designId }).then(signScheme),
@@ -608,32 +622,24 @@ export const designApi = {
       remark: input.remark
     }).then(normalizeSpace),
 
-  deleteItem: (itemId: string) =>
-    post<RawRecord>('design/item/delete', { itemId }).then(normalizeDesignItem),
-
-  saveItem: (input: DesignItemInput) =>
-    post<RawRecord>('design/item/save', {
+  /**
+   * App/Web 统一使用整表原子保存 Provider。
+   * App 每次可提交 1 行；新增、编辑、删除同事务完成，响应返回服务端重算后的完整方案。
+   */
+  saveItems: (input: DesignItemsInput) =>
+    post<RawRecord>('design/items/save', {
       designId: input.designId,
-      itemId: input.itemId,
-      spaceId: input.spaceId,
-      catalogItemId: input.catalogItemId,
-      constructionId: input.constructionId,
-      materialId: input.materialId,
-      type: ITEM_TYPE_API[input.type],
-      category: input.category,
-      name: input.name,
-      brand: input.brand,
-      spec: input.spec,
-      unit: unitValue(input.unit),
-      quantity: input.quantity,
-      materialPrice: input.materialPrice,
-      manualPrice: input.manualPrice,
-      costPrice: input.costPrice,
-      pricingMode: PRICING_MODE_API[input.pricingMode],
-      criterion: input.criterion,
-      remark: input.remark,
-      sort: input.sort
-    }).then(normalizeDesignItem),
+      deletedItemIds: input.deletedItemIds ?? [],
+      items: input.items.map((item) => ({
+        itemId: item.itemId,
+        space: item.spaceId ? { spaceId: item.spaceId } : null,
+        catalogItem: { itemId: item.catalogItemId },
+        quantity: item.quantity,
+        quantitySource: item.quantitySource === 'formula' ? 'Formula' : 'Manual',
+        remark: item.remark,
+        sort: item.sort
+      }))
+    }).then(normalizeScheme),
 
   buildGeneration: (designId: string, mode: DesignGenerationMode = 'precise') =>
     post<RawRecord>('design/generation/build', {

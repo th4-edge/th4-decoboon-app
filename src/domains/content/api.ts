@@ -1,6 +1,6 @@
 import { post, upload as uploadRequest } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { PageResult } from '@/domains/common/model'
+import { toPageData, type PageData, type PageResult } from '@/domains/common/model'
 import type { Customer } from '@/domains/crm/model'
 import { normalizeCustomer } from '@/domains/crm/api'
 import { normalizeEmployee } from '@/domains/identity/api'
@@ -247,6 +247,24 @@ export const contentApiExtra = {
   templates: async (): Promise<ContentTemplate[]> => {
     const rows = await post<RawRecord[]>('content/template/list', {})
     return rows.map(normalizeTemplate)
+  },
+
+  templatePage: async (params: {
+    current?: number
+    size?: number
+    keyword?: string
+    format?: string
+  } = {}): Promise<PageData<ContentTemplate>> => {
+    const current = Math.max(1, Math.trunc(params.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(params.size ?? 20)))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('content/template/page', {
+      current,
+      size,
+      keyword: params.keyword?.trim() || undefined,
+      format: params.format
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeTemplate) }
   },
 
   taskPage: async (params: { current?: number; size?: number; status?: ContentTaskStatus; keyword?: string } = {}) => {

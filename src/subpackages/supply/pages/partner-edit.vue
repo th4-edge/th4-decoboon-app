@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { supplyApi } from '@/domains/supply/api'
+import { fileApi, type UploadedFile } from '@/domains/file/api'
+import { chooseImages } from '@/domains/file/choose-media'
+import { session } from '@/domains/identity/session'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
@@ -42,13 +45,16 @@ const cutoffDay = ref('')
 const remark = ref('')
 const brandsText = ref('')
 const submitting = ref(false)
+const paymentCodeFiles = ref<UploadedFile[]>([])
+const uploadingPaymentCodes = ref(false)
+const canManagePaymentCodes = computed(() => ['boss', 'storeManager', 'finance'].includes(session.role || ''))
 
 onLoad(async (q) => {
   id.value = q?.id || ''
   if (!id.value) return
   try {
-    const list = await supplyApi.partners()
-    const found = list.find((item) => item.id === id.value) as Record<string, any> | undefined
+    const result = await supplyApi.partnerPage({ partnerId: id.value, status: 'all', current: 1, size: 1, includePaymentCodeUrls: true })
+    const found = result.list[0] as Record<string, any> | undefined
     if (!found) return
     name.value = found.name || ''
     contactName.value = found.contactName || ''
@@ -62,6 +68,14 @@ onLoad(async (q) => {
     cutoffDay.value = found.cutoffDay ? String(found.cutoffDay) : ''
     remark.value = found.remark || ''
     brandsText.value = Array.isArray(found.brands) ? found.brands.join('、') : ''
+    const imagePaths = Array.isArray(found.paymentCodeImages) ? found.paymentCodeImages.map(String) : []
+    const imageUrls = Array.isArray(found.paymentCodeImageUrls) ? found.paymentCodeImageUrls.map(String) : []
+    paymentCodeFiles.value = imagePaths.map((path: string, index: number) => ({
+      path,
+      url: imageUrls[index] || path,
+      name: `付款码${index + 1}`,
+      contentType: 'image/*'
+    }))
     const typeAt = TYPE_OPTIONS.findIndex((item) => item.value === found.type)
     if (typeAt >= 0) typeIdx.value = typeAt
     const statusAt = STATUS_OPTIONS.findIndex((item) => item.value === found.status)
@@ -72,6 +86,33 @@ onLoad(async (q) => {
     toastError(error, '供应商资料加载失败')
   }
 })
+
+async function addPaymentCodes() {
+  if (!canManagePaymentCodes.value || uploadingPaymentCodes.value) return
+  const remaining = Math.max(0, 9 - paymentCodeFiles.value.length)
+  if (!remaining) { toast('最多上传 9 张付款码'); return }
+  try {
+    const paths = await chooseImages({ count: remaining, sourceType: ['album', 'camera'], sizeType: ['compressed'] })
+    if (!paths.length) return
+    uploadingPaymentCodes.value = true
+    const uploaded = await Promise.all(paths.map((path) => fileApi.upload('Partner', path)))
+    paymentCodeFiles.value = [...paymentCodeFiles.value, ...uploaded]
+  } catch (error) {
+    toastError(error, '付款码上传失败')
+  } finally {
+    uploadingPaymentCodes.value = false
+  }
+}
+
+function removePaymentCode(path: string) {
+  paymentCodeFiles.value = paymentCodeFiles.value.filter((file) => file.path !== path)
+}
+
+function previewPaymentCode(index: number) {
+  const urls = paymentCodeFiles.value.map((file) => file.url).filter(Boolean)
+  if (!urls.length) { toast('暂无可预览的付款码'); return }
+  uni.previewImage({ urls, current: urls[Math.min(index, urls.length - 1)] })
+}
 
 async function save() {
   if (!name.value.trim()) { toast('请填写供应商名称'); return }
@@ -94,7 +135,8 @@ async function save() {
     settlementDays: settlementDays.value,
     cutoffDay: cutoffDay.value,
     remark: remark.value.trim(),
-    brands: brandsText.value.split(/[，,、\n]/).map((item) => item.trim()).filter(Boolean)
+    brands: brandsText.value.split(/[，,、\n]/).map((item) => item.trim()).filter(Boolean),
+    paymentCodeImages: paymentCodeFiles.value.map((file) => fileApi.storagePath(file.path) || file.path)
   }
   try {
     if (id.value) await supplyApi.partnerUpdate(payload)
@@ -120,19 +162,39 @@ async function save() {
         <JzSelectField variant="boxed" :display="TYPE_OPTIONS[typeIdx].label" :range="TYPE_OPTIONS.map(i => i.label)" :index="typeIdx" @change="typeIdx = Math.max(0, TYPE_OPTIONS.findIndex(i => i.label === $event))" />
       </view>
       <view class="pe__field"><text class="pe__label">联系人</text><input v-model="contactName" class="pe__input" maxlength="32" placeholder="对接人姓名" /></view>
-      <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input jz-numeric-input" type="number" maxlength="20" placeholder="手机号或固话" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pe__field"><text class="pe__label">联系电话</text><input v-model="telNo" class="pe__input jz-numeric-input" type="number" maxlength="20" placeholder="手机号或固话" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="pe__field"><text class="pe__label">关联品牌</text><input v-model="brandsText" class="pe__input" maxlength="512" placeholder="如：马可波罗、东鹏，用逗号分隔" /></view>
       <view class="pe__field"><text class="pe__label">地址</text><input v-model="addr" class="pe__input" maxlength="128" placeholder="门店/仓库地址" /></view>
       <view class="pe__field"><text class="pe__label">税号</text><input v-model="taxNo" class="pe__input" maxlength="32" placeholder="开票税号（可选）" /></view>
       <view class="pe__field"><text class="pe__label">开户行</text><input v-model="bankName" class="pe__input" maxlength="64" placeholder="付款银行" /></view>
       <view class="pe__field"><text class="pe__label">银行账号</text><input v-model="bankAccount" class="pe__input" maxlength="32" placeholder="对公/对私账号" /></view>
+      <view v-if="canManagePaymentCodes" class="pe__field pe__field--col pe__payment-codes">
+        <view class="pe__payment-head">
+          <view>
+            <text class="pe__label">供应商付款码</text>
+            <text class="pe__payment-hint">付款前核对收款主体；最多 9 张，支持预览和删除</text>
+          </view>
+          <text class="pe__payment-count">{{ paymentCodeFiles.length }}/9</text>
+        </view>
+        <view class="pe__payment-grid">
+          <view v-for="(file, index) in paymentCodeFiles" :key="file.path" class="pe__payment-item">
+            <image :src="file.url" mode="aspectFill" class="pe__payment-image" @tap="previewPaymentCode(index)" />
+            <view class="pe__payment-remove" @tap.stop="removePaymentCode(file.path)"><JzIcon name="close" :size="22" :color="TOKEN_COLOR.white" /></view>
+          </view>
+          <view v-if="paymentCodeFiles.length < 9" class="pe__payment-add" @tap="addPaymentCodes">
+            <JzIcon name="plus" :size="32" :color="TOKEN_COLOR.primary" />
+            <text>{{ uploadingPaymentCodes ? '上传中…' : '上传付款码' }}</text>
+          </view>
+        </view>
+      </view>
+
       <view class="pe__field"><text class="pe__label">结算说明</text><input v-model="settlementTerms" class="pe__input" maxlength="64" placeholder="如：月结30天" /></view>
       <view class="pe__field">
         <text class="pe__label">账期模式</text>
         <JzSelectField variant="boxed" :display="MODE_OPTIONS[modeIdx].label" :range="MODE_OPTIONS.map(i => i.label)" :index="modeIdx" @change="modeIdx = Math.max(0, MODE_OPTIONS.findIndex(i => i.label === $event))" />
       </view>
-      <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input jz-numeric-input" type="number" placeholder="默认 30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view v-if="MODE_OPTIONS[modeIdx].value === 'MonthlyCutoff'" class="pe__field"><text class="pe__label">截账日</text><input v-model="cutoffDay" class="pe__input jz-numeric-input" type="number" placeholder="每月几号，默认 25" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pe__field"><text class="pe__label">账期天数</text><input v-model="settlementDays" class="pe__input jz-numeric-input" type="number" placeholder="默认 30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
+      <view v-if="MODE_OPTIONS[modeIdx].value === 'MonthlyCutoff'" class="pe__field"><text class="pe__label">截账日</text><input v-model="cutoffDay" class="pe__input jz-numeric-input" type="number" placeholder="每月几号，默认 25" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="pe__field">
         <text class="pe__label">状态</text>
         <JzSelectField variant="boxed" :display="STATUS_OPTIONS[statusIdx].label" :range="STATUS_OPTIONS.map(i => i.label)" :index="statusIdx" @change="statusIdx = Math.max(0, STATUS_OPTIONS.findIndex(i => i.label === $event))" />
@@ -160,4 +222,14 @@ async function save() {
 .pe__input--block { flex: none; width: 100%; margin-top: 12rpx; text-align: left; }
 .pe__picker { flex: 1; min-width: 0; }
 .pe__value { display: flex; align-items: center; justify-content: flex-end; gap: 8rpx; color: $jzb-text-1; font-size: $jzb-font; }
+.pe__payment-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
+.pe__payment-head .pe__label { width: auto; display: block; }
+.pe__payment-hint { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.pe__payment-count { flex-shrink: 0; color: $jzb-text-3; font-size: $jzb-font-xs; font-variant-numeric: tabular-nums; }
+.pe__payment-grid { display: flex; flex-wrap: wrap; gap: 16rpx; margin-top: 18rpx; }
+.pe__payment-item, .pe__payment-add { position: relative; width: 176rpx; height: 176rpx; border-radius: $jzb-radius-sm; overflow: hidden; }
+.pe__payment-item { border: 1rpx solid $jzb-border-light; background: $jzb-bg-hover; }
+.pe__payment-image { width: 100%; height: 100%; display: block; }
+.pe__payment-remove { position: absolute; top: 6rpx; right: 6rpx; width: 38rpx; height: 38rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(15,23,42,.72); }
+.pe__payment-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8rpx; border: 1rpx dashed var(--jzb-primary-a28, rgba(22,163,148,.28)); color: $jzb-primary-dark; background: $jzb-primary-lightest; font-size: $jzb-font-xs; }
 </style>

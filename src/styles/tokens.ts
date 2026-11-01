@@ -1,16 +1,20 @@
+import { activeBrandTheme } from '@/domains/identity/brandTheme'
+
 /** TypeScript 侧 Token；数值必须与 src/uni.scss 保持一致。 */
 export const TOKEN_COLOR = {
   // 前景色 / 主色
-  primary: '#0E8A7D',
-  primaryBase: '#16A394',
-  primaryLight: '#2BC4B4',
+  get primary() { return activeBrandTheme.primary },
+  get primaryBase() { return activeBrandTheme.primaryBase },
+  get primaryLight() { return activeBrandTheme.primaryLight },
+  get primaryDark() { return activeBrandTheme.primaryDark },
+  get primaryDeep() { return activeBrandTheme.primaryDeep },
   success: '#07A35A',
   warning: '#E67E22',
   danger: '#E5484D',
   purple: '#6958C8',
   // 浅底色 / soft（状态标签背景、选中态）
-  primaryLighter: '#E8F7F5',
-  primaryLightest: '#F2FBFA',
+  get primaryLighter() { return activeBrandTheme.primaryLighter },
+  get primaryLightest() { return activeBrandTheme.primaryLightest },
   successSoft: '#EAF8F0',
   warningSoft: '#FFF4E8',
   dangerSoft: '#FDECEC',
@@ -25,8 +29,8 @@ export const TOKEN_COLOR = {
   bgPage: '#F4F7F8',
   bgCard: '#FFFFFF',
   bgHover: '#F8FAFB',
-  bgActive: '#E8F7F5'
-} as const
+  get bgActive() { return activeBrandTheme.primaryLighter }
+}
 
 /** 业主端子品牌 Token；与 src/uni.scss 的 $owner-* 对齐。 */
 export const OWNER_COLOR = {

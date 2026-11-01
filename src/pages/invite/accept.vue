@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
 import type { InviteCode } from '@/domains/identity/model'
 import { loginAsEmployee, loginAsToken, session } from '@/domains/identity/session'
+import { captureInviteIntent, clearInviteIntent, saveInviteIntent } from '@/domains/identity/inviteContext'
 import { ROLE_META } from '@/roles/catalog'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
-import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import CompanyBrandMark from '@/components/CompanyBrandMark.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import { applyBrandTheme } from '@/domains/identity/brandTheme'
 
 const inviteId = ref('')
 const token = ref('')
@@ -26,8 +28,13 @@ const pageTitle = computed(() => {
   return company ? `${company}邀请你加入` : '企业邀请'
 })
 const pageSubtitle = computed(() => invite.value
-  ? `岗位：${roleLabel()} · 请使用预留手机号确认`
+  ? `岗位：${roleLabel()} · 请确认邀请企业与岗位`
   : '请确认邀请企业与岗位')
+const canAcceptWithCurrentSession = computed(() => {
+  const phone = session.user?.phone
+  const masked = invite.value?.maskedTelNo
+  return Boolean(phone && masked && maskPhone(phone) === masked && !session.user?.currentEmployee)
+})
 const statusText = computed(() => {
   const status = invite.value?.status
   if (status === 'pending') return '邀请有效'
@@ -38,15 +45,19 @@ const statusText = computed(() => {
   return '邀请不可用'
 })
 
+watch(() => invite.value?.company?.color, (color) => applyBrandTheme(color), { immediate: true })
+
 onLoad(async (query) => {
   inviteId.value = query?.inviteId || ''
   token.value = query?.token || ''
+  captureInviteIntent(query as Record<string, unknown>)
   // P0：业主邀请不再走本页。历史链接（type=customer 或带邀请串）自动转到业主专用页，
   // 既保证已发出的邀请不失效，也让本页只服务员工邀请，不再"猜参数"。
   if (query?.type === 'customer' || token.value) {
     const qs = [inviteId.value ? `inviteId=${encodeURIComponent(inviteId.value)}` : '',
       token.value ? `token=${encodeURIComponent(token.value)}` : ''].filter(Boolean).join('&')
     // 注意：onLoad 期间 redirectTo 可能因为页面尚未入栈而静默失败，这里用 reLaunch
+    saveInviteIntent({ type: 'customer', inviteId: inviteId.value, token: token.value })
     uni.reLaunch({ url: `${P.ownerEnter}${qs ? '?' + qs : ''}` })
     return
   }
@@ -61,7 +72,8 @@ onLoad(async (query) => {
     // 员工：已完成手机号授权并加入企业（邀请已使用 + 当前已有员工身份）时，
     // 再次点开邀请链接不再重复授权，直接进入工作台
     if (session.token && session.role && invite.value?.status === 'accepted') {
-      uni.reLaunch({ url: P.home })
+      clearInviteIntent()
+      enterHome()
     }
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '邀请加载失败'
@@ -83,14 +95,19 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
     const loginResult = await new Promise<UniApp.LoginRes>((resolve, reject) => {
       uni.login({ provider: 'weixin', success: resolve, fail: reject })
     })
-    const userProfile = await new Promise<UniApp.GetUserProfileRes>((resolve) => {
-      uni.getUserProfile({ desc: '用于员工头像和姓名展示', success: resolve, fail: () => resolve({} as UniApp.GetUserProfileRes) })
-    })
-    const nickname = userProfile.userInfo?.nickName
-    const avatarUrl = userProfile.userInfo?.avatarUrl
-    const sessionToken = await identityApi.wxLogin({ code: loginResult.code, phoneCode, nickname, avatarUrl })
+    const nickname = invite.value?.inviteName || undefined
+    const sessionToken = await identityApi.wxLogin({ code: loginResult.code, phoneCode, nickname })
     loginAsToken(sessionToken.token)
     const profile = await identityApi.sessionInfo(sessionToken.token)
+
+    if (profile.currentEmployee && invite.value?.status === 'accepted') {
+      loginAsEmployee(profile.currentEmployee, sessionToken.token, profile)
+      clearInviteIntent()
+      hideLoading()
+      toast(`已进入${profile.currentEmployee.company?.name || '企业'}`, 'success')
+      enterHome()
+      return
+    }
 
     const switching = !!profile.currentEmployee
     if (switching) {
@@ -104,7 +121,6 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
     const employeeToken = await identityApi.acceptInvite({
       inviteId: inviteId.value,
       name: invite.value?.inviteName || nickname,
-      avatarUrl,
       confirmSwitch: switching,
       reason: switching ? '用户主动切换企业' : undefined
     })
@@ -112,9 +128,10 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
     const accepted = await identityApi.sessionInfo(employeeToken.token)
     if (!accepted.currentEmployee) throw new Error('加入企业失败')
     loginAsEmployee(accepted.currentEmployee, employeeToken.token, accepted)
+    clearInviteIntent()
     hideLoading()
     toast(`已加入${accepted.currentEmployee.company?.name || '企业'}`, 'success')
-    uni.reLaunch({ url: P.home })
+    enterHome()
   } catch (error) {
     hideLoading()
     toastError(error, session.token ? '加入企业失败' : '手机号快捷登录失败')
@@ -123,7 +140,44 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
   }
 }
 
-function backToLogin() { uni.reLaunch({ url: P.login }) }
+async function acceptAuthenticated(): Promise<void> {
+  if (!session.token || !invite.value) return
+  submitting.value = true
+  loading('正在确认邀请…')
+  try {
+    const employeeToken = await identityApi.acceptInvite({
+      inviteId: inviteId.value,
+      name: invite.value.inviteName,
+      confirmSwitch: false
+    })
+    loginAsToken(employeeToken.token)
+    const accepted = await identityApi.sessionInfo(employeeToken.token)
+    if (!accepted.currentEmployee) throw new Error('加入企业失败')
+    loginAsEmployee(accepted.currentEmployee, employeeToken.token, accepted)
+    clearInviteIntent()
+    hideLoading()
+    toast(`已加入${accepted.currentEmployee.company?.name || '企业'}`, 'success')
+    enterHome()
+  } catch (error) {
+    hideLoading()
+    toastError(error, '加入企业失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+function maskPhone(phone: string): string {
+  return phone.length >= 7 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : '****'
+}
+
+function enterHome(): void {
+  uni.reLaunch({
+    url: P.home,
+    fail: () => uni.switchTab({ url: P.home })
+  })
+}
+
+function backToLogin() { clearInviteIntent(); uni.reLaunch({ url: P.login }) }
 
 function roleLabel() {
   const role = invite.value?.role
@@ -137,7 +191,14 @@ function roleLabel() {
     <view class="invite-body">
       <view v-if="invite" class="invite-card jz-card">
         <view class="invite-company">
-          <JzBrandLogo class="invite-logo" variant="white" :size="92" />
+          <CompanyBrandMark
+            class="invite-logo"
+            :name="invite.company?.name || '邀请企业'"
+            :short-name="invite.company?.shortName || invite.company?.name || '企'"
+            :logo="invite.company?.logo || ''"
+            :color="invite.company?.color || ''"
+            :size="92"
+          />
           <view class="jz-grow">
             <text class="invite-company__name">{{ invite.company?.name || invite.companyId || '邀请企业' }}</text>
             <text class="invite-company__sub">邀请人 {{ invite.inviter?.name || '企业管理员' }}</text>
@@ -146,12 +207,12 @@ function roleLabel() {
         </view>
         <view class="invite-info">
           <view><text>被邀请人</text><text>{{ invite.inviteName || '待授权' }}</text></view>
-          <view><text>手机号</text><text>{{ invite.telNo }}</text></view>
+          <view><text>手机号</text><text>{{ invite.maskedTelNo || invite.telNo || '待确认' }}</text></view>
           <view><text>岗位</text><text>{{ roleLabel() }}</text></view>
           <view><text>门店</text><text>{{ invite.store?.name || '默认门店' }}</text></view>
           <view><text>团队</text><text>{{ invite.team?.name || '未分配' }}</text></view>
         </view>
-        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>系统会核对快捷登录手机号与邀请手机号是否一致</text></view>
+        <view class="invite-check"><JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" /><text>{{ canAcceptWithCurrentSession ? '当前微信手机号已验证，确认后即可加入' : '系统会核对快捷登录手机号与邀请手机号是否一致' }}</text></view>
       </view>
       <view v-else-if="loadError" class="invite-error jz-card">
         <JzIcon name="alert-circle" :size="42" :color="TOKEN_COLOR.danger" />
@@ -161,7 +222,13 @@ function roleLabel() {
       </view>
       <view v-else class="invite-loading jz-card"><text>正在加载邀请…</text></view>
 
-      <button v-if="invite?.status === 'pending'" class="jz-btn jz-btn--primary jz-btn--block invite-submit"
+      <button v-if="invite?.status === 'pending' && canAcceptWithCurrentSession"
+              class="jz-btn jz-btn--primary jz-btn--block invite-submit"
+              :loading="submitting" @tap="acceptAuthenticated">
+        确认加入{{ invite.company?.name ? `「${invite.company.name}」` : '' }}
+      </button>
+      <button v-else-if="invite?.status === 'pending'"
+              class="jz-btn jz-btn--primary jz-btn--block invite-submit"
               open-type="getPhoneNumber" :loading="submitting" @getphonenumber="accept">
         手机号快捷登录并加入
       </button>

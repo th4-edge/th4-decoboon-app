@@ -128,8 +128,8 @@ async function submit() {
           <button class="cau__segment-btn" :class="{ 'cau__segment-btn--active': subjectType === 'customer' }" :disabled="!canUseCustomer" @tap="chooseSubject('customer')">客户</button>
           <button class="cau__segment-btn" :class="{ 'cau__segment-btn--active': subjectType === 'employee' }" @tap="chooseSubject('employee')">员工本人</button>
         </view>
-        <view class="jz-form-row"><text class="jz-form-label">授权渠道</text><input v-model="channels" class="jz-form-control" placeholder="抖音, 视频号, 小红书" placeholder-style="text-align: left" /></view>
-        <view class="jz-form-row"><text class="jz-form-label">授权地域</text><input v-model="region" class="jz-form-control" placeholder="中国大陆" placeholder-style="text-align: left" /></view>
+        <view class="jz-form-row"><text class="jz-form-label">授权渠道</text><input v-model="channels" class="jz-form-control" placeholder="抖音, 视频号, 小红书" placeholder-style="text-align: right" /></view>
+        <view class="jz-form-row"><text class="jz-form-label">授权地域</text><input v-model="region" class="jz-form-control" placeholder="中国大陆" placeholder-style="text-align: right" /></view>
         <view class="cau__dates">
           <view class="cau__date"><text class="cau__label">生效日期</text><JzSelectField mode="date" variant="boxed" :value="validFrom" :display="validFrom" @change="validFrom = $event" /></view>
           <view class="cau__date"><text class="cau__label">失效日期</text><JzSelectField mode="date" variant="boxed" :value="validTo" :display="validTo" :start="validFrom" @change="validTo = $event" /></view>
@@ -163,10 +163,10 @@ async function submit() {
 .cau__purpose text { display: block; }
 .cau__purpose text:first-child { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .cau__purpose text:last-child { margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cau__purpose--active { border-color: rgba(14,138,125,.22); background: $jzb-primary-lighter; }
+.cau__purpose--active { border-color: var(--jzb-primary-a22, rgba(14, 138, 125, .22)); background: $jzb-primary-lighter; }
 .cau__segment { display: flex; gap: 12rpx; }
 .cau__segment-btn { flex: 1; min-height: 72rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: #fff; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cau__segment-btn--active { color: $jzb-primary-dark; border-color: rgba(14,138,125,.2); background: $jzb-primary-lighter; font-weight: 700; }
+.cau__segment-btn--active { color: $jzb-primary-dark; border-color: var(--jzb-primary-a20, rgba(14, 138, 125, .20)); background: $jzb-primary-lighter; font-weight: 700; }
 .cau__input { width: 100%; min-height: 84rpx; padding: 0 20rpx; box-sizing: border-box; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; color: $jzb-text-1; font-size: $jzb-font-sm; }
 .cau__dates { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; }
 .cau__date .cau__label { margin-top: 0; }

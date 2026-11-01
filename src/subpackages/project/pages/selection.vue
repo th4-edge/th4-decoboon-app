@@ -369,7 +369,7 @@ function updatedTime(item: MaterialSelectionItem) {
 .msd__filters { margin-bottom: 18rpx; white-space: nowrap; }
 .msd__chips { display: inline-flex; gap: 12rpx; padding: 2rpx 0; }
 .msd__chip { display: inline-flex; align-items: center; min-height: 60rpx; padding: 0 20rpx; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; color: $jzb-text-2; background: $jzb-bg-card; font-size: $jzb-font-xs; }
-.msd__chip--active { color: $jzb-primary-deep; border-color: rgba(22,163,148,.26); background: $jzb-primary-lighter; font-weight: 650; }
+.msd__chip--active { color: $jzb-primary-deep; border-color: var(--jzb-primary-a26, rgba(22, 163, 148, .26)); background: $jzb-primary-lighter; font-weight: 650; }
 .msd__groups { display: flex; flex-direction: column; gap: 24rpx; }
 .msd__group-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 2rpx 10rpx; }
 .msd__group-name { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }

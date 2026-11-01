@@ -2,6 +2,20 @@ import { defineConfig, loadEnv } from 'vite'
 import uni from '@dcloudio/vite-plugin-uni'
 import pkg from './package.json'
 
+/** 所有页面在编译期注入 page-meta，让同一套品牌 CSS 变量覆盖主包与全部分包页面。 */
+function brandThemePageMeta() {
+  return {
+    name: 'zdq-brand-theme-page-meta',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      const normalized = id.replace(/\\/g, '/')
+      if (!/\/src\/(?:pages|subpackages\/[^/]+\/pages)\/.+\.vue$/.test(normalized)) return null
+      if (!code.includes('<template>') || code.includes('$brandThemePageStyle')) return null
+      return code.replace('<template>', '<template>\n  <page-meta :page-style="$brandThemePageStyle" />')
+    }
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiBase = (env.VITE_API_BASE || '').trim()
@@ -28,7 +42,7 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     },
-    plugins: [uni()],
+    plugins: [brandThemePageMeta(), uni()],
     server: {
       port: 8080,
       host: '0.0.0.0',

@@ -260,7 +260,7 @@ async function saveItem(item: CarryoverReconciliationItem) {
           <text class="rc-item__status">{{ item.differenceStatus === 'accepted' ? '已接受' : item.differenceStatus === 'resolved' ? '已解决' : item.differenceStatus === 'handling' ? '处理中' : '待处理' }}</text>
         </view>
         <view class="rc-row"><text class="rc-row__label">装得清</text><text class="rc-row__value">{{ (item.systemAmount || 0).toFixed(2) }} 元</text></view>
-        <view class="rc-row"><text class="rc-row__label">原账金额</text><input v-model="item.originalAmount" type="digit" placeholder="填写原账本金额" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="rc-row"><text class="rc-row__label">原账金额</text><input v-model="item.originalAmount" type="digit" placeholder="填写原账本金额" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
         <view class="rc-row"><text class="rc-row__label">差异</text><text class="rc-row__value" :class="{ 'rc-row__value--diff': item.difference }">{{ item.difference == null ? '待录入原账金额' : `${item.difference.toFixed(2)} 元` }}</text></view>
         <view class="rc-row">
           <text class="rc-row__label">差异分类</text>
@@ -305,7 +305,7 @@ async function saveItem(item: CarryoverReconciliationItem) {
 .rc-item__save { margin-top: 18rpx; }
 
 .rc-complete { margin-bottom: 18rpx; padding: 22rpx; }
-.rc-complete--done { border: 1rpx solid rgba(22, 163, 148, .3); }
+.rc-complete--done { border: 1rpx solid var(--jzb-primary-a30, rgba(22, 163, 148, .3)); }
 .rc-complete__head { display: flex; align-items: center; justify-content: space-between; }
 .rc-complete__title { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
 .rc-complete__status { color: $jzb-text-3; font-size: $jzb-font-xs; }

@@ -88,6 +88,13 @@
       }
     },
     {
+      "path": "pages/invite/discover",
+      "style": {
+        "navigationBarTitleText": "待加入邀请",
+        "backgroundColor": "#F4F7F8"
+      }
+    },
+    {
       "path": "pages/company/join",
       "style": {
         "navigationBarTitleText": "未加入企业",
@@ -159,6 +166,14 @@
           "path": "pages/tasks",
           "style": {
             "navigationBarTitleText": "内容任务",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/template-picker",
+          "style": {
+            "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
@@ -640,6 +655,14 @@
           }
         },
         {
+          "path": "pages/report-project-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/report/daily",
           "style": {
             "navigationBarTitleText": "施工日报",
@@ -834,6 +857,28 @@
             "navigationBarTitleText": "设计方案详情",
             "backgroundColor": "#F4F7F8"
           }
+        },
+        {
+          "path": "pages/templates",
+          "style": {
+            "navigationBarTitleText": "方案模版",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/template-detail",
+          "style": {
+            "navigationBarTitleText": "方案模版详情",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/template-edit",
+          "style": {
+            "navigationBarTitleText": "编辑方案模版",
+            "backgroundColor": "#F4F7F8"
+          }
         }
       ]
     },
@@ -934,6 +979,15 @@
             "backgroundColor": "#F4F7F8"
           }
         }
+,
+        {
+          "path": "pages/quote-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        }
       ]
     },
     {
@@ -1027,6 +1081,14 @@
           "path": "pages/expense-detail",
           "style": {
             "navigationBarTitleText": "费用详情",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/expense-category-picker",
+          "style": {
+            "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
@@ -1205,6 +1267,22 @@
           "path": "pages/my-payroll",
           "style": {
             "navigationBarTitleText": "我的工资条",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/my-attendance",
+          "style": {
+            "navigationBarTitleText": "我的考勤",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/my-commission",
+          "style": {
+            "navigationBarTitleText": "我的提成",
             "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
@@ -1443,6 +1521,15 @@
           "style": {
             "navigationStyle": "custom",
             "navigationBarTitleText": "工人信息",
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
+          "path": "pages/worker-picker",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "选择工人",
+            "enablePullDownRefresh": true,
             "backgroundColor": "#F4F7F8"
           }
         }

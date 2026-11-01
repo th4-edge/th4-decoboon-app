@@ -73,7 +73,7 @@ function choose() {
   transition: border-color $jzb-duration-fast $jzb-ease-out, background $jzb-duration-fast $jzb-ease-out;
 }
 .jz-employee-field--disabled { background: $jzb-bg-hover; }
-.jz-employee-field:active { border-color: rgba(22, 163, 148, .35); }
+.jz-employee-field:active { border-color: var(--jzb-primary-a35, rgba(22, 163, 148, .35)); }
 .jz-employee-field__placeholder {
   width: 72rpx;
   height: 72rpx;

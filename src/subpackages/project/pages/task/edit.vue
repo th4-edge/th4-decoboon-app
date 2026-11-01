@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import type { Zone } from '@/domains/base/model'
 import type { Employee } from '@/domains/identity/model'
 import type { ProjectStage } from '@/domains/project/model'
 import type { TaskPriority } from '@/domains/schedule/model'
-import { identityApi } from '@/domains/identity/api'
 import { baseApi } from '@/domains/base/api'
 import { projectApi } from '@/domains/project/api'
 import { scheduleApi } from '@/domains/schedule/api'
-import { ROLE_META } from '@/roles/catalog'
 import JzIcon from '@/components/JzIcon.vue'
-import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzDateRangeField from '@/components/JzDateRangeField/JzDateRangeField.vue'
+import JzEmployeeSelectField from '@/components/JzEmployeeSelectField/JzEmployeeSelectField.vue'
 import { toastError, toast, loading, hideLoading } from '@/composables/toast'
 
 const id = ref('')
@@ -24,7 +23,7 @@ const projectId = ref('')
 const stageId = ref('')
 const name = ref('')
 const content = ref('')
-const ownerId = ref('')
+const selectedOwner = ref<Employee | null>(null)
 const priority = ref<TaskPriority>('normal')
 const plannedStart = ref('')
 const plannedEnd = ref('')
@@ -37,12 +36,8 @@ const unit = ref('')
 const craft = ref('')
 const spec = ref('')
 
-const employees = ref<Employee[]>([])
 const stages = ref<ProjectStage[]>([])
 const zones = ref<Zone[]>([])
-// 任务负责人候选：企业负责人 / 店长 / 项目经理 / 设计师 / 业务员（店长自 2026-09-23 起可操作施工任务）
-const OWNER_ROLES = ['boss', 'storeManager', 'pm', 'designer', 'marketer']
-const owners = computed(() => employees.value.filter((e) => OWNER_ROLES.includes(e.role)))
 const stageLabel = computed(() => {
   const s = stages.value.find((x) => x.id === stageId.value)
   return s ? `${s.sort}. ${s.name}` : ''
@@ -60,16 +55,25 @@ function onZonePick(name: string) {
   const hit = zones.value.find((z) => z.name === name)
   if (hit) zoneId.value = hit.id
 }
-function pickOwner(label: string) {
-  const hit = owners.value.find((o) => ownerDisplay(o) === label)
-  if (hit) ownerId.value = hit.id
+function openOwnerPicker() {
+  const params = ['source=directory', 'activeOnly=1', 'roles=boss,storeManager,pm,designer,marketer']
+  if (selectedOwner.value) {
+    params.push(`selectedId=${encodeURIComponent(selectedOwner.value.id)}`)
+    params.push(`selectedName=${encodeURIComponent(selectedOwner.value.name)}`)
+    params.push(`selectedMeta=${encodeURIComponent(employeeMeta(selectedOwner.value))}`)
+  }
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
-const ownerSelected = computed(() => owners.value.find((o) => o.id === ownerId.value))
-const ownerLabel = computed(() => ownerSelected.value?.name || '')
-/** 负责人下拉文案：岗位名缺失时回退角色短名，绝不再渲染 undefined。 */
-function ownerDisplay(o: Employee) {
-  return `${o.name}（${o.title || ROLE_META[o.role]?.short || o.role}）`
+
+function employeeMeta(employee: Employee): string {
+  return [employee.title || employee.role, employee.store?.name || '未分配门店', employee.team?.name || '未分团队'].join(' · ')
 }
+
+onShow(() => {
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  selectedOwner.value = result.action === 'clear' ? null : result.value
+})
 const PRIOS = [
   { key: 'low', label: '低' }, { key: 'normal', label: '中' }, { key: 'high', label: '高' }, { key: 'urgent', label: '紧急' }
 ] as const
@@ -96,16 +100,14 @@ onLoad((q) => {
   void load().catch((error) => toastError(error, '任务信息加载失败'))
 })
 async function load() {
-  const [es, zn] = await Promise.all([identityApi.employees(), baseApi.zones()])
-  employees.value = es
-  zones.value = zn
+  zones.value = await baseApi.zones()
   if (id.value) {
     const t = await scheduleApi.task(id.value)
     if (t) {
       uni.setNavigationBarTitle({ title: '编辑任务' })
       projectId.value = t.projectId; stageId.value = t.stageId
       name.value = t.name; content.value = t.content || ''
-      ownerId.value = t.owner?.id || ''; priority.value = t.priority
+      selectedOwner.value = t.owner || null; priority.value = t.priority
       plannedStart.value = t.plannedStart || ''; plannedEnd.value = t.plannedEnd || ''
       acceptStandard.value = t.acceptStandard || ''; remark.value = t.remark || ''
       zoneId.value = t.zone?.id || ''; quantity.value = t.quantity !== undefined ? `${t.quantity}` : ''
@@ -137,7 +139,7 @@ async function save() {
       craft: craft.value.trim() || undefined,
       spec: spec.value.trim() || undefined,
       acceptStandard: acceptStandard.value.trim() || spec.value.trim() || undefined,
-      owner: owners.value.find((e) => e.id === ownerId.value),
+      owner: selectedOwner.value ?? undefined,
       creator: session.emp || undefined,
       priority: priority.value,
       plannedStart: plannedStart.value || undefined,
@@ -167,17 +169,16 @@ async function save() {
         <JzSelectField :display="zoneLabel" :range="zoneOptions" :index="zoneIndex" placeholder="选择区域（客厅/厨房…）" @change="onZonePick" />
       </view>
       <view class="te__row"><text class="te__label">施工总量</text>
-        <input v-model="quantity" type="digit" class="jz-grow te__qty jz-numeric-input" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+        <input v-model="quantity" type="digit" class="jz-grow te__qty jz-numeric-input" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
         <input v-model="unit" class="te__unit" placeholder="单位(㎡/m/项…)" />
       </view>
       <view class="te__row"><text class="te__label">负责人</text>
-        <JzSelectField
-          variant="plain"
-          :display="ownerSelected ? ownerDisplay(ownerSelected) : ''"
-          :range="owners.map(ownerDisplay)"
-          :index="Math.max(0, owners.findIndex(o => o.id === ownerId))"
+        <JzEmployeeSelectField
+          :employee="selectedOwner"
+          label="任务负责人"
           placeholder="选择负责人"
-          @change="pickOwner"
+          @select="openOwnerPicker"
+          @clear="selectedOwner = null"
         />
       </view>
       <view class="te__row"><text class="te__label">优先级</text>
@@ -223,7 +224,7 @@ async function save() {
 .te__picker--empty { color: $jzb-text-4; }
 .te__prios { margin-left: auto; }
 .te__prio { min-height: 60rpx; padding: 0 24rpx; margin-left: 12rpx; display: inline-flex; align-items: center; background: $jzb-bg-hover; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
-.te__prio--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.18); font-weight: 650; }
+.te__prio--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a18, rgba(22, 163, 148, .18)); font-weight: 650; }
 .te__submit-btn { display: flex; align-items: center; justify-content: center; }
 .te__submit-btn text { margin-left: 8rpx; }
 </style>

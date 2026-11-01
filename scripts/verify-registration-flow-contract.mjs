@@ -24,6 +24,10 @@ expect(login.includes("profile.sessionType === 'Customer' && profile.customerAcc
   '登录页缺少业主项目授权判定')
 expect(login.includes('loginAsCustomer(profile, token.token)'),
   '登录页业主授权成功后未建立业主会话')
+expect(login.includes('function quickLogin()') && login.includes('requestWxCode()'),
+  '登录页未先使用微信 code 恢复已绑定身份')
+expect(login.includes("error.code === 'PHONE_REQUIRED'") && login.includes('phoneRequired.value = true'),
+  '登录页未仅在首次绑定身份时进入手机号授权步骤')
 
 // 未归属用户选择“以后再说”必须真正离开本页，不能回到首页后被再次拦截。
 expect(join.includes('function later()') && join.includes('session.sessionType === \'user\''),
@@ -42,10 +46,14 @@ expect(!home.includes("if (!isLoggedIn()) goTab(P.login)"),
 // 业主进入空态：必须有返回/退出路径，且未授权无项目时不调用业务接口。
 expect(ownerEnter.includes('<JzPageHeader') && ownerEnter.includes('back'),
   '进入我的家页面缺少顶部返回操作')
-expect(ownerEnter.includes('返回首页，暂不进入我的家'),
-  '未找到装修项目时缺少返回首页按钮')
-expect(ownerEnter.includes('不是当前账号？切换账号') && ownerEnter.includes('function switchAccount()'),
+expect(ownerEnter.includes('当前微信还没有可进入的装修项目') && ownerEnter.includes('>返回首页<'),
+  '未找到装修项目时缺少产品说明或返回首页按钮')
+expect(ownerEnter.includes('更换微信账号？切换账号') && ownerEnter.includes('function switchAccount()'),
   '未找到装修项目时缺少切换账号/退出入口')
+expect(ownerEnter.includes('授权后，您可以看到') && ownerEnter.includes('如何进入自己的家') && ownerEnter.includes('不向您推荐其他装修公司'),
+  '业主未授权页缺少产品价值、进入步骤和身份边界说明')
+expect(ownerEnter.includes("message.includes('已绑定装修公司员工身份')") && ownerEnter.includes('业主端需使用业主本人微信进入'),
+  '员工微信进入业主端时缺少可理解的恢复提示')
 expect(ownerEnter.includes('if (session.sessionType === \'user\' && !session.emp) logout()'),
   '业主空态返回首页前未处理未归属临时会话')
 expect(ownerEnter.includes('function reLaunchAfterLogout(url: string)')
@@ -60,14 +68,24 @@ expect(enterprise.includes("import JzBrandLogo from '@/components/JzBrandLogo.vu
   '创建企业页未使用统一品牌 Logo 组件')
 expect(enterprise.includes('<JzBrandLogo variant="white"') && enterprise.includes('class="ent__hero"'),
   '创建企业页缺少品牌色卡片')
-expect(enterprise.includes('企业负责人开通') && enterprise.includes('创建您的装修企业'),
-  '创建企业品牌卡片缺少负责人开通说明')
+expect(enterprise.includes('企业负责人开通') && enterprise.includes('先创建企业，马上开始使用'),
+  '创建企业品牌卡片缺少负责人快速开通说明')
 expect(enterprise.includes('session.user?.phone') && enterprise.includes('已验证'),
   '创建企业品牌卡片缺少已验证手机号事实')
 expect(enterprise.includes('registerCompany({') && enterprise.includes('if (!profile.currentEmployee) throw new Error'),
   '创建企业提交缺少负责人身份闭环校验')
 expect(enterprise.includes('loginAsEmployee(profile.currentEmployee, token.token, profile)'),
   '创建企业成功后未建立负责人会话')
+expect(enterprise.includes('type="nickname"') && enterprise.includes('session.user.nickname'),
+  '负责人姓名未预填微信昵称或缺少昵称输入能力')
+expect(!enterprise.includes('>企业全称<') && !enterprise.includes('请填写企业全称'),
+  '快速创建企业页仍要求录入企业全称')
+expect(!enterprise.includes('已有在建项目') && !enterprise.includes('hasRunningProjects'),
+  '快速创建企业页仍包含已有在建项目开关')
+expect(!enterprise.includes('getUserProfile'),
+  '创建企业页仍触发额外微信资料授权')
+expect(enterprise.includes('setTimeout(() => goTab(P.home)'),
+  '创建成功后未直接进入企业首页')
 
 // 会话契约：退出必须清理 token，避免下次启动仍被未归属分流拦截。
 expect(session.includes('uni.removeStorageSync(KEY)') && session.includes('uni.removeStorageSync(runtime.tokenKey)'),

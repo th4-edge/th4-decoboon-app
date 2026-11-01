@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
 import type { Customer } from '@/domains/crm/model'
 import { crmApi } from '@/domains/crm/api'
 import { propertyApi } from '@/domains/property/api'
+import { consumePropertyPickerResult } from '@/domains/property/property-picker'
 import type { Property } from '@/domains/property/model'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
@@ -15,20 +16,15 @@ import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 const id = ref('')
 const propertyId = ref('')
 const customer = ref<Customer | null>(null)
+const propertyPickerOpen = ref(false)
 const properties = ref<Property[]>([])
-const propertyIdx = ref(0)
 const date = ref('')
 const time = ref('')
 const today = new Date()
 const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 const maxDate = `${today.getFullYear() + 1}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 const canSubmit = computed(() => !!date.value && !!time.value && !!currentProperty.value)
-const hasMultipleProperties = computed(() => properties.value.length > 1)
-const currentProperty = computed(() => properties.value[propertyIdx.value] || null)
-/** 房屋选择器的展示文案列表 */
-const propertyRange = computed(() => properties.value.map((p) =>
-  `${p.roomNo || p.propertyNo || '房屋'} · ${p.address || '未填详细地址'}`
-))
+const currentProperty = computed(() => properties.value.find((item) => item.id === propertyId.value) || null)
 const currentPropertyMeta = computed(() => {
   const p = currentProperty.value
   if (!p) return ''
@@ -55,11 +51,9 @@ onLoad(async (query) => {
     ])
     customer.value = detail || null
     properties.value = list
-    // 按传入的 propertyId 定位当前选中房屋；未传或不匹配时默认第一套
-    const idx = list.findIndex((p) => p.id === propertyId.value)
-    propertyIdx.value = idx >= 0 ? idx : 0
-    propertyId.value = list[propertyIdx.value]?.id || ''
-    await loadScheduledForProperty()
+    const matched = list.some((property) => property.id === propertyId.value)
+    propertyId.value = matched ? propertyId.value : (list.length === 1 ? list[0].id : '')
+    if (propertyId.value) await loadScheduledForProperty()
   } catch (error) {
     toastError(error, '客户信息加载失败')
   }
@@ -82,17 +76,35 @@ async function loadScheduledForProperty() {
   }
 }
 
-function onPropertyLabel(label: string) {
-  const index = propertyRange.value.indexOf(label)
-  if (index >= 0) void onPropertyChange({ detail: { value: index } })
-}
+onShow(() => {
+  if (!propertyPickerOpen.value) return
+  propertyPickerOpen.value = false
+  const result = consumePropertyPickerResult()
+  if (!result) return
+  if (result.action === 'clear') {
+    propertyId.value = ''
+    date.value = ''
+    time.value = ''
+    return
+  }
+  propertyId.value = result.value.id
+  if (!properties.value.some((property) => property.id === propertyId.value)) {
+    void propertyApi.list(id.value).then((list) => { properties.value = list })
+  }
+  void loadScheduledForProperty()
+})
 
-async function onPropertyChange(e: { detail: { value: number } }) {
-  const idx = Number(e.detail.value)
-  if (idx < 0 || idx >= properties.value.length) return
-  propertyIdx.value = idx
-  propertyId.value = properties.value[idx].id
-  await loadScheduledForProperty()
+function openPropertyPicker() {
+  if (!customer.value) return
+  propertyPickerOpen.value = true
+  const current = currentProperty.value
+  const params = [
+    `customerId=${encodeURIComponent(customer.value.id)}`,
+    `customerName=${encodeURIComponent(customer.value.name || '')}`,
+    `selectedId=${encodeURIComponent(propertyId.value || '')}`,
+    `selectedName=${encodeURIComponent(current?.roomNo || current?.address || '')}`
+  ]
+  uni.navigateTo({ url: `${P.propertyPicker}?${params.join('&')}` })
 }
 
 async function save() {
@@ -127,25 +139,24 @@ async function save() {
     <view class="jz-card cm__property">
       <view class="cm__property-head">
         <text class="cm__property-label">量房房屋</text>
-        <JzSelectField
-          v-if="hasMultipleProperties"
-          variant="plain"
-          icon="home"
-          display="切换房屋"
-          :range="propertyRange"
-          :index="propertyIdx"
-          @change="onPropertyLabel"
-        />
-        <text v-else class="cm__property-count">共 {{ properties.length }} 套</text>
+        <view v-if="properties.length" class="cm__property-change" @tap="openPropertyPicker">
+          <text>{{ currentProperty ? '更换房屋' : '选择房屋' }}</text>
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.primary" />
+        </view>
+        <text v-else class="cm__property-count">暂无房屋</text>
       </view>
       <view v-if="currentProperty" class="cm__property-body">
-        <text class="cm__property-no">房号 {{ currentProperty.roomNo || currentProperty.propertyNo || '—' }}</text>
+        <text class="cm__property-no">房号 {{ currentProperty.roomNo || '—' }}</text>
         <text class="cm__property-addr">{{ currentProperty.address || '尚未填写详细地址' }}</text>
         <text class="cm__property-meta">{{ currentPropertyMeta }}</text>
         <view v-if="currentPropertyMeasured" class="cm__property-warning">
           <JzIcon name="alert-circle" :size="22" :color="TOKEN_COLOR.warning" />
           <text>该房屋已有量房记录（{{ currentProperty.latestMeasureAt?.slice(0, 10) }}），再次约定将覆盖原约定时间</text>
         </view>
+      </view>
+      <view v-else-if="properties.length" class="cm__property-empty">
+        <JzIcon name="home" :size="34" :color="TOKEN_COLOR.text3" />
+        <text>请选择本次需要约定量房的具体房屋</text>
       </view>
       <view v-else class="cm__property-empty">
         <text>该客户尚未建立房屋档案</text>

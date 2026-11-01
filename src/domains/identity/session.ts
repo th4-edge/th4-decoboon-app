@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { runtime } from '@/config'
+import { identityApi } from './api'
 import type { AgreementConsent, Company, CustomerIdentity, Employee, EmployeeRole, RoleKey, SessionType, UserProfile } from './model'
 
 const KEY = 'jzb_session_v2'
@@ -173,7 +174,8 @@ export function loginAsCustomer(profile: UserProfile, token: string) {
   persist()
 }
 
-export function logout() {
+/** 仅清理本地会话；401 等失效场景使用，不再对失效 token 发起远程请求。 */
+export function clearSession() {
   const consent = session.agreement
   Object.assign(session, empty(), {
     agreement: consent,
@@ -184,6 +186,21 @@ export function logout() {
   // DEC-067 P0A-03：退出登录清理门店维度记忆
   uni.removeStorageSync('zdq.storeScope.v1')
   persist()
+}
+
+/**
+ * 主动退出：先同步清理本地状态，再使用退出前 token 调用唯一后端 Provider。
+ * 远程失败不得阻断本地退出，避免用户被锁在旧会话。
+ */
+export async function logout() {
+  const token = session.token
+  clearSession()
+  if (!token) return
+  try {
+    await identityApi.logout(token)
+  } catch {
+    // 本地会话已清理；远程撤销失败由后端过期策略兜底。
+  }
 }
 
 export function isLoggedIn(): boolean {

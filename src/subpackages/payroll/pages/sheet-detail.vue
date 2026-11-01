@@ -32,6 +32,7 @@ const returningDraft = ref(false)
 const canSubmitReview = ref(can(session.role, 'edit:payroll'))
 const canReturn = ref(can(session.role, 'confirm:payroll'))
 const canConfirm = ref(can(session.role, 'confirm:payroll'))
+const canDeleteDraft = ref(can(session.role, 'delete:draftPayroll'))
 
 /** DEC-046/BR-038：确认前必须逐项校验，阻断时给出可执行的下一步。 */
 const blockers = computed<Blocker[]>(() => {
@@ -73,7 +74,7 @@ async function refresh() {
 }
 
 async function removeDraft() {
-  if (!sheet.value || session.role !== 'boss' || sheet.value.status !== 'draft' || deleting.value) return
+  if (!sheet.value || !canDeleteDraft.value || sheet.value.status !== 'draft' || deleting.value) return
   const confirmed = await confirmDanger('删除工资单草稿', `确认删除 ${sheet.value?.period} 工资单草稿？删除后可以重新生成，已确认或已发放工资单不可删除。`, '删除')
   if (!confirmed) return
   deleting.value = true
@@ -227,7 +228,7 @@ async function confirmSheet() {
         <view class="item-card__net"><text>实发工资</text><text>{{ money(item.netAmount) }}</text></view>
       </view>
       <JzEmpty v-if="!items.length" text="暂无工资项" sub="先生成工资单草稿并补齐考勤、提成和归属" />
-      <button v-if="session.role === 'boss' && sheet.status === 'draft'" class="jz-btn jz-btn--danger jz-btn--block" :disabled="deleting" @tap="removeDraft">删除草稿</button>
+      <button v-if="canDeleteDraft && sheet.status === 'draft'" class="jz-btn jz-btn--danger jz-btn--block" :disabled="deleting" @tap="removeDraft">删除草稿</button>
       <button v-if="canSubmitReview && sheet.status === 'draft'" class="jz-btn jz-btn--ghost jz-btn--block" :disabled="submittingReview || blockers.length > 0" @tap="submitReview">{{ blockers.length ? '请先处理阻断项' : '提交复核' }}</button>
       <button v-if="canReturn && sheet.status === 'pending'" class="jz-btn jz-btn--ghost jz-btn--block" :disabled="returningDraft" @tap="returnToDraft">退回草稿</button>
       <button v-if="canConfirm && editableStatus" class="jz-btn jz-btn--primary jz-btn--block" :disabled="confirmDisabled" @tap="confirmSheet">{{ confirmDisabled && !confirming ? '请先处理阻断项' : '确认工资单' }}</button>

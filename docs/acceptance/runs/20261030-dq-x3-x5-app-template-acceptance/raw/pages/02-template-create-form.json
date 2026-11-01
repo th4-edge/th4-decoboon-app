@@ -1,0 +1,230 @@
+{
+  "path": "subpackages/design/pages/template-edit",
+  "query": {
+    "mode": "create"
+  },
+  "inputCount": 13,
+  "textareaCount": 1,
+  "fields": [
+    {
+      "i": 0,
+      "text": "模版名称 *",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 341,
+        "height": 61.5
+      }
+    },
+    {
+      "i": 1,
+      "text": "房型 *",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 341,
+        "height": 61.5
+      }
+    },
+    {
+      "i": 2,
+      "text": "最小面积（㎡）",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 166.5,
+        "height": 61.5
+      }
+    },
+    {
+      "i": 3,
+      "text": "最大面积（㎡）",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 166.5,
+        "height": 61.5
+      }
+    },
+    {
+      "i": 4,
+      "text": "标签",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 341,
+        "height": 61.5
+      }
+    },
+    {
+      "i": 5,
+      "text": "归属范围 *个人门店企业",
+      "input": false,
+      "textarea": false,
+      "size": {
+        "width": 341,
+        "height": 48
+      }
+    },
+    {
+      "i": 6,
+      "text": "备注",
+      "input": false,
+      "textarea": true,
+      "size": {
+        "width": 341,
+        "height": 94.5
+      }
+    },
+    {
+      "i": 7,
+      "text": "区域名称 *",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 8,
+      "text": "区域类型卧室客厅餐厅厨房卫生间阳台",
+      "input": false,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 9,
+      "text": "参考面积 A（㎡）",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 10,
+      "text": "参考周长 P（m）",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 11,
+      "text": "同型数量 N",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 12,
+      "text": "备注",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 13,
+      "text": "归属区域综合项目",
+      "input": false,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 14,
+      "text": "工程量公式",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 15,
+      "text": "固定数量",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "i": 16,
+      "text": "备注",
+      "input": true,
+      "textarea": false,
+      "size": {
+        "width": 0,
+        "height": 0
+      }
+    }
+  ],
+  "texts": [
+    "新建方案模版先填写模版基础信息，再配置区域与分项模版基础信息模版只沉淀区域和分项公式，不承载价格；发布后不可直接修改。模版名称 *房型 *最小面积（㎡）最大面积（㎡）标签归属范围 *个人门店企业备注创建草稿",
+    "新建方案模版先填写模版基础信息，再配置区域与分项",
+    "模版基础信息模版只沉淀区域和分项公式，不承载价格；发布后不可直接修改。模版名称 *房型 *最小面积（㎡）最大面积（㎡）标签归属范围 *个人门店企业备注创建草稿",
+    "模版基础信息",
+    "模版只沉淀区域和分项公式，不承载价格；发布后不可直接修改。",
+    "模版名称 *",
+    "房型 *",
+    "最小面积（㎡）最大面积（㎡）",
+    "最小面积（㎡）",
+    "最大面积（㎡）",
+    "标签",
+    "归属范围 *个人门店企业",
+    "归属范围 *",
+    "个人门店企业",
+    "个人",
+    "门店",
+    "企业",
+    "备注",
+    "创建草稿",
+    "区域名称 *区域类型卧室客厅餐厅厨房卫生间阳台参考面积 A（㎡）参考周长 P（m）同型数量 N备注取消保存区域",
+    "区域名称 *",
+    "区域类型卧室客厅餐厅厨房卫生间阳台",
+    "区域类型",
+    "卧室客厅餐厅厨房卫生间阳台",
+    "卧室",
+    "客厅",
+    "餐厅",
+    "厨房",
+    "卫生间",
+    "阳台",
+    "参考面积 A（㎡）参考周长 P（m）",
+    "参考面积 A（㎡）",
+    "参考周长 P（m）",
+    "同型数量 N",
+    "取消保存区域",
+    "取消",
+    "保存区域",
+    "单位 待确认 · 归属区域 综合项目归属区域综合项目工程量公式固定数量备注请按区域变量填写公式；系统会自动检查公式是否适用于该分项。模版不保存价格。取消保存分项",
+    "单位 待确认 · 归属区域 综合项目",
+    "归属区域综合项目",
+    "归属区域",
+    "综合项目",
+    "工程量公式",
+    "固定数量",
+    "请按区域变量填写公式；系统会自动检查公式是否适用于该分项。模版不保存价格。",
+    "取消保存分项",
+    "保存分项"
+  ],
+  "errors": []
+}

@@ -93,8 +93,20 @@ function onChange(e: any) {
   </picker>
 </template>
 
+<style lang="scss">
+/* 小程序自定义组件宿主默认按内容收缩，行内布局时会把右对齐值挤在标签旁。
+   必须保持非 scoped，否则构建器会给 :host 追加组件哈希而无法命中真实宿主。 */
+:host {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+</style>
+
 <style scoped lang="scss">
 .jz-select-field {
+  box-sizing: border-box;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;

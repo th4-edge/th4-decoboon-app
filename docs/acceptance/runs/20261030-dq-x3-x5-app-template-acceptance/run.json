@@ -1,0 +1,360 @@
+{
+  "runId": "20261030-dq-x3-x5-app-template-acceptance",
+  "domain": "design-quote",
+  "batches": [
+    "DQ-X3",
+    "DQ-X4",
+    "DQ-X5"
+  ],
+  "status": "FUNCTIONAL_DEVTOOLS_VERIFIED",
+  "physicalDeviceStatus": "NOT_RUN_NO_CONNECTED_DEVICE",
+  "visualReviewStatus": "MACHINE_PRECHECKED_HUMAN_REVIEW_PENDING",
+  "startedAt": "2026-10-30T20:33:00+08:00",
+  "finishedAt": "2026-10-30T21:01:35+08:00",
+  "environment": {
+    "backend": "http://127.0.0.1:8090/api",
+    "database": "decoboon@127.0.0.1:3306",
+    "runtime": "WeChat DevTools miniprogram-automator",
+    "device": {
+      "platform": "devtools",
+      "model": "iPhone 16",
+      "system": "iOS 10.0.1",
+      "SDKVersion": "3.17.5",
+      "window": "393x754",
+      "pixelRatio": 3
+    },
+    "appBuild": "dist/dev/mp-weixin",
+    "evidenceEnvironment": "raw/environment.json"
+  },
+  "operator": {
+    "name": "验收设计师",
+    "role": "Designer",
+    "type": "temporary local employee"
+  },
+  "fixtures": {
+    "company": "昭青装饰",
+    "store": "总店",
+    "customerId": "241902528973766656",
+    "propertyId": "241902529191870464",
+    "catalogItemId": "241902528747274240",
+    "templateIds": [
+      "241903640531435520",
+      "241905520460431360"
+    ],
+    "designId": "241904384156368896"
+  },
+  "cases": [
+    {
+      "id": "X3-01",
+      "batch": "DQ-X3",
+      "scenario": "模板库空态",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/01-template-list-empty.png",
+        "raw/pages/01-template-list-empty.json"
+      ]
+    },
+    {
+      "id": "X3-02",
+      "batch": "DQ-X3",
+      "scenario": "公开模板详情、区域、分项公式与无价格回读",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/32-template-detail-final-verified.png",
+        "raw/pages/32-template-detail-final-verified.json",
+        "raw/api/08-template-info-store-no-price.json"
+      ]
+    },
+    {
+      "id": "X3-03",
+      "batch": "DQ-X3",
+      "scenario": "已发布模板实例化到当前房屋并回读方案",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/12-instantiated-design-scheme.png",
+        "raw/screenshots/33-design-scheme-final.png",
+        "raw/api/02-design-scheme-info.json",
+        "raw/db/final-state.txt"
+      ]
+    },
+    {
+      "id": "X3-04",
+      "batch": "DQ-X3",
+      "scenario": "缺 propertyId 时阻断实例化",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/28-template-no-property-blocked.png",
+        "raw/pages/28-template-no-property-blocked.json"
+      ]
+    },
+    {
+      "id": "X4-01",
+      "batch": "DQ-X4",
+      "scenario": "新建模板基础信息与草稿回读",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/02-template-create-form.png",
+        "raw/screenshots/03-template-draft-editor.png",
+        "raw/pages/03-template-draft-editor.json"
+      ]
+    },
+    {
+      "id": "X4-02",
+      "batch": "DQ-X4",
+      "scenario": "区域新增与参考面积/周长回读",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/04-template-room-sheet.png",
+        "raw/screenshots/05-template-room-saved.png"
+      ]
+    },
+    {
+      "id": "X4-03",
+      "batch": "DQ-X4",
+      "scenario": "报价分项选择、归属区域与公式保存",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/06-template-catalog-picker.png",
+        "raw/screenshots/07-template-item-sheet.png",
+        "raw/screenshots/08-template-before-publish.png"
+      ]
+    },
+    {
+      "id": "X4-04",
+      "batch": "DQ-X4",
+      "scenario": "发布二次确认与发布后只读",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/09-template-publish-confirm.png",
+        "raw/screenshots/10-template-published-readonly.png"
+      ]
+    },
+    {
+      "id": "X4-05",
+      "batch": "DQ-X4",
+      "scenario": "空公式且空固定数量被前端阻断",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/25-template-empty-quantity-blocked.png"
+      ]
+    },
+    {
+      "id": "X4-06",
+      "batch": "DQ-X4",
+      "scenario": "公式单位不一致被服务端阻断",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/24-template-formula-unit-error.png"
+      ]
+    },
+    {
+      "id": "X4-07",
+      "batch": "DQ-X4",
+      "scenario": "被分项引用区域删除被阻断",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/26-template-room-delete-confirm.png",
+        "raw/screenshots/27-template-referenced-room-delete-blocked.png"
+      ]
+    },
+    {
+      "id": "X5-01",
+      "batch": "DQ-X5",
+      "scenario": "已发布模板动作面板",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/14-template-lifecycle-actions.png",
+        "raw/pages/17-template-list-v2-published.json"
+      ]
+    },
+    {
+      "id": "X5-02",
+      "batch": "DQ-X5",
+      "scenario": "新建 V2/V3 草稿版本并继承参考面积/周长",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/15-template-v2-draft.png",
+        "raw/screenshots/19-template-v3-draft.png",
+        "raw/api/03-version-build-1.json",
+        "raw/api/04-version-build-2.json"
+      ]
+    },
+    {
+      "id": "X5-03",
+      "batch": "DQ-X5",
+      "scenario": "版本新建幂等复用同一草稿版本",
+      "result": "PASS",
+      "evidence": [
+        "raw/api/03-version-build-1.json",
+        "raw/api/04-version-build-2.json"
+      ]
+    },
+    {
+      "id": "X5-04",
+      "batch": "DQ-X5",
+      "scenario": "复制为个人草稿并继承参考面积/周长",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/18-template-copied-draft.png",
+        "raw/db/final-state.txt"
+      ]
+    },
+    {
+      "id": "X5-05",
+      "batch": "DQ-X5",
+      "scenario": "非维护者不显示维护动作",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/29-template-non-maintainer-actions.png"
+      ]
+    },
+    {
+      "id": "X5-06",
+      "batch": "DQ-X5",
+      "scenario": "停用二次确认、全部状态可见、已停用筛选命中",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/20-template-disable-confirm.png",
+        "raw/screenshots/21-template-disabled-list.png",
+        "raw/screenshots/22-template-disabled-filter.png",
+        "raw/api/05-template-page-all.json",
+        "raw/api/06-template-page-disabled.json"
+      ]
+    },
+    {
+      "id": "X5-07",
+      "batch": "DQ-X5",
+      "scenario": "停用后不可实例化/编辑",
+      "result": "PASS",
+      "evidence": [
+        "raw/screenshots/23-template-disabled-detail.png",
+        "raw/api/09-disabled-write-rejected.json"
+      ]
+    },
+    {
+      "id": "SYS-01",
+      "batch": "CROSS",
+      "scenario": "模板响应无价格/成本字段",
+      "result": "PASS",
+      "evidence": [
+        "raw/api/07-template-info-no-price.json",
+        "raw/api/08-template-info-store-no-price.json"
+      ]
+    },
+    {
+      "id": "SYS-02",
+      "batch": "CROSS",
+      "scenario": "最终列表、详情、方案页 console error=0",
+      "result": "PASS",
+      "evidence": [
+        "raw/console-errors.json"
+      ]
+    }
+  ],
+  "defectsFixed": [
+    {
+      "id": "DEF-DQ-001",
+      "severity": "P1",
+      "page": "template-edit",
+      "issue": "调用全局 confirm 但未挂载 JzConfirmDialog，发布/删除无确认反馈",
+      "fix": "挂载页面级 JzConfirmDialog"
+    },
+    {
+      "id": "DEF-DQ-002",
+      "severity": "P1",
+      "page": "template-detail",
+      "issue": "区域类型直接显示内部枚举 Bedroom",
+      "fix": "映射为卧室等中文业务文案"
+    },
+    {
+      "id": "DEF-DQ-003",
+      "severity": "P1",
+      "page": "design/template/version/build + copy",
+      "issue": "新版本/复制遗漏 referenceArea/referencePerimeter",
+      "fix": "完整复制参考面积与周长，并补定向测试"
+    },
+    {
+      "id": "DEF-DQ-004",
+      "severity": "P1",
+      "page": "template-edit/detail",
+      "issue": "模板主档已发布状态压过当前版本草稿状态",
+      "fix": "状态标签改用 currentVersion.status"
+    },
+    {
+      "id": "DEF-DQ-005",
+      "severity": "P1",
+      "page": "design/template/page",
+      "issue": "全部状态默认排除 Disabled，已停用筛选失效",
+      "fix": "默认不追加状态过滤"
+    },
+    {
+      "id": "DEF-DQ-006",
+      "severity": "P1",
+      "page": "design/template/info|copy|version/build|items",
+      "issue": "模板响应泄漏销售价格字段",
+      "fix": "模板 CatalogItem 白名单移除 price 字段并补白名单契约测试"
+    },
+    {
+      "id": "DEF-DQ-007",
+      "severity": "P2",
+      "page": "template-detail",
+      "issue": "使用英文 DESIGN TEMPLATE eyebrow",
+      "fix": "改为“方案模版”"
+    }
+  ],
+  "verification": {
+    "app": {
+      "typeCheck": "PASS",
+      "checks": [
+        "check:design-items",
+        "check:navigation",
+        "check:ui",
+        "check:client-copy",
+        "check:subpackages"
+      ],
+      "build": "PASS",
+      "package": "主包 1077077 B；最大分包 734997 B；总包 4223451 B；180 页"
+    },
+    "backend": {
+      "targetedTests": [
+        "DesignTemplateWhitelistContractTest",
+        "DesignTemplateVersionCopyTest",
+        "DesignTemplateInstantiateInheritanceTest",
+        "DesignTemplateFormulaContextTest"
+      ],
+      "targetedTestsResult": "PASS",
+      "fullSuiteContext": "外部并发全量测试 1143 项中 2 项错误，均位于 customer/labor 既有测试，与本轮模板改动无关；本轮以定向测试为准"
+    }
+  },
+  "visualReview": {
+    "model": "qwen2.5vl:7b",
+    "artifacts": [
+      "visual-review/core-flow-qwen25vl-7b.md",
+      "visual-review/lifecycle-qwen25vl-7b.md"
+    ],
+    "result": "PRECHECK_ONLY",
+    "caveat": "文本主模型通过本地视觉桥读图；7B 多图评审出现状态误判，不替代人工/更强视觉模型最终审美裁决"
+  },
+  "cleanup": {
+    "status": "PASS",
+    "backup": "~/.decoboon-local/template-acceptance-20261030/before.sql",
+    "backupSha256": "e9a087c787604a82cca82731894673aa1d2eaeca962ce98d22b6c6e8e0f1f692",
+    "databaseEvidence": [
+      "raw/db/cleanup.txt",
+      "raw/db/baseline-compare.txt"
+    ],
+    "baselineTablesChecked": 30,
+    "mismatches": 0
+  },
+  "limitations": [
+    "未连接物理 iPhone/Android；本次是微信开发者工具 iPhone 16 模拟器原生小程序运行，不声明物理真机通过",
+    "视觉仅完成 qwen2.5vl:7b 机器预检，最终视觉/审美签字待人工或更强视觉模型",
+    "未提交 Git、未上传体验版、未发布生产"
+  ],
+  "changeRecords": [
+    "CHG-20261030-030",
+    "CHG-20261030-031",
+    "CHG-20261030-032",
+    "CHG-20261030-033"
+  ]
+}

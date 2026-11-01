@@ -387,7 +387,7 @@ function openProject(card: WorkbenchCard) {
 .sw__filters { width: 100%; margin: 0 0 18rpx; white-space: nowrap; }
 .sw__chips { display: inline-flex; gap: 12rpx; padding: 2rpx 0; }
 .sw__chip { display: inline-flex; align-items: center; min-height: 60rpx; padding: 0 20rpx; border: 1rpx solid $jzb-border; border-radius: $jzb-radius-pill; color: $jzb-text-2; background: $jzb-bg-card; font-size: $jzb-font-xs; }
-.sw__chip--active { color: $jzb-primary-deep; border-color: rgba(22,163,148,.26); background: $jzb-primary-lighter; font-weight: 650; }
+.sw__chip--active { color: $jzb-primary-deep; border-color: var(--jzb-primary-a26, rgba(22, 163, 148, .26)); background: $jzb-primary-lighter; font-weight: 650; }
 .sw__section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 2rpx 12rpx; }
 .sw__section-title { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .sw__section-count { color: $jzb-text-3; font-size: $jzb-font-xs; }

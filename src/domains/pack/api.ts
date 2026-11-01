@@ -1,5 +1,5 @@
 import { listOf, post } from '@/core/http'
-import type { PageResult } from '@/domains/common/model'
+import { toPageData, type PageResult } from '@/domains/common/model'
 import { dateTimeValue } from '@/core/format'
 import { normalizeCatalogItem } from '@/domains/catalog/api'
 import type {
@@ -95,6 +95,8 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
     cost: Number(raw.cost ?? 0),
     criterions: raw.criterions,
     items: Array.isArray(raw.items) ? raw.items.map(normalizeLine) : undefined,
+    itemCount: raw.itemCount == null ? undefined : Number(raw.itemCount),
+    sectionCount: raw.sectionCount == null ? undefined : Number(raw.sectionCount),
     measures: raw.measures,
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
     updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)
@@ -106,6 +108,26 @@ export const packApi = {
     current: 1,
     size: 100
   })).map(normalizeTemplate),
+
+  templatePickerPage: async (query: {
+    current?: number
+    size?: number
+    keyword?: string
+    minArea?: number
+    maxArea?: number
+  } = {}) => {
+    const current = Math.max(1, Math.trunc(query.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('pack/template/page', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      minArea: query.minArea,
+      maxArea: query.maxArea
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeTemplate) }
+  },
 
   availableTemplates: async () => listOf(await post<RawRecord[]>('pack/template/list', {})).map(normalizeTemplate),
 

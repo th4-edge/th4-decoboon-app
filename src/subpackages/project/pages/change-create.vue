@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
-import type { ContractChangeSource } from '@/domains/trade/api'
+import type { ContractChangeRangeFacet, ContractChangeSource } from '@/domains/trade/api'
 import type { Contract } from '@/domains/trade/model'
 import type { CatalogItem } from '@/domains/catalog/model'
 import { money } from '@/core/format'
@@ -15,6 +15,7 @@ import CatalogPicker from '@/components/CatalogPicker.vue'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import ListFooter from '@/components/ListFooter/ListFooter.vue'
 import { unitLabel } from '@/domains/catalog/api'
 import type { CatalogType } from '@/domains/catalog/model'
 
@@ -69,8 +70,18 @@ const nextUid = () => ++uidSeq
 
 const sources = ref<ContractChangeSource[]>([])
 const rangeLoading = ref(false)
+const rangeLoadingMore = ref(false)
 const rangeError = ref('')
+const rangeMoreError = ref('')
+const rangeCurrent = ref(1)
+const rangeSize = ref(20)
+const rangeTotal = ref(0)
+const rangeHasMore = ref(false)
+const rangeItemFacets = ref<ContractChangeRangeFacet[]>([])
+const rangeSpaceFacets = ref<ContractChangeRangeFacet[]>([])
 const showSource = ref(false)
+let sourceFilterTimer: ReturnType<typeof setTimeout> | null = null
+let suppressSourceFilterReload = false
 const showCatalog = ref(false)
 const catalogType = ref<CatalogType>('construction')
 const activeUid = ref(0)
@@ -93,7 +104,6 @@ const sourceGroupBy = ref<'area' | 'type'>('type')
 const sourceArea = ref('all')
 const sourceType = ref('all')
 const sourceKeyword = ref('')
-const sourceOnlyAvailable = ref(false)
 const NONE_AREA = '__none__'
 const ITEM_TYPE_LABELS: Record<string, string> = {
   Construction: '施工', Material: '主材', Soft: '软装', Appliance: '电器', General: '综合', Custom: '全屋定制'
@@ -125,31 +135,19 @@ function isSourceSelected(item: ContractChangeSource): boolean {
   if (source.sourceChangeItemId && item.sourceChangeItemId) return source.sourceChangeItemId === item.sourceChangeItemId
   return false
 }
-const sourceAreaOptions = computed(() => {
-  const counts = new Map<string, number>()
-  for (const item of sources.value) counts.set(sourceAreaKey(item), (counts.get(sourceAreaKey(item)) ?? 0) + 1)
-  return [...counts.entries()].map(([key, count]) => ({ key, label: key === NONE_AREA ? '综合项目' : key, count }))
-})
-const sourceTypeOptions = computed(() => {
-  const counts = new Map<string, number>()
-  for (const item of sources.value) counts.set(itemTypeLabel(item.itemType), (counts.get(itemTypeLabel(item.itemType)) ?? 0) + 1)
-  return [...counts.entries()].map(([key, count]) => ({ key, label: key, count }))
-})
-const matchedSources = computed(() => {
-  const keyword = sourceKeyword.value.trim().toLowerCase()
-  return sources.value.filter((item) => {
-    if (sourceArea.value !== 'all' && sourceAreaKey(item) !== sourceArea.value) return false
-    if (sourceType.value !== 'all' && itemTypeLabel(item.itemType) !== sourceType.value) return false
-    if (!keyword) return true
-    return [item.name, item.brand, item.spec, item.spaceName, item.changeNo, itemTypeLabel(item.itemType), item.group === 'effective' ? '已生效' : '原合同']
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(keyword))
-  })
-})
-const filteredSources = computed(() => sourceOnlyAvailable.value
-  ? matchedSources.value.filter((item) => item.confirmable !== false)
-  : matchedSources.value)
-const blockedSourceCount = computed(() => matchedSources.value.filter((item) => item.confirmable === false).length)
+const sourceAreaOptions = computed(() => rangeSpaceFacets.value.map((facet) => ({
+  key: facet.key,
+  label: facet.label || (facet.key === NONE_AREA ? '综合项目' : facet.key),
+  count: facet.count
+})))
+const sourceTypeOptions = computed(() => rangeItemFacets.value.map((facet) => ({
+  key: facet.key,
+  label: facet.label || itemTypeLabel(facet.key),
+  count: facet.count
+})))
+/** 筛选与分页由服务端完成；当前页即结果页。 */
+const filteredSources = computed(() => sources.value)
+const blockedSourceCount = computed(() => sources.value.filter((item) => item.confirmable === false).length)
 const groupedSources = computed(() => {
   const groups = new Map<string, ContractChangeSource[]>()
   for (const item of filteredSources.value) {
@@ -160,10 +158,19 @@ const groupedSources = computed(() => {
   return [...groups.entries()].map(([label, items]) => ({ label, items }))
 })
 function resetSourceFilters(): void {
+  suppressSourceFilterReload = true
   sourceArea.value = 'all'
   sourceType.value = 'all'
   sourceKeyword.value = ''
-  sourceOnlyAvailable.value = false
+  setTimeout(() => { suppressSourceFilterReload = false }, 0)
+}
+
+function sourceFilters(): { keyword?: string; itemType?: string; spaceName?: string } {
+  return {
+    keyword: sourceKeyword.value.trim() || undefined,
+    itemType: sourceType.value === 'all' ? undefined : sourceType.value,
+    spaceName: sourceArea.value === 'all' ? undefined : sourceArea.value
+  }
 }
 
 onLoad((q) => {
@@ -182,7 +189,7 @@ async function load() {
       : null
     if (!contractId.value && contract.value) contractId.value = contract.value.id
     if (!contract.value && contractId.value) contract.value = await tradeApi.contractByProject(projectId.value).catch(() => null)
-    await loadRange()
+    await loadRange(1)
     if (!rows.value.length) addRow('add', false)
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : '合同基线加载失败'
@@ -192,20 +199,57 @@ async function load() {
 }
 
 /** 可变更来源与当前有效剩余：服务端权威投影，仅用于展示与预校验。 */
-async function loadRange() {
+async function loadRange(page = 1, append = false) {
   if (!contractId.value) return
-  rangeLoading.value = true
-  rangeError.value = ''
+  if (append) {
+    if (rangeLoadingMore.value || !rangeHasMore.value) return
+    rangeLoadingMore.value = true
+    rangeMoreError.value = ''
+  } else {
+    rangeLoading.value = true
+    rangeError.value = ''
+  }
   try {
-    const range = await tradeApi.contractChangeRange({ contractId: contractId.value })
-    sources.value = range.sources || []
+    const range = await tradeApi.contractChangeRange({
+      contractId: contractId.value,
+      current: page,
+      size: rangeSize.value,
+      ...sourceFilters()
+    })
+    sources.value = append ? [...sources.value, ...range.sources] : range.sources
+    rangeCurrent.value = range.current
+    rangeTotal.value = range.total
+    rangeHasMore.value = range.hasMore
+    rangeItemFacets.value = range.itemTypes
+    rangeSpaceFacets.value = range.spaces
   } catch (error) {
-    sources.value = []
-    rangeError.value = error instanceof Error ? error.message : '当前有效剩余暂不可确认'
+    if (append) {
+      rangeMoreError.value = error instanceof Error ? error.message : '合同来源加载失败'
+    } else {
+      sources.value = []
+      rangeTotal.value = 0
+      rangeHasMore.value = false
+      rangeError.value = error instanceof Error ? error.message : '当前有效剩余暂不可确认'
+    }
   } finally {
     rangeLoading.value = false
+    rangeLoadingMore.value = false
   }
 }
+
+function loadMoreSources(): void {
+  if (!rangeHasMore.value || rangeLoading.value || rangeLoadingMore.value) return
+  void loadRange(rangeCurrent.value + 1, true)
+}
+
+watch(sourceKeyword, () => {
+  if (!showSource.value || suppressSourceFilterReload) return
+  if (sourceFilterTimer) clearTimeout(sourceFilterTimer)
+  sourceFilterTimer = setTimeout(() => { void loadRange(1) }, 300)
+})
+watch([sourceArea, sourceType], () => {
+  if (showSource.value && !suppressSourceFilterReload) void loadRange(1)
+})
 
 function addRow(action: ActionKey, open = true) {
   const row: DraftRow = {
@@ -246,7 +290,7 @@ function openSource(row: DraftRow) {
   activeUid.value = row.uid
   resetSourceFilters()
   showSource.value = true
-  if (!rangeLoading.value) void loadRange()
+  void loadRange(1)
 }
 
 function openCatalog(row: DraftRow) {
@@ -578,7 +622,7 @@ async function submit() {
                   type="digit"
                   placeholder="0"
                   placeholder-class="jz-number-placeholder"
-                  placeholder-style="text-align: left"
+                  placeholder-style="text-align: right"
                   @input="onQuantityInput(row, $event)"
                 />
                 <text class="cc__qty-unit">{{ unitOf(row) || '单位' }}</text>
@@ -664,7 +708,7 @@ async function submit() {
 
       <scroll-view scroll-x class="sp__tabs" :show-scrollbar="false">
         <view class="sp__tab-row">
-          <view class="sp__tab" :class="{ 'sp__tab--on': sourceType === 'all' }" @tap="sourceType = 'all'">全部 {{ sources.length }}</view>
+          <view class="sp__tab" :class="{ 'sp__tab--on': sourceType === 'all' }" @tap="sourceType = 'all'">全部 {{ rangeTotal }}</view>
           <view v-for="type in sourceTypeOptions" :key="type.key" class="sp__tab" :class="{ 'sp__tab--on': sourceType === type.key }" @tap="sourceType = type.key">{{ type.label }} {{ type.count }}</view>
         </view>
       </scroll-view>
@@ -682,26 +726,20 @@ async function submit() {
           <text class="sp__seg-item" :class="{ 'sp__seg-item--on': sourceGroupBy === 'type' }" @tap="sourceGroupBy = 'type'">按类型</text>
           <text class="sp__seg-item" :class="{ 'sp__seg-item--on': sourceGroupBy === 'area' }" @tap="sourceGroupBy = 'area'">按区域</text>
         </view>
-        <view class="sp__only" :class="{ 'sp__only--on': sourceOnlyAvailable }" @tap="sourceOnlyAvailable = !sourceOnlyAvailable">
-          <view class="sp__check" :class="{ 'sp__check--on': sourceOnlyAvailable }">
-            <JzIcon v-if="sourceOnlyAvailable" name="check" :size="18" :color="TOKEN_COLOR.white" :stroke-width="3" />
-          </view>
-          <text>仅看可变更</text>
-        </view>
       </view>
 
       <view class="sp__summary">
-        <text>共 {{ filteredSources.length }} 项</text>
-        <text v-if="sourceOnlyAvailable && blockedSourceCount" class="sp__summary-sub">已隐藏 {{ blockedSourceCount }} 项不可变更</text>
+        <text>共 {{ rangeTotal }} 项</text>
+        <text v-if="blockedSourceCount" class="sp__summary-sub">本页 {{ blockedSourceCount }} 项不可变更</text>
       </view>
       <view v-if="rangeLoading && sources.length" class="sp__refresh">正在刷新当前有效剩余…</view>
       <view v-if="rangeError && sources.length" class="sp__banner">{{ rangeError }}</view>
 
-      <scroll-view scroll-y class="sp__body">
+      <scroll-view scroll-y class="sp__body" @scrolltolower="loadMoreSources">
         <view v-if="rangeLoading && !sources.length" class="sp__state">正在读取当前有效剩余…</view>
         <view v-else-if="!sources.length && rangeError" class="sp__state sp__state--error">{{ rangeError }}</view>
         <view v-else-if="!groupedSources.length" class="sp__empty">
-          <JzEmpty text="没有匹配的来源分项" sub="可调整区域、分项类型、关键词，或关闭“仅看可变更”" />
+          <JzEmpty text="没有匹配的来源分项" sub="可调整区域、分项类型或关键词后重试" />
           <button class="jz-btn jz-btn--ghost jz-btn--sm sp__reset" @tap="resetSourceFilters">重置筛选</button>
         </view>
         <template v-else>
@@ -758,6 +796,13 @@ async function submit() {
               <text v-if="item.confirmable === false" class="sp__block">{{ item.blockReason || '当前有效剩余暂不可确认' }}</text>
             </view>
           </view>
+          <ListFooter
+            :loading="rangeLoadingMore"
+            :has-more="rangeHasMore"
+            :error="rangeMoreError"
+            empty-text="来源已全部加载"
+            @retry="loadMoreSources"
+          />
         </template>
       </scroll-view>
     </view>

@@ -81,38 +81,38 @@ async function save() {
     <view class="ce__card jz-card">
       <view class="ce__row">
         <text class="ce__label">客户姓名 <text class="req">*</text></text>
-        <input v-model="name" placeholder="怎么称呼？" />
+        <input v-model="name" placeholder="怎么称呼？" placeholder-style="text-align: right" />
       </view>
       <view class="ce__row">
         <text class="ce__label">手机号 <text class="req">*</text></text>
         <view class="ce__phone">
-          <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" :disabled="phoneLocked" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+          <input v-model="phone" type="number" maxlength="11" placeholder="客户手机号" :disabled="phoneLocked" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
           <text v-if="phoneLocked" class="ce__phone-lock">首联跟进后不可修改</text>
         </view>
       </view>
       <view class="ce__row">
         <text class="ce__label">性别</text>
-        <JzSelectField variant="plain" :display="GENDERS[genderIdx]" :range="GENDERS" :index="genderIdx" @change="genderIdx = Math.max(0, GENDERS.indexOf($event)); gender = genderIdx === 1 ? 'F' : 'M'" />
+        <JzSelectField class="ce__select" variant="plain" :display="GENDERS[genderIdx]" :range="GENDERS" :index="genderIdx" @change="genderIdx = Math.max(0, GENDERS.indexOf($event)); gender = genderIdx === 1 ? 'F' : 'M'" />
       </view>
       <view class="ce__row">
         <text class="ce__label">客户来源</text>
-        <JzSelectField variant="plain" :display="SOURCES.find(s => s.key === source)?.label || ''" :range="SOURCES.map(s => s.label)" :index="Math.max(0, SOURCES.findIndex(s => s.key === source))" @change="source = SOURCES.find(s => s.label === $event)?.key || source" />
+        <JzSelectField class="ce__select" variant="plain" :display="SOURCES.find(s => s.key === source)?.label || ''" :range="SOURCES.map(s => s.label)" :index="Math.max(0, SOURCES.findIndex(s => s.key === source))" @change="source = SOURCES.find(s => s.label === $event)?.key || source" />
       </view>
       <view class="ce__row">
         <text class="ce__label">意向小区</text>
-        <input v-model="community" placeholder="例：江南新苑" />
+        <input v-model="community" placeholder="例：江南新苑" placeholder-style="text-align: right" />
       </view>
       <view class="ce__row">
         <text class="ce__label">房屋地址</text>
-        <input v-model="addr" maxlength="200" placeholder="详细地址，转待量房前必填" />
+        <input v-model="addr" maxlength="200" placeholder="详细地址，转待量房前必填" placeholder-style="text-align: right" />
       </view>
       <view class="ce__row">
         <text class="ce__label">面积(㎡)</text>
-        <input v-model="area" type="digit" placeholder="例：118" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+        <input v-model="area" type="digit" placeholder="例：118" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
       </view>
       <view class="ce__row">
         <text class="ce__label">预算(万)</text>
-        <input v-model="budget" type="digit" placeholder="例：30" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+        <input v-model="budget" type="digit" placeholder="例：30" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
       </view>
       <view class="ce__row ce__row--col">
         <text class="ce__label">备注</text>
@@ -138,6 +138,7 @@ async function save() {
 .ce__row--col .ce__label { width: auto; }
 .req { color: $jzb-danger; }
 .ce__row input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; text-align: right; }
+.ce__select { flex: 1 1 auto; min-width: 0; }
 .ce__phone { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; }
 .ce__phone input { width: 100%; }
 .ce__phone-lock { margin-top: 6rpx; color: $jzb-text-4; font-size: 20rpx; }

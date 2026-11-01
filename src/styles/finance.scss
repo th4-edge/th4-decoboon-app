@@ -11,10 +11,10 @@
 .fin-hero {
   margin: 20rpx $jzb-page-pad 0; padding: 32rpx;
   color: $jzb-text-inverse; border-radius: $jzb-radius-lg; overflow: hidden;
-  background: linear-gradient(135deg, $jzb-primary-dark 0%, $jzb-primary-dark 52%, $jzb-primary-deep 100%);
-  box-shadow: 0 18rpx 46rpx rgba(14, 138, 125, .24);
+  background: $jzb-gradient;
+  box-shadow: 0 18rpx 46rpx var(--jzb-primary-a24, rgba(14, 138, 125, .24));
 }
-.fin-hero--balance { background: linear-gradient(135deg, $jzb-primary-dark 0%, $jzb-primary 52%, #0B786F 100%); box-shadow: 0 18rpx 46rpx rgba(22, 163, 148, .24); }
+.fin-hero--balance { background: $jzb-gradient; box-shadow: 0 18rpx 46rpx var(--jzb-primary-a24, rgba(22, 163, 148, .24)); }
 .fin-hero__label { display: block; color: rgba(255, 255, 255, .76); font-size: $jzb-font-sm; }
 .fin-hero__value { display: block; margin-top: 8rpx; font-size: 62rpx; font-weight: 760; letter-spacing: -1rpx; }
 .fin-hero__grid { display: flex; margin-top: 28rpx; padding-top: 24rpx; border-top: 1rpx solid rgba(255, 255, 255, .14); }
@@ -22,13 +22,10 @@
 .fin-hero__item + .fin-hero__item { margin-left: 16rpx; padding-left: 16rpx; border-left: 1rpx solid rgba(255,255,255,.12); }
 .fin-hero__item-label { display: block; color: rgba(255,255,255,.7); font-size: $jzb-font-xs; }
 .fin-hero__item-value { display: block; margin-top: 4rpx; font-size: $jzb-font-md; font-weight: 700; }
-.fin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; padding: 22rpx $jzb-page-pad 0; }
-.fin-stat { padding: 24rpx; background: $jzb-bg-card; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.fin-stat__head { display: flex; align-items: center; justify-content: space-between; }
-.fin-stat__icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; }
-.fin-stat__label { display: block; margin-top: 18rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.fin-stat__value { display: block; margin-top: 2rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 740; }
-.fin-stat__sub { display: block; margin-top: 4rpx; color: $jzb-text-4; font-size: 20rpx; }
+.fin-month-card { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rpx; overflow: hidden; background: $jzb-border-light; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
+.fin-month-card__item { min-width: 0; padding: 24rpx; background: $jzb-bg-card; }
+.fin-month-card__label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fin-month-card__value { display: block; margin-top: 8rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 740; font-variant-numeric: tabular-nums; }
 .fin-card { margin-bottom: 18rpx; padding: 24rpx; background: $jzb-bg-card; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
 .fin-card:active { background: $jzb-bg-hover; }
 .fin-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18rpx; }
@@ -50,28 +47,22 @@
 .fin-filters { width: 100%; white-space: nowrap; }
 .fin-filter-row { display: inline-flex; padding: 14rpx $jzb-page-pad 6rpx; }
 .fin-filter { min-height: 60rpx; margin-right: 12rpx; padding: 0 24rpx; display: inline-flex; align-items: center; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; }
-.fin-filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(14,138,125,.2); font-weight: 650; }
+.fin-filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a20, rgba(14, 138, 125, .20)); font-weight: 650; }
 .fin-section { padding: 34rpx $jzb-page-pad 16rpx; }
 .fin-section__title { color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; }
 .fin-section__more { color: $jzb-text-3; font-size: $jzb-font-sm; }
 .fin-empty { margin-top: 24rpx; background: $jzb-text-inverse; border-radius: $jzb-radius; }
-.fin-flow { display: flex; align-items: center; padding: 26rpx 20rpx; background: $jzb-text-inverse; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.fin-flow__node { flex: 1; min-width: 0; text-align: center; }
-.fin-flow__icon { width: 62rpx; height: 62rpx; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: $jzb-primary-lighter; }
-.fin-flow__label { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: 20rpx; }
-.fin-flow__value { display: block; margin-top: 2rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fin-flow__link { width: 36rpx; display: flex; align-items: center; justify-content: center; }
 .fin-quick-group + .fin-quick-group { margin-top: 24rpx; }
 .fin-quick-group__head { margin-bottom: 14rpx; padding-left: 4rpx; }
 .fin-quick-group__title { display: flex; align-items: center; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
 .fin-quick-group__title::before { content: ''; width: 8rpx; height: 26rpx; margin-right: 12rpx; border-radius: 8rpx; background: $jzb-gradient; }
-.fin-quick-group__desc { display: block; margin: 6rpx 0 0 20rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.45; }
 .fin-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14rpx; }
 .fin-quick__item { min-height: 138rpx; padding: 18rpx 8rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; background: $jzb-text-inverse; border-radius: $jzb-radius-sm; border: 1rpx solid transparent; transition: transform $jzb-duration-fast $jzb-ease-out, opacity $jzb-duration-fast $jzb-ease-out; }
 .fin-quick__item:active { transform: scale(.97); }
 .fin-quick__item--disabled { opacity: .45; }
 .fin-quick__icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; }
 .fin-quick__text { margin-top: 10rpx; color: $jzb-text-2; font-size: $jzb-font-xs; }
+.fin-quick-readonly { margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; text-align: center; }
 .fin-sheet-mask { position: fixed; inset: 0; z-index: $jzb-z-mask; background: rgba(15,23,42,.42); }
 .fin-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: $jzb-z-modal; max-height: 82vh; padding: 28rpx 28rpx calc(28rpx + #{$jzb-safe-bottom}); background: $jzb-text-inverse; border-radius: 36rpx 36rpx 0 0; }
 .fin-sheet__head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20rpx; }

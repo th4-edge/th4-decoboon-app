@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
-import { identityApi } from '@/domains/identity/api'
 import type { Employee } from '@/domains/identity/model'
 import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { carryoverApi } from '@/domains/carryover/api'
@@ -20,7 +19,6 @@ import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const id = ref('')
 const batchId = ref('')
-const employees = ref<Employee[]>([])
 const customerName = ref('')
 const customerPhone = ref('')
 const community = ref('')
@@ -105,10 +103,6 @@ const COST_STATUSES: { value: CarryoverCostStatus; label: string; description: s
   { value: 'totalOnly', label: '只知道总额', description: '只掌握总金额，明细未完整，利润暂不计算' },
   { value: 'unknown', label: '暂不确认', description: '接管前成本尚不清楚，先承接，利润暂不计算' }
 ]
-const employeeNames = computed(() => employees.value.map(item => `${item.name}（${item.title || item.role}）`))
-const ownerIndex = computed(() => Math.max(0, employees.value.findIndex(item => item.id === owner.value?.id)))
-const managerIndex = computed(() => Math.max(0, employees.value.findIndex(item => item.id === manager.value?.id)))
-const designerIndex = computed(() => Math.max(0, employees.value.findIndex(item => item.id === designer.value?.id)))
 const projectStatusIndex = computed(() => Math.max(0, PROJECT_STATUSES.findIndex(item => item.value === projectStatus.value)))
 const projectStatusLabels = PROJECT_STATUSES.map((item) => item.label)
 function pickProjectStatus(label: string) {
@@ -130,13 +124,8 @@ onLoad(async (query) => {
   if (session.role !== 'boss') { toast('仅企业负责人可以办理业务承接'); setTimeout(() => uni.navigateBack(), 500); return }
   id.value = query?.id || ''
   batchId.value = query?.batchId || ''
-  await loadEmployees()
   if (id.value) await load()
 })
-
-async function loadEmployees() {
-  try { employees.value = await identityApi.employees() } catch { employees.value = [] }
-}
 
 async function load() {
   loading('加载项目…')
@@ -149,9 +138,9 @@ async function load() {
     community.value = item.community || ''
     address.value = item.address
     area.value = item.area == null ? '' : `${item.area}`
-    owner.value = employees.value.find(emp => emp.id === item.owner?.id)
-    manager.value = employees.value.find(emp => emp.id === item.manager?.id)
-    designer.value = employees.value.find(emp => emp.id === item.designer?.id)
+    owner.value = item.owner || undefined
+    manager.value = item.manager || undefined
+    designer.value = item.designer || undefined
     contractNo.value = item.contractNo
     signedAmount.value = item.signedAmount == null ? '' : `${item.signedAmount}`
     currentAmount.value = item.currentAmount == null ? '' : `${item.currentAmount}`
@@ -384,10 +373,10 @@ async function submitCarryover() {
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">1. 客户与房屋</text>
       <view class="co-edit__row"><text>客户姓名 *</text><input v-model="customerName" maxlength="32" placeholder="请输入" /></view>
-      <view class="co-edit__row"><text>手机号 *</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="11 位手机号" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="co-edit__row"><text>手机号 *</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="11 位手机号" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="co-edit__row"><text>小区</text><input v-model="community" maxlength="128" placeholder="选填" /></view>
       <view class="co-edit__row"><text>房屋地址 *</text><input v-model="address" maxlength="256" placeholder="完整地址" /></view>
-      <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="co-edit__row"><text>面积㎡</text><input v-model="area" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="co-edit__row" @tap="openEmployeePicker('owner')"><text>经营负责人 *</text><view class="co-edit__picker">{{ owner?.name || '选择经营负责人' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
       <view class="co-edit__row" @tap="openEmployeePicker('manager')"><text>项目经理 *</text><view class="co-edit__picker">{{ manager?.name || '选择项目经理' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
       <view class="co-edit__row" @tap="openEmployeePicker('designer')"><text>设计师</text><view class="co-edit__picker">{{ designer?.name || '选择设计师（选填）' }}<JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" /></view></view>
@@ -396,8 +385,8 @@ async function submitCarryover() {
     <view class="co-edit__section jz-card">
       <text class="co-edit__title">2. 报价与合同基线</text>
       <view class="co-edit__row"><text>合同编号 *</text><input v-model="contractNo" maxlength="64" placeholder="原合同编号" /></view>
-      <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-      <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="co-edit__row"><text>原签约金额</text><input v-model="signedAmount" type="digit" placeholder="选填" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
+      <view class="co-edit__row"><text>当前金额 *</text><input v-model="currentAmount" type="digit" placeholder="含有效变更" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="co-edit__row"><text>签约日期 *</text><JzSelectField mode="date" variant="plain" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
     </view>
 
@@ -441,7 +430,7 @@ async function submitCarryover() {
           <view><text class="co-edit__block-title">客户未收工程款</text><text class="co-edit__block-sub">= 应收账款总额 - 已收款合计</text></view>
           <view class="co-edit__quick" @tap="acceptZeroReceivable">无未收款</view>
         </view>
-        <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="co-edit__row"><text>客户未收工程款 *</text><input v-model="receivableOutstanding" type="digit" placeholder="合同30万、已收18万，这里填12万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
         <view v-if="receivableExceedsContract" class="co-edit__field-warning">未收金额超过当前合同金额，请检查是否将累计已收填成了未收余额。</view>
         <view class="co-edit__row"><text>约定收款日</text><JzSelectField mode="date" variant="plain" :value="receivableDueDate" :display="receivableDueDate" placeholder="选填" @change="receivableDueDate = $event" /></view>
         <view class="co-edit__row"><text>原应收单号</text><input v-model="receivableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
@@ -453,7 +442,7 @@ async function submitCarryover() {
           <view><text class="co-edit__block-title">当前未付款</text><text class="co-edit__block-sub">= 应付总额 - 已付款合计</text></view>
           <view class="co-edit__quick" @tap="acceptZeroPayable">无未付款</view>
         </view>
-        <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="co-edit__row"><text>当前未付款 *</text><input v-model="payableOutstanding" type="digit" placeholder="应付10万、已付4万，这里填6万" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
         <view class="co-edit__row"><text>约定付款日</text><JzSelectField mode="date" variant="plain" :value="payableDueDate" :display="payableDueDate" placeholder="选填" @change="payableDueDate = $event" /></view>
         <view class="co-edit__row"><text>收款方</text><input v-model="payablePayeeName" maxlength="128" placeholder="供应商、工人或项目班组" /></view>
         <view class="co-edit__row"><text>原应付单号</text><input v-model="payableSourceNo" maxlength="64" placeholder="选填，便于对账追溯" /></view>
@@ -463,7 +452,7 @@ async function submitCarryover() {
       <view class="co-edit__finance-block">
         <text class="co-edit__block-title">接管前已发生成本</text>
         <text class="co-edit__block-sub">包含已付与未付，不是上面的未付款，也不包含未来预算。</text>
-        <view class="co-edit__row"><text>已发生成本总额</text><input v-model="costTotal" type="digit" placeholder="只知总额也可填写，未知可留空" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="co-edit__row"><text>已发生成本总额</text><input v-model="costTotal" type="digit" placeholder="只知总额也可填写，未知可留空" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
         <view class="co-edit__cost-options">
           <view v-for="option in COST_STATUSES" :key="option.value" class="co-edit__cost-option" :class="{ 'co-edit__cost-option--on': costStatus === option.value }" @tap="costStatus = option.value">
             <view class="co-edit__cost-radio" />
@@ -505,7 +494,7 @@ async function submitCarryover() {
     <view v-if="id && status === 'locked'" class="co-edit__section jz-card">
       <text class="co-edit__title">锁定后调整</text>
       <view class="co-edit__row"><text>调整类型</text><JzSelectField variant="plain" :display="ADJUSTMENT_TYPES[adjustmentTypeIndex].label" :range="adjustmentTypeLabels" :index="adjustmentTypeIndex" @change="pickAdjustmentType" /></view>
-      <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="co-edit__row"><text>调整后金额 *</text><input v-model="adjustmentAmount" type="digit" placeholder="请输入" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
       <view class="co-edit__row co-edit__row--col"><text>调整原因 *</text><textarea v-model="adjustmentReason" maxlength="500" placeholder="说明调整依据" /></view>
       <button class="jz-btn jz-btn--primary jz-btn--block co-edit__upload" @tap="adjust">记录调整</button>
       <view v-if="adjustments.length" class="co-edit__history">
@@ -575,7 +564,7 @@ async function submitCarryover() {
 .co-edit__switch-note { display: block; margin-top: 6rpx; color: $jzb-text-4; font-size: 20rpx; line-height: 1.45; }
 .co-edit__cost-options { margin: 16rpx 0 4rpx; }
 .co-edit__cost-option { display: flex; align-items: flex-start; gap: 14rpx; padding: 18rpx; margin-bottom: 12rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: $jzb-text-inverse; }
-.co-edit__cost-option--on { border-color: rgba(22,163,148,.55); background: $jzb-primary-lightest; }
+.co-edit__cost-option--on { border-color: var(--jzb-primary-a55, rgba(22, 163, 148, .55)); background: $jzb-primary-lightest; }
 .co-edit__cost-radio { width: 28rpx; height: 28rpx; margin-top: 4rpx; border: 2rpx solid $jzb-border-light; border-radius: 50%; flex-shrink: 0; }
 .co-edit__cost-option--on .co-edit__cost-radio { border: 8rpx solid $jzb-primary; }
 .co-edit__cost-label { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }

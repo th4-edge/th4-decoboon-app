@@ -595,7 +595,7 @@ function openChangeWorkbench() {
 .pl__filters { width: 100%; white-space: nowrap; padding-top: 4rpx; }
 .pl__filter-row { display: inline-flex; padding: 16rpx $jzb-page-pad 22rpx; }
 .pl__filter { min-height: 64rpx; padding: 0 28rpx; margin-right: 14rpx; display: inline-flex; align-items: center; font-size: $jzb-font-sm; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
-.pl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
+.pl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a22, rgba(22, 163, 148, .22)); font-weight: 650; }
 .pl__filter-count { margin-left: 8rpx; font-size: $jzb-font-xs; opacity: .75; }
 .pl__body { padding: 4rpx $jzb-page-pad calc($jzb-tabbar-height + $jzb-safe-bottom + 24rpx); }
 .pl__empty-wrap { margin-top: 40rpx; }
@@ -642,8 +642,8 @@ function openChangeWorkbench() {
 .pl__card--alert { border-color: rgba(229,72,77,.22); }
 /* 滚动居中卡片：品牌色边框 + 品牌色阴影。风险态仍由风险条承载，居中时品牌色优先 */
 .pl__card--current {
-  border-color: rgba(22,163,148,.55);
-  box-shadow: 0 0 0 4rpx rgba(22,163,148,.12), 0 12rpx 32rpx rgba(14,138,125,.18);
+  border-color: var(--jzb-primary-a55, rgba(22, 163, 148, .55));
+  box-shadow: 0 0 0 4rpx var(--jzb-primary-a12, rgba(22, 163, 148, .12)), 0 12rpx 32rpx var(--jzb-primary-a18, rgba(14, 138, 125, .18));
 }
 .pl__card--current.pl__card--ops { background: $jzb-gradient-surface; }
 .pl__card-topline { display: flex; align-items: flex-start; }

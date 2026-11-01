@@ -29,8 +29,12 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
 const filter = ref<Filter>('all')
 const initialType = ref<PayableType | ''>('')
 const editable = computed(() => can(session.role, 'edit:finance'))
+const canCreateManual = computed(() => editable.value && ['all', 'other', 'expense'].includes(filter.value))
 const title = computed(() => initialType.value === 'salary' ? '工人工资' : '应付账款')
-const totals = ref({ total: 0, paid: 0, outstanding: 0, risk: 0 })
+const totals = ref<{ total: number | null; paid: number | null; outstanding: number | null; risk: number | null }>({
+  total: null, paid: null, outstanding: null, risk: null
+})
+const totalsError = ref('')
 
 onLoad((query) => {
   projectId.value = query?.projectId || ''
@@ -43,6 +47,7 @@ onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
 
 async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
 async function loadTotals() {
+  totalsError.value = ''
   try {
     const report = await financeApi.payableReport({
       projectId: projectId.value || undefined,
@@ -55,6 +60,8 @@ async function loadTotals() {
       risk: report.urgentAmount
     }
   } catch (error) {
+    totals.value = { total: null, paid: null, outstanding: null, risk: null }
+    totalsError.value = error instanceof Error ? error.message : '应付汇总暂不可确认'
     toastError(error, '应付汇总加载失败')
   }
 }
@@ -65,7 +72,11 @@ function selectFilter(value: Filter) {
   void refreshAll()
 }
 
-function add() { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&payableType=${initialType.value || 'material'}${projectId.value ? `&projectId=${projectId.value}` : ''}` }) }
+function add() {
+  if (!canCreateManual.value) return
+  const manualType = filter.value === 'expense' ? 'expense' : 'other'
+  uni.navigateTo({ url: `${P.financeEntry}?type=payable&payableType=${manualType}${projectId.value ? `&projectId=${projectId.value}` : ''}` })
+}
 function edit(item: Payable) { if (editable.value) uni.navigateTo({ url: `${P.financeEntry}?type=payable&id=${item.id}` }) }
 function pay(item: Payable) { if (editable.value && !item.estimated && item.outstandingAmount > 0) uni.navigateTo({ url: `${P.financeEntry}?type=payment&payableId=${item.id}` }) }
 function progress(item: Payable) { return item.estimated ? 0 : Math.min(100, Math.round(item.paidAmount / Math.max(item.amount, 1) * 100)) }
@@ -76,12 +87,13 @@ useFinanceStoreScope(() => refreshAll())
 
 <template>
   <view class="fin-page">
-    <JzPageHeader :title="title" subtitle="材料款、项目款、工资与费用统一付款计划" :right-text="editable ? '新增应付' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
+    <JzPageHeader :title="title" subtitle="材料款、项目款、工资与费用统一付款计划" :right-text="canCreateManual ? '新增手工应付' : ''" :right-icon="canCreateManual ? 'plus' : undefined" @right="add" />
     <FinanceStoreScope />
 
     <view class="fin-hero">
       <text class="fin-hero__label">{{ title }}总额</text>
       <text class="fin-hero__value fin-amount">{{ money(totals.total) }}</text>
+      <text v-if="totalsError" class="fin-hero__notice">汇总暂不可确认，点击右上角刷新重试</text>
       <view class="fin-hero__grid">
         <view class="fin-hero__item"><text class="fin-hero__item-label">已付</text><text class="fin-hero__item-value">{{ money(totals.paid) }}</text></view>
         <view class="fin-hero__item"><text class="fin-hero__item-label">待付</text><text class="fin-hero__item-value">{{ money(totals.outstanding) }}</text></view>

@@ -7,16 +7,17 @@ import { isLoggedIn, session } from '@/domains/identity/session'
 import { financeApi } from '@/domains/finance/api'
 import type { FinanceProjectReport } from '@/domains/finance/model'
 import { statisticApi } from '@/domains/statistic/api'
-import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTarget, MetricDefinition } from '@/domains/statistic/model'
+import type { BossDashboard, BusinessAlertType, BusinessAlertReport, BusinessTarget } from '@/domains/statistic/model'
 import { toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PageState from '@/components/PageState/PageState.vue'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
+import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzMetricGlossary from '@/components/JzMetricGlossary.vue'
 import JzStoreFilter from '@/components/JzStoreFilter.vue'
-import { loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
+import { activeStoreName, loadStoreScope, setStoreScope, storeScope, storeScopeRequestId, storeScopeVisible } from '@/domains/identity/storeScope'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
@@ -30,8 +31,6 @@ const scopeNote = computed(() => {
     ? `含未归属门店 ${scope.unassignedCount} 条`
     : ''
 })
-const metricDefinitions = ref<MetricDefinition[]>([])
-
 /** 只解释老板最容易混的几个经营数字，口径与后端指标字典一致。 */
 const glossaryDifferences = [
   '签约额：这个月新签合同一共多少钱，看的是签约日期。',
@@ -40,6 +39,7 @@ const glossaryDifferences = [
   '在建项目：还在准备、施工或者等待验收的项目，不包含已经完工、结算和归档的项目。',
   '环比是和上个月比，同比是和去年同月比；没有可比较的月份时显示「暂无基期」。'
 ]
+const glossaryMetricKeys = ['signedAmount', 'monthReceiptAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate']
 const alertReport = ref<BusinessAlertReport | null>(null)
 const projectReports = ref<FinanceProjectReport[]>([])
 const loading = ref(false)
@@ -100,14 +100,12 @@ async function load() {
   loadError.value = ''
   try {
     const apiMonth = `${month.value}-01`
-    const [d, a, projects, dict] = await Promise.all([
+    const [d, a, projects] = await Promise.all([
       statisticApi.bossDashboard(apiMonth, storeScopeRequestId.value),
       statisticApi.alerts(),
-      financeApi.projectPage({ size: 200 }),
-      statisticApi.metricDictionary(['signedAmount', 'monthReceiptAmount', 'grossProfit', 'activeProjectCount', 'achievementRate', 'monthOverMonthRate', 'yearOverYearRate'])
+      financeApi.projectPage({ size: 200 })
     ])
     dashboard.value = d
-    metricDefinitions.value = dict
     alertReport.value = a
     projectReports.value = projects
     targetForm.value = {
@@ -200,7 +198,7 @@ function currentMonth() {
 
 <template>
   <view class="ana-page">
-    <JzPageHeader title="经营驾驶舱" subtitle="目标、回款、毛利与风险一屏掌握" right-text="人员绩效" @right="openAssessment" />
+    <JzPageHeader title="经营驾驶舱" :subtitle="`${month} · ${activeStoreName}`" right-text="人员绩效" @right="openAssessment" />
 
     <view class="ana-body">
       <JzStoreFilter
@@ -227,28 +225,28 @@ function currentMonth() {
           <view class="ana-field">
             <text class="ana-field__label">签约目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.signedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model.number="targetForm.signedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">回款目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.receivedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model.number="targetForm.receivedAmount" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">毛利目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.grossProfit" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model.number="targetForm.grossProfit" type="digit" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               <text class="ana-field__unit">元</text>
             </view>
           </view>
           <view class="ana-field">
             <text class="ana-field__label">在建目标</text>
             <view class="ana-field__control">
-              <input v-model.number="targetForm.activeProjectCount" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model.number="targetForm.activeProjectCount" type="number" placeholder="0" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               <text class="ana-field__unit">个</text>
             </view>
           </view>
@@ -257,23 +255,6 @@ function currentMonth() {
           <button class="jz-btn jz-btn--neutral jz-btn--sm" @tap="closeTarget">取消</button>
           <button class="jz-btn jz-btn--primary jz-btn--sm" :loading="savingTarget" :disabled="savingTarget" @tap="saveTarget">保存目标</button>
         </view>
-      </view>
-
-      <view class="ana-metrics">
-        <view v-for="item in metricCards" :key="item.label" class="jz-card ana-metric">
-          <view class="ana-metric__head">
-            <view class="ana-metric__icon" :style="{ background: item.tone }"><JzIcon :name="item.icon" :size="30" :color="item.color" /></view>
-            <text class="ana-metric__label">{{ item.label }}</text>
-          </view>
-          <JzCostIncomplete v-if="item.incomplete" :count="1" :reason="item.reason" compact />
-          <text v-else class="ana-metric__value">{{ item.value }}</text>
-          <text class="ana-metric__target">{{ item.target }} · {{ item.achievement }}</text>
-          <view class="ana-metric__compare"><text>{{ item.month }}</text><text>{{ item.year }}</text></view>
-        </view>
-      </view>
-
-      <view class="ana-glossary">
-        <JzMetricGlossary :metrics="metricDefinitions" :differences="glossaryDifferences" title="经营指标怎么算？" subtitle="签约额、回款额、项目毛利、在建项目分别是什么意思" />
       </view>
 
       <view class="jz-section">
@@ -297,6 +278,19 @@ function currentMonth() {
       </view>
       <JzEmpty v-else text="当前没有经营预警" sub="系统会持续监测应收、停工、材料与变更风险" />
 
+      <view class="ana-metrics">
+        <view v-for="item in metricCards" :key="item.label" class="jz-card ana-metric">
+          <view class="ana-metric__head">
+            <view class="ana-metric__icon" :style="{ background: item.tone }"><JzIcon :name="item.icon" :size="30" :color="item.color" /></view>
+            <text class="ana-metric__label">{{ item.label }}</text>
+          </view>
+          <JzCostIncomplete v-if="item.incomplete" :count="1" :reason="item.reason" compact />
+          <text v-else class="ana-metric__value">{{ item.value }}</text>
+          <text class="ana-metric__target">{{ item.target }} · {{ item.achievement }}</text>
+          <view class="ana-metric__compare"><text>{{ item.month }}</text><text>{{ item.year }}</text></view>
+        </view>
+      </view>
+
       <view class="jz-section"><text class="jz-section__title">项目毛利排名</text><text class="jz-section__more" @tap="openProjectLedger">项目账本</text></view>
       <view v-if="profitProjects.length" class="jz-card ana-profits">
         <view v-for="item in profitProjects" :key="item.project.id" class="ana-profit" @tap="openProject(item.project.id)">
@@ -311,6 +305,9 @@ function currentMonth() {
         </view>
       </view>
       <JzEmpty v-else text="暂无项目利润数据" sub="合同、成本和费用形成后自动核算" />
+      <view class="ana-glossary">
+        <JzMetricGlossary :keys="glossaryMetricKeys" :differences="glossaryDifferences" title="指标口径" subtitle="" />
+      </view>
       </template>
       <view class="ana-bottom" />
     </view>

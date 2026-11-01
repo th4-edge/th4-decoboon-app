@@ -50,6 +50,9 @@ export interface PackageTemplate {
   cost: number
   criterions?: string[]
   items?: PackageLine[]
+  /** 选择器摘要：服务端批量聚合，不依赖逐套餐加载明细。 */
+  itemCount?: number
+  sectionCount?: number
   measures?: Record<string, { price: number; standard: number; remark?: string }>
   createdAt?: string
   updatedAt?: string

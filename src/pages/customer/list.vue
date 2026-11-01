@@ -28,11 +28,11 @@ const filter = ref<'all' | CustomerStage | 'assign'>('all')
 const followFilter = ref<'all' | 'overdue' | 'today' | 'upcoming' | 'unplanned'>('all')
 const keyword = ref('')
 const sortMode = ref<'risk' | 'idle' | 'value' | 'newest'>('risk')
-const bossOverview = ref<CustomerOverviewReport | null>(null)
+const customerOverview = ref<CustomerOverviewReport | null>(null)
 
 /** 服务端门店范围注记：全部门店口径下的未归属客户数（文案与 Web 一致，前端不兜底计数）。 */
 const scopeNote = computed(() => {
-  const scope = bossOverview.value?.storeScope
+  const scope = customerOverview.value?.storeScope
   return scope && scope.scopeType === 'AllStores' && scope.unassignedCount > 0
     ? `含未归属门店 ${scope.unassignedCount} 条`
     : ''
@@ -46,6 +46,8 @@ const isMarketer = computed(() => session.role === 'marketer')
 const isStoreManager = computed(() => session.role === 'storeManager')
 const isTeamLeader = computed(() => session.role === 'teamLeader')
 const isFinance = computed(() => session.role === 'finance')
+/** Boss 与财务都复用服务端负责人分组概览；其他角色保持自己的轻量客户队列。 */
+const usesOwnerOverview = computed(() => isBoss.value || isStoreManager.value || isFinance.value)
 const canBatchImport = computed(() => isBoss.value || isStoreManager.value || isFinance.value)
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -96,9 +98,22 @@ const ALL_FILTERS: { key: 'all' | CustomerStage | 'assign'; label: string }[] = 
   { key: 'sign', label: '签约' }, { key: 'construction', label: '施工' },
   { key: 'done', label: '完工' }, { key: 'lost', label: '流失' }, { key: 'dormant', label: '休眠' }
 ]
+const STAGE_API_VALUE: Record<CustomerStage, string> = {
+  intention: 'New',
+  following: 'Following',
+  pendingMeasure: 'PendingMeasure',
+  quote: 'Quoted',
+  sign: 'Signed',
+  construction: 'Serving',
+  done: 'Finished',
+  lost: 'Lost',
+  dormant: 'Dormant'
+}
 const filters = computed(() => isMarketer.value
   ? ALL_FILTERS.filter((item) => ['all', 'intention', 'following', 'pendingMeasure', 'lost', 'dormant'].includes(item.key))
-  : isBoss.value || isStoreManager.value || isFinance.value || isTeamLeader.value
+  : isFinance.value
+    ? ALL_FILTERS
+    : isBoss.value || isStoreManager.value || isTeamLeader.value
     ? [{ key: 'assign' as const, label: '待指派设计' }, ...ALL_FILTERS]
     : ALL_FILTERS)
 
@@ -205,11 +220,11 @@ const clientShown = computed(() => {
   return [...out].sort((a, b) => followMeta(a).rank - followMeta(b).rank || (a.nextFollowAt || '').localeCompare(b.nextFollowAt || ''))
 })
 
-const shown = computed(() => isBoss.value ? list.value : clientShown.value)
+const shown = computed(() => usesOwnerOverview.value ? list.value : clientShown.value)
 
 watch(shown, async () => {
   await nextTick()
-  if (isBoss.value) measureBossCustomerAnchors()
+  if (usesOwnerOverview.value) measureBossCustomerAnchors()
   else measureCustomerAnchors()
 }, { immediate: true })
 
@@ -237,8 +252,8 @@ const clientStageCount = computed(() => {
 })
 
 const stageCount = computed(() => {
-  if (isBoss.value && bossOverview.value) {
-    return bossOverview.value.stageCounts.reduce<Record<string, number>>((result, item) => {
+  if (usesOwnerOverview.value && customerOverview.value) {
+    return customerOverview.value.stageCounts.reduce<Record<string, number>>((result, item) => {
       result[item.key] = item.count
       return result
     }, {})
@@ -246,17 +261,17 @@ const stageCount = computed(() => {
   return clientStageCount.value
 })
 
-const bossMetrics = computed<CustomerMetricCard[]>(() => bossOverview.value?.metrics || [])
-const bossOwnerGroups = computed(() => bossOverview.value?.ownerGroups || [])
-const bossAllCustomerCount = computed(() =>
-  bossOwnerGroups.value.reduce((sum, group) => sum + group.customerCount, 0))
-const currentBossGroup = computed(() => selectedOwnerId.value
-  ? bossOwnerGroups.value.find((group) => bossGroupKey(group) === selectedOwnerId.value) || null
+const overviewMetrics = computed<CustomerMetricCard[]>(() => customerOverview.value?.metrics || [])
+const ownerGroups = computed(() => customerOverview.value?.ownerGroups || [])
+const allGroupedCustomerCount = computed(() =>
+  ownerGroups.value.reduce((sum, group) => sum + group.customerCount, 0))
+const currentOwnerGroup = computed(() => selectedOwnerId.value
+  ? ownerGroups.value.find((group) => ownerGroupKey(group) === selectedOwnerId.value) || null
   : null)
 const pageSubtitle = computed(() => {
   if (isBoss.value) return '全公司客户经营与转化'
   if (isStoreManager.value) return '门店客户经营与跟进'
-  if (isFinance.value) return '客户经营与跟进'
+  if (isFinance.value) return '客户经营与跟进 · 按负责人分组'
   if (isTeamLeader.value) return '团队客户经营与协同'
   if (isMarketer.value) return '我的客户跟进与转化'
   return '当前范围内的客户经营'
@@ -268,12 +283,12 @@ const sortOptions: { key: typeof sortMode.value; label: string }[] = [
   { key: 'newest', label: '最新录入' }
 ]
 
-function bossGroupKey(group: CustomerOwnerGroup) {
+function ownerGroupKey(group: CustomerOwnerGroup) {
   return group.ownerId == null ? '0' : String(group.ownerId)
 }
 
-function selectBossGroup(group?: CustomerOwnerGroup) {
-  selectedOwnerId.value = group ? bossGroupKey(group) : ''
+function selectOwnerGroup(group?: CustomerOwnerGroup) {
+  selectedOwnerId.value = group ? ownerGroupKey(group) : ''
   bossWorkspaceFocused.value = false
   void refresh()
 }
@@ -313,13 +328,13 @@ async function refresh() {
   loading.value = true
   loadError.value = ''
   loadMoreError.value = ''
-  if (isBoss.value) {
+  if (usesOwnerOverview.value) {
     list.value = []
     current.value = 0
     hasMore.value = false
   }
   try {
-    if (isBoss.value) {
+    if (usesOwnerOverview.value) {
       const report = await crmApi.overview({
         current: 1,
         size: pageSize,
@@ -329,8 +344,8 @@ async function refresh() {
         storeId: storeScopeRequestId.value,
         ownerId: selectedOwnerId.value || undefined
       })
-      bossOverview.value = report
-      if (selectedOwnerId.value && !report.ownerGroups.some((group) => bossGroupKey(group) === selectedOwnerId.value)) {
+      customerOverview.value = report
+      if (selectedOwnerId.value && !report.ownerGroups.some((group) => ownerGroupKey(group) === selectedOwnerId.value)) {
         selectedOwnerId.value = ''
       }
       list.value = report.customers
@@ -339,7 +354,13 @@ async function refresh() {
       hasMore.value = report.hasMore
       return
     }
-    const page = await crmApi.page({ current: 1, size: pageSize, storeId: storeScopeRequestId.value })
+    const page = await crmApi.page({
+      current: 1,
+      size: pageSize,
+      storeId: storeScopeRequestId.value,
+      keyword: keyword.value.trim() || undefined,
+      stage: filter.value === 'all' || filter.value === 'assign' ? undefined : STAGE_API_VALUE[filter.value]
+    })
     list.value = page.list
     current.value = 1
     hasMore.value = page.hasMore
@@ -355,7 +376,7 @@ async function loadMore() {
   loadingMore.value = true
   loadMoreError.value = ''
   try {
-    if (isBoss.value) {
+    if (usesOwnerOverview.value) {
       const report = await crmApi.overview({
         current: current.value + 1,
         size: pageSize,
@@ -366,12 +387,18 @@ async function loadMore() {
         ownerId: selectedOwnerId.value || undefined
       })
       list.value = [...list.value, ...report.customers]
-      bossOverview.value = report
+      customerOverview.value = report
       current.value += 1
       hasMore.value = report.hasMore
       return
     }
-    const page = await crmApi.page({ current: current.value + 1, size: pageSize, storeId: storeScopeRequestId.value })
+    const page = await crmApi.page({
+      current: current.value + 1,
+      size: pageSize,
+      storeId: storeScopeRequestId.value,
+      keyword: keyword.value.trim() || undefined,
+      stage: filter.value === 'all' || filter.value === 'assign' ? undefined : STAGE_API_VALUE[filter.value]
+    })
     list.value = [...list.value, ...page.list]
     current.value += 1
     hasMore.value = page.hasMore
@@ -388,14 +415,13 @@ function batchImport() { uni.navigateTo({ url: P.customerBatch }) }
 function canAdd() { return can(session.role || 'boss', 'act:followCustomer') }
 
 function onKeywordInput() {
-  if (!isBoss.value) return
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => { void refresh() }, 320)
 }
 
 function selectStage(key: typeof filter.value) {
   filter.value = key
-  if (isBoss.value) void refresh()
+  void refresh()
 }
 
 function selectSort(key: typeof sortMode.value) {
@@ -430,10 +456,17 @@ function bossBusinessAmount(customer: Customer) {
   if (customer.quoteAmount) return `报价 ¥${customer.quoteAmount.toLocaleString('zh-CN')}`
   return '暂未形成金额'
 }
+
+function nextActionText(customer: Customer) {
+  if (isFinance.value && customer.stage === 'pendingMeasure' && !customer.designer) {
+    return '等待店长或负责人安排设计承接'
+  }
+  return customer.nextAction || '查看客户详情'
+}
 </script>
 
 <template>
-  <view class="cl" :class="{ 'cl--boss': isBoss, 'cl--focus': bossWorkspaceFocused }">
+  <view class="cl" :class="{ 'cl--boss': usesOwnerOverview, 'cl--focus': bossWorkspaceFocused }">
     <JzPageHeader
       title="客户经营"
       :subtitle="pageSubtitle"
@@ -442,14 +475,14 @@ function bossBusinessAmount(customer: Customer) {
       @right="batchImport"
     />
 
-    <view v-if="!isBoss" class="cl__head">
+    <view v-if="!usesOwnerOverview" class="cl__head">
       <view class="cl__search">
         <view class="cl__search-icon"><JzIcon name="search" :size="34" :color="TOKEN_COLOR.text3" /></view>
         <input v-model="keyword" placeholder="搜索客户姓名 / 手机号 / 小区" placeholder-class="cl__ph" @input="onKeywordInput" @confirm="refresh" />
       </view>
     </view>
 
-    <view v-if="!isBoss">
+    <view v-if="!usesOwnerOverview">
       <JzStoreFilter
       :model-value="storeScope.storeId"
       :stores="storeScope.stores"
@@ -458,8 +491,8 @@ function bossBusinessAmount(customer: Customer) {
       @change="onStoreScopeChange" />
     </view>
 
-    <view v-if="isBoss" class="cl__metrics">
-      <view v-for="metric in bossMetrics" :key="metric.key" class="cl__metric jz-card" :class="metricStatus(metric)">
+    <view v-if="usesOwnerOverview" class="cl__metrics">
+      <view v-for="metric in overviewMetrics" :key="metric.key" class="cl__metric jz-card" :class="metricStatus(metric)">
         <view class="cl__metric-head"><text>{{ metric.label }}</text><text class="cl__metric-dot" /></view>
         <text class="cl__metric-value">{{ metric.value.toLocaleString('zh-CN') }}</text>
         <text class="cl__metric-sub">{{ metric.subText }}</text>
@@ -473,33 +506,33 @@ function bossBusinessAmount(customer: Customer) {
       </view>
     </view>
 
-    <view v-if="isBoss" class="cl__workspace" :class="{ 'cl__workspace--focus': bossWorkspaceFocused }">
+    <view v-if="usesOwnerOverview" class="cl__workspace" :class="{ 'cl__workspace--focus': bossWorkspaceFocused }">
       <view v-if="bossWorkspaceFocused" class="cl__focus-bar">
         <view class="cl__focus-back" @tap="bossWorkspaceFocused = false"><JzIcon name="arrow-left" :size="26" :color="TOKEN_COLOR.primary" /><text>返回经营概览</text></view>
-        <text class="cl__focus-title">{{ currentBossGroup?.ownerName || '全部客户' }} · {{ bossOverview?.total || 0 }}客户</text>
+        <text class="cl__focus-title">{{ currentOwnerGroup?.ownerName || '全部客户' }} · {{ customerOverview?.total || 0 }}客户</text>
       </view>
       <view class="cl__workspace-body">
         <scroll-view scroll-y class="cl__owner-panel">
-          <view class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === '' }" @tap="selectBossGroup()">
+          <view class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === '' }" @tap="selectOwnerGroup()">
             <text class="cl__owner-name">全部客户</text>
-            <text class="cl__owner-meta">{{ bossAllCustomerCount }}客户</text>
+            <text class="cl__owner-meta">{{ allGroupedCustomerCount }}客户</text>
           </view>
-          <view v-for="group in bossOwnerGroups" :key="bossGroupKey(group)" class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === bossGroupKey(group) }" @tap="selectBossGroup(group)">
+          <view v-for="group in ownerGroups" :key="ownerGroupKey(group)" class="cl__owner-item" :class="{ 'cl__owner-item--on': selectedOwnerId === ownerGroupKey(group) }" @tap="selectOwnerGroup(group)">
             <JzEmployeeAvatar :name="group.ownerName" :role="'marketer'" :size="48" />
             <text class="cl__owner-name">{{ group.ownerName }}</text>
             <text class="cl__owner-meta">{{ group.customerCount }}客户</text>
-            <text v-if="group.riskCustomerCount > 0" class="cl__owner-risk">风险{{ group.riskCustomerCount }}</text>
+            <text v-if="group.pendingMeasureCount > 0" class="cl__owner-pending">待量房{{ group.pendingMeasureCount }}</text>
           </view>
-          <JzEmpty v-if="!bossOwnerGroups.length" text="暂无分组" sub="调整筛选条件" />
+          <JzEmpty v-if="!ownerGroups.length" text="暂无分组" sub="调整筛选条件" />
         </scroll-view>
 
         <view class="cl__customer-panel">
           <view class="cl__panel-head">
             <view class="jz-grow">
-              <text class="cl__panel-title">{{ currentBossGroup?.ownerName || '全部客户' }}</text>
-              <text class="cl__panel-sub">{{ currentBossGroup
-                ? `${currentBossGroup.customerCount}客户 · 风险 ${currentBossGroup.riskCustomerCount} · 签约 ${currentBossGroup.signedCustomerCount}`
-                : `${bossAllCustomerCount}客户 · 可按负责人下钻` }}</text>
+              <text class="cl__panel-title">{{ currentOwnerGroup?.ownerName || '全部客户' }}</text>
+              <text class="cl__panel-sub">{{ currentOwnerGroup
+                ? `${currentOwnerGroup.customerCount}客户 · 待量房 ${currentOwnerGroup.pendingMeasureCount} · 签约 ${currentOwnerGroup.signedCustomerCount}`
+                : `${allGroupedCustomerCount}客户 · 可按负责人下钻` }}</text>
             </view>
             <text v-if="!bossWorkspaceFocused" class="cl__panel-focus" @tap="bossWorkspaceFocused = true">放大客户区</text>
           </view>
@@ -557,7 +590,7 @@ function bossBusinessAmount(customer: Customer) {
                 <view><text>下次</text><text :class="{ 'cl__boss-danger-text': c.riskLevel === 'high' }">{{ c.nextFollowAt ? followMeta(c).label : '未安排' }}</text></view>
               </view>
               <view class="cl__boss-result"><text>{{ bossBusinessAmount(c) }}</text><text v-if="c.projectName">{{ c.projectName }}</text></view>
-              <view class="cl__boss-next"><text>下一步</text><text>{{ c.nextAction || '查看客户详情' }}</text></view>
+              <view class="cl__boss-next"><text>下一步</text><text>{{ nextActionText(c) }}</text></view>
             </view>
             <view v-if="loadError" class="jz-card cl__error"><text>{{ loadError }}</text><button class="jz-btn jz-btn--plain jz-btn--sm" @tap="refresh">重新加载</button></view>
             <JzEmpty v-else-if="!loading && !list.length" text="当前分组没有匹配客户" sub="调整分组、筛选或搜索条件后重试" />
@@ -567,7 +600,7 @@ function bossBusinessAmount(customer: Customer) {
       </view>
     </view>
 
-    <template v-if="!isBoss">
+    <template v-if="!usesOwnerOverview">
 
     <view v-if="isMarketer" class="jz-card cl__golden">
       <view class="cl__golden-head">
@@ -583,7 +616,7 @@ function bossBusinessAmount(customer: Customer) {
       <view class="cl__golden-foot"><text>已加微信 {{ goldenStats.wechat }}</text><text>待量房 {{ goldenStats.pending }}</text></view>
     </view>
 
-    <view v-if="isStoreManager || isFinance" class="jz-card cl__dispatch" @tap="filter = 'assign'">
+    <view v-if="isStoreManager" class="jz-card cl__dispatch" @tap="filter = 'assign'">
       <view class="cl__dispatch-icon"><JzIcon name="users" :size="38" :color="TOKEN_COLOR.warning" /></view>
       <view class="jz-grow">
         <text class="cl__dispatch-title">{{ stageCount.assign || 0 }} 位客户等待指派设计师</text>
@@ -610,7 +643,7 @@ function bossBusinessAmount(customer: Customer) {
     <view class="cl__list">
       <JzSkeleton v-if="loading && !shown.length" :rows="3" />
       <view v-for="c in shown" :key="c.id" class="jz-card cl__item" :class="{ 'cl__item--current': currentCustomerId === c.id }" :data-cust-id="c.id" @tap="open(c.id)">
-        <template v-if="isBoss">
+        <template v-if="usesOwnerOverview">
           <view class="cl__item-head">
             <JzAvatar :name="c.name" :size="88" />
             <view class="cl__item-ident">
@@ -640,7 +673,7 @@ function bossBusinessAmount(customer: Customer) {
             <view><text>下次</text><text :class="{ 'cl__boss-danger-text': c.riskLevel === 'high' }">{{ c.nextFollowAt ? followMeta(c).label : '未安排' }}</text></view>
           </view>
           <view class="cl__boss-result"><text>{{ bossBusinessAmount(c) }}</text><text v-if="c.projectName">{{ c.projectName }}</text></view>
-          <view class="cl__boss-next"><text>下一步</text><text>{{ c.nextAction || '查看客户详情' }}</text></view>
+          <view class="cl__boss-next"><text>下一步</text><text>{{ nextActionText(c) }}</text></view>
         </template>
         <template v-else>
           <view class="cl__item-head">
@@ -667,7 +700,7 @@ function bossBusinessAmount(customer: Customer) {
             <JzTag v-if="(c.visitCount || 0) > 0" :text="`到店 ${c.visitCount} 次`" :color="TOKEN_COLOR.text2" />
             <JzTag v-if="c.measureAt" :text="`量房 ${c.measureAt.slice(5, 10)}`" :color="TOKEN_COLOR.text2" />
             <JzTag v-if="c.designer" :text="`设计 ${c.designer.name}`" :color="TOKEN_COLOR.text2" />
-            <JzTag v-else-if="(isStoreManager || isFinance) && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
+            <JzTag v-else-if="isStoreManager && c.stage === 'pendingMeasure' && c.measureAt" text="待指派设计" :color="TOKEN_COLOR.warning" />
             <JzTag v-if="c.projectId" text="已转项目" :color="TOKEN_COLOR.success" />
           </view>
           <view v-if="isMarketer && c.stage !== 'dormant'" class="cl__item-foot"><JzTag :text="goldenMeta(c).label" :color="goldenMeta(c).color" /><text class="cl__item-foot-text">录入 {{ ageDays(c) }} 天</text></view>
@@ -700,12 +733,12 @@ function bossBusinessAmount(customer: Customer) {
 .cl__metric { position: relative; min-height: 164rpx; padding: 22rpx; overflow: hidden; }
 .cl__metric::after { content: ''; position: absolute; right: -32rpx; top: -36rpx; width: 100rpx; height: 100rpx; border-radius: 50%; background: rgba(22,163,148,.05); }
 .cl__metric-head { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.cl__metric-dot { width: 14rpx; height: 14rpx; border-radius: 50%; background: $jzb-success; }
+.cl__metric-dot { width: 14rpx; height: 14rpx; border-radius: 50%; background: $jzb-primary; }
 .cl__metric--attention .cl__metric-dot { background: $jzb-warning; }
 .cl__metric--danger .cl__metric-dot { background: $jzb-danger; }
 .cl__metric-value { display: block; margin-top: 12rpx; color: $jzb-text-1; font-size: 44rpx; font-weight: 760; line-height: 1; }
 .cl__metric-sub { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.4; }
-.cl__metric-trend { display: block; margin-top: 6rpx; color: $jzb-success; font-size: 20rpx; }
+.cl__metric-trend { display: block; margin-top: 6rpx; color: $jzb-primary-dark; font-size: 20rpx; }
 .cl__metric-trend--down { color: $jzb-danger; }
 .cl__metric-periods { display: grid; grid-template-columns: 1fr 1fr; gap: 6rpx 10rpx; margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
 .cl__metric-period { display: flex; align-items: center; justify-content: space-between; color: $jzb-text-3; font-size: 18rpx; }
@@ -737,7 +770,7 @@ function bossBusinessAmount(customer: Customer) {
 .cl__filters { width: 100%; white-space: nowrap; }
 .cl__filter-row { display: inline-flex; padding: 16rpx $jzb-page-pad 24rpx; }
 .cl__filter { display: inline-flex; align-items: center; min-height: 64rpx; padding: 0 24rpx; margin-right: 16rpx; font-size: $jzb-font-sm; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); border-radius: $jzb-radius-pill; }
-.cl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
+.cl__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a22, rgba(22, 163, 148, .22)); font-weight: 650; }
 .cl__filter-count { font-size: $jzb-font-xs; margin-left: 8rpx; opacity: 0.8; }
 .cl__follow-tasks { display: flex; margin: 0 24rpx 16rpx; padding: 16rpx 8rpx; }
 .cl__follow-task { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8rpx 0; border-radius: $jzb-radius-sm; color: $jzb-text-3; font-size: 20rpx; }
@@ -800,7 +833,7 @@ function bossBusinessAmount(customer: Customer) {
 .cl__owner-item--on { color: $jzb-primary-dark; background: $jzb-primary-lightest; box-shadow: inset 5rpx 0 0 $jzb-primary; }
 .cl__owner-name { font-size: $jzb-font-sm; font-weight: 700; line-height: 1.3; }
 .cl__owner-meta { color: $jzb-text-3; font-size: 20rpx; }
-.cl__owner-risk { color: $jzb-danger; font-size: 20rpx; }
+.cl__owner-pending { color: $jzb-warning; font-size: 20rpx; }
 .cl__customer-panel { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; background: $jzb-bg-page; }
 .cl__panel-head { flex-shrink: 0; display: flex; align-items: center; gap: 12rpx; padding: 18rpx 20rpx 12rpx; border-bottom: 1rpx solid $jzb-border-light; }
 .cl__panel-title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 750; }

@@ -106,6 +106,7 @@ async function signCatalogItem(raw: RawRecord): Promise<CatalogItem> {
 
 export interface CatalogQuery {
   type: CatalogType
+  itemId?: string
   category?: string
   brand?: string
   spec?: string
@@ -296,6 +297,7 @@ export const catalogApi = {
   page: async (query: CatalogQuery) => {
     const result = await post<PageResult<RawRecord> | RawRecord[]>('catalog/item/page', {
       type: TYPE_API[query.type],
+      itemId: query.itemId,
       category: query.category,
       brand: query.brand,
       spec: query.spec,

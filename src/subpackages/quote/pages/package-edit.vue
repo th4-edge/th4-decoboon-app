@@ -334,15 +334,15 @@ const primaryText = computed(() => {
             <view class="pe__grid">
               <view>
                 <text class="pe__label">标准面积（㎡）<text class="pe__req">*</text></text>
-                <input v-model="area" type="digit" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+                <input v-model="area" type="digit" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               </view>
               <view>
                 <text class="pe__label">套餐牌价（元）<text class="pe__req">*</text></text>
-                <input v-model="price" type="digit" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+                <input v-model="price" type="digit" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               </view>
               <view>
                 <text class="pe__label">默认折扣（%）</text>
-                <input v-model="discount" type="number" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+                <input v-model="discount" type="number" class="pe__input jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               </view>
             </view>
 

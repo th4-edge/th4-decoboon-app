@@ -34,7 +34,7 @@ const design = read('docs/03-视觉与设计规范.md')
 
 expect(actionCard.includes("type ActionTone = 'primary' | 'subtle'"), '动作卡缺少 primary/subtle 两级动作语义')
 expect(actionCard.includes('@tap="!disabled && emit(\'tap\')"'), '动作卡缺少整卡点击与禁用防护')
-expect(actionCard.includes('box-shadow: 0 16rpx 38rpx rgba(14, 138, 125, .22)'), '主任务动作卡缺少品牌主层级反馈')
+expect(actionCard.includes('box-shadow: 0 16rpx 38rpx var(--jzb-primary-a22'), '主任务动作卡缺少品牌主层级反馈')
 
 expect(carryover.includes("import JzActionCard from '@/components/JzActionCard.vue'"), '业务承接页未接入动作卡组件')
 expect(carryover.includes("title=\"录入第一个在跑项目\""), '业务承接空状态缺少首个项目行动卡')

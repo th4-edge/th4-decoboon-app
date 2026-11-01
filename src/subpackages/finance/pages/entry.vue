@@ -13,7 +13,7 @@ import {
 import { consumeFinanceReceivablePickerResult } from '@/domains/finance/receivable-picker'
 import { consumeFinancePayablePickerResult } from '@/domains/finance/payable-picker'
 import { consumeLedgerCategoryPickerResult } from '@/domains/finance/ledger-category-picker'
-import { laborApi } from '@/domains/labor/api'
+import { consumeWorkerPickerResult } from '@/domains/labor/worker-picker'
 import type { Worker } from '@/domains/labor/model'
 import type {
   FundAccount, Ledger, LedgerDirection, LedgerManualPurpose, Payable, PayableType, Receivable
@@ -56,7 +56,7 @@ const receivableChecking = ref(false)
 const payableChecking = ref(false)
 const receivableInlineError = ref('')
 const payableInlineError = ref('')
-const workers = ref<Worker[]>([])
+const selectedWorker = ref<Worker | null>(null)
 const submitting = ref(false)
 let pendingReceivableAfterProject = false
 let receivableLoadVersion = 0
@@ -69,7 +69,7 @@ const form = reactive({
   workerId: '',
   name: '',
   stageName: '',
-  receivableType: 'first' as Receivable['type'],
+  receivableType: 'other' as Receivable['type'],
   invoiceRequired: false,
   invoiceNo: '',
   amount: '',
@@ -77,7 +77,7 @@ const form = reactive({
   account: 'companyBank' as FundAccount,
   payerName: '',
   payeeName: '',
-  payableType: 'material' as PayableType,
+  payableType: 'other' as PayableType,
   period: '',
   urgent: false,
   sourceNo: '',
@@ -92,32 +92,33 @@ const form = reactive({
 })
 
 const title = computed(() => ({
-  receivable: editId.value ? '编辑应收节点' : '新增应收节点',
+  receivable: editId.value ? '编辑应收节点' : '新增其他应收',
   receipt: '登记客户收款',
-  payable: editId.value ? '编辑应付单' : form.payableType === 'salary' ? '新增工人工资' : '新增应付成本',
+  payable: editId.value ? '编辑应付单' : '新增手工应付',
   payment: '安排业务付款',
   ledger: editId.value ? '更正手工记账' : '手工记账'
 }[type.value]))
 const subtitle = computed(() => ({
-  receivable: '按合同节点安排首期款、进度款与尾款',
+  receivable: editId.value ? '查看并核对当前应收节点' : '手工补充其他应收；合同节点应由合同与付款计划生成',
   receipt: '收款将自动核销应收并写入资金台账',
-  payable: '材料款、项目款、工资与费用形成统一付款义务',
+  payable: '手工应付仅登记其他应付或费用支出；材料、工资、项目款须由来源闭环生成',
   payment: '付款核销应付并写入资金台账；项目成本按应付/到货口径归集',
   ledger: editId.value ? '元数据更正留痕；金额、方向、日期或账户变化将冲正重记' : '企业通用或项目直接收支，生成不可变资金流水'
 }[type.value]))
 /** 工资类应付付款时才需要选择个人工人，用于生成个人工资凭证。 */
 const isSalaryPayment = computed(() => type.value === 'payment' && selectedPayable.value?.type === 'salary')
-const workerOptions = computed(() => workers.value
-  .filter((item) => item.status === 'active')
-  .map((item) => ({ label: `${item.name} · ${item.trade || '工种未填'}`, value: item.id })))
-const workerIndex = computed(() => Math.max(workerOptions.value.findIndex((item) => item.value === form.workerId), 0))
-const receivableTypeOptions = [
-  { label: '首期款', value: 'first' }, { label: '进度款', value: 'progress' },
-  { label: '尾款', value: 'final' }, { label: '质保金', value: 'retention' }, { label: '其他应收', value: 'other' }
-]
-const receivableTypeIndex = computed(() => Math.max(receivableTypeOptions.findIndex((item) => item.value === form.receivableType), 0))
-const payableTypeOptions = Object.entries(PAYABLE_TYPE_META).map(([value, meta]) => ({ label: meta.label, value }))
-const payableTypeIndex = computed(() => Math.max(payableTypeOptions.findIndex((item) => item.value === form.payableType), 0))
+const receivableTypeOptions = computed(() => editId.value
+  ? [{ label: RECEIVABLE_TYPE_META[form.receivableType].label, value: form.receivableType }]
+  : [{ label: '其他应收', value: 'other' as Receivable['type'] }])
+const receivableTypeIndex = computed(() => Math.max(receivableTypeOptions.value.findIndex((item) => item.value === form.receivableType), 0))
+const payableTypeOptions = computed(() => {
+  const options = Object.entries(PAYABLE_TYPE_META)
+    .map(([value, meta]) => ({ label: meta.label, value: value as PayableType }))
+  return editId.value
+    ? options.filter((item) => item.value === form.payableType)
+    : options.filter((item) => item.value === 'other' || item.value === 'expense')
+})
+const payableTypeIndex = computed(() => Math.max(payableTypeOptions.value.findIndex((item) => item.value === form.payableType), 0))
 const accountOptions = Object.entries(ACCOUNT_LABEL).map(([value, label]) => ({ label, value }))
 const accountIndex = computed(() => Math.max(accountOptions.findIndex((item) => item.value === form.account), 0))
 const directionOptions = [{ label: '收入', value: 'income' }, { label: '支出', value: 'expense' }]
@@ -130,11 +131,11 @@ const purposeIndex = computed(() => Math.max(purposeOptions.value.findIndex((ite
 
 const submitLabel = computed(() => {
   if (submitting.value) return '处理中…'
-  if (type.value === 'receivable') return editId.value ? '保存应收节点' : '创建应收节点'
+  if (type.value === 'receivable') return editId.value ? '保存应收节点' : '创建其他应收'
   if (type.value === 'receipt') return '确认收款登记'
   if (type.value === 'payable') {
     if (editId.value) return '保存应付成本'
-    return form.payableType === 'salary' ? '创建工资应付' : '创建应付成本'
+    return '创建手工应付'
   }
   if (type.value === 'payment') return '确认付款并核销'
   if (!editId.value) return '保存手工流水'
@@ -162,7 +163,7 @@ onLoad((query) => {
   form.projectId = query?.projectId || ''
   form.receivableId = query?.receivableId || ''
   form.payableId = query?.payableId || ''
-  if (query?.payableType && PAYABLE_TYPE_META[query.payableType as PayableType]) form.payableType = query.payableType as PayableType
+  if (!query?.id && query?.payableType && ['other', 'expense'].includes(query.payableType)) form.payableType = query.payableType as PayableType
   void boot()
 })
 
@@ -171,6 +172,7 @@ onShow(async () => {
   const receivableResult = consumeFinanceReceivablePickerResult()
   const payableResult = consumeFinancePayablePickerResult()
   const categoryResult = consumeLedgerCategoryPickerResult()
+  const workerResult = consumeWorkerPickerResult()
   let contextLoaded = false
   if (!projectResult) pendingReceivableAfterProject = false
 
@@ -202,6 +204,10 @@ onShow(async () => {
     if (payableResult.action === 'clear') clearPayableSelection()
     else setSelectedPayable(payableResult.value)
   }
+  if (workerResult && type.value === 'payment') {
+    selectedWorker.value = workerResult.action === 'clear' ? null : workerResult.value
+    form.workerId = selectedWorker.value?.id || ''
+  }
   if (categoryResult && type.value === 'ledger') {
     if (categoryResult.action === 'clear') {
       form.category = ''
@@ -223,7 +229,6 @@ async function boot() {
   booting.value = true
   loadError.value = ''
   try {
-    if (can(session.role, 'view:worker')) workers.value = await laborApi.workers()
     await hydrate(editId.value)
     if (form.projectId && selectedProject.value?.id !== form.projectId) await loadProjectSelection()
   } catch (error) {
@@ -466,7 +471,8 @@ function goReceivables() {
 }
 
 function goCreatePayable() {
-  const params = ['type=payable', `payableType=${form.payableType}`]
+  const manualType = form.payableType === 'expense' ? 'expense' : 'other'
+  const params = ['type=payable', `payableType=${manualType}`]
   if (form.projectId) params.push(`projectId=${encodeURIComponent(form.projectId)}`)
   uni.navigateTo({ url: `${P.financeEntry}?${params.join('&')}` })
 }
@@ -478,9 +484,8 @@ function goPayables() {
   uni.navigateTo({ url: `${P.financePayables}${params.length ? `?${params.join('&')}` : ''}` })
 }
 
-function onReceivableType(event: any) { form.receivableType = receivableTypeOptions[Number(event.detail.value)]?.value as Receivable['type'] || 'other' }
-function onPayableType(event: any) { form.payableType = payableTypeOptions[Number(event.detail.value)]?.value as PayableType || 'other' }
-function onWorker(event: any) { form.workerId = workerOptions.value[Number(event.detail.value)]?.value || '' }
+function onReceivableType(event: any) { form.receivableType = receivableTypeOptions.value[Number(event.detail.value)]?.value as Receivable['type'] || 'other' }
+function onPayableType(event: any) { form.payableType = payableTypeOptions.value[Number(event.detail.value)]?.value as PayableType || 'other' }
 function onAccount(event: any) { form.account = accountOptions[Number(event.detail.value)]?.value as FundAccount || 'companyBank' }
 function onDirection(event: any) {
   form.direction = directionOptions[Number(event.detail.value)]?.value as LedgerDirection || 'income'
@@ -498,16 +503,21 @@ function selectLabel(options: { label: string }[], index: number) { return optio
 
 /** JzSelectField 回传显示文案；按下标找到对应业务值再写回表单。 */
 function pickReceivableType(label: string) {
-  const hit = receivableTypeOptions.find((item) => item.label === label)
+  const hit = receivableTypeOptions.value.find((item) => item.label === label)
   if (hit) form.receivableType = hit.value as Receivable['type']
 }
 function pickPayableType(label: string) {
-  const hit = payableTypeOptions.find((item) => item.label === label)
+  const hit = payableTypeOptions.value.find((item) => item.label === label)
   if (hit) form.payableType = hit.value as PayableType
 }
-function pickWorker(label: string) {
-  const hit = workerOptions.value.find((item) => item.label === label)
-  if (hit) form.workerId = hit.value
+function openWorkerPicker() {
+  const params = ['status=Active', 'activeOnly=1']
+  if (selectedWorker.value) {
+    params.push(`selectedId=${encodeURIComponent(selectedWorker.value.id)}`)
+    params.push(`selectedName=${encodeURIComponent(selectedWorker.value.name)}`)
+    params.push(`selectedMeta=${encodeURIComponent([selectedWorker.value.trade || '工种未填', selectedWorker.value.phone || '手机号未填'].join(' · '))}`)
+  }
+  uni.navigateTo({ url: `${P.workerPicker}?${params.join('&')}` })
 }
 function pickAccount(label: string) {
   const hit = accountOptions.find((item) => item.label === label)
@@ -602,6 +612,8 @@ function ledgerFinanciallyChanged() {
 async function submit() {
   const amount = Number(form.amount)
   if (!amount || amount <= 0) { toast('请输入正确金额'); return }
+  if (type.value === 'receivable' && !editId.value && form.receivableType !== 'other') { toast('手工应收仅支持其他应收'); return }
+  if (type.value === 'payable' && !editId.value && !['other', 'expense'].includes(form.payableType)) { toast('手工应付仅支持其他应付或费用支出'); return }
   if (['receivable', 'receipt'].includes(type.value) && !form.projectId) { toast('请选择项目'); return }
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
   if (type.value === 'receipt' && selectedReceivable.value && amount > selectedReceivable.value.outstandingAmount) {
@@ -689,9 +701,9 @@ async function submit() {
 
       <template v-if="type === 'receivable'">
         <view class="fin-field"><text class="fin-field__label">节点名称</text><input v-model="form.name" maxlength="64" placeholder="如 合同首期款" /></view>
-        <view class="fin-field"><text class="fin-field__label">施工节点</text><input v-model="form.stageName" maxlength="64" placeholder="如 签订合同 / 水电验收" /></view>
+        <view class="fin-field"><text class="fin-field__label">补充说明</text><input v-model="form.stageName" maxlength="64" placeholder="如 补充约定款" /></view>
         <view class="fin-field"><text class="fin-field__label">应收类型</text><JzSelectField variant="plain" :display="selectLabel(receivableTypeOptions, receivableTypeIndex)" :range="receivableTypeOptions.map(item => item.label)" :index="receivableTypeIndex" @change="pickReceivableType" /></view>
-        <view class="fin-field"><text class="fin-field__label">应收金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
+        <view class="fin-field"><text class="fin-field__label">应收金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">约定收款日</text><JzSelectField mode="date" variant="plain" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">需要开票</text><switch :checked="form.invoiceRequired" :color="TOKEN_COLOR.primary" @change="onInvoiceSwitch" /><text v-if="form.invoiceRequired" class="fin-field__label" style="width:auto;">发票号</text><input v-if="form.invoiceRequired" v-model="form.invoiceNo" placeholder="可选" /></view>
       </template>
@@ -719,7 +731,7 @@ async function submit() {
           <text class="fe-inline-state__title">该项目还没有应收节点</text>
           <text class="fe-inline-state__sub">先在应收计划建立合同节点，再回来登记收款</text>
           <view class="fe-inline-state__actions">
-            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreateReceivable">去新增应收节点</view>
+            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreateReceivable">去新增其他应收</view>
             <view class="fe-inline-btn" @tap="goReceivables">查看应收计划</view>
           </view>
         </view>
@@ -750,7 +762,7 @@ async function submit() {
           </view>
         </view>
 
-        <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
+        <view class="fin-field"><text class="fin-field__label">收款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">收款账户</text><JzSelectField variant="plain" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
         <view class="fin-field"><text class="fin-field__label">收款日期</text><JzSelectField mode="date" variant="plain" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">付款方</text><input v-model="form.payerName" maxlength="64" :placeholder="selectedProject?.customerName || '默认项目客户'" /></view>
@@ -761,7 +773,7 @@ async function submit() {
         <view class="fin-field"><text class="fin-field__label">费用类型</text><JzSelectField variant="plain" :display="selectLabel(payableTypeOptions, payableTypeIndex)" :range="payableTypeOptions.map(item => item.label)" :index="payableTypeIndex" @change="pickPayableType" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" :placeholder="form.payableType === 'salary' ? '工人姓名' : '供应商/班组'" /></view>
         <view v-if="form.payableType === 'salary'" class="fin-field"><text class="fin-field__label">工资周期</text><input v-model="form.period" maxlength="32" placeholder="如 2026年8月" /></view>
-        <view class="fin-field"><text class="fin-field__label">应付金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
+        <view class="fin-field"><text class="fin-field__label">应付金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">约定付款日</text><JzSelectField mode="date" variant="plain" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view v-if="form.payableType !== 'salary'" class="fin-field"><text class="fin-field__label">来源单号</text><input v-model="form.sourceNo" maxlength="64" placeholder="采购单/合同单号，可选" /></view>
         <view class="fin-field"><text class="fin-field__label">加急</text><switch :checked="form.urgent" :color="TOKEN_COLOR.danger" @change="onUrgentSwitch" /></view>
@@ -790,7 +802,7 @@ async function submit() {
           <text class="fe-inline-state__title">当前没有待付应付单</text>
           <text class="fe-inline-state__sub">先建立材料款、项目款、工资或费用应付，再安排付款</text>
           <view class="fe-inline-state__actions">
-            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreatePayable">去新增应付</view>
+            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreatePayable">去新增手工应付</view>
             <view class="fe-inline-btn" @tap="goPayables">查看应付账款</view>
           </view>
         </view>
@@ -824,10 +836,22 @@ async function submit() {
           </view>
         </view>
 
-        <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
+        <view class="fin-field"><text class="fin-field__label">付款金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">付款账户</text><JzSelectField variant="plain" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
         <view class="fin-field"><text class="fin-field__label">付款日期</text><JzSelectField mode="date" variant="plain" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
-        <view v-if="isSalaryPayment" class="fin-field"><text class="fin-field__label">发放工人</text><JzSelectField variant="plain" :display="form.workerId ? selectLabel(workerOptions, workerIndex) : ''" :range="workerOptions.map(item => item.label)" :index="workerIndex" placeholder="选填：请选择工人（用于工资凭证）" @change="pickWorker" /></view>
+        <view v-if="isSalaryPayment" class="fin-field fin-field--tap" @tap="openWorkerPicker">
+          <text class="fin-field__label">发放工人</text>
+          <view class="fin-field__value" :class="{ 'fin-field__placeholder': !selectedWorker }">{{ selectedWorker?.name || '选填：请选择工人（用于工资凭证）' }}</view>
+          <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+        </view>
+        <view v-if="selectedWorker" class="fe-worker-card jz-card">
+          <view class="fe-worker-card__icon"><JzIcon name="user" :size="32" :color="TOKEN_COLOR.primary" /></view>
+          <view class="fe-worker-card__main" @tap="openWorkerPicker">
+            <text class="fe-worker-card__name">{{ selectedWorker.name }}</text>
+            <text class="fe-worker-card__meta">{{ [selectedWorker.trade || '工种未填', selectedWorker.phone || '手机号未填'].join(' · ') }}</text>
+          </view>
+          <text class="fe-worker-card__clear" @tap.stop="selectedWorker = null; form.workerId = ''">清除</text>
+        </view>
         <view v-if="isSalaryPayment && !form.workerId" class="fe-inline-hint fe-inline-hint--worker">未选择工人，工资凭证的身份证号/工种/银行账号栏位将留空，可稍后补录。</view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" placeholder="默认应付收款方" /></view>
       </template>
@@ -843,7 +867,7 @@ async function submit() {
         </view>
         <view v-if="form.categoryDescription" class="fe-purpose-hint">{{ form.categoryDescription }}</view>
         <view v-if="form.purpose === 'projectIncidentalCost' && !form.projectId" class="fe-purpose-warn">项目零星成本必须关联项目</view>
-        <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /><text class="fe-unit">元</text></view>
+        <view class="fin-field"><text class="fin-field__label">金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>
         <view class="fin-field"><text class="fin-field__label">资金账户</text><JzSelectField variant="plain" :display="selectLabel(accountOptions, accountIndex)" :range="accountOptions.map(item => item.label)" :index="accountIndex" @change="pickAccount" /></view>
         <view class="fin-field"><text class="fin-field__label">发生日期</text><JzSelectField mode="date" variant="plain" :value="form.date" :display="form.date" @change="form.date = $event" /></view>
         <view class="fin-field"><text class="fin-field__label">往来对象</text><input v-model="form.counterparty" maxlength="64" placeholder="供应商/客户/个人" /></view>
@@ -883,6 +907,12 @@ async function submit() {
 .fe-entity__clear { flex: none; display: flex; align-items: center; justify-content: center; width: 48rpx; height: 48rpx; border-radius: 50%; background: $jzb-bg-page; }
 .fe-inline-hint { margin: -2rpx 0 16rpx 142rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .fe-inline-hint--worker { margin-top: -4rpx; padding: 12rpx 16rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-sm; line-height: 1.5; }
+.fe-worker-card { display: flex; align-items: center; gap: 18rpx; margin: -2rpx 0 18rpx 142rpx; padding: 20rpx; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a20, rgba(22, 163, 148, .2)); }
+.fe-worker-card__icon { width: 56rpx; height: 56rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 18rpx; background: $jzb-bg-card; }
+.fe-worker-card__main { flex: 1; min-width: 0; }
+.fe-worker-card__name { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 650; }
+.fe-worker-card__meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.fe-worker-card__clear { flex: none; color: $jzb-danger; font-size: $jzb-font-xs; }
 .fe-inline-state { margin: -2rpx 0 20rpx 142rpx; padding: 18rpx; background: $jzb-bg-page; border-radius: $jzb-radius-sm; }
 .fe-inline-state--error { background: $jzb-danger-soft; }
 .fe-inline-state--success { background: $jzb-success-soft; }
@@ -891,7 +921,7 @@ async function submit() {
 .fe-inline-state__actions { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 14rpx; }
 .fe-inline-btn { min-height: 56rpx; display: inline-flex; align-items: center; justify-content: center; padding: 0 18rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
 .fe-inline-btn--primary { color: $jzb-text-inverse; background: $jzb-gradient; }
-.fe-summary { margin: 0 0 18rpx; padding: 20rpx; background: $jzb-primary-lightest; border: 1rpx solid rgba(22, 163, 148, .2); border-radius: $jzb-radius-sm; }
+.fe-summary { margin: 0 0 18rpx; padding: 20rpx; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a20, rgba(22, 163, 148, .2)); border-radius: $jzb-radius-sm; }
 .fe-summary__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; }
 .fe-summary__title-wrap { flex: 1; min-width: 0; }
 .fe-summary__title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -899,7 +929,7 @@ async function submit() {
 .fe-summary__tag { padding: 2rpx 10rpx; background: $jzb-bg-card; border-radius: $jzb-radius-pill; font-size: 20rpx; }
 .fe-summary__tag--danger { color: $jzb-danger; background: $jzb-danger-soft; }
 .fe-summary__clear { flex: none; color: $jzb-danger; font-size: $jzb-font-xs; }
-.fe-summary__amount { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid rgba(22, 163, 148, .14); }
+.fe-summary__amount { display: flex; align-items: baseline; justify-content: space-between; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid var(--jzb-primary-a14, rgba(22, 163, 148, .14)); }
 .fe-summary__amount-label { color: $jzb-text-3; font-size: $jzb-font-xs; }
 .fe-summary__amount-value { color: $jzb-text-1; font-size: 34rpx; font-weight: 750; }
 .fe-summary__facts { display: flex; flex-wrap: wrap; gap: 10rpx 20rpx; margin-top: 14rpx; color: $jzb-text-3; font-size: 20rpx; line-height: 1.45; }

@@ -1,7 +1,6 @@
 import { P, runtime } from '@/config'
 import type { PageResult } from '@/domains/common/model'
 import { pageRecords } from '@/domains/common/model'
-import { logout } from '@/domains/identity/session'
 import { openConfirm } from '@/composables/dialog'
 
 export interface ProviderEnvelope<T> {
@@ -12,6 +11,12 @@ export interface ProviderEnvelope<T> {
 
 let redirectingToLogin = false
 let subscriptionPromptVisible = false
+let onUnauthorized: () => void = () => {}
+
+/** 由 App 根初始化注入，避免 HTTP 层反向依赖 Session 领域。 */
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
+}
 
 export class ProviderRequestError extends Error {
   constructor(
@@ -25,7 +30,7 @@ export class ProviderRequestError extends Error {
 }
 
 function handleUnauthorized(message?: string) {
-  logout()
+  onUnauthorized()
   if (!redirectingToLogin) {
     redirectingToLogin = true
     uni.reLaunch({

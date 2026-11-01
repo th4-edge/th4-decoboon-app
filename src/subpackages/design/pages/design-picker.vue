@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { designApi, designMeta } from '@/domains/design/api'
-import type { DesignScheme } from '@/domains/design/model'
+import type { DesignScheme, DesignStatus } from '@/domains/design/model'
 import { setDesignSchemePickerResult } from '@/domains/design/design-picker'
 import { isLoggedIn } from '@/domains/identity/session'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -23,6 +23,10 @@ const filters: Array<{ label: string; value: FilterKey }> = [
   { label: '已选定', value: 'selected' },
   { label: '已归档', value: 'archived' }
 ]
+const STATUS_FILTER: Record<Exclude<FilterKey, 'all' | 'quotable'>, DesignStatus> = {
+  draft: 'draft', ready: 'ready', presented: 'presented', selected: 'selected', archived: 'archived'
+}
+const QUOTABLE_STATUSES: DesignStatus[] = ['ready', 'presented', 'selected']
 
 const customerId = ref('')
 const propertyId = ref('')
@@ -31,20 +35,16 @@ const selectedName = ref('')
 const keyword = ref('')
 const filter = ref<FilterKey>('all')
 const items = ref<DesignScheme[]>([])
+const current = ref(1)
+const total = ref(0)
+const hasMore = ref(false)
 const loading = ref(false)
+const loadingMore = ref(false)
 const loadError = ref('')
-
-const shown = computed(() => {
-  const key = keyword.value.trim().toLowerCase()
-  return items.value.filter((item) => {
-    if (propertyId.value && item.property?.id !== propertyId.value) return false
-    if (filter.value === 'quotable' && !isQuotable(item)) return false
-    if (filter.value !== 'all' && filter.value !== 'quotable' && item.status !== filter.value) return false
-    if (!key) return true
-    return [item.name, item.no, item.style, item.layout, item.property?.community, item.property?.address].some((value) => String(value || '').toLowerCase().includes(key))
-  })
-})
-const isEmpty = computed(() => !loading.value && !loadError.value && shown.value.length === 0)
+const loadMoreError = ref('')
+let loadVersion = 0
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+const isEmpty = computed(() => !loading.value && !loadError.value && items.value.length === 0)
 
 onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -56,31 +56,93 @@ onLoad((query) => {
     loadError.value = '缺少客户上下文，无法选择方案'
     return
   }
-  void load()
+  void load(true)
 })
+onPullDownRefresh(() => { void load(true).finally(() => uni.stopPullDownRefresh()) })
+onReachBottom(() => load(false))
 
-async function load() {
-  loading.value = true
+async function load(reset: boolean) {
+  const version = ++loadVersion
+  if (reset) {
+    current.value = 1
+    items.value = []
+    hasMore.value = false
+    loadMoreError.value = ''
+    loading.value = true
+  } else {
+    if (loading.value || loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+  }
   loadError.value = ''
   try {
-    const summaries = await designApi.schemes(customerId.value)
-    // 历史坑：FIX-033 design/scheme/page 不含区域和分项，必须回读 info 才能判断可报价。
-    items.value = await Promise.all(summaries.map((item) => designApi.scheme(item.id)))
+    const statuses = filter.value === 'quotable'
+      ? QUOTABLE_STATUSES
+      : filter.value === 'all' ? undefined : [STATUS_FILTER[filter.value]]
+    const page = await designApi.schemePage({
+      customerId: customerId.value,
+      propertyId: propertyId.value || undefined,
+      keyword: keyword.value.trim() || undefined,
+      statuses,
+      current: current.value,
+      size: 20
+    })
+    if (version !== loadVersion) return
+    items.value = reset ? page.list : mergeSchemes(items.value, page.list)
+    total.value = page.total
+    hasMore.value = page.hasMore
   } catch (error) {
-    loadError.value = error instanceof Error ? error.message : '设计方案加载失败'
+    if (version !== loadVersion) return
+    const message = error instanceof Error ? error.message : '设计方案加载失败'
+    if (reset) loadError.value = message
+    else {
+      loadMoreError.value = message
+      current.value = Math.max(1, current.value - 1)
+    }
   } finally {
-    loading.value = false
+    if (version === loadVersion) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
+
+function mergeSchemes(left: DesignScheme[], right: DesignScheme[]): DesignScheme[] {
+  const merged = new Map(left.map((item) => [item.id, item]))
+  right.forEach((item) => merged.set(item.id, item))
+  return [...merged.values()]
+}
+
+function onKeywordInput() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { void load(true) }, 300)
+}
+
+function clearKeyword() {
+  keyword.value = ''
+  void load(true)
+}
+
+function selectFilter(next: FilterKey) {
+  if (filter.value === next) return
+  filter.value = next
+  void load(true)
+}
+
+function loadMore() {
+  if (!hasMore.value || loading.value || loadingMore.value) return
+  current.value += 1
+  void load(false)
+}
+
 function isQuotable(item: DesignScheme) {
   return ['ready', 'presented', 'selected'].includes(item.status)
-    && (item.spaces?.length || 0) > 0
-    && (item.items?.length || 0) > 0
+    && (item.spaceCount || 0) > 0
+    && (item.itemCount || 0) > 0
 }
 function disabledReason(item: DesignScheme) {
   if (!['ready', 'presented', 'selected'].includes(item.status)) return '方案尚未达到可报价状态'
-  if (!(item.spaces?.length || 0)) return '方案尚未完成区域划分'
-  if (!(item.items?.length || 0)) return '方案尚未形成施工/主材分项'
+  if (!(item.spaceCount || 0)) return '方案尚未完成区域划分'
+  if (!(item.itemCount || 0)) return '方案尚未形成施工/主材分项'
   return ''
 }
 function propertyLabel(item: DesignScheme) {
@@ -103,8 +165,8 @@ function choose(item: DesignScheme) {
       version: item.version,
       status: designMeta.designStatus[item.status],
       area: item.area,
-      spaceCount: item.spaces?.length || 0,
-      itemCount: item.items?.length || 0,
+      spaceCount: item.spaceCount || 0,
+      itemCount: item.itemCount || 0,
       quotable: true
     }
   })
@@ -132,8 +194,8 @@ function clearSelection() {
 
       <view class="bp-search">
         <JzIcon name="search" :size="30" :color="TOKEN_COLOR.text4" />
-        <input v-model="keyword" placeholder="搜索方案名 / 编号 / 风格 / 小区" />
-        <view v-if="keyword" class="bp-search__clear" @tap="keyword = ''"><JzIcon name="close" :size="24" :color="TOKEN_COLOR.text3" /></view>
+        <input v-model="keyword" placeholder="搜索方案名 / 风格 / 小区" confirm-type="search" @input="onKeywordInput" @confirm="load(true)" />
+        <view v-if="keyword" class="bp-search__clear" @tap="clearKeyword"><JzIcon name="close" :size="24" :color="TOKEN_COLOR.text3" /></view>
       </view>
 
       <view class="bp-filters">
@@ -141,22 +203,22 @@ function clearSelection() {
           <text class="bp-filter__label">筛选</text>
           <scroll-view scroll-x class="bp-scroll" :show-scrollbar="false">
             <view class="bp-chips">
-              <view v-for="item in filters" :key="item.value" class="bp-chip" :class="{ 'bp-chip--on': filter === item.value }" @tap="filter = item.value">{{ item.label }}</view>
+              <view v-for="item in filters" :key="item.value" class="bp-chip" :class="{ 'bp-chip--on': filter === item.value }" @tap="selectFilter(item.value)">{{ item.label }}</view>
             </view>
           </scroll-view>
         </view>
       </view>
 
-      <PageState v-if="loadError && !items.length" state="error" title="方案加载失败" :subtitle="loadError" @retry="load" />
+      <PageState v-if="loadError && !items.length" state="error" title="方案加载失败" :subtitle="loadError" @retry="load(true)" />
       <JzSkeleton v-else-if="loading && !items.length" :rows="3" />
-      <view v-else>
+      <template v-else>
         <view class="bp-result-head">
           <text class="bp-result-title">设计方案</text>
-          <text class="bp-result-count">{{ shown.length }} 套</text>
+          <text class="bp-result-count">{{ total }} 套</text>
         </view>
         <view v-if="isEmpty" class="bp-empty"><JzEmpty text="没有匹配方案" sub="调整方案状态或搜索条件后重试" /></view>
         <view
-          v-for="item in shown"
+          v-for="item in items"
           v-else
           :key="item.id"
           class="bp-card"
@@ -167,16 +229,19 @@ function clearSelection() {
             <text class="bp-card__title">{{ item.name }}</text>
             <text class="bp-card__tag" :class="{ 'bp-card__tag--muted': !isQuotable(item) }">{{ isQuotable(item) ? '可报价' : designMeta.designStatus[item.status] }}</text>
           </view>
-          <text class="bp-card__meta">{{ [item.no, item.property ? propertyLabel(item) : '', `V${item.version}`].filter(Boolean).join(' · ') }}</text>
+          <text class="bp-card__meta">{{ [item.property ? propertyLabel(item) : '', `V${item.version}`].filter(Boolean).join(' · ') }}</text>
           <view class="bp-card__facts">
             <view class="bp-fact">面积<text class="bp-fact__value">{{ item.area || 0 }}㎡</text></view>
-            <view class="bp-fact">区域<text class="bp-fact__value">{{ item.spaces?.length || 0 }} 个</text></view>
-            <view class="bp-fact">分项<text class="bp-fact__value">{{ item.items?.length || 0 }} 项</text></view>
+            <view class="bp-fact">区域<text class="bp-fact__value">{{ item.spaceCount || 0 }} 个</text></view>
+            <view class="bp-fact">分项<text class="bp-fact__value">{{ item.itemCount || 0 }} 项</text></view>
             <view class="bp-fact">风格<text class="bp-fact__value">{{ item.style || '待定' }}</text></view>
           </view>
           <text v-if="disabledReason(item)" class="bp-card__reason">{{ disabledReason(item) }}</text>
         </view>
-      </view>
+        <view v-if="loadMoreError" class="bp-footer bp-footer--error" @tap="loadMore"><text>加载更多失败，点击重试</text></view>
+        <view v-else-if="hasMore" class="bp-footer" @tap="loadMore"><text>{{ loadingMore ? '加载中' : '加载更多' }}</text></view>
+        <view v-else-if="items.length" class="bp-footer bp-footer--end"><text>已显示全部 {{ total }} 套</text></view>
+      </template>
     </view>
   </view>
 </template>

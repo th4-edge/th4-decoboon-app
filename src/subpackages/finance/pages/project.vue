@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { money } from '@/core/format'
+import { moneyExact } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
 import type { FinanceProjectReport } from '@/domains/finance/model'
 import { DIRECTION_LABEL, PAYABLE_STATUS_META, PAYABLE_TYPE_META, RECEIVABLE_STATUS_META, RECEIVABLE_TYPE_META, SETTLEMENT_STATUS_META } from '@/domains/finance/meta'
@@ -27,6 +27,12 @@ const loading = ref(false)
 const loadError = ref('')
 const tab = ref<Tab>('overview')
 const editable = computed(() => can(session.role, 'edit:finance'))
+const settlementConfirmBlockedReason = computed(() => {
+  const settlement = report.value?.settlement
+  if (!settlement || settlement.status !== 'draft') return ''
+  if (settlement.costComplete !== true) return '项目最终成本未完整，补齐成本后才能确认结算；当前结算利润保持为空。'
+  return ''
+})
 const p = computed(() => report.value?.project)
 const costRows = computed(() => report.value ? [
   { label: '材料成本', value: report.value.materialCost, color: STATUS_COLOR.accent },
@@ -69,6 +75,10 @@ async function confirmSettlement() {
 async function changeSettlement(status: 'confirmed' | 'closed') {
   const settlement = report.value?.settlement
   if (!settlement || !editable.value) return
+  if (status === 'confirmed' && settlementConfirmBlockedReason.value) {
+    toast(settlementConfirmBlockedReason.value)
+    return
+  }
   const content = status === 'closed' ? '关闭前系统将校验应收、应付是否全部结清，并同步项目为已结算。' : '确认项目收入、成本、利润与结算金额。'
   const ok = status === 'closed'
     ? await confirmDanger('关闭项目结算', content, '关闭结算')
@@ -103,12 +113,12 @@ async function releaseRetention() {
     <view v-if="report" class="fp-head">
       <view class="jz-between">
         <JzTag v-if="p" :text="PROJECT_STATUS_META[p.status].label" :color="PROJECT_STATUS_META[p.status].color" />
-        <view class="fp-head__profit"><text v-if="report.costComplete !== false">项目毛利 {{ money(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
+        <view class="fp-head__profit"><text v-if="report.costComplete !== false">项目毛利 {{ moneyExact(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
       </view>
       <text class="fp-head__label">合同收入</text>
-      <text class="fp-head__amount fin-amount">{{ money(report.contractRevenue) }}</text>
+      <text class="fp-head__amount fin-amount">{{ moneyExact(report.contractRevenue) }}</text>
       <view class="fp-head__bar"><view class="fp-head__bar-inner" :style="{ width: `${Math.min(report.collectionRate, 100)}%` }" /></view>
-      <view class="fp-head__meta"><text>回款 {{ report.collectionRate }}%</text><text>成本 {{ report.paymentRate }}%</text><text>待收 {{ money(report.outstandingAmount) }}</text></view>
+      <view class="fp-head__meta"><text>回款 {{ report.collectionRate }}%</text><text>付款进度 {{ report.paymentRate }}%</text><text>待收 {{ moneyExact(report.outstandingAmount) }}</text></view>
     </view>
 
     <scroll-view scroll-x class="fp-tabs" :show-scrollbar="false">
@@ -122,16 +132,16 @@ async function releaseRetention() {
 
     <view v-if="report && tab === 'overview'" class="fin-body">
       <view class="fp-grid">
-        <view class="fp-metric"><text>已收工程款</text><text class="fp-metric--income">{{ money(report.receivedAmount) }}</text></view>
-        <view class="fp-metric"><text>待收工程款</text><text class="fp-metric--danger">{{ money(report.outstandingAmount) }}</text></view>
-        <view class="fp-metric"><text>项目总成本</text><text>{{ money(report.totalCost) }}</text></view>
-        <view class="fp-metric"><text>项目毛利</text><text v-if="report.costComplete !== false" class="fp-metric--income">{{ money(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
+        <view class="fp-metric"><text>已收工程款</text><text class="fp-metric--income">{{ moneyExact(report.receivedAmount) }}</text></view>
+        <view class="fp-metric"><text>待收工程款</text><text class="fp-metric--danger">{{ moneyExact(report.outstandingAmount) }}</text></view>
+        <view class="fp-metric"><text>项目总成本</text><text>{{ moneyExact(report.totalCost) }}</text></view>
+        <view class="fp-metric"><text>项目毛利</text><text v-if="report.costComplete !== false" class="fp-metric--income">{{ moneyExact(report.grossProfit) }} · {{ report.grossMargin ?? 0 }}%</text><JzCostIncomplete v-else :count="report.costIncompleteCount || 0" reason="项目成本未完整，项目毛利和毛利率暂不展示。" compact /></view>
       </view>
 
       <view class="fp-section-card">
-        <view class="jz-between"><text class="fp-section-title">利润核算</text><text class="jz-caption">总成本 {{ money(report.totalCost) }}</text></view>
+        <view class="jz-between"><text class="fp-section-title">利润核算</text><text class="jz-caption">总成本 {{ moneyExact(report.totalCost) }}</text></view>
         <view v-for="row in costRows" :key="row.label" class="fp-cost">
-          <view class="fp-cost__head"><text>{{ row.label }}</text><text>{{ money(row.value) }} · {{ percent(row.value, report.totalCost) }}%</text></view>
+          <view class="fp-cost__head"><text>{{ row.label }}</text><text>{{ moneyExact(row.value) }} · {{ percent(row.value, report.totalCost) }}%</text></view>
           <view class="fp-cost__track"><view class="fp-cost__bar" :style="{ width: `${percent(row.value, report.totalCost)}%`, backgroundColor: row.color }" /></view>
         </view>
       </view>
@@ -150,21 +160,21 @@ async function releaseRetention() {
     </view>
 
     <view v-else-if="report && tab === 'receivable'" class="fin-body">
-      <view v-if="editable" class="fp-inline-action" @tap="entry('receivable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增应收节点</text></view>
+      <view v-if="editable" class="fp-inline-action" @tap="entry('receivable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增其他应收</text></view>
       <view v-for="item in report.receivables" :key="item.id" class="fin-card">
-        <view class="fin-card__top"><view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.stageName || '合同节点' }} · 到期 {{ item.dueDate }}</text></view><text class="fin-card__amount">{{ money(item.amount) }}</text></view>
-        <view class="fin-card__facts"><text :style="{ color: RECEIVABLE_TYPE_META[item.type].color }">{{ RECEIVABLE_TYPE_META[item.type].label }}</text><text :style="{ color: RECEIVABLE_STATUS_META[item.status].color }">{{ RECEIVABLE_STATUS_META[item.status].label }}</text><text>待收 {{ money(item.outstandingAmount) }}</text></view>
-        <view class="fin-card__foot"><text class="jz-caption">已收 {{ money(item.receivedAmount) }}</text><text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap="entry('receipt', `&receivableId=${item.id}`)">登记收款</text></view>
+        <view class="fin-card__top"><view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.stageName || '合同节点' }} · 到期 {{ item.dueDate }}</text></view><text class="fin-card__amount">{{ moneyExact(item.amount) }}</text></view>
+        <view class="fin-card__facts"><text :style="{ color: RECEIVABLE_TYPE_META[item.type].color }">{{ RECEIVABLE_TYPE_META[item.type].label }}</text><text :style="{ color: RECEIVABLE_STATUS_META[item.status].color }">{{ RECEIVABLE_STATUS_META[item.status].label }}</text><text>待收 {{ moneyExact(item.outstandingAmount) }}</text></view>
+        <view class="fin-card__foot"><text class="jz-caption">已收 {{ moneyExact(item.receivedAmount) }}</text><text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap="entry('receipt', `&receivableId=${item.id}`)">登记收款</text></view>
       </view>
       <JzEmpty v-if="!report.receivables.length" text="暂无应收节点" />
     </view>
 
     <view v-else-if="report && tab === 'payable'" class="fin-body">
-      <view v-if="editable" class="fp-inline-action" @tap="entry('payable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增应付成本</text></view>
+      <view v-if="editable" class="fp-inline-action" @tap="entry('payable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增手工应付</text></view>
       <view v-for="item in report.payables" :key="item.id" class="fin-card">
-        <view class="fin-card__top"><view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.payeeEmployee?.name || item.payeeName || '未指定收款方' }} · 账期 {{ item.dueDate }}</text></view><text class="fin-card__amount">{{ money(item.amount) }}</text></view>
-        <view class="fin-card__facts"><text :style="{ color: PAYABLE_TYPE_META[item.type].color }">{{ PAYABLE_TYPE_META[item.type].label }}</text><text :style="{ color: PAYABLE_STATUS_META[item.status].color }">{{ PAYABLE_STATUS_META[item.status].label }}</text><text>待付 {{ money(item.outstandingAmount) }}</text></view>
-        <view class="fin-card__foot"><text class="jz-caption">已付 {{ money(item.paidAmount) }}</text><text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap="entry('payment', `&payableId=${item.id}`)">安排付款</text></view>
+        <view class="fin-card__top"><view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.payeeEmployee?.name || item.payeeName || '未指定收款方' }} · 账期 {{ item.dueDate }}</text></view><text class="fin-card__amount">{{ moneyExact(item.amount) }}</text></view>
+        <view class="fin-card__facts"><text :style="{ color: PAYABLE_TYPE_META[item.type].color }">{{ PAYABLE_TYPE_META[item.type].label }}</text><text :style="{ color: PAYABLE_STATUS_META[item.status].color }">{{ PAYABLE_STATUS_META[item.status].label }}</text><text>待付 {{ moneyExact(item.outstandingAmount) }}</text></view>
+        <view class="fin-card__foot"><text class="jz-caption">已付 {{ moneyExact(item.paidAmount) }}</text><text v-if="editable && item.outstandingAmount > 0" class="fin-card__action" @tap="entry('payment', `&payableId=${item.id}`)">安排付款</text></view>
       </view>
       <JzEmpty v-if="!report.payables.length" text="暂无应付成本" />
     </view>
@@ -172,7 +182,7 @@ async function releaseRetention() {
     <view v-else-if="report && tab === 'ledger'" class="fin-body">
       <view v-if="editable" class="fp-inline-action" @tap="entry('ledger')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>项目手工记账</text></view>
       <view v-for="item in report.recentLedgers" :key="item.id" class="fin-card">
-        <view class="fin-card__top"><view class="fin-card__title">{{ item.summary }}<text class="fin-card__sub">{{ item.occurredAt }} · {{ item.category }}</text></view><text class="fin-card__amount" :class="item.direction === 'income' ? 'fin-card__amount--income' : 'fin-card__amount--expense'">{{ item.direction === 'income' ? '+' : '-' }}{{ money(item.amount) }}</text></view>
+        <view class="fin-card__top"><view class="fin-card__title">{{ item.summary }}<text class="fin-card__sub">{{ item.occurredAt }} · {{ item.category }}</text></view><text class="fin-card__amount" :class="item.direction === 'income' ? 'fin-card__amount--income' : 'fin-card__amount--expense'">{{ item.direction === 'income' ? '+' : '-' }}{{ moneyExact(item.amount) }}</text></view>
         <view class="fin-card__facts"><text>{{ DIRECTION_LABEL[item.direction] }}</text><text>{{ item.counterparty || '—' }}</text></view>
       </view>
       <JzEmpty v-if="!report.recentLedgers.length" text="暂无项目流水" />
@@ -186,32 +196,33 @@ async function releaseRetention() {
       <template v-else>
         <view class="fp-settle-hero">
           <view class="jz-between"><text>结算状态</text><JzTag :text="SETTLEMENT_STATUS_META[report.settlement.status].label" :color="SETTLEMENT_STATUS_META[report.settlement.status].color" /></view>
-          <template v-if="report.settlement.costComplete !== false"><text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ money(report.settlement.profitAmount) }}</text></template><template v-else><view class="fp-settle-hero__label"><JzCostIncomplete :count="report.settlement.costIncompleteCount || 0" reason="结算成本不完整，最终利润暂不展示。" compact /></view><text class="fp-settle-hero__amount">—</text></template>
+          <template v-if="report.settlement.costComplete !== false"><text class="fp-settle-hero__label">项目毛利 · 毛利率 {{ report.settlement.grossMargin }}%</text><text class="fp-settle-hero__amount">{{ moneyExact(report.settlement.profitAmount) }}</text></template><template v-else><view class="fp-settle-hero__label"><JzCostIncomplete :count="report.settlement.costIncompleteCount || 0" reason="结算成本不完整，最终利润暂不展示。" compact /></view><text class="fp-settle-hero__amount">—</text></template>
         </view>
         <view class="fp-grid">
-          <view class="fp-metric"><text>合同金额</text><text>{{ money(report.settlement.contractAmount) }}</text></view>
-          <view class="fp-metric"><text>最终结算</text><text>{{ money(report.settlement.finalAmount || report.settlement.contractAmount) }}</text></view>
-          <view class="fp-metric"><text>已收金额</text><text class="fp-metric--income">{{ money(report.settlement.receivedAmount) }}</text></view>
-          <view class="fp-metric"><text>应付成本</text><text>{{ money(report.settlement.payableAmount) }}</text></view>
-          <view class="fp-metric"><text>已付金额</text><text>{{ money(report.settlement.paidAmount) }}</text></view>
+          <view class="fp-metric"><text>合同金额</text><text>{{ moneyExact(report.settlement.contractAmount) }}</text></view>
+          <view class="fp-metric"><text>最终结算</text><text>{{ moneyExact(report.settlement.finalAmount || report.settlement.contractAmount) }}</text></view>
+          <view class="fp-metric"><text>已收金额</text><text class="fp-metric--income">{{ moneyExact(report.settlement.receivedAmount) }}</text></view>
+          <view class="fp-metric"><text>应付成本</text><text>{{ moneyExact(report.settlement.payableAmount) }}</text></view>
+          <view class="fp-metric"><text>已付金额</text><text>{{ moneyExact(report.settlement.paidAmount) }}</text></view>
         </view>
         <view class="fp-section-card">
           <text class="fp-section-title">结算构成</text>
-          <view class="fp-settle-row"><text>材料款</text><text>{{ money(report.settlement.materialAmount) }}</text></view>
-          <view class="fp-settle-row"><text>工人工资</text><text>{{ money(report.settlement.salaryAmount) }}</text></view>
-          <view class="fp-settle-row"><text>项目款</text><text>{{ money(report.settlement.projectAmount) }}</text></view>
-          <view class="fp-settle-row"><text>费用分摊</text><text>{{ money(report.settlement.expenseAmount) }}</text></view>
-          <view class="fp-settle-row"><text>项目总成本</text><text>{{ money(report.settlement.totalCost) }}</text></view>
-          <view class="fp-settle-row"><text>应收总额</text><text>{{ money(report.settlement.receivableAmount) }}</text></view>
-          <view class="fp-settle-row"><text>扣款 / 奖励</text><text>{{ money(report.settlement.deductionAmount) }} / {{ money(report.settlement.rewardAmount) }}</text></view>
-          <view class="fp-settle-row"><text>质保金</text><text>{{ money(report.settlement.retentionAmount) }} · {{ report.settlement.retentionRate }}%</text></view>
+          <view class="fp-settle-row"><text>材料款</text><text>{{ moneyExact(report.settlement.materialAmount) }}</text></view>
+          <view class="fp-settle-row"><text>工人工资</text><text>{{ moneyExact(report.settlement.salaryAmount) }}</text></view>
+          <view class="fp-settle-row"><text>项目款</text><text>{{ moneyExact(report.settlement.projectAmount) }}</text></view>
+          <view class="fp-settle-row"><text>费用分摊</text><text>{{ moneyExact(report.settlement.expenseAmount) }}</text></view>
+          <view class="fp-settle-row"><text>项目总成本</text><text>{{ moneyExact(report.settlement.totalCost) }}</text></view>
+          <view class="fp-settle-row"><text>应收总额</text><text>{{ moneyExact(report.settlement.receivableAmount) }}</text></view>
+          <view class="fp-settle-row"><text>扣款 / 奖励</text><text>{{ moneyExact(report.settlement.deductionAmount) }} / {{ moneyExact(report.settlement.rewardAmount) }}</text></view>
+          <view class="fp-settle-row"><text>质保金</text><text>{{ moneyExact(report.settlement.retentionAmount) }} · {{ report.settlement.retentionRate }}%</text></view>
         </view>
         <view v-if="editable" class="fp-actions">
           <button v-if="report.settlement.status === 'draft' || report.settlement.status === 'confirmed'" class="jz-btn jz-btn--ghost" @tap="generateSettlement"><JzIcon name="refresh" :size="24" :color="TOKEN_COLOR.primary" /><text>重算</text></button>
-          <button v-if="report.settlement.status === 'draft'" class="jz-btn jz-btn--primary" @tap="changeSettlement('confirmed')"><JzIcon name="check-circle" :size="24" :color="TOKEN_COLOR.white" /><text>确认结算</text></button>
+          <button v-if="report.settlement.status === 'draft'" class="jz-btn jz-btn--primary" :disabled="Boolean(settlementConfirmBlockedReason)" @tap="changeSettlement('confirmed')"><JzIcon name="check-circle" :size="24" :color="TOKEN_COLOR.white" /><text>确认结算</text></button>
           <button v-if="report.settlement.status === 'confirmed'" class="jz-btn jz-btn--neutral" @tap="changeSettlement('closed')"><JzIcon name="lock" :size="24" :color="TOKEN_COLOR.primary" /><text>关闭结算</text></button>
           <button v-if="report.settlement.status === 'retentionPending'" class="jz-btn jz-btn--primary" @tap="releaseRetention"><JzIcon name="wallet" :size="24" :color="TOKEN_COLOR.white" /><text>释放质保金</text></button>
         </view>
+        <text v-if="report.settlement.status === 'draft' && settlementConfirmBlockedReason" class="fp-settle-hint">{{ settlementConfirmBlockedReason }}</text>
       </template>
     </view>
 
@@ -262,4 +273,5 @@ async function releaseRetention() {
 .fp-settle-empty__title { display: block; margin-top: 24rpx; color: $jzb-text-1; font-size: $jzb-font-lg; font-weight: 700; }
 .fp-settle-empty__sub { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-sm; text-align: center; }
 .fp-settle-btn { width: 100%; margin-top: 30rpx; }
+.fp-settle-hint { display: block; margin-top: 16rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
 </style>

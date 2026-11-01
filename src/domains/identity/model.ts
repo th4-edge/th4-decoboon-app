@@ -51,10 +51,6 @@ export interface Team {
 export interface CompanySetting {
   /** 启用多门店（只读消费，页面不改） */
   enableStore?: boolean
-  /** 叙事主品牌：Company=装企（默认）/ Platform=平台 */
-  brandPrimary?: 'Company' | 'Platform'
-  /** 是否显示「记录存证与保管 · 装得清」署名（默认关闭） */
-  custodianCredit?: boolean
   /** 服务区域 */
   serviceArea?: string
   /** 企业统一客服电话（非员工个人号码） */
@@ -76,6 +72,7 @@ export interface Company {
   shortName?: string
   city?: string
   logo?: string
+  color?: string
   storeName?: string
   brand?: string
   createdAt?: string
@@ -123,6 +120,24 @@ export interface UserProfile {
 }
 
 export type JoinMode = 'enterprise' | 'invite' | 'customer'
+
+/** 登录后按当前已验证手机号发现的待处理邀请。 */
+export interface PendingEntryInvite {
+  id: string
+  type: 'member' | 'customer'
+  companyName: string
+  companyLogo?: string
+  companyColor?: string
+  inviterName?: string
+  role?: RoleKey
+  storeName?: string
+  projectName?: string
+  propertyAddress?: string
+  customerName?: string
+  maskedPhone?: string
+  status: 'pending'
+  expireAt?: string
+}
 
 /** 员工邀请 / 业主邀请的统一前端视图。 */
 export interface InviteCode {

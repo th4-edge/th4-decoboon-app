@@ -191,7 +191,7 @@ async function deductDifference(line: QuoteItem) {
           <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text3" />
         </view>
         <text class="qa__label">数量</text>
-        <input v-model="quantity" type="digit" class="qa__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+        <input v-model="quantity" type="digit" class="qa__input jz-numeric-input" placeholder="1" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
       </template>
       <button class="jz-btn jz-btn--primary jz-btn--block" @tap="submit">保存并重新计算</button>
     </view>

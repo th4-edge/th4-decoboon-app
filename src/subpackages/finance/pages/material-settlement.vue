@@ -237,7 +237,7 @@ useFinanceStoreScope(() => load())
             </view>
             <view v-if="editable" class="mset__price">
               <text class="mset__price-label">结算价</text>
-              <input class="mset__price-input jz-numeric-input" type="digit" :value="priceOf(row)" placeholder="按对账填" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" @input="onPriceInput(row, $event)" />
+              <input class="mset__price-input jz-numeric-input" type="digit" :value="priceOf(row)" placeholder="按对账填" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" @input="onPriceInput(row, $event)" />
             </view>
           </view>
         </view>

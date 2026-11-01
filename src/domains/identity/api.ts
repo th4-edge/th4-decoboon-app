@@ -1,9 +1,8 @@
 import { post, listOf, upload as uploadRequest } from '@/core/http'
 import { runtime } from '@/config'
-import { session } from './session'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
-import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, Store, Team, UserProfile } from './model'
+import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, PendingEntryInvite, Store, Team, UserProfile } from './model'
 
 export interface LoginToken { token: string }
 
@@ -267,6 +266,26 @@ export const identityApi = {
   invitationInfo: async (inviteId: string, phone?: string): Promise<InviteCode> =>
     normalizeInvite(await post<RawRecord>('invite/invitation/info', { inviteId, phone })),
 
+  pendingEntryInvites: async (): Promise<PendingEntryInvite[]> => {
+    const rows = listOf(await post<RawRecord[]>('invite/invitation/pending', {}))
+    return rows.map((raw): PendingEntryInvite => ({
+      id: String(raw.inviteId ?? raw.id ?? ''),
+      type: enumValue(raw.type) === 'Customer' ? 'customer' : 'member',
+      companyName: String(raw.companyName ?? ''),
+      companyLogo: typeof raw.companyLogo === 'string' ? raw.companyLogo : undefined,
+      companyColor: typeof raw.companyColor === 'string' ? raw.companyColor : undefined,
+      inviterName: typeof raw.inviterName === 'string' ? raw.inviterName : undefined,
+      role: normalizeRole(raw.role),
+      storeName: typeof raw.storeName === 'string' ? raw.storeName : undefined,
+      projectName: typeof raw.projectName === 'string' ? raw.projectName : undefined,
+      propertyAddress: typeof raw.propertyAddress === 'string' ? raw.propertyAddress : undefined,
+      customerName: typeof raw.customerName === 'string' ? raw.customerName : undefined,
+      maskedPhone: typeof raw.maskedPhone === 'string' ? raw.maskedPhone : undefined,
+      status: 'pending',
+      expireAt: typeof raw.expireTime === 'string' ? raw.expireTime : undefined
+    })).filter((item) => Boolean(item.id && item.companyName))
+  },
+
   customerInvitationInfo: async (input: CustomerInviteInfoInput): Promise<InviteCode> =>
     normalizeInvite(await post<RawRecord>('identity/customer-invite/info', input)),
 
@@ -288,13 +307,14 @@ export const identityApi = {
   rejectInvite: async (inviteId: string, phone: string, reason?: string) =>
     normalizeInvite(await post<RawRecord>('invite/invitation/reject', { inviteId, phone, reason })),
 
-  storeList: async (currentOnly?: boolean): Promise<Store[]> => {
-    // 未归属企业的登录用户只有 Credentials，没有 Employee 身份；门店接口不是其业务入口。
-    if (!session.emp) return []
-    return listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
+  storeList: async (currentOnly?: boolean): Promise<Store[]> =>
+    listOf(await post<RawRecord[] | PageResult<RawRecord>>('user/store/list', currentOnly ? { currentOnly } : {}))
       .map(normalizeStore)
-      .filter((item): item is Store => !!item)
-  },
+      .filter((item): item is Store => !!item),
+
+  /** 主动退出：调用方必须传入当前 token，因为本地会话会先同步清空。 */
+  logout: (token?: string) =>
+    post<void>('auth/session/logout', {}, token ? { token } : {}),
 
   switchCompany: async (inviteId: string, reason?: string) =>
     normalizeEmployee(await post<RawRecord>('user/user/switch-company', { inviteId, reason })),
@@ -323,11 +343,17 @@ export const identityApi = {
    * 更新企业信息。
    *
    * 历史坑（FIX-041）：后端迁移 114 已支持「企业对外信息」6 个字段（服务区域/客服电话/售后专线/USCC/资质/简介），
-   * 但入参类型一度只声明 brandPrimary/custodianCredit，导致页面即使填了也过不了类型检查 → 字段永远填不进去。
+   * 但入参类型一度缺失，导致页面即使填了也过不了类型检查 → 字段永远填不进去。
    * 后端 company/company/update 仅 BOSS 可写（requireBoss），前端类型必须与之一致。
    */
   updateCompany: async (input: { title?: string; name?: string; logo?: string; color?: string; addr?: string; setting?: CompanySetting }) =>
     normalizeCompany(await post<RawRecord>('company/company/update', input)),
+
+  uploadCompanyLogo: async (filePath: string) =>
+    normalizeCompany(await uploadRequest<RawRecord>('company/company/update', filePath, {}, 'logoFile')),
+
+  removeCompanyLogo: async () =>
+    normalizeCompany(await post<RawRecord>('company/company/update', { logo: '' })),
 
   memberPage: async (query: { status?: 'Active' | 'Suspended' | 'Resigned'; current?: number; size?: number; storeId?: string } = {}) => {
     const current = query.current ?? 1
@@ -359,13 +385,25 @@ export const identityApi = {
 
   resumeMember: async (empId: string) => normalizeEmployee(await post<RawRecord>('company/member/resume', { empId })),
 
-  employeePage: async (query: { keyword?: string; current?: number; size?: number } = {}): Promise<PageData<Employee>> => {
+  employeePage: async (query: {
+    keyword?: string
+    role?: string
+    status?: string
+    storeId?: string
+    excludeEmpId?: string
+    current?: number
+    size?: number
+  } = {}): Promise<PageData<Employee>> => {
     const current = query.current ?? 1
     const size = query.size ?? 20
     const result = await post<PageResult<RawRecord> | RawRecord[]>('user/employee/page', {
       current,
       size,
-      keyword: query.keyword?.trim() || undefined
+      keyword: query.keyword?.trim() || undefined,
+      role: query.role || undefined,
+      status: query.status || undefined,
+      storeId: query.storeId || undefined,
+      excludeEmpId: query.excludeEmpId || undefined
     })
     const page = toPageData(result, current, size)
     return { ...page, list: page.list.map(normalizeEmployee) }

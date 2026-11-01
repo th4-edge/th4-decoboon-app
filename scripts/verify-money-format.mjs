@@ -25,7 +25,7 @@ const result = await build({
 })
 const source = result.outputFiles[0].text
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
-const { money } = await import(moduleUrl)
+const { money, moneyExact } = await import(moduleUrl)
 const cases = [
   [105, '¥105'],
   [-105, '-¥105'],
@@ -39,4 +39,18 @@ for (const [input, expected] of cases) {
     throw new Error(`money(${input}) expected ${expected}, got ${actual}`)
   }
 }
-console.log(`money-format PASS: ${cases.length} cases`)
+const exactCases = [
+  [105, '¥105.00'],
+  [2495.75, '¥2,495.75'],
+  [-760.5, '-¥760.50'],
+  [12345.6, '¥12,345.60'],
+  [0, '¥0.00'],
+  [null, '-']
+]
+for (const [input, expected] of exactCases) {
+  const actual = moneyExact(input)
+  if (actual !== expected) {
+    throw new Error(`moneyExact(${input}) expected ${expected}, got ${actual}`)
+  }
+}
+console.log(`money-format PASS: ${cases.length + exactCases.length} cases`)

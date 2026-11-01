@@ -618,7 +618,7 @@ async function loadStores() {
   /* 头部已是深绿渐变，卡片改用更亮的中绿，配合上方 24rpx 间距形成层次，避免两块深绿相接 */
   background: linear-gradient(135deg, $jzb-primary 0%, $jzb-primary-light 58%, $jzb-primary-light 100%);
   border-radius: $jzb-radius-xl;
-  box-shadow: 0 16rpx 36rpx rgba(14, 138, 125, .16);
+  box-shadow: 0 16rpx 36rpx var(--jzb-primary-a16, rgba(14, 138, 125, .16));
 }
 .subscription__hero-glow {
   position: absolute;

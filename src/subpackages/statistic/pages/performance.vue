@@ -427,10 +427,10 @@ function openQuotes() { uni.navigateTo({ url: P.quoteList }) }
       </view>
 
       <view v-if="showStoreTarget" class="jz-card perf__store-target">
-        <view class="perf__store-target-row"><text>签约目标</text><input v-model.number="storeTargetForm.signedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-        <view class="perf__store-target-row"><text>回款目标</text><input v-model.number="storeTargetForm.receivedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-        <view class="perf__store-target-row"><text>毛利目标</text><input v-model.number="storeTargetForm.grossProfit" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
-        <view class="perf__store-target-row"><text>在建项目目标</text><input v-model.number="storeTargetForm.activeProjectCount" type="number" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+        <view class="perf__store-target-row"><text>签约目标</text><input v-model.number="storeTargetForm.signedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
+        <view class="perf__store-target-row"><text>回款目标</text><input v-model.number="storeTargetForm.receivedAmount" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
+        <view class="perf__store-target-row"><text>毛利目标</text><input v-model.number="storeTargetForm.grossProfit" type="digit" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
+        <view class="perf__store-target-row"><text>在建项目目标</text><input v-model.number="storeTargetForm.activeProjectCount" type="number" class="jz-numeric-input" placeholder="0" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
         <text v-if="storeTargetError" class="perf__store-target-error">{{ storeTargetError }}</text>
         <button class="jz-btn jz-btn--primary" :disabled="savingStoreTarget" @tap="saveStoreTarget">{{ savingStoreTarget ? '保存中…' : '保存本店目标' }}</button>
       </view>

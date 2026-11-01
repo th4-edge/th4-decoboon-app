@@ -104,7 +104,7 @@ async function submit() {
         </view>
         <view class="ob-row">
           <text class="ob-row__label">接管日余额</text>
-          <input v-model="form[account].amount" type="digit" placeholder="0.00，负数表示透支" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+          <input v-model="form[account].amount" type="digit" placeholder="0.00，负数表示透支" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
         </view>
         <view class="ob-row">
           <text class="ob-row__label">备注</text>

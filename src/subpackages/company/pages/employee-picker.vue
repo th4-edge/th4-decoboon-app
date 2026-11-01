@@ -18,15 +18,26 @@ import { TOKEN_COLOR } from '@/styles/tokens'
 
 type RoleFilter = 'all' | EmployeeRole
 type StatusFilter = 'Active' | 'Suspended' | 'Resigned' | 'all'
-const roleOptions: Array<{ label: string; value: RoleFilter }> = [
-  { label: '全部岗位', value: 'all' }, { label: '负责人', value: 'boss' }, { label: '店长', value: 'storeManager' },
+// 吸收 uni H5 路由 query，避免 fragment 根节点产生 extraneous attrs 警告。
+defineProps<{ source?: string; activeOnly?: string; roles?: string; excludeEmpId?: string; selectedId?: string; selectedName?: string; selectedMeta?: string }>()
+const DEFAULT_ROLE_OPTIONS: Array<{ label: string; value: Exclude<RoleFilter, 'all'> }> = [
+  { label: '负责人', value: 'boss' }, { label: '店长', value: 'storeManager' },
   { label: '业务员', value: 'marketer' }, { label: '设计师', value: 'designer' },
   { label: '项目经理', value: 'pm' }, { label: '财务', value: 'finance' }
 ]
-const statusOptions: Array<{ label: string; value: StatusFilter }> = [
-  { label: '在职', value: 'Active' }, { label: '停用', value: 'Suspended' }, { label: '已离职', value: 'Resigned' }, { label: '全部', value: 'all' }
-]
 const ROLE_API: Record<EmployeeRole, string> = { boss: 'Boss', storeManager: 'StoreManager', teamLeader: 'TeamLeader', marketer: 'Marketer', designer: 'Designer', pm: 'Pm', finance: 'Finance' }
+const source = ref<'payroll' | 'directory'>('payroll')
+const onlyActive = ref(false)
+const configuredRoles = ref<EmployeeRole[]>([])
+const excludeEmpId = ref('')
+const selectedMeta = ref('')
+const roleOptions = computed<Array<{ label: string; value: RoleFilter }>>(() => {
+  const allowed = configuredRoles.value.length ? configuredRoles.value : DEFAULT_ROLE_OPTIONS.map((item) => item.value)
+  return [{ label: '全部岗位', value: 'all' }, ...DEFAULT_ROLE_OPTIONS.filter((item) => allowed.includes(item.value))]
+})
+const statusOptions = computed<Array<{ label: string; value: StatusFilter }>>(() => onlyActive.value
+  ? [{ label: '在职', value: 'Active' }]
+  : [{ label: '在职', value: 'Active' }, { label: '停用', value: 'Suspended' }, { label: '已离职', value: 'Resigned' }, { label: '全部', value: 'all' }])
 const selectedId = ref('')
 const selectedName = ref('')
 const keyword = ref('')
@@ -49,6 +60,15 @@ onLoad((query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   selectedId.value = query?.selectedId || ''
   selectedName.value = query?.selectedName || ''
+  selectedMeta.value = query?.selectedMeta || ''
+  source.value = query?.source === 'directory' ? 'directory' : 'payroll'
+  onlyActive.value = query?.activeOnly === '1'
+  excludeEmpId.value = query?.excludeEmpId || ''
+  configuredRoles.value = String(query?.roles || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is EmployeeRole => Object.prototype.hasOwnProperty.call(ROLE_API, item))
+  if (onlyActive.value) status.value = 'Active'
   void boot()
 })
 onPullDownRefresh(() => { void boot().finally(() => uni.stopPullDownRefresh()) })
@@ -61,7 +81,21 @@ async function load(reset = true) {
   if (reset) loading.value = true; else loadingMore.value = true
   loadError.value = ''
   try {
-    const result = await payrollApi.employeePickerPage({ keyword: keyword.value.trim() || undefined, role: role.value === 'all' ? undefined : ROLE_API[role.value], storeId: storeId.value || undefined, status: status.value === 'all' ? 'all' : status.value }, current.value, 20)
+    const roleQuery = role.value === 'all'
+      ? (configuredRoles.value.length ? configuredRoles.value.map((item) => ROLE_API[item]).join(',') : undefined)
+      : ROLE_API[role.value]
+    const params = {
+      keyword: keyword.value.trim() || undefined,
+      role: roleQuery,
+      storeId: storeId.value || undefined,
+      status: status.value === 'all' ? 'all' : status.value,
+      excludeEmpId: excludeEmpId.value || undefined,
+      current: current.value,
+      size: 20
+    }
+    const result = source.value === 'directory'
+      ? await identityApi.employeePage(params)
+      : await payrollApi.employeePickerPage(params, current.value, 20)
     if (version !== loadVersion) return
     items.value = reset ? result.list : [...items.value, ...result.list]
     total.value = result.total
@@ -75,7 +109,11 @@ async function load(reset = true) {
 function loadMore() { if (!hasMore.value || loading.value || loadingMore.value) return; current.value += 1; void load(false) }
 function onKeywordInput() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(() => void load(true), 300) }
 function clearKeyword() { keyword.value = ''; void load(true) }
-function choose(emp: Employee) { setEmployeePickerResult({ action: 'select', value: emp }); uni.navigateBack() }
+function choose(emp: Employee) {
+  if (onlyActive.value && emp.status !== 'active') return
+  setEmployeePickerResult({ action: 'select', value: emp })
+  uni.navigateBack()
+}
 function clearSelection() { setEmployeePickerResult({ action: 'clear' }); uni.navigateBack() }
 function statusText(emp: Employee) { return emp.status === 'active' ? '在职' : emp.status === 'suspended' ? '停用' : '已离职' }
 </script>
@@ -83,7 +121,7 @@ function statusText(emp: Employee) { return emp.status === 'active' ? '在职' :
   <view class="bp-page">
     <JzPageHeader title="选择员工" subtitle="按岗位、门店、团队和在职状态选择" back />
     <view class="bp-body">
-      <view v-if="selectedId" class="bp-current"><view class="bp-current__icon"><JzIcon name="users" :size="32" :color="TOKEN_COLOR.primary" /></view><view class="bp-current__main"><text class="bp-current__eyebrow">当前选择</text><text class="bp-current__name">{{ selectedName || '已选员工' }}</text></view><text class="bp-current__clear" @tap="clearSelection">清除</text></view>
+      <view v-if="selectedId" class="bp-current"><view class="bp-current__icon"><JzIcon name="users" :size="32" :color="TOKEN_COLOR.primary" /></view><view class="bp-current__main"><text class="bp-current__eyebrow">当前选择</text><text class="bp-current__name">{{ selectedName || '已选员工' }}</text><text v-if="selectedMeta" class="bp-current__meta">{{ selectedMeta }}</text></view><text class="bp-current__clear" @tap="clearSelection">清除</text></view>
       <view class="bp-search"><JzIcon name="search" :size="30" :color="TOKEN_COLOR.text4" /><input v-model="keyword" placeholder="搜索姓名 / 手机号 / 岗位" @input="onKeywordInput" /><view v-if="keyword" class="bp-search__clear" @tap="clearKeyword"><JzIcon name="close" :size="24" :color="TOKEN_COLOR.text3" /></view><text v-if="loading" class="bp-search__loading">检索中</text></view>
       <view class="bp-filters"><view class="bp-filter-row"><text class="bp-filter__label">岗位</text><scroll-view scroll-x class="bp-scroll"><view class="bp-chips"><view v-for="item in roleOptions" :key="item.value" class="bp-chip" :class="{ 'bp-chip--on': role === item.value }" @tap="role = item.value; load(true)">{{ item.label }}</view></view></scroll-view></view><view class="bp-filter-row"><text class="bp-filter__label">状态</text><scroll-view scroll-x class="bp-scroll"><view class="bp-chips"><view v-for="item in statusOptions" :key="item.value" class="bp-chip" :class="{ 'bp-chip--on': status === item.value }" @tap="status = item.value; load(true)">{{ item.label }}</view></view></scroll-view></view><view v-if="stores.length > 1" class="bp-filter-row"><text class="bp-filter__label">门店</text><scroll-view scroll-x class="bp-scroll"><view class="bp-chips"><view class="bp-chip" :class="{ 'bp-chip--on': !storeId }" @tap="storeId = ''; load(true)">全部门店</view><view v-for="store in stores" :key="store.id" class="bp-chip" :class="{ 'bp-chip--on': storeId === store.id }" @tap="storeId = store.id; load(true)">{{ store.name }}</view></view></scroll-view></view></view>
       <PageState v-if="loadError && !items.length" state="error" title="员工加载失败" :subtitle="loadError" @retry="load(true)" />

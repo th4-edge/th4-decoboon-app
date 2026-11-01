@@ -28,7 +28,10 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
 const editable = computed(() => can(session.role, 'edit:finance'))
 const canReverse = computed(() => can(session.role, 'act:receiptReverse'))
 const refundMode = ref(false)
-const totals = ref({ total: 0, month: 0, count: 0 })
+const totals = ref<{ gross: number | null; effective: number | null; reversed: number | null; count: number | null }>({
+  gross: null, effective: null, reversed: null, count: null
+})
+const totalsError = ref('')
 
 onLoad((query) => { projectId.value = query?.projectId || ''; refundMode.value = query?.refund === '1'; if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => { if (isLoggedIn()) void refreshAll() })
@@ -36,15 +39,18 @@ onPullDownRefresh(() => refreshAll().finally(() => uni.stopPullDownRefresh()))
 
 async function refreshAll() { await Promise.all([refresh(), loadTotals()]) }
 async function loadTotals() {
+  totalsError.value = ''
   try {
-    if (projectId.value) {
-      const report = await financeApi.projectReport(projectId.value)
-      totals.value = { total: report.receiptAmount, month: report.monthReceiptAmount, count: report.receiptCount }
-      return
+    const report = await financeApi.receiptReport({ projectId: projectId.value || undefined })
+    totals.value = {
+      gross: report.grossReceiptAmount,
+      effective: report.receiptAmount,
+      reversed: report.reversalAmount,
+      count: report.receiptCount
     }
-    const report = await financeApi.summary()
-    totals.value = { total: report.receiptAmount, month: report.monthReceiptAmount, count: report.receiptCount }
   } catch (error) {
+    totals.value = { gross: null, effective: null, reversed: null, count: null }
+    totalsError.value = error instanceof Error ? error.message : '收款汇总暂不可确认'
     toastError(error, '收款汇总加载失败')
   }
 }
@@ -67,11 +73,13 @@ useFinanceStoreScope(() => refreshAll())
     <FinanceStoreScope />
 
     <view class="fin-hero fin-hero--balance">
-      <text class="fin-hero__label">累计客户回款</text>
-      <text class="fin-hero__value fin-amount">{{ money(totals.total) }}</text>
+      <text class="fin-hero__label">收款总额（含冲正）</text>
+      <text class="fin-hero__value fin-amount">{{ money(totals.gross) }}</text>
+      <text v-if="totalsError" class="fin-hero__notice">汇总暂不可确认，点击右上角刷新重试</text>
       <view class="fin-hero__grid">
-        <view class="fin-hero__item"><text class="fin-hero__item-label">本月回款</text><text class="fin-hero__item-value">{{ money(totals.month) }}</text></view>
-        <view class="fin-hero__item"><text class="fin-hero__item-label">收款笔数</text><text class="fin-hero__item-value">{{ totals.count }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">有效收款</text><text class="fin-hero__item-value">{{ money(totals.effective) }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">已冲正</text><text class="fin-hero__item-value">{{ money(totals.reversed) }}</text></view>
+        <view class="fin-hero__item"><text class="fin-hero__item-label">收款笔数</text><text class="fin-hero__item-value">{{ totals.count ?? '—' }}</text></view>
       </view>
     </view>
 

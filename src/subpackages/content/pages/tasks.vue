@@ -75,7 +75,7 @@ function openMine() { uni.navigateTo({ url: P.employeeContents }) }
 .ct__hero-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .ct__filters { display: flex; gap: 12rpx; margin: 22rpx 0 16rpx; overflow-x: auto; }
 .ct__chip { flex: none; min-height: 64rpx; padding: 0 22rpx; border: 1rpx solid $jzb-border-light; border-radius: 999rpx; background: #fff; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.ct__chip--active { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(14,138,125,.18); font-weight: 700; }
+.ct__chip--active { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a18, rgba(14, 138, 125, .18)); font-weight: 700; }
 .ct__list { display: grid; gap: 16rpx; }
 .ct__item { padding: 24rpx; }
 .ct__title { font-size: $jzb-font-md; font-weight: 700; }

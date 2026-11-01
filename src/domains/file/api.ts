@@ -18,6 +18,7 @@ export type PrivateFileScope =
   | 'Content'
   | 'CustomerFollow'
   | 'Expense'
+  | 'Partner'
 
 interface RawFileGrant {
   path?: string

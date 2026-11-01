@@ -46,7 +46,7 @@ if (!customerModel.includes('idleDays') || !customerModel.includes('riskLevel') 
   console.error('客户经营卡片契约校验失败: 缺少停留天数、风险等级或下一步投影')
   process.exit(1)
 }
-if (!customerPage.includes('bossMetrics') || !customerPage.includes('selectSort') || !customerPage.includes('bossBusinessAmount')) {
+if (!customerPage.includes('overviewMetrics') || !customerPage.includes('selectSort') || !customerPage.includes('bossBusinessAmount')) {
   console.error('负责人客户页面契约校验失败: 缺少经营指标卡、风险排序或经营卡片')
   process.exit(1)
 }

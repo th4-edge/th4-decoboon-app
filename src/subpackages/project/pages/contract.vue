@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { tradeApi } from '@/domains/trade/api'
@@ -18,6 +18,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzProgress from '@/components/JzProgress.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import PageState from '@/components/PageState/PageState.vue'
+import ListFooter from '@/components/ListFooter/ListFooter.vue'
 
 const { system } = useSystem()
 /** 自定义导航页：Hero 顶部返回入口，避开状态栏 */
@@ -56,6 +57,14 @@ const workbench = ref<ContractWorkbench | null>(null)
 const lines = ref<ContractLine[]>([])
 const loadingState = ref(true)
 const loadError = ref('')
+const linesLoading = ref(false)
+const linesLoadingMore = ref(false)
+const linesLoadError = ref('')
+const linesLoadMoreError = ref('')
+const lineCurrent = ref(1)
+const lineTotal = ref(0)
+const lineHasMore = ref(false)
+const LINE_PAGE_SIZE = 20
 const detailView = ref<'region' | 'category'>('region')
 const collapsed = ref<Record<string, boolean>>({})
 const printing = ref(false)
@@ -72,6 +81,7 @@ onLoad((q) => {
 })
 onShow(() => { if (contractId.value || projectId.value) void load() })
 onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
+onReachBottom(() => { void loadMoreLines() })
 
 async function load() {
   loadingState.value = true
@@ -82,9 +92,7 @@ async function load() {
     workbench.value = data
     if (!contractId.value && data.contract?.id) contractId.value = data.contract.id
     if (!projectId.value && data.progress?.projectId) projectId.value = data.progress.projectId
-    lines.value = await tradeApi.contractLines(
-      contractId.value ? { contractId: contractId.value } : { projectId: projectId.value }
-    ).catch(() => [])
+    await refreshLines()
   } catch (error) {
     workbench.value = null
     loadError.value = error instanceof Error ? error.message : '合同履约档案加载失败'
@@ -94,6 +102,16 @@ async function load() {
 }
 
 const contract = computed(() => workbench.value?.contract || null)
+const scopeLineCount = computed(() => workbench.value?.lineCount ?? lineTotal.value)
+const scopeLineAmount = computed<number | null>(() =>
+  workbench.value && Number.isFinite(workbench.value.lineAmount) ? workbench.value.lineAmount : null
+)
+const scopeSummaryText = computed(() => {
+  const count = scopeLineCount.value
+  const amountText = scopeLineAmount.value === null ? '金额暂不可确认' : `合计 ${money(scopeLineAmount.value)}`
+  const loadedText = lineHasMore.value ? ` · 当前已加载 ${lines.value.length} 项` : ''
+  return `签约时冻结的合同明细，共 ${count} 项 · ${amountText}${loadedText}`
+})
 const upstreamFacts = computed(() => workbench.value?.upstreamFacts || [])
 const downstreamFacts = computed(() => workbench.value?.downstreamFacts || [])
 const sourceGaps = computed(() => workbench.value?.sourceGaps || [])
@@ -154,7 +172,52 @@ const groupedLines = computed(() => {
   return [...groups.values()]
 })
 
-const linesTotal = computed(() => lines.value.reduce((sum, line) => sum + Number(line.amount || 0), 0))
+async function refreshLines() {
+  if (!contractId.value && !projectId.value) return
+  linesLoading.value = true
+  linesLoadError.value = ''
+  linesLoadMoreError.value = ''
+  try {
+    const page = await tradeApi.contractLines(
+      contractId.value ? { contractId: contractId.value } : { projectId: projectId.value },
+      1,
+      LINE_PAGE_SIZE
+    )
+    lines.value = page.list
+    lineCurrent.value = 1
+    lineTotal.value = page.total
+    lineHasMore.value = page.hasMore
+  } catch (error) {
+    lines.value = []
+    lineCurrent.value = 1
+    lineTotal.value = 0
+    lineHasMore.value = false
+    linesLoadError.value = error instanceof Error ? error.message : '合同范围暂不可确认'
+  } finally {
+    linesLoading.value = false
+  }
+}
+
+async function loadMoreLines() {
+  if (!lineHasMore.value || linesLoading.value || linesLoadingMore.value) return
+  linesLoadingMore.value = true
+  linesLoadMoreError.value = ''
+  try {
+    const page = await tradeApi.contractLines(
+      contractId.value ? { contractId: contractId.value } : { projectId: projectId.value },
+      lineCurrent.value + 1,
+      LINE_PAGE_SIZE
+    )
+    lines.value = [...lines.value, ...page.list]
+    lineCurrent.value += 1
+    lineTotal.value = page.total
+    lineHasMore.value = page.hasMore
+  } catch (error) {
+    linesLoadMoreError.value = error instanceof Error ? error.message : '合同明细加载失败'
+  } finally {
+    linesLoadingMore.value = false
+  }
+}
 
 function typeLabel(type?: string): string {
   const map: Record<string, string> = {
@@ -432,13 +495,17 @@ function nodeColor(status?: string) {
       </view>
       <view class="jz-card cw__scope">
         <view class="cw__scope-head">
-          <text class="cw__scope-note">签约时冻结的合同明细，共 {{ lines.length }} 项 · 合计 {{ money(linesTotal) }}</text>
+          <text class="cw__scope-note">{{ scopeSummaryText }}</text>
           <view class="cw__view-tools">
             <view class="cw__view-tool" :class="{ 'cw__view-tool--on': detailView === 'region' }" @tap="detailView = 'region'">按区域</view>
             <view class="cw__view-tool" :class="{ 'cw__view-tool--on': detailView === 'category' }" @tap="detailView = 'category'">按类型</view>
           </view>
         </view>
-        <JzEmpty v-if="!lines.length" text="合同范围待补充" sub="合同生成时会冻结报价明细" />
+        <view v-if="linesLoadError" class="cw__line-error" @tap="refreshLines">
+          <text>{{ linesLoadError }}，点击重试</text>
+        </view>
+        <view v-else-if="linesLoading && !lines.length" class="cw__empty-line">合同明细加载中…</view>
+        <JzEmpty v-else-if="!lines.length" text="合同范围待补充" sub="合同生成时会冻结报价明细" />
         <view v-for="group in groupedLines" v-else :key="group.key" class="cw__group">
           <view class="cw__group-head" @tap="toggleGroup(group.key)">
             <view class="cw__group-left">
@@ -446,7 +513,7 @@ function nodeColor(status?: string) {
               <text class="cw__group-name">{{ group.name }}</text>
               <text class="cw__group-count">{{ group.items.length }} 项</text>
             </view>
-            <text class="cw__group-amount">{{ money(group.amount) }}</text>
+            <text v-if="!lineHasMore" class="cw__group-amount">{{ money(group.amount) }}</text>
           </view>
           <view v-if="!isCollapsed(group.key)" class="cw__group-body">
             <view v-for="line in group.items" :key="line.id" class="cw__line">
@@ -461,6 +528,14 @@ function nodeColor(status?: string) {
             </view>
           </view>
         </view>
+        <ListFooter
+          v-if="lines.length"
+          :loading="linesLoadingMore"
+          :has-more="lineHasMore"
+          :error="linesLoadMoreError"
+          empty-text="合同明细已全部加载"
+          @retry="loadMoreLines"
+        />
       </view>
     </view>
 
@@ -636,6 +711,7 @@ function nodeColor(status?: string) {
 .cw__scope { padding: 24rpx; }
 .cw__scope-head { margin-bottom: 12rpx; }
 .cw__scope-note { display: block; font-size: $jzb-font-xs; color: $jzb-text-3; line-height: 1.6; }
+.cw__line-error { padding: 36rpx 24rpx; color: $jzb-danger; text-align: center; font-size: $jzb-font-sm; }
 .cw__view-tools { display: flex; gap: 12rpx; margin-top: 14rpx; }
 .cw__view-tool { padding: 8rpx 22rpx; border-radius: $jzb-radius-pill; background: $jzb-bg-hover; font-size: $jzb-font-xs; color: $jzb-text-2; }
 .cw__view-tool--on { background: $jzb-primary-lightest; color: $jzb-primary-dark; font-weight: 650; }

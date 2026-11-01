@@ -99,7 +99,7 @@ useShare(() => ({
       <text class="pi__sub">填写业主手机号生成邀请，用微信分享邀请卡片；业主授权手机号后仅可见「{{ project.name }}」的进度、动态与验收</text>
 
       <view class="pi__field"><text class="pi__label">业主称呼</text><input v-model="customerName" placeholder="例：王先生" /></view>
-      <view class="pi__field"><text class="pi__label">业主手机</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="必填，用于微信手机号一致性校验" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+      <view class="pi__field"><text class="pi__label">业主手机</text><input v-model="customerPhone" type="number" maxlength="11" placeholder="必填，用于微信手机号一致性校验" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
 
       <button class="jz-btn jz-btn--primary jz-btn--block pi__gen-btn" @tap="gen"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>生成业主邀请</text></button>
 

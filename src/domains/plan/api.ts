@@ -150,6 +150,16 @@ export const planApi = {
   catalog: async (): Promise<PlanTemplateCatalog> => {
     return catalog(await post<RawRecord>('plan/template/page', {}))
   },
+  pickerPage: async (query: { kind: 'Payment' | 'Construction'; current?: number; size?: number; keyword?: string }): Promise<PlanTemplateCatalog> => {
+    const current = Math.max(1, Math.trunc(query.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+    return catalog(await post<RawRecord>('plan/template/picker/page', {
+      kind: query.kind,
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined
+    }))
+  },
   paymentManagement: async (): Promise<PlanTemplateCatalog> => catalog(await post<RawRecord>('plan/payment-template/page', {})),
   constructionManagement: async (): Promise<PlanTemplateCatalog> => catalog(await post<RawRecord>('plan/construction-template/page', {})),
   savePayment: async (input: PaymentPlanTemplateInput): Promise<PaymentPlanTemplate> =>

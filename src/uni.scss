@@ -4,17 +4,18 @@
    ============================================================ */
 
 /* Brand */
-$jzb-primary: #16A394;
-$jzb-primary-base: #16A394; /* 与 TS TOKEN_COLOR.primaryBase 对齐 */
-$jzb-primary-light: #2BC4B4;
-$jzb-primary-dark: #0E8A7D;
-$jzb-primary-deep: #096C64;
-$jzb-brand-ink: #103A3A; /* 深色品牌面（金额/合同卡渐变起点） */
-$jzb-brand-ink-deep: #0F2F31; /* 深色品牌面渐变终点 */
-$jzb-primary-lighter: #E8F7F5;
-$jzb-primary-lightest: #F2FBFA;
-$jzb-gradient: linear-gradient(135deg, #1FB5A8 0%, #16A394 52%, #0B786F 100%);
-$jzb-gradient-soft: linear-gradient(145deg, rgba(43, 196, 180, 0.14) 0%, rgba(22, 163, 148, 0.04) 100%);
+$jzb-primary: var(--jzb-primary, #0E8A7D);
+$jzb-primary-base: var(--jzb-primary-base, #16A394);
+$jzb-primary-light: var(--jzb-primary-light, #2BC4B4);
+$jzb-primary-dark: var(--jzb-primary-dark, #0E8A7D);
+$jzb-primary-deep: var(--jzb-primary-deep, #096C64);
+$jzb-brand-ink: var(--jzb-brand-ink, #103A3A); /* 深色品牌面（金额/合同卡渐变起点） */
+$jzb-brand-ink-deep: var(--jzb-brand-ink-deep, #0F2F31); /* 深色品牌面渐变终点 */
+$jzb-primary-lighter: var(--jzb-primary-lighter, #E8F7F5);
+$jzb-primary-lightest: var(--jzb-primary-lightest, #F2FBFA);
+$jzb-brand-on-primary: var(--jzb-text-on-brand, #FFFFFF);
+$jzb-gradient: var(--jzb-gradient, linear-gradient(135deg, #1FB5A8 0%, #16A394 52%, #0B786F 100%));
+$jzb-gradient-soft: var(--jzb-gradient-soft, linear-gradient(145deg, rgba(43, 196, 180, 0.14) 0%, rgba(22, 163, 148, 0.04) 100%));
 $jzb-gradient-surface: linear-gradient(160deg, #FFFFFF 0%, #F7FCFB 100%);
 
 /* Semantic */
@@ -58,14 +59,14 @@ $jzb-border-light: #EEF2F4;
 $jzb-bg-page: #F4F7F8;
 $jzb-bg-card: #FFFFFF;
 $jzb-bg-hover: #F8FAFB;
-$jzb-bg-active: #E8F7F5;
+$jzb-bg-active: $jzb-primary-lighter;
 $jzb-bg-mask: rgba(15, 23, 42, 0.50);
 
 /* Elevation */
 $jzb-shadow-xs: 0 2rpx 8rpx rgba(15, 23, 42, 0.035);
 $jzb-shadow-card: 0 8rpx 30rpx rgba(15, 23, 42, 0.055);
 $jzb-shadow-elevated: 0 16rpx 48rpx rgba(15, 23, 42, 0.10);
-$jzb-shadow-float: 0 16rpx 38rpx rgba(14, 138, 125, 0.28);
+$jzb-shadow-float: var(--jzb-shadow-float, 0 16rpx 38rpx rgba(14, 138, 125, 0.24));
 
 /* Radius */
 $jzb-radius-xs: 8rpx;
@@ -154,10 +155,10 @@ $owner-body-size: 26rpx;
 $owner-meta-size: 24rpx;
 
 /* Role semantic */
-$jzb-role-boss: #16A394;
+$jzb-role-boss: $jzb-primary;
 $jzb-role-designer: #6958C8;
 $jzb-role-pm: #E67E22;
 $jzb-role-marketer: #168A96;
 $jzb-role-project-support: #8A5CC7;
-$jzb-role-finance: #0E8A7D;
+$jzb-role-finance: $jzb-primary-dark;
 $jzb-role-customer: #E5484D;

@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import { onLaunch, onShow } from '@dcloudio/uni-app'
-import { initSession, loginAsCustomer, loginAsEmployee, loginAsUser, logout, session } from '@/domains/identity/session'
+import { watch } from 'vue'
+import { clearSession, initSession, loginAsCustomer, loginAsEmployee, loginAsUser, logout, session } from '@/domains/identity/session'
 import { identityApi } from '@/domains/identity/api'
 import { loadStoreScope } from '@/domains/identity/storeScope'
 import { P } from '@/config'
+import type { PendingEntryInvite } from '@/domains/identity/model'
 import { canVisit, hasRouteRule } from '@/roles/guard'
-import { ProviderRequestError } from '@/core/http'
+import { ProviderRequestError, setUnauthorizedHandler } from '@/core/http'
+import { applyBrandTheme } from '@/domains/identity/brandTheme'
+
+setUnauthorizedHandler(clearSession)
+
+watch(
+  () => session.company?.color,
+  (color) => applyBrandTheme(color),
+  { immediate: true }
+)
 
 onLaunch(() => {
   initSession()
@@ -43,12 +54,20 @@ function enforceCurrentPageAccess() {
 }
 
 async function refreshIdentity() {
-  if (!session.token || !session.role) return
+  if (!session.token) return
   try {
     const profile = await identityApi.sessionInfo()
-    if (profile.currentEmployee) loginAsEmployee(profile.currentEmployee, session.token, profile)
-    else if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) loginAsCustomer(profile, session.token)
-    else loginAsUser(profile, session.token)
+    if (profile.currentEmployee) {
+      loginAsEmployee(profile.currentEmployee, session.token, profile)
+      redirectJoinedUserHome()
+    } else if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) {
+      loginAsCustomer(profile, session.token)
+      redirectJoinedUserHome()
+    } else {
+      loginAsUser(profile, session.token)
+      const pending = await identityApi.pendingEntryInvites()
+      if (pending.length) uni.reLaunch({ url: pendingEntriesLandingUrl(pending) })
+    }
   } catch (error) {
     if (error instanceof ProviderRequestError && error.code === '403') {
       rejectFrozenRole(error.message)
@@ -58,11 +77,30 @@ async function refreshIdentity() {
   }
 }
 
+function pendingEntriesLandingUrl(invites: PendingEntryInvite[]): string {
+  if (invites.length !== 1) return P.inviteDiscover
+  const invite = invites[0]
+  const query = `inviteId=${encodeURIComponent(invite.id)}`
+  return invite.type === 'customer' ? `${P.ownerEnter}?${query}` : `${P.inviteAccept}?${query}`
+}
+
+function redirectJoinedUserHome(): void {
+  if (!session.role) return
+  const current = getCurrentPages()[getCurrentPages().length - 1]
+  const route = current?.route ? `/${current.route}` : ''
+  const entryPages = new Set<string>([P.login, P.companyJoin, P.inviteAccept, P.inviteDiscover, P.ownerEnter])
+  if (!entryPages.has(route)) return
+  uni.reLaunch({
+    url: P.home,
+    fail: () => uni.switchTab({ url: P.home })
+  })
+}
+
 let frozenRoleRedirecting = false
 function rejectFrozenRole(message: string): void {
   if (frozenRoleRedirecting) return
   frozenRoleRedirecting = true
-  logout()
+  void logout()
   uni.reLaunch({
     url: P.login,
     complete: () => {

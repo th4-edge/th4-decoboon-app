@@ -854,7 +854,7 @@ function avatarOf(m: ProjectMember) {
 .pd__tab-body { padding: 20rpx $jzb-page-pad; }
 .pd__quick-actions { display: flex; flex-direction: row; padding: 20rpx; margin-bottom: 20rpx; }
 .pd__quick-actions .jz-btn { margin: 0 8rpx; }
-.pd__tools { display: flex; align-items: stretch; margin-bottom: 20rpx; padding: 10rpx 8rpx; background: $jzb-gradient-surface; border-color: rgba(22, 163, 148, .14); }
+.pd__tools { display: flex; align-items: stretch; margin-bottom: 20rpx; padding: 10rpx 8rpx; background: $jzb-gradient-surface; border-color: var(--jzb-primary-a14, rgba(22, 163, 148, .14)); }
 .pd__tool { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 10rpx; padding: 16rpx 8rpx; border-radius: $jzb-radius-sm; }
 .pd__tool:active { background: $jzb-bg-hover; }
 .pd__tool + .pd__tool { border-left: 1rpx solid $jzb-border-light; }
@@ -957,11 +957,11 @@ function avatarOf(m: ProjectMember) {
 .pd__selection, .pd__mine, .pd__roles, .pd__contract, .pd__gantt,
 .pd__advice, .pd__feedback {
   background: linear-gradient(160deg, $jzb-bg-card 0%, $jzb-primary-lightest 100%);
-  border-color: rgba(22, 163, 148, 0.14);
+  border-color: var(--jzb-primary-a14, rgba(22, 163, 148, 0.14));
 }
 .pd__stages {
   background: linear-gradient(160deg, $jzb-bg-card 0%, $jzb-primary-lightest 100%);
-  border: 1rpx solid rgba(22, 163, 148, 0.14);
+  border: 1rpx solid var(--jzb-primary-a14, rgba(22, 163, 148, 0.14));
 }
 .pd__selection-title, .pd__mine-title, .pd__roles-title, .pd__plan-title,
 .pd__contract-title, .pd__advice-title {

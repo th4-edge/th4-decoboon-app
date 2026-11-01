@@ -20,6 +20,9 @@ must('src/subpackages/project/pages/plan-edit.vue', "requestedStageId", '工艺�
 must('src/roles/guard.ts', "hasRouteRule", '权限守卫必须提供页面规则判定')
 must('src/App.vue', "scheduleRouteGuard", 'App 必须补冷启动/深链权限检查')
 must('src/App.vue', "hasRouteRule", 'App 权限检查必须只处理受控页面')
+must('src/roles/guard.ts', "PUBLIC_PATHS", '公共页面必须未登录可访问')
+must('src/roles/guard.ts', "P.ownerEnter", '业主入口必须加入未登录公共页面白名单')
+must('src/roles/guard.ts', "P.inviteAccept", '邀请入口必须加入未登录公共页面白名单')
 for (const file of [
   'src/subpackages/team/pages/designers.vue',
   'src/subpackages/team/pages/list.vue',

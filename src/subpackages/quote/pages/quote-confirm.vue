@@ -235,7 +235,7 @@ async function submit() {
               type="number"
               class="qc__discount-input jz-numeric-input"
               placeholder="100"
-              maxlength="3" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
+              maxlength="3" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right"
             />
             <text class="qc__discount-unit">%</text>
           </view>

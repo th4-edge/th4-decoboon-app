@@ -42,6 +42,8 @@ const roleKey = computed(() => {
 })
 const roleMeta = computed(() => ROLE_META[roleKey.value])
 const roleColor = computed(() => roleMeta.value?.color || TOKEN_COLOR.primary)
+/** 装企员工默认头像统一使用企业主题色；岗位色只保留在右下角状态点。 */
+const avatarColor = computed(() => TOKEN_COLOR.primary)
 const unit = computed(() => `${props.size}rpx`)
 const avatarSize = computed(() => Math.max(20, props.size - 8))
 const dotSize = computed(() => props.size <= 44 ? 14 : 18)
@@ -58,7 +60,7 @@ const dotColor = computed(() => {
     :class="{ 'jz-employee-avatar--inactive': status === 'suspended' || status === 'resigned' }"
     :style="{ width: unit, height: unit }"
   >
-    <JzAvatar :src="src" :name="name" :color="roleColor" :size="avatarSize" />
+    <JzAvatar :src="src" :name="name" :color="avatarColor" :size="avatarSize" />
     <view v-if="showRole" class="jz-employee-avatar__role" :style="{ width: `${dotSize}rpx`, height: `${dotSize}rpx`, backgroundColor: dotColor }" />
   </view>
 </template>
@@ -74,7 +76,7 @@ const dotColor = computed(() => {
   padding: 4rpx;
   background: $jzb-bg-card;
   border-radius: 50%;
-  box-shadow: 0 4rpx 14rpx rgba(14, 138, 125, .14);
+  box-shadow: 0 4rpx 14rpx var(--jzb-primary-a14, rgba(14, 138, 125, .14));
 }
 .jz-employee-avatar--inactive { opacity: .72; }
 .jz-employee-avatar__role {

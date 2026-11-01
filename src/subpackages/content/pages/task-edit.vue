@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { session } from '@/domains/identity/session'
 import { contentApi, contentTaskApi } from '@/domains/content/api'
 import type { ContentAsset, ContentPlatform, ContentTaskSaveInput, ContentTemplate } from '@/domains/content/model'
+import { consumeContentTemplatePickerResult } from '@/domains/content/template-picker'
 import { chooseMedia } from '@/domains/file/choose-media'
 import { toast, toastError } from '@/composables/toast'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 import JzIcon from '@/components/JzIcon.vue'
 
 const taskId = ref('')
-const templates = ref<ContentTemplate[]>([])
+const selectedTemplate = ref<ContentTemplate | null>(null)
+const templatePickerOpen = ref(false)
 const assets = ref<ContentAsset[]>([])
 const title = ref('')
 const goal = ref('让目标客户理解一个具体问题')
 const targetAudience = ref('')
 const platform = ref<ContentPlatform>('douyin')
-const templateIndex = ref(0)
 const deadlineDate = ref(new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString().slice(0, 10))
 const deadlineTime = ref('18:00')
 const requiredClaims = ref('')
@@ -26,20 +27,23 @@ const forbiddenClaims = ref('不得承诺绝对结果，不使用未授权客户
 const selectedAssetIds = ref<string[]>([])
 const busy = ref(false)
 const platforms = [{ key: 'douyin' as const, label: '抖音' }, { key: 'weChatChannels' as const, label: '视频号' }, { key: 'xiaohongshu' as const, label: '小红书' }]
-const selectedTemplate = computed(() => templates.value[templateIndex.value])
 const publicAssets = computed(() => assets.value.filter((item) => item.status === 'publicReady' || item.status === 'marketingReady'))
 
 onLoad(async (query) => {
   taskId.value = query?.taskId || ''
   try {
-    const [templateList, assetList] = await Promise.all([
-      contentTaskApi.templates(),
-      contentApi.page({ current: 1, size: 100 })
-    ])
-    templates.value = templateList
+    const assetList = await contentApi.page({ current: 1, size: 100 })
     assets.value = assetList
     if (taskId.value) await hydrate()
   } catch (error) { toastError(error, '任务表单加载失败') }
+})
+
+onShow(() => {
+  if (!templatePickerOpen.value) return
+  templatePickerOpen.value = false
+  const result = consumeContentTemplatePickerResult()
+  if (!result) return
+  selectedTemplate.value = result.action === 'clear' ? null : result.value
 })
 
 async function hydrate() {
@@ -49,7 +53,7 @@ async function hydrate() {
   goal.value = task.goal
   targetAudience.value = task.targetAudience
   platform.value = task.platform
-  templateIndex.value = Math.max(0, templates.value.findIndex((item) => item.id === task.template?.id))
+  selectedTemplate.value = task.template || null
   deadlineDate.value = task.deadline.slice(0, 10)
   deadlineTime.value = task.deadline.slice(11, 16) || '18:00'
   requiredClaims.value = task.requiredClaims
@@ -65,6 +69,17 @@ function toggleAsset(asset: ContentAsset) {
 }
 
 function choosePlatform(value: string) { platform.value = platforms.find((item) => item.label === value)?.key || 'douyin' }
+
+function openTemplatePicker() {
+  templatePickerOpen.value = true
+  const template = selectedTemplate.value
+  const params = [
+    `selectedId=${encodeURIComponent(template?.id || '')}`,
+    `selectedName=${encodeURIComponent(template?.name || '')}`,
+    `selectedMeta=${encodeURIComponent(template ? `${template.format} · ${template.durationSec} 秒` : '')}`
+  ]
+  uni.navigateTo({ url: `${P.contentTemplatePicker}?${params.join('&')}` })
+}
 
 async function submit() {
   if (busy.value) return
@@ -103,11 +118,18 @@ async function chooseDeadlineDate(event: string) { deadlineDate.value = event }
 <template>
   <view class="cte">
     <view class="cte__card jz-card">
-      <view class="jz-form-row"><text class="jz-form-label">任务标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：水电隐蔽工程为什么必须留证" placeholder-style="text-align: left" /></view>
-      <view class="jz-form-row"><text class="jz-form-label">目标人群 *</text><input v-model="targetAudience" class="jz-form-control" maxlength="200" placeholder="正在对比装修公司的业主" placeholder-style="text-align: left" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">任务标题 *</text><input v-model="title" class="jz-form-control" maxlength="255" placeholder="例如：水电隐蔽工程为什么必须留证" placeholder-style="text-align: right" /></view>
+      <view class="jz-form-row"><text class="jz-form-label">目标人群 *</text><input v-model="targetAudience" class="jz-form-control" maxlength="200" placeholder="正在对比装修公司的业主" placeholder-style="text-align: right" /></view>
       <view class="jz-form-row"><text class="jz-form-label">传播目标</text><input v-model="goal" class="jz-form-control" maxlength="32" /></view>
       <view class="jz-form-row"><text class="jz-form-label">发布平台</text><JzSelectField variant="plain" :display="platforms.find(x => x.key === platform)?.label || '抖音'" :range="platforms.map(x => x.label)" :index="Math.max(0, platforms.findIndex(x => x.key === platform))" @change="choosePlatform" /></view>
-      <view class="jz-form-row"><text class="jz-form-label">内容模板 *</text><JzSelectField variant="plain" :display="selectedTemplate?.name || '请选择模板'" :range="templates.map(x => x.name)" :index="templateIndex" @change="templateIndex = Math.max(0, templates.findIndex(x => x.name === $event))" /></view>
+      <view class="cte__template-field" @tap="openTemplatePicker">
+        <view class="jz-grow">
+          <text class="cte__template-label">内容模板 *</text>
+          <text class="cte__template-name" :class="{ 'cte__template-name--empty': !selectedTemplate }">{{ selectedTemplate?.name || '选择模板结构与时长' }}</text>
+          <text v-if="selectedTemplate" class="cte__template-meta">{{ selectedTemplate.format }} · 建议 {{ selectedTemplate.durationSec }} 秒 · {{ selectedTemplate.clipMin }}-{{ selectedTemplate.clipMax }} 个片段</text>
+        </view>
+        <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+      </view>
       <view class="jz-form-row"><text class="jz-form-label">截止日期</text><JzSelectField mode="date" variant="plain" :value="deadlineDate" :display="deadlineDate" @change="chooseDeadlineDate" /></view>
       <view class="jz-form-row"><text class="jz-form-label">截止时间</text><JzSelectField mode="time" variant="plain" :value="deadlineTime" :display="deadlineTime" @change="deadlineTime = $event" /></view>
       <view class="jz-form-row jz-form-row--col"><text class="jz-form-label">必须表达 *</text><textarea v-model="requiredClaims" class="cte__textarea" maxlength="1000" placeholder="写下本条内容必须表达的事实和边界" /></view>
@@ -134,6 +156,11 @@ async function chooseDeadlineDate(event: string) { deadlineDate.value = event }
 .cte__card { padding: 28rpx; margin-bottom: 18rpx; }
 .cte__textarea { width: 100%; box-sizing: border-box; min-height: 170rpx; margin-top: 12rpx; padding: 20rpx 22rpx 0; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; }
 .cte__section { font-size: $jzb-font; font-weight: 700; }
+.cte__template-field { display: flex; align-items: center; gap: 12rpx; margin-top: 18rpx; padding: 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; }
+.cte__template-label { display: block; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.cte__template-name { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.cte__template-name--empty { color: $jzb-text-4; }
+.cte__template-meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: 22rpx; }
 .cte__count { color: $jzb-primary-dark; font-size: $jzb-font-xs; }
 .cte__assets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 18rpx; }
 .cte__asset { padding: 8rpx; border: 2rpx solid transparent; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }

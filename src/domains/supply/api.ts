@@ -1,5 +1,7 @@
 import { post, listOf } from '@/core/http'
-import type { PageResult } from '@/domains/common/model'
+import { fileApi } from '@/domains/file/api'
+import { session } from '@/domains/identity/session'
+import { toPageData, type PageData, type PageResult } from '@/domains/common/model'
 import type { InventoryStock, Partner, PartnerPrice, PartnerStatus, PartnerType, StockMovement, StockMovementType } from './model'
 
 type Raw = Record<string, any>
@@ -9,6 +11,11 @@ const PARTNER_TYPE: Record<string, PartnerType> = {
   Logistics: 'logistics', Service: 'service'
 }
 const PARTNER_STATUS: Record<string, PartnerStatus> = { Active: 'active', Disabled: 'disabled' }
+const PARTNER_TYPE_TO_API: Record<PartnerType, string> = {
+  supplier: 'Supplier', factory: 'Factory', laborTeam: 'LaborTeam', installer: 'Installer',
+  logistics: 'Logistics', service: 'Service'
+}
+const PARTNER_STATUS_TO_API: Record<PartnerStatus, string> = { active: 'Active', disabled: 'Disabled' }
 const MOVEMENT_TYPE: Record<string, StockMovementType> = {
   Inbound: 'inbound', Issue: 'issue', Loss: 'loss', ReturnIn: 'returnIn', ReturnOut: 'returnOut', Adjustment: 'adjustment'
 }
@@ -29,6 +36,7 @@ function normalizePartner(raw: Raw): Partner {
     taxNo: raw.taxNo,
     addr: raw.addr,
     brands: Array.isArray(raw.brands) ? raw.brands.map(String) : [],
+    paymentCodeImages: Array.isArray(raw.paymentCodeImages) ? raw.paymentCodeImages.map(String) : [],
     settlementTerms: raw.settlementTerms,
     settlementMode: enumValue(raw.settlementMode) || undefined,
     settlementDays: raw.settlementDays == null ? undefined : Number(raw.settlementDays),
@@ -55,7 +63,7 @@ function normalizePrice(raw: Raw): PartnerPrice {
     minimumOrder: Number(raw.minimumOrder ?? 1),
     leadTimeDays: Number(raw.leadTimeDays ?? 0),
     settlementDays: Number(raw.settlementDays ?? 0),
-    itemType: enumValue(raw.item?.type) || undefined,
+    itemType: enumValue(raw.item?.type).toLowerCase() || undefined,
     active: raw.active !== false,
     effectiveFrom: raw.effectiveFrom,
     effectiveTo: raw.effectiveTo,
@@ -115,6 +123,9 @@ function partnerPayload(input: Raw) {
     taxNo: input.taxNo,
     addr: input.addr,
     brands: Array.isArray(input.brands) ? input.brands : [],
+    paymentCodeImages: Array.isArray(input.paymentCodeImages)
+      ? input.paymentCodeImages.map((path: string) => fileApi.storagePath(path) || path)
+      : [],
     bankName: input.bankName,
     bankAccount: input.bankAccount,
     settlementTerms: input.settlementTerms,
@@ -135,13 +146,50 @@ export const supplyApi = {
   partnerUpdate: (input: Raw) =>
     post<Raw>('partner/update', { ...partnerPayload(input), partnerId: input.id }).then(normalizePartner),
 
-  partners: async (type?: PartnerType) =>
-    listOf(await post<PageResult<Raw> | Raw[]>('partner/page', {
-      type: type ? Object.entries(PARTNER_TYPE).find(([, value]) => value === type)?.[0] : undefined
-    })).map(normalizePartner),
-  partnerPrices: async (params: { partnerId?: string; itemId?: string } | string = {}) => {
+  partnerPage: async (params: {
+    type?: PartnerType
+    status?: PartnerStatus | 'all'
+    keyword?: string
+    partnerId?: string
+    current?: number
+    size?: number
+    includePaymentCodeUrls?: boolean
+  } = {}): Promise<PageData<Partner>> => {
+    const current = Math.max(1, Math.trunc(params.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(params.size ?? 20)))
+    const result = await post<PageResult<Raw> | Raw[]>('partner/page', {
+      type: params.type ? PARTNER_TYPE_TO_API[params.type] : undefined,
+      status: params.status && params.status !== 'all' ? PARTNER_STATUS_TO_API[params.status] : undefined,
+      keyword: params.keyword?.trim() || undefined,
+      partnerId: params.partnerId,
+      current,
+      size
+    })
+    const page = toPageData(result, current, size)
+    const canViewPaymentCodes = ['boss', 'storeManager', 'finance'].includes(session.role || '')
+    const list = await Promise.all(page.list.map(async (raw) => {
+      const partner = normalizePartner(raw)
+      if (!params.includePaymentCodeUrls || !canViewPaymentCodes || !partner.paymentCodeImages.length) return partner
+      return {
+        ...partner,
+        paymentCodeImageUrls: await fileApi.grant('Partner', partner.id, partner.paymentCodeImages)
+      }
+    }))
+    return { ...page, list }
+  },
+  partnerPrices: async (params: {
+    partnerId?: string
+    itemId?: string
+    partnerPriceId?: string
+    current?: number
+    size?: number
+  } | string = {}) => {
     const query = typeof params === 'string' ? { partnerId: params } : params
-    return listOf(await post<PageResult<Raw> | Raw[]>('partner-price/page', query)).map(normalizePrice)
+    return listOf(await post<PageResult<Raw> | Raw[]>('partner-price/page', {
+      ...query,
+      current: query.current ?? 1,
+      size: query.size ?? 50
+    })).map(normalizePrice)
   },
   partnerPriceSave: (input: Raw) =>
     post<Raw>('partner-price/save', {

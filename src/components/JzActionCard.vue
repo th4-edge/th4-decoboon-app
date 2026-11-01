@@ -66,12 +66,12 @@ const actionColor = computed(() => props.tone === 'primary' ? TOKEN_COLOR.white 
 .jz-action-card--primary {
   color: $jzb-text-inverse;
   background: $jzb-gradient;
-  box-shadow: 0 16rpx 38rpx rgba(14, 138, 125, .22);
+  box-shadow: 0 16rpx 38rpx var(--jzb-primary-a22, rgba(14, 138, 125, .22));
 }
 .jz-action-card--subtle {
   color: $jzb-text-1;
   background: $jzb-text-inverse;
-  border: 1rpx solid rgba(22, 163, 148, .16);
+  border: 1rpx solid var(--jzb-primary-a16, rgba(22, 163, 148, .16));
   box-shadow: $jzb-shadow-xs;
 }
 .jz-action-card__icon {

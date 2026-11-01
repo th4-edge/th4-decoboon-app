@@ -11,6 +11,7 @@ const list = read('src/pages/customer/list.vue')
 const detail = read('src/subpackages/customer/pages/detail.vue')
 const edit = read('src/subpackages/customer/pages/edit.vue')
 const batch = read('src/subpackages/customer/pages/batch.vue')
+const permissions = read('src/roles/permission.ts')
 const packageJson = JSON.parse(read('package.json'))
 const failures = []
 const expect = (condition, message) => {
@@ -34,6 +35,15 @@ expect(detail.includes('canDeleteCustomer') && detail.includes('crmApi.delete(id
   '客户详情缺少企业负责人删除入口')
 expect(edit.includes('owner: id.value ? undefined : (session.emp || undefined)'),
   '编辑已有客户仍会误传当前登录员工为负责人')
+expect(list.includes("const usesOwnerOverview = computed(() => isBoss.value || isStoreManager.value || isFinance.value)")
+  && list.includes('class="cl__owner-panel"') && list.includes('class="cl__customer-panel"'),
+  'Boss、店长、财务未复用同一负责人分组客户工作区')
+expect(list.includes('v-if="isStoreManager" class="jz-card cl__dispatch"') && !list.includes('isStoreManager || isFinance'),
+  '财务客户页仍暴露设计师派单入口')
+expect(list.includes("isFinance.value\n    ? ALL_FILTERS") && list.includes("v-else-if=\"isStoreManager && c.stage === 'pendingMeasure'"),
+  '财务客户筛选或客户卡仍把待指派设计师作为财务任务')
+const financeBlock = permissions.slice(permissions.indexOf('finance: ['), permissions.indexOf('\n  ]', permissions.indexOf('finance: [')))
+expect(financeBlock && !financeBlock.includes("'act:assignDesigner'"), '财务能力矩阵仍包含指派设计师')
 
 expect(packageJson.scripts['check:customer-admin'] === 'node scripts/verify-customer-admin-contract.mjs',
   'package.json 缺少 check:customer-admin 脚本')

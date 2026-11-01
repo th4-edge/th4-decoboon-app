@@ -34,7 +34,10 @@ const filtered = computed(() => items.value.filter((item) => {
   if (filter.value === 'received') return item.outstandingAmount <= 0
   return true
 }))
-const totals = ref({ total: 0, received: 0, outstanding: 0, overdue: 0 })
+const totals = ref<{ total: number | null; received: number | null; outstanding: number | null; overdue: number | null }>({
+  total: null, received: null, outstanding: null, overdue: null
+})
+const totalsError = ref('')
 
 onLoad((query) => {
   projectId.value = query?.projectId || ''
@@ -51,25 +54,18 @@ async function refreshAll() {
 }
 
 async function loadTotals() {
+  totalsError.value = ''
   try {
-    if (projectId.value) {
-      const report = await financeApi.projectReport(projectId.value)
-      totals.value = {
-        total: report.receivableAmount,
-        received: report.receivedAmount,
-        outstanding: report.outstandingAmount,
-        overdue: report.overdueAmount
-      }
-      return
-    }
-    const report = await financeApi.summary()
+    const report = await financeApi.receivableReport({ projectId: projectId.value || undefined })
     totals.value = {
-      total: report.receivableAmount,
+      total: report.totalAmount,
       received: report.receivedAmount,
       outstanding: report.outstandingAmount,
       overdue: report.overdueAmount
     }
   } catch (error) {
+    totals.value = { total: null, received: null, outstanding: null, overdue: null }
+    totalsError.value = error instanceof Error ? error.message : '应收汇总暂不可确认'
     toastError(error, '应收汇总加载失败')
   }
 }
@@ -92,6 +88,7 @@ useFinanceStoreScope(() => refreshAll())
     <view class="fin-hero">
       <text class="fin-hero__label">全部应收</text>
       <text class="fin-hero__value fin-amount">{{ money(totals.total) }}</text>
+      <text v-if="totalsError" class="fin-hero__notice">汇总暂不可确认，点击右上角刷新重试</text>
       <view class="fin-hero__grid">
         <view class="fin-hero__item"><text class="fin-hero__item-label">已收</text><text class="fin-hero__item-value">{{ money(totals.received) }}</text></view>
         <view class="fin-hero__item"><text class="fin-hero__item-label">待收</text><text class="fin-hero__item-value">{{ money(totals.outstanding) }}</text></view>

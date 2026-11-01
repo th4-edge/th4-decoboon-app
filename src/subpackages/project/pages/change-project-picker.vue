@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
-import { identityApi } from '@/domains/identity/api'
-import type { Employee } from '@/domains/identity/model'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { projectApi } from '@/domains/project/api'
 import { PROJECT_ORIGIN_META, PROJECT_STATUS_META } from '@/domains/project/meta'
 import type { BusinessOrigin, Project, ProjectStatus } from '@/domains/project/model'
 import { tradeApi } from '@/domains/trade/api'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { toast } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
@@ -54,7 +53,8 @@ const keyword = ref('')
 const group = ref<GroupKey>('all')
 const origin = ref<OriginKey>('all')
 const designerId = ref('')
-const designers = ref<Employee[]>([])
+const designerName = ref('')
+const employeeFilterOpen = ref(false)
 const items = ref<Project[]>([])
 const current = ref(1)
 const total = ref(0)
@@ -86,14 +86,18 @@ onLoad(() => {
 })
 onPullDownRefresh(() => { void boot().finally(() => uni.stopPullDownRefresh()) })
 onReachBottom(loadMore)
+onShow(() => {
+  if (!employeeFilterOpen.value) return
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  employeeFilterOpen.value = false
+  designerId.value = result.action === 'clear' ? '' : result.value.id
+  designerName.value = result.action === 'clear' ? '' : result.value.name
+  void loadProjects()
+})
 
 async function boot() {
-  await Promise.all([loadProjects(true), bootDesigners()])
-}
-
-async function bootDesigners() {
-  if (!canFilterDesigner.value) return
-  designers.value = await identityApi.designers().catch(() => [] as Employee[])
+  await loadProjects(true)
 }
 
 function statusPayload(): ProjectStatus[] | undefined {
@@ -116,7 +120,7 @@ async function loadProjects(reset = true) {
   }
   loadError.value = ''
   try {
-    const page = await projectApi.page({
+    const page = await projectApi.pickerPage({
       current: current.value,
       size: 20,
       keyword: keyword.value.trim() || undefined,
@@ -173,10 +177,16 @@ function selectOrigin(value: OriginKey) {
   void loadProjects()
 }
 
-function selectDesigner(value: string) {
-  if (designerId.value === value) return
-  designerId.value = value
-  void loadProjects()
+function openDesignerFilter() {
+  employeeFilterOpen.value = true
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    'roles=designer',
+    `selectedId=${encodeURIComponent(designerId.value)}`,
+    `selectedName=${encodeURIComponent(designerName.value)}`
+  ]
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
 
 function resetFilters() {
@@ -184,6 +194,7 @@ function resetFilters() {
   group.value = 'all'
   origin.value = 'all'
   designerId.value = isDesigner.value ? (session.emp?.id || '') : ''
+  designerName.value = isDesigner.value ? (session.emp?.name || '') : ''
   void loadProjects()
 }
 
@@ -264,20 +275,13 @@ async function openProjectChanges(item: Project) {
           </scroll-view>
         </view>
 
-        <view v-if="canFilterDesigner && designers.length" class="cpp__filter-row">
+        <view v-if="canFilterDesigner" class="cpp__filter-row">
           <text class="cpp__filter-label">设计师</text>
           <scroll-view scroll-x class="cpp__scroll" :show-scrollbar="false">
             <view class="cpp__chips">
-              <view class="cpp__chip" :class="{ 'cpp__chip--on': !designerId }" @tap="selectDesigner('')">全部</view>
-              <view
-                v-for="item in designers"
-                :key="item.id"
-                class="cpp__chip cpp__chip--person"
-                :class="{ 'cpp__chip--on': designerId === item.id }"
-                @tap="selectDesigner(item.id)"
-              >
-                <JzEmployeeAvatar :src="item.avatarUrl || ''" :name="item.name" :role="item.role" :status="item.status" :size="34" />
-                <text>{{ item.name }}</text>
+              <view class="cpp__chip cpp__chip--person" :class="{ 'cpp__chip--on': designerId }" @tap="openDesignerFilter">
+                <JzIcon name="user" :size="22" :color="designerId ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" />
+                <text>{{ designerName || '选择设计师' }}</text>
               </view>
             </view>
           </scroll-view>

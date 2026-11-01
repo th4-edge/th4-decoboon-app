@@ -26,6 +26,7 @@ import {
   consumeFinanceProjectPickerResult,
   type FinanceProjectSelection
 } from '@/domains/finance/project-picker'
+import { consumeExpenseCategoryPickerResult } from '@/domains/finance/expense-category-picker'
 import { can } from '@/roles/permission'
 import { hideLoading, loading, toast, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -51,9 +52,8 @@ const pendingCreatedId = ref('')
 const idempotencyKey = ref(`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`)
 const booting = ref(true)
 const loadError = ref('')
-const categoryLoading = ref(false)
-const categoryError = ref('')
-const categories = ref<ExpenseCategory[]>([])
+const selectedCategory = ref<ExpenseCategory | null>(null)
+const categoryPickerOpen = ref(false)
 const selectedProject = ref<FinanceProjectSelection | null>(null)
 const owner = ref<Employee | null>(session.emp)
 const attachments = ref<ExpenseAttachment[]>([])
@@ -80,9 +80,6 @@ const paymentOptions = Object.entries(EXPENSE_PAYMENT_MODE_META).map(([value, me
   label: meta.label,
   hint: meta.hint
 }))
-const categoryLabels = computed(() => categories.value.map((item) => item.name))
-const categoryIndex = computed(() => Math.max(0, categories.value.findIndex((item) => item.categoryId === form.categoryId)))
-const selectedCategoryName = computed(() => categories.value.find((item) => item.categoryId === form.categoryId)?.name || '')
 const documentTypeLabels = EXPENSE_DOCUMENT_TYPES.map((item) => item.label)
 const documentTypeIndex = computed(() => Math.max(0, EXPENSE_DOCUMENT_TYPES.findIndex((item) => item.value === nextUploadType.value)))
 const selectedDocumentTypeLabel = computed(() => EXPENSE_DOCUMENT_TYPE_META[nextUploadType.value])
@@ -119,25 +116,9 @@ async function boot() {
   booting.value = true
   loadError.value = ''
   try {
-    const tasks: Promise<unknown>[] = [loadCategories()]
-    if (expenseId.value) tasks.push(loadExpense())
-    await Promise.all(tasks)
+    if (expenseId.value) await loadExpense()
   } finally {
     booting.value = false
-  }
-}
-
-async function loadCategories() {
-  categoryLoading.value = true
-  categoryError.value = ''
-  try {
-    categories.value = (await expenseApi.categories()).filter((item) => item.active !== false)
-    if (!form.categoryId && categories.value.length === 1) form.categoryId = categories.value[0].categoryId
-    if (form.categoryId && !categories.value.some((item) => item.categoryId === form.categoryId)) form.categoryId = ''
-  } catch (error) {
-    categoryError.value = error instanceof Error ? error.message : '费用分类暂不可确认'
-  } finally {
-    categoryLoading.value = false
   }
 }
 
@@ -164,6 +145,7 @@ function applyExpense(item: Expense) {
   form.expenseDate = item.expenseDate || today()
   form.description = item.description || ''
   form.categoryId = item.category?.categoryId || ''
+  selectedCategory.value = item.category || null
   form.assignment = item.project ? 'project' : 'company'
   form.storeAssignment = canChooseUnassignedStore.value && !item.store ? 'unassigned' : 'current'
   selectedProject.value = item.project ? {
@@ -204,6 +186,12 @@ function employeeFromExpense(value?: Expense['owner']): Employee | null {
 }
 
 function applyPickerResults() {
+  const categoryResult = categoryPickerOpen.value ? consumeExpenseCategoryPickerResult() : null
+  categoryPickerOpen.value = false
+  if (categoryResult) {
+    selectedCategory.value = categoryResult.action === 'clear' ? null : categoryResult.value
+    form.categoryId = categoryResult.action === 'clear' ? '' : categoryResult.value.categoryId
+  }
   const projectResult = consumeFinanceProjectPickerResult()
   if (projectResult) {
     if (projectResult.action === 'clear') setCompanyAssignment()
@@ -225,11 +213,6 @@ function applyPickerResults() {
 
 function selectPayment(value: Exclude<ExpensePaymentMode, 'Unknown'>) {
   form.paymentMode = value
-}
-
-function pickCategory(label: string) {
-  const hit = categories.value.find((item) => item.name === label)
-  if (hit) form.categoryId = hit.categoryId
 }
 
 function pickExpenseDate(value: string) {
@@ -254,6 +237,17 @@ function setCompanyAssignment() {
 function selectProjectAssignment() {
   form.assignment = 'project'
   openProjectPicker()
+}
+
+function openCategoryPicker() {
+  categoryPickerOpen.value = true
+  const category = selectedCategory.value
+  const params = [
+    `selectedId=${encodeURIComponent(category?.categoryId || '')}`,
+    `selectedName=${encodeURIComponent(category?.name || '')}`,
+    `selectedMeta=${encodeURIComponent(category?.description || '')}`
+  ]
+  uni.navigateTo({ url: `${P.expenseCategoryPicker}?${params.join('&')}` })
 }
 
 function openProjectPicker() {
@@ -473,24 +467,22 @@ async function recoverSave() {
           <JzMoneyInput v-model="form.amount" placeholder="请输入费用金额" :disabled="saving" />
         </view>
 
-        <view class="expense-form-row">
+        <view class="expense-form-row--col">
           <text class="expense-form-label">费用分类 *</text>
-          <JzSelectField
-            :display="selectedCategoryName"
-            :range="categoryLabels"
-            :index="categoryIndex"
-            placeholder="请选择费用分类"
-            :disabled="categoryLoading || !categoryLabels.length"
-            @change="pickCategory"
-          />
-        </view>
-        <view v-if="categoryError" class="expense-inline-error">
-          {{ categoryError }}
-          <text class="expense-inline-error__action" @tap="loadCategories">重新读取</text>
-        </view>
-        <view v-else-if="!categoryLoading && !categoryLabels.length" class="expense-inline-error">
-          当前企业暂无启用费用分类
-          <text class="expense-inline-error__action" @tap="loadCategories">重新读取</text>
+          <view v-if="selectedCategory" class="expense-category-card" @tap="openCategoryPicker">
+            <view class="expense-category-card__main">
+              <text class="expense-category-card__name">{{ selectedCategory.name }}</text>
+              <text class="expense-category-card__meta">{{ selectedCategory.description || (selectedCategory.builtIn ? '平台基础分类' : '企业自定义分类') }}</text>
+            </view>
+            <text class="expense-category-card__action">更换</text>
+          </view>
+          <view v-else class="expense-category-card expense-category-card--empty" @tap="openCategoryPicker">
+            <view class="expense-category-card__main">
+              <text class="expense-category-card__name">选择费用分类</text>
+              <text class="expense-category-card__meta">按名称和说明选择启用的费用归属</text>
+            </view>
+            <JzIcon name="chevron-right" :size="24" :color="TOKEN_COLOR.text4" />
+          </view>
         </view>
 
         <view class="expense-form-row">
@@ -664,4 +656,10 @@ async function recoverSave() {
 .expense-edit-page__guide { margin: $jzb-space-4 $jzb-page-pad 0; }
 .expense-edit-page__notice { margin: $jzb-space-4 $jzb-page-pad; }
 .expense-evidence-head { margin-bottom: 0; }
+.expense-category-card { display: flex; align-items: center; gap: 16rpx; min-height: 88rpx; padding: 18rpx 20rpx; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a18, rgba(22,163,148,.18)); border-radius: $jzb-radius-sm; }
+.expense-category-card--empty { background: $jzb-bg-hover; border-color: $jzb-border-light; }
+.expense-category-card__main { flex: 1; min-width: 0; }
+.expense-category-card__name { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.expense-category-card__meta { display: block; margin-top: 4rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.expense-category-card__action { flex: none; color: $jzb-primary; font-size: $jzb-font-xs; font-weight: 650; }
 </style>

@@ -114,7 +114,7 @@ async function markAll() {
 .msg__filter--on { color: $jzb-text-inverse; background: $jzb-primary; border-color: $jzb-primary; }
 .msg__item { display: flex; align-items: center; padding: 26rpx 22rpx; margin-bottom: 18rpx; transition: transform $jzb-duration-fast $jzb-ease-out; }
 .msg__item:active { transform: scale(.992); }
-.msg__item--unread { border: 1rpx solid rgba(22, 163, 148, 0.35); }
+.msg__item--unread { border: 1rpx solid var(--jzb-primary-a35, rgba(22, 163, 148, 0.35)); }
 .msg__icon { width: 78rpx; height: 78rpx; border-radius: 24rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .msg__body { margin-left: 20rpx; min-width: 0; }
 .msg__title { font-size: $jzb-font; font-weight: 600; color: $jzb-text-1; }

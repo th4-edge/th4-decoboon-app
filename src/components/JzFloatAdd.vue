@@ -31,7 +31,7 @@ const emit = defineEmits<{ (e: 'tap'): void }>()
   color: $jzb-text-inverse;
   background: linear-gradient(135deg, $jzb-primary-light 0%, $jzb-primary 55%, $jzb-primary-dark 100%);
   border-radius: $jzb-radius-pill;
-  box-shadow: 0 16rpx 38rpx rgba(14, 138, 125, 0.28);
+  box-shadow: 0 16rpx 38rpx var(--jzb-primary-a28, rgba(14, 138, 125, 0.28));
   transition: transform $jzb-duration-fast $jzb-ease-out;
   &:active { transform: scale(0.96); }
 }

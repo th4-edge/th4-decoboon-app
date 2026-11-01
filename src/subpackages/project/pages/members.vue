@@ -1,48 +1,44 @@
 <script setup lang="ts">
 function go(url: string) { uni.navigateTo({ url }) }
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
 import { can, isCustomer } from '@/roles/permission'
 import { ROLE_META } from '@/roles/catalog'
-import type { Employee, ProjectMember } from '@/domains/identity/model'
+import type { ProjectMember } from '@/domains/identity/model'
 import type { Project } from '@/domains/project/model'
-import { identityApi } from '@/domains/identity/api'
 import { projectApi } from '@/domains/project/api'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { toast, toastError } from '@/composables/toast'
 import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzIcon from '@/components/JzIcon.vue'
-import JzSheet from '@/components/JzSheet.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 
 const id = ref('')
 const project = ref<Project | null>(null)
 const members = ref<ProjectMember[]>([])
-const employees = ref<Employee[]>([])
-const picking = ref<'' | 'pm' | 'designer'>('')
+const employeePickerTarget = ref<'pm' | 'designer' | ''>('')
+let pendingInitialAssign = false
 const canInviteOwner = computed(() => can(session.role || 'boss', 'act:inviteCustomer') && !isCustomer(session.role))
 const canInviteMember = computed(() => can(session.role || 'boss', 'act:inviteMember'))
 /** 成员切换：企业负责人或本门店店长（服务端 requireMemberEditor 强校验） */
 const canSwitchMember = computed(() => ['boss', 'storeManager'].includes(session.role || '') && !isCustomer(session.role))
 const manager = computed(() => project.value?.manager)
 const designer = computed(() => project.value?.designer)
-const candidates = computed(() => {
-  if (!picking.value) return []
-  const active = employees.value.filter((e) => e.status === 'active')
-  if (picking.value === 'pm') return active.filter((e) => ['pm', 'boss'].includes(e.role))
-  return active
-})
-const pickingTitle = computed(() => (picking.value === 'pm' ? '项目经理' : '设计师'))
-
-onLoad((q) => {
-  if (!isLoggedIn()) uni.reLaunch({ url: P.login })
+onLoad(async (q) => {
+  if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
   id.value = q?.id || ''
-  if (q?.mode === 'assign') picking.value = 'pm'
-  load()
+  pendingInitialAssign = q?.mode === 'assign'
+  await load()
+  if (pendingInitialAssign) {
+    pendingInitialAssign = false
+    openPicker('pm')
+  }
 })
+onShow(() => { void applyEmployeePickerResult() })
 async function load() {
   let p: Project | null = null
   let m: ProjectMember[] = []
@@ -53,21 +49,36 @@ async function load() {
   }
   project.value = p
   members.value = m
-  if (canSwitchMember.value && !employees.value.length) {
-    employees.value = await identityApi.employees().catch(() => [])
-  }
 }
+
 function openPicker(role: 'pm' | 'designer') {
   if (!canSwitchMember.value) return
-  picking.value = role
+  employeePickerTarget.value = role
+  const selected = role === 'pm' ? manager.value : designer.value
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    role === 'pm' ? 'roles=pm,boss' : '',
+    `selectedId=${encodeURIComponent(selected?.id || '')}`,
+    `selectedName=${encodeURIComponent(selected?.name || '')}`
+  ].filter(Boolean)
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
-async function choose(emp: Employee) {
-  const target = picking.value
+
+async function applyEmployeePickerResult() {
+  const target = employeePickerTarget.value
   if (!target) return
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  employeePickerTarget.value = ''
+  if (result.action === 'clear') return
+  const emp = result.value
   try {
-    // 后端 project/member/save 需要 empId + EmployeeRole 枚举名（Pm / Designer）
-    await projectApi.addMember(id.value, { empId: emp.id, role: target === 'pm' ? 'Pm' : 'Designer' } as never)
-    picking.value = ''
+    // App/Web 统一复用 project/project/update，禁止两端各建一套成员更新 Provider。
+    await projectApi.updateMembers(
+      id.value,
+      target === 'pm' ? { managerId: emp.id } : { designerId: emp.id }
+    )
     toast(target === 'pm' ? `项目经理已切换为 ${emp.name}` : `设计师已切换为 ${emp.name}`, 'success')
     await load()
   } catch (error) {
@@ -147,22 +158,6 @@ function joinedText(value?: string | number) {
       <button v-if="canInviteOwner" class="jz-btn jz-btn--primary jz-btn--block mb__action" @tap="go(`${P.projectInvite}?id=${id}`)"><JzIcon name="user-plus" :size="28" :color="TOKEN_COLOR.white" /><text>邀请业主查看</text></button>
       <button v-if="canInviteMember" class="jz-btn jz-btn--ghost jz-btn--block mb__action" style="margin-top:16rpx;" @tap="go(P.companyInvite)"><JzIcon name="users" :size="26" :color="TOKEN_COLOR.primary" /><text>邀请设计师 / 项目经理加入团队</text></button>
     </view>
-    <!-- 员工选择（工地下发岗位） -->
-    <JzSheet :visible="Boolean(picking)" :title="`选择${pickingTitle}`" @close="picking = ''">
-      <view class="mb__editor">
-        <scroll-view scroll-y class="mb__sheet-list">
-          <view v-for="e in candidates" :key="e.id" class="mb__sheet-item" @tap="choose(e)">
-            <JzEmployeeAvatar :src="e.avatarUrl || ''" :name="e.name" :role="e.role" :status="e.status" :size="76" />
-            <view class="jz-grow mb__sheet-who">
-              <text class="mb__sheet-name">{{ e.name }}</text>
-              <text class="mb__sheet-role">{{ e.title || e.role }} · {{ e.store?.name || '总店' }}</text>
-            </view>
-            <JzIcon v-if="(picking === 'pm' ? manager?.id : designer?.id) === e.id" name="check" :size="30" :color="TOKEN_COLOR.primary" />
-          </view>
-          <view v-if="!candidates.length" class="mb__empty">暂无当前范围可选的在职员工（可先在「我的-企业成员」添加）</view>
-        </scroll-view>
-      </view>
-    </JzSheet>
   </view>
 </template>
 

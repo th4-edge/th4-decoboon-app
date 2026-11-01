@@ -67,6 +67,7 @@ const designQuotes = computed(() =>
 )
 const talkCount = computed(() => Object.keys(talks.value).length)
 const canEdit = computed(() => can(session.role, 'edit:design'))
+const canViewTemplates = computed(() => can(session.role, 'view:design-template'))
 const canTalk = computed(() => can(session.role, 'act:talk'))
 const canManageCatalog = computed(() => can(session.role, 'edit:catalog'))
 const locked = computed(() =>
@@ -197,6 +198,9 @@ const designWithQuote = computed<DesignWithQuote[]>(() =>
 function openRequirement() {
   uni.navigateTo({ url: `${P.designRequirement}?customerId=${customerId.value}&propertyId=${propertyId.value}` })
 }
+function openTemplates() {
+  uni.navigateTo({ url: `${P.designTemplates}?customerId=${customerId.value}&propertyId=${propertyId.value}` })
+}
 function createScheme() {
   if (locked.value) { toast(lockTip.value); return }
   uni.navigateTo({ url: `${P.designScheme}?customerId=${customerId.value}&propertyId=${propertyId.value}` })
@@ -322,6 +326,15 @@ function statusClass(status: DesignStatus) {
         <text class="dl__property-meta">{{ property?.layout || '户型—' }} · {{ property?.area || customer?.area || 0 }}㎡ · 量房 {{ property?.latestMeasureAt ? property.latestMeasureAt.slice(0, 10) : '—' }}</text>
       </view>
       <text class="dl__property-tag" :class="{ 'dl__property-tag--done': property?.latestMeasureAt }">{{ property?.latestMeasureAt ? '已量房' : '待量房' }}</text>
+    </view>
+
+    <view v-if="canViewTemplates && !locked" class="jz-card dl__template-entry" @tap="openTemplates">
+      <view class="dl__template-icon"><JzIcon name="file-text" :size="32" :color="TOKEN_COLOR.primary" /></view>
+      <view class="jz-grow">
+        <text class="dl__template-title">从方案模版新建</text>
+        <text class="dl__template-sub">复用区域骨架和工程量公式，生成后可继续按实测调整</text>
+      </view>
+      <JzIcon name="chevron-right" :size="26" :color="TOKEN_COLOR.text3" />
     </view>
 
     <view v-if="locked" class="jz-card dl__lock">
@@ -494,6 +507,10 @@ function statusClass(status: DesignStatus) {
 .dl__property-meta { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .dl__property-tag { flex-shrink: 0; padding: 8rpx 16rpx; color: $jzb-warning; background: $jzb-warning-soft; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 600; }
 .dl__property-tag--done { color: $jzb-primary-dark; background: $jzb-primary-lighter; }
+.dl__template-entry { margin: 18rpx 24rpx 0; padding: 20rpx 22rpx; display: flex; align-items: center; gap: 16rpx; background: $jzb-primary-lightest; }
+.dl__template-icon { width: 62rpx; height: 62rpx; flex: none; display: flex; align-items: center; justify-content: center; border-radius: 20rpx; background: $jzb-bg-card; }
+.dl__template-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 680; }
+.dl__template-sub { display: block; margin-top: 5rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 
 .dl__lock { margin: 0 24rpx 16rpx; padding: 24rpx; display: flex; align-items: center; gap: 16rpx; border: 1rpx solid $jzb-primary-lighter; background: $jzb-primary-lightest; }
 .dl__lock-icon { width: 72rpx; height: 72rpx; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: $jzb-radius-sm; background: $jzb-bg-card; }

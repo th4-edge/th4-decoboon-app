@@ -88,17 +88,17 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         <view class="ds__dim-grid">
           <view class="ds__dim-item">
             <text class="ds__dim-label">长</text>
-            <input v-model="length" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-model="length" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             <text class="ds__dim-unit">m</text>
           </view>
           <view class="ds__dim-item">
             <text class="ds__dim-label">宽</text>
-            <input v-model="width" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-model="width" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="0.00" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             <text class="ds__dim-unit">m</text>
           </view>
           <view class="ds__dim-item">
             <text class="ds__dim-label">层高</text>
-            <input v-model="height" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="可选" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-model="height" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="可选" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             <text class="ds__dim-unit">m</text>
           </view>
         </view>
@@ -107,12 +107,12 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         <view class="ds__dim-grid">
           <view class="ds__dim-item">
             <text class="ds__dim-label">实测面积</text>
-            <input v-model="measuredArea" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 15.30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-model="measuredArea" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 15.30" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             <text class="ds__dim-unit">㎡</text>
           </view>
           <view class="ds__dim-item">
             <text class="ds__dim-label">实测周长</text>
-            <input v-model="measuredPerimeter" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 16.20" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+            <input v-model="measuredPerimeter" type="digit" class="jz-form-input ds__dim-input jz-numeric-input" placeholder="如 16.20" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             <text class="ds__dim-unit">m</text>
           </view>
         </view>
@@ -153,7 +153,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
             </view>
             <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>{{ catalog.formula }}，最终金额由系统按工程量计算。</text></view>
             <text v-if="catalog.craft" class="ds__catalog-craft">{{ catalog.craft }}</text>
-            <view class="ds__quantity-row"><text>工程量（{{ catalog.unit }}，0为赠送）*</text><input :value="quantities[catalog.id] ?? '1'" type="digit" class="jz-form-input ds__quantity-input jz-numeric-input" placeholder="请输入工程量" @input="emit('quantity-input', catalog.id, $event)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" /></view>
+            <view class="ds__quantity-row"><text>工程量（{{ catalog.unit }}，0为赠送）*</text><input :value="quantities[catalog.id] ?? '1'" type="digit" class="jz-form-input ds__quantity-input jz-numeric-input" placeholder="请输入工程量" @input="emit('quantity-input', catalog.id, $event)" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /></view>
           </view>
         </view>
         <view v-else-if="editingItemId" class="ds__catalog-card ds__catalog-card--legacy">
@@ -166,7 +166,7 @@ function itemTypeFor(type: CatalogType): DesignItemType {
         <JzSelectField variant="boxed" :display="itemSpaceLabel" :range="spaces.map(i => i.name).concat(['综合项目'])" :index="Math.max(0, spaces.findIndex(i => i.id === itemSpaceId))" @change="itemSpaceId = spaces.find(i => i.name === $event)?.id || ''" />
         <template v-if="!selectedCatalogs.length && editingItemId">
           <text class="ds__field-label">工程量（0为赠送）*</text>
-          <input v-model="quantity" type="digit" class="jz-form-input jz-numeric-input" placeholder="请输入实际工程量，0为赠送" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+          <input v-model="quantity" type="digit" class="jz-form-input jz-numeric-input" placeholder="请输入实际工程量，0为赠送" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
         </template>
         <view class="ds__formula-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text>价格、规格、工艺和计算公式均来自企业报价项目库，设计师只填写所选项目及各自工程量。</text></view>
       </scroll-view>

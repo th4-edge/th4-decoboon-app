@@ -174,6 +174,8 @@ export interface QuoteLineInput {
 
 export interface QuoteQuery {
   customerId?: string
+  propertyId?: string
+  keyword?: string
   status?: QuoteStatus
   current?: number
   size?: number
@@ -267,10 +269,27 @@ export const tradeApi = {
       current,
       size,
       customerId: query.customerId,
+      propertyId: query.propertyId,
+      keyword: query.keyword,
       status: query.status ? QUOTE_STATUS_API[query.status] : undefined
     })
     const page = toPageData(result, current, size)
     return { ...page, list: page.list.map(normalizeQuote) }
+  },
+
+  quoteLinePickerPage: async (query: { quoteId: string; keyword?: string; role?: string; category?: string; current?: number; size?: number }): Promise<PageData<QuoteItem>> => {
+    const current = Math.max(1, Math.trunc(query.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('quote/line/page', {
+      quoteId: query.quoteId,
+      keyword: query.keyword?.trim() || undefined,
+      role: query.role,
+      category: query.category,
+      current,
+      size
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeQuoteItem) }
   },
 
   quotes: async (query: QuoteQuery = {}) => {
@@ -318,10 +337,21 @@ export const tradeApi = {
     const uri = session.role === 'customer' ? 'customer/contract/workbench' : 'project/contract/workbench'
     return normalizeContractWorkbench(await post<RawRecord>(uri, params))
   },
-  contractLines: async (params: { projectId?: string; contractId?: string }): Promise<ContractLine[]> => {
+  contractLines: async (
+    params: { projectId?: string; contractId?: string },
+    current = 1,
+    size = 20
+  ): Promise<PageData<ContractLine>> => {
+    const safeCurrent = Math.max(1, Math.trunc(current))
+    const safeSize = Math.min(50, Math.max(1, Math.trunc(size)))
     const uri = session.role === 'customer' ? 'customer/contract-line/page' : 'project/contract-line/page'
-    return Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>(uri, params))
-      .map(normalizeContractLine))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>(uri, {
+      ...params,
+      current: safeCurrent,
+      size: safeSize
+    })
+    const page = toPageData(result, safeCurrent, safeSize)
+    return { ...page, list: page.list.map(normalizeContractLine) }
   },
   contractChanges: async (projectId: string) =>
     Promise.all(listOf(await post<PageResult<RawRecord> | RawRecord[]>('project/contract-change/page', { projectId }))
@@ -418,11 +448,29 @@ export const tradeApi = {
    * 增减项可变更来源与当前有效剩余（服务端权威投影，仅用于展示与前端预校验）。
    * 正式提交与审批时由服务端重新投影，不得把展示值当作提交依据。
    */
-  contractChangeRange: async (input: { contractId: string; sourceLineId?: string; sourceChangeItemId?: string }): Promise<ContractChangeRange> => {
+  contractChangeRange: async (input: {
+    contractId: string
+    sourceLineId?: string
+    sourceChangeItemId?: string
+    current?: number
+    size?: number
+    keyword?: string
+    itemType?: string
+    spaceName?: string
+    group?: 'contract' | 'effective'
+  }): Promise<ContractChangeRange> => {
+    const current = Math.max(1, Math.trunc(input.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(input.size ?? 20)))
     const raw = await post<RawRecord>('project/contract-change/range', {
       contractId: input.contractId,
       sourceLineId: input.sourceLineId,
-      sourceChangeItemId: input.sourceChangeItemId
+      sourceChangeItemId: input.sourceChangeItemId,
+      current,
+      size,
+      keyword: input.keyword?.trim() || undefined,
+      itemType: input.itemType,
+      spaceName: input.spaceName,
+      group: input.group
     })
     return normalizeContractChangeRange(raw)
   },
@@ -495,8 +543,22 @@ export interface ContractChangeSource {
   blockReason?: string
 }
 
+export interface ContractChangeRangeFacet {
+  key: string
+  label: string
+  count: number
+}
+
 export interface ContractChangeRange {
   contract?: Contract
+  current: number
+  size: number
+  total: number
+  hasMore: boolean
+  contractTotal: number
+  effectiveTotal: number
+  itemTypes: ContractChangeRangeFacet[]
+  spaces: ContractChangeRangeFacet[]
   sources: ContractChangeSource[]
   selected?: ContractChangeSource
   confirmable?: boolean
@@ -535,8 +597,21 @@ function normalizeContractChangeSource(raw: RawRecord): ContractChangeSource {
 
 function normalizeContractChangeRange(raw: RawRecord): ContractChangeRange {
   const sources = Array.isArray(raw.sources) ? raw.sources.map(normalizeContractChangeSource) : []
+  const facets = (value: unknown): ContractChangeRangeFacet[] =>
+    Array.isArray(value) ? value.map((item) => {
+      const facet = item as RawRecord
+      return { key: String(facet.key || ''), label: String(facet.label || ''), count: Number(facet.count || 0) }
+    }) : []
   return {
     contract: raw.contract ? normalizeContract(raw.contract) : undefined,
+    current: Number(raw.current || 1),
+    size: Number(raw.size || 20),
+    total: Number(raw.total || 0),
+    hasMore: raw.hasMore === true,
+    contractTotal: Number(raw.contractTotal || 0),
+    effectiveTotal: Number(raw.effectiveTotal || 0),
+    itemTypes: facets(raw.itemTypes),
+    spaces: facets(raw.spaces),
     sources,
     selected: raw.selected ? normalizeContractChangeSource(raw.selected) : undefined,
     confirmable: raw.confirmable === true
@@ -603,6 +678,8 @@ function normalizeContractWorkbench(raw: RawRecord): ContractWorkbench {
   const selection = raw.selection || {}
   return {
     contract: normalizeContract(raw.contract || {}),
+    lineCount: Number(raw.lineCount ?? 0),
+    lineAmount: Number(raw.lineAmount ?? 0),
     receivable: {
       receivableTotal: Number(receivable.receivableTotal ?? 0),
       receivedTotal: Number(receivable.receivedTotal ?? 0),

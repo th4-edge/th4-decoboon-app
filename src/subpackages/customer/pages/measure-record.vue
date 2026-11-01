@@ -277,7 +277,7 @@ async function save() {
             class="jz-form-input mr__region-cell jz-numeric-input"
             placeholder="面积㎡"
             placeholder-class="jz-number-placeholder"
-            placeholder-style="text-align: left"
+            placeholder-style="text-align: right"
           />
           <input
             v-model="draft.perimeter"
@@ -285,7 +285,7 @@ async function save() {
             class="jz-form-input mr__region-cell jz-numeric-input"
             placeholder="周长m"
             placeholder-class="jz-number-placeholder"
-            placeholder-style="text-align: left"
+            placeholder-style="text-align: right"
           />
           <view class="mr__region-del" @tap.stop="removeRegion(index)">
             <JzIcon name="trash" :size="24" :color="TOKEN_COLOR.danger" />

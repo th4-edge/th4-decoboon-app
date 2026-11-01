@@ -7,6 +7,7 @@ import { can, isCustomer } from '@/roles/permission'
 import type { Project } from '@/domains/project/model'
 import type { SiteReport } from '@/domains/site/model'
 import { projectApi } from '@/domains/project/api'
+import { consumeReportProjectPickerResult } from '@/domains/project/report-project-picker'
 import { siteApi } from '@/domains/site/api'
 import { visibleProjects } from '@/domains/project/scope'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -14,7 +15,6 @@ import JzTabBar from '@/components/JzTabBar.vue'
 import JzReportCard from '@/components/JzReportCard.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
-import JzActionSheet from '@/components/JzActionSheet.vue'
 import { toastError } from '@/composables/toast'
 import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
 import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
@@ -31,8 +31,6 @@ const emp = computed(() => session.emp)
 const customer = computed(() => session.customer)
 const projects = ref<Project[]>([])
 const reports = ref<SiteReport[]>([])
-const pickVisible = ref(false)
-const pickProjects = ref<Project[]>([])
 
 onLoad((query) => {
   activateOwnerPreviewFromQuery(query)
@@ -40,7 +38,13 @@ onLoad((query) => {
 })
 onShow(() => {
   if (previewMode.value) uni.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] } as any)
-  if (isLoggedIn()) refresh()
+  if (!isLoggedIn()) return
+  const result = consumeReportProjectPickerResult()
+  if (result?.action === 'select') {
+    uni.navigateTo({ url: `${P.reportEdit}?projectId=${result.value.id}` })
+    return
+  }
+  refresh()
 })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 
@@ -73,7 +77,7 @@ async function refresh() {
 
 function canReport() { return can(role.value, 'act:report') }
 
-async function startReport() {
+function startReport() {
   if (!canReport()) return
   const list = scopedProjects.value
   if (!list.length) { uni.showToast({ title: '暂无可汇报项目', icon: 'none' }); return }
@@ -81,17 +85,7 @@ async function startReport() {
     uni.navigateTo({ url: `${P.reportEdit}?projectId=${list[0].id}` })
     return
   }
-  pickProjects.value = list
-  pickVisible.value = true
-}
-
-const pickActions = computed(() => pickProjects.value.map((p) => ({ label: p.name })))
-
-function onPickProject(index: number) {
-  const target = pickProjects.value[index]
-  if (!target) return
-  pickVisible.value = false
-  uni.navigateTo({ url: `${P.reportEdit}?projectId=${target.id}` })
+  uni.navigateTo({ url: P.reportProjectPicker })
 }
 </script>
 
@@ -122,13 +116,6 @@ function onPickProject(index: number) {
     <JzTabBar :current="P.dynamic" />
     <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
 
-    <JzActionSheet
-      :visible="pickVisible"
-      title="选择汇报项目"
-      :actions="pickActions"
-      @select="onPickProject"
-      @close="pickVisible = false"
-    />
   </view>
 </template>
 

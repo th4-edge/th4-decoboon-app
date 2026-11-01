@@ -646,7 +646,7 @@ function canEdit() { return can(role.value, 'edit:quote') }
 .ql__history-row { display: inline-flex; gap: 10rpx; }
 .ql__history-chip { min-width: 112rpx; padding: 12rpx 16rpx; display: inline-flex; flex-direction: column; gap: 4rpx; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; font-size: 20rpx; }
 .ql__history-chip text:first-child { color: $jzb-text-1; font-weight: 700; }
-.ql__history-chip--current { background: $jzb-primary-lightest; border-color: rgba(22,163,148,.26); }
+.ql__history-chip--current { background: $jzb-primary-lightest; border-color: var(--jzb-primary-a26, rgba(22, 163, 148, .26)); }
 .ql__history-chip:active { transform: scale(.97); }
 .ql__property-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 16rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .ql__customer-actions { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }

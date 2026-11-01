@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { computed } from 'vue'
 import { P } from '@/config'
 import { money } from '@/core/format'
 import { payrollApi } from '@/domains/payroll/api'
 import { COMMISSION_STATUS_META } from '@/domains/payroll/meta'
-import { isLoggedIn } from '@/domains/identity/session'
+import { isLoggedIn, session } from '@/domains/identity/session'
+import { can } from '@/roles/permission'
 import { usePagedList } from '@/composables/usePagedList'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -21,18 +23,19 @@ const { items, loading, loadingMore, loadError, loadMoreError, hasMore, refresh,
   (current, size) => payrollApi.commissionPage({}, current, size).then((list) => ({ list, total: list.length, hasMore: list.length >= size })),
   20
 )
+const editable = computed(() => can(session.role, 'edit:payroll'))
 
 onLoad(() => { if (!isLoggedIn()) uni.reLaunch({ url: P.login }) })
 onShow(() => { if (isLoggedIn()) void refresh() })
 onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 function openAdjustments() { uni.navigateTo({ url: P.payrollAdjustmentList }) }
-function add() { uni.navigateTo({ url: P.payrollCommissionEdit }) }
+function add() { if (editable.value) uni.navigateTo({ url: P.payrollCommissionEdit }) }
 useFinanceStoreScope(() => refresh())
 </script>
 
 <template>
   <view class="pay-page">
-    <JzPageHeader title="员工提成" subtitle="签约计提，回款按比例释放，发放后结清" right-text="计提" right-icon="plus" @right="add" />
+    <JzPageHeader title="员工提成" subtitle="签约计提，回款按比例释放，发放后结清" :right-text="editable ? '计提' : ''" :right-icon="editable ? 'plus' : undefined" @right="add" />
     <FinanceStoreScope />
     <view class="pay-body">
       <view class="pay-entry jz-card" @tap="openAdjustments">

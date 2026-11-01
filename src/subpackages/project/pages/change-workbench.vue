@@ -528,7 +528,7 @@ function addressText(group: BossContractChangeGroup) {
 .ccw__filter-row { display: inline-flex; align-items: center; padding: 16rpx $jzb-page-pad 20rpx; }
 .ccw__filter { flex-shrink: 0; min-height: 64rpx; padding: 0 28rpx; margin-right: 14rpx; display: inline-flex; align-items: center; color: $jzb-text-2; font-size: $jzb-font-sm; background: $jzb-text-inverse; border: 1rpx solid rgba(15, 23, 42, .06); border-radius: $jzb-radius-pill; }
 .ccw__filter:last-child { margin-right: $jzb-page-pad; }
-.ccw__filter--on { color: $jzb-text-inverse; background: $jzb-primary; border-color: $jzb-primary; font-weight: 700; box-shadow: 0 4rpx 12rpx rgba(22, 163, 148, .22); }
+.ccw__filter--on { color: $jzb-text-inverse; background: $jzb-primary; border-color: $jzb-primary; font-weight: 700; box-shadow: 0 4rpx 12rpx var(--jzb-primary-a22, rgba(22, 163, 148, .22)); }
 .ccw__filter-count { margin-left: 8rpx; font-size: 20rpx; opacity: .78; }
 .ccw__filter-dot { flex-shrink: 0; width: 12rpx; height: 12rpx; margin-left: 8rpx; border-radius: 50%; background: $jzb-danger; }
 .ccw__filter--on .ccw__filter-dot { background: $jzb-text-inverse; }

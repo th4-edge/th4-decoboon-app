@@ -50,8 +50,8 @@ function onTap(item: RoleTab) {
   display: flex;
   flex-direction: row;
   background: rgba(255, 255, 255, 0.96);
-  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 -10rpx 36rpx rgba(15, 23, 42, 0.06);
+  border-top: 1rpx solid var(--jzb-primary-a14, rgba(14, 138, 125, 0.14));
+  box-shadow: 0 -10rpx 36rpx var(--jzb-primary-a08, rgba(14, 138, 125, 0.08));
   padding: 8rpx 12rpx calc(8rpx + #{$jzb-safe-bottom});
   backdrop-filter: blur(20px);
 }

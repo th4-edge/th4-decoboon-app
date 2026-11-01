@@ -8,17 +8,20 @@
  *
  * 边界：房号、客户姓名、电话一律不展示（服务端不返回，前端也不兜底）。
  */
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { journeyApi } from '@/domains/journey/api'
 import type { ShareJourneyView } from '@/domains/journey/model'
 import PageState from '@/components/PageState/PageState.vue'
+import CompanyBrandMark from '@/components/CompanyBrandMark.vue'
+import { applyBrandTheme } from '@/domains/identity/brandTheme'
 
 const token = ref('')
 const view = ref<ShareJourneyView | null>(null)
 const loading = ref(true)
 /** 令牌不存在 / 已撤销 / 已过期，服务端统一返回空，这里也不区分原因 */
 const ended = ref(false)
+watch(() => view.value?.vendor?.color, (color) => applyBrandTheme(color), { immediate: true })
 
 onLoad(async (query) => {
   token.value = query?.token || ''
@@ -51,8 +54,13 @@ const VENDOR_SIGN = '记录存证与保管 · 装得清'
     </view>
     <view v-else-if="view" class="sv-body">
       <view class="sv-hero">
-        <text class="sv-hero__name">{{ view.vendor?.name || '装修实录' }}</text>
-        <text class="sv-hero__sub">{{ view.projectName || '' }}</text>
+        <view class="sv-hero__brand">
+          <CompanyBrandMark :name="view.vendor?.name || '装修实录'" :short-name="view.vendor?.name || '装'" :logo="view.vendor?.logo || ''" :color="view.vendor?.color || ''" :size="72" surface="white" />
+          <view>
+            <text class="sv-hero__name">{{ view.vendor?.name || '装修实录' }}</text>
+            <text class="sv-hero__sub">{{ view.projectName || '' }}</text>
+          </view>
+        </view>
         <text v-if="view.community" class="sv-hero__addr">{{ view.community }}</text>
       </view>
       <view class="jz-card sv-card">
@@ -74,9 +82,7 @@ const VENDOR_SIGN = '记录存证与保管 · 装得清'
         <text v-if="view.vendor.intro" class="sv-vendor__desc">{{ view.vendor.intro }}</text>
         <text v-if="view.vendor.serviceArea" class="sv-vendor__desc">服务区域：{{ view.vendor.serviceArea }}</text>
         <text v-if="view.vendor.serviceTel" class="sv-vendor__tel">咨询：{{ view.vendor.serviceTel }}</text>
-        <text class="sv-vendor__sign">
-          {{ view.vendor.custodianCredit ? VENDOR_SIGN : '' }}
-        </text>
+        <text class="sv-vendor__sign">{{ VENDOR_SIGN }}</text>
       </view>
       <text class="sv-foot">本次观看为只读，不含金额与联系方式。</text>
     </view>
@@ -86,6 +92,7 @@ const VENDOR_SIGN = '记录存证与保管 · 装得清'
 <style lang="scss" scoped>
 .sv-page { min-height: 100vh; background: $jzb-bg-page; }
 .sv-hero { padding: 48rpx 32rpx 40rpx; background: $jzb-gradient; color: #fff; }
+.sv-hero__brand { display: flex; align-items: center; gap: 18rpx; }
 .sv-hero__name { display: block; font-size: $jzb-font-lg; font-weight: 700; }
 .sv-hero__sub { display: block; margin-top: 12rpx; font-size: $jzb-font-md; }
 .sv-hero__addr { display: block; margin-top: 8rpx; font-size: $jzb-font-xs; opacity: .86; }

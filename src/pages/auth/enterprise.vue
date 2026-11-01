@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { TOKEN_COLOR } from '@/styles/tokens'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
 import { identityApi } from '@/domains/identity/api'
@@ -9,14 +9,10 @@ import { hideLoading, loading, toast } from '@/composables/toast'
 import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
-const companyTitle = ref('')
 const companyName = ref('')
-const companyAddr = ref('')
-const storeName = ref('')
 const name = ref('')
 const submitting = ref(false)
-const hasRunningProjects = ref(false)
-function onRunningProjectsChange(event: any) { hasRunningProjects.value = !!event?.detail?.value }
+const wechatNameApplied = computed(() => !!session.user?.nickname && name.value === session.user.nickname)
 
 onLoad((query) => {
   if (!session.token || !session.user?.phone) {
@@ -27,30 +23,21 @@ onLoad((query) => {
 })
 
 async function submit() {
-  if (!companyTitle.value.trim()) { toast('请填写企业全称'); return }
-  if (!companyName.value.trim()) { toast('请填写企业简称'); return }
   if (!name.value.trim()) { toast('请填写负责人姓名'); return }
+  if (!companyName.value.trim()) { toast('请填写企业名称'); return }
   submitting.value = true
   loading('正在创建企业…')
   try {
-    let avatarUrl = session.user?.avatarUrl
-    try {
-      const profile = await new Promise<UniApp.GetUserProfileRes>((resolve, reject) => {
-        uni.getUserProfile({ desc: '用于企业负责人头像展示', success: resolve, fail: reject })
-      })
-      avatarUrl = profile.userInfo.avatarUrl || avatarUrl
-      if (!name.value.trim() && profile.userInfo.nickName) name.value = profile.userInfo.nickName
-    } catch {
-      // 微信未授权头像不阻断企业创建。
-    }
+    const displayName = companyName.value.trim()
     const token = await identityApi.registerCompany({
       bossName: name.value.trim(),
-      companyTitle: companyTitle.value.trim(),
-      companyName: companyName.value.trim(),
-      companyAddr: companyAddr.value.trim(),
-      storeName: storeName.value.trim() || '总店',
+      // 快速入驻阶段只填写对外展示名称；法定全称在“我的 → 企业信息”后续完善。
+      companyTitle: displayName,
+      companyName: displayName,
+      companyAddr: '',
+      storeName: '总店',
       size: 'A',
-      avatarUrl
+      avatarUrl: session.user?.avatarUrl
     })
     loginAsToken(token.token)
     const profile = await identityApi.sessionInfo(token.token)
@@ -58,7 +45,7 @@ async function submit() {
     loginAsEmployee(profile.currentEmployee, token.token, profile)
     hideLoading()
     toast('创建成功，已赠送免费试用', 'success')
-    setTimeout(() => goTab(hasRunningProjects.value ? P.carryoverHome : P.home), 400)
+    setTimeout(() => goTab(P.home), 400)
   } catch (error) {
     hideLoading()
     toast(error instanceof Error ? error.message : '创建失败，请重试')
@@ -75,8 +62,8 @@ async function submit() {
         <view class="ent__hero-logo"><JzBrandLogo variant="white" :size="84" /></view>
         <view class="jz-grow">
           <text class="ent__hero-eyebrow">企业负责人开通</text>
-          <text class="ent__hero-title">创建您的装修企业</text>
-          <text class="ent__hero-sub">一次完成企业、总店与负责人档案</text>
+          <text class="ent__hero-title">先创建企业，马上开始使用</text>
+          <text class="ent__hero-sub">企业全称、Logo、地址等资料可以入驻后继续完善</text>
         </view>
       </view>
       <view class="ent__hero-meta">
@@ -86,7 +73,7 @@ async function submit() {
         </view>
         <view class="ent__hero-chip">
           <JzIcon name="clock" :size="26" :color="TOKEN_COLOR.white" />
-          <text>约 1 分钟完成</text>
+          <text>快速开通</text>
         </view>
       </view>
       <view class="ent__hero-points">
@@ -98,41 +85,29 @@ async function submit() {
 
     <view class="ent__card">
       <text class="ent__group">负责人</text>
-      <view class="ent__field">
-        <text class="ent__label">姓名</text>
-        <input v-model="name" maxlength="15" placeholder="请输入负责人姓名" />
+      <view class="ent__field ent__field--stack">
+        <text class="ent__label">负责人姓名</text>
+        <input v-model="name" type="nickname" maxlength="15" placeholder="请选择或输入负责人姓名" />
+        <text v-if="wechatNameApplied" class="ent__hint">已从微信自动填入，可修改</text>
       </view>
 
       <text class="ent__group ent__group--gap">企业信息</text>
-      <view class="ent__field">
-        <text class="ent__label">企业全称</text>
-        <input v-model="companyTitle" maxlength="128" placeholder="例：安徽某某装饰工程有限公司" />
+      <view class="ent__field ent__field--stack">
+        <text class="ent__label">企业名称</text>
+        <input v-model="companyName" maxlength="12" placeholder="请输入企业展示名称，最多 12 字" />
+        <text class="ent__hint">先用于首页、邀请和员工识别，后续可补充企业全称。</text>
       </view>
-      <view class="ent__field">
-        <text class="ent__label">企业简称</text>
-        <input v-model="companyName" maxlength="12" placeholder="最多 12 字" />
-      </view>
-      <view class="ent__field">
-        <text class="ent__label">门店名称</text>
-        <input v-model="storeName" maxlength="16" placeholder="默认总店" />
-      </view>
-      <view class="ent__field">
-        <text class="ent__label">企业地址</text>
-        <input v-model="companyAddr" maxlength="256" placeholder="选填" />
-      </view>
-      <view class="ent__field ent__field--switch">
-        <view class="jz-grow">
-          <text class="ent__label">已有在建项目</text>
-          <text class="ent__switch-note">开启后，创建企业将进入“业务承接”，逐个录入项目。</text>
-        </view>
-        <switch :checked="hasRunningProjects" :color="TOKEN_COLOR.primaryBase" @change="onRunningProjectsChange" />
+
+      <view class="ent__later">
+        <JzIcon name="shield-check" :size="30" :color="TOKEN_COLOR.primary" />
+        <text>企业全称、Logo、品牌色、地址和对外服务信息，可在“我的 → 企业信息”逐步完善。</text>
       </view>
     </view>
 
     <button class="jz-btn jz-btn--primary jz-btn--block ent__submit" :loading="submitting" @tap="submit">
       创建企业并进入工作台
     </button>
-    <view class="ent__tip">企业注册仅使用手机号快捷登录校验负责人身份，不会读取通讯录。</view>
+    <view class="ent__tip">企业创建不会读取通讯录；更多企业资料可入驻后逐步完善。</view>
   </view>
 </template>
 
@@ -141,7 +116,7 @@ async function submit() {
 .ent__hero {
   position: relative; overflow: hidden; padding: 32rpx 30rpx 28rpx; margin-bottom: 24rpx;
   color: $jzb-text-inverse; background: $jzb-gradient; border-radius: $jzb-radius-xl;
-  box-shadow: 0 18rpx 48rpx rgba(14, 138, 125, .20);
+  box-shadow: 0 18rpx 48rpx var(--jzb-primary-a20, rgba(14, 138, 125, .20));
 }
 .ent__hero::after {
   content: ''; position: absolute; right: -90rpx; top: -120rpx; width: 320rpx; height: 320rpx;
@@ -154,7 +129,7 @@ async function submit() {
 }
 .ent__hero-eyebrow { display: block; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; font-weight: 650; }
 .ent__hero-title { display: block; margin-top: 6rpx; font-size: 42rpx; font-weight: 780; line-height: 1.25; }
-.ent__hero-sub { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; }
+.ent__hero-sub { display: block; margin-top: 8rpx; color: rgba(255, 255, 255, .78); font-size: $jzb-font-xs; line-height: 1.55; }
 .ent__hero-meta { position: relative; z-index: $jzb-z-content; display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 26rpx; }
 .ent__hero-chip {
   display: flex; align-items: center; gap: 8rpx; min-height: 48rpx; padding: 0 16rpx;
@@ -170,8 +145,16 @@ async function submit() {
 .ent__group { display: block; padding: 24rpx 0 10rpx; font-size: $jzb-font-sm; font-weight: 650; color: $jzb-primary-dark; }
 .ent__group--gap { margin-top: 12rpx; border-top: 1rpx solid $jzb-border-light; }
 .ent__field { display: flex; align-items: center; min-height: 92rpx; border-bottom: 1rpx solid $jzb-border-light; }
-.ent__label { width: 160rpx; color: $jzb-text-2; font-size: $jzb-font; }
-.ent__field input { flex: 1; color: $jzb-text-1; text-align: right; }
+.ent__field--stack { display: block; padding: 18rpx 0 16rpx; }
+.ent__label { display: block; width: 160rpx; color: $jzb-text-2; font-size: $jzb-font; }
+.ent__field input { flex: 1; width: 100%; color: $jzb-text-1; text-align: right; }
+.ent__field--stack input { margin-top: 12rpx; text-align: left; }
+.ent__hint { display: block; margin-top: 8rpx; color: $jzb-text-4; font-size: 20rpx; line-height: 1.5; }
+.ent__later {
+  display: flex; align-items: flex-start; gap: 12rpx; margin-top: 22rpx; padding: 20rpx;
+  color: $jzb-primary-dark; background: $jzb-primary-lighter; border-radius: $jzb-radius-sm;
+  font-size: $jzb-font-xs; line-height: 1.6;
+}
 .ent__submit { margin-top: 32rpx; }
-.ent__tip { margin-top: 20rpx; color: $jzb-text-3; text-align: center; font-size: $jzb-font-xs; }
+.ent__tip { margin-top: 20rpx; color: $jzb-text-3; text-align: center; font-size: $jzb-font-xs; line-height: 1.6; }
 </style>

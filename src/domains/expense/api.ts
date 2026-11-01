@@ -280,6 +280,19 @@ export const expenseApi = {
       .filter((item): item is ExpenseCategory => Boolean(item))
   },
 
+  categoryPage: async (query: { current?: number; size?: number; keyword?: string; categoryId?: string } = {}): Promise<PageData<ExpenseCategory>> => {
+    const current = Math.max(1, Math.trunc(query.current ?? 1))
+    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('expense/categories/page', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      categoryId: query.categoryId
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeCategory).filter((item): item is ExpenseCategory => Boolean(item)) }
+  },
+
   page: async (query: ExpensePageQuery): Promise<PageData<Expense>> => {
     const result = await post<PageResult<RawRecord> | RawRecord[]>('expense/expenses/page', query)
     return normalizePage(result, query.current, query.size)

@@ -202,7 +202,7 @@ async function submit() {
             <text class="we__label">手机号码</text>
             <input
               v-model="form.phone" class="we__input jz-numeric-input" placeholder="用于联系与到账短信" placeholder-class="we__ph jz-number-placeholder"
-              type="number" maxlength="11" confirm-type="next" @focus="focused = 'phone'" @blur="onBlur('phone')" placeholder-style="text-align: left"
+              type="number" maxlength="11" confirm-type="next" @focus="focused = 'phone'" @blur="onBlur('phone')" placeholder-style="text-align: right"
             />
           </view>
           <text v-if="errorOf('phone')" class="we__error">{{ errorOf('phone') }}</text>
@@ -241,7 +241,7 @@ async function submit() {
             <text class="we__label">银行账号</text>
             <input
               v-model="form.bankAccount" class="we__input jz-numeric-input" placeholder="工资到账账户" placeholder-class="we__ph jz-number-placeholder"
-              type="number" maxlength="32" confirm-type="done" @focus="focused = 'bankAccount'" @blur="onBlur('bankAccount')" placeholder-style="text-align: left"
+              type="number" maxlength="32" confirm-type="done" @focus="focused = 'bankAccount'" @blur="onBlur('bankAccount')" placeholder-style="text-align: right"
             />
           </view>
           <text v-if="errorOf('bankAccount')" class="we__error">{{ errorOf('bankAccount') }}</text>

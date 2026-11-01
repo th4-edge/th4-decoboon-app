@@ -14,8 +14,9 @@ import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
 const summaryId = ref('')
 const selectedEmployee = ref<Employee | null>(null)
-const scheduledDays = ref<number | null>(null)
+const scheduledDays = ref('')
 const schemeLoading = ref(false)
+const schemeError = ref('')
 let schemeRequest = 0
 const form = reactive({ month: localMonth(), normalDays: '0', personalLeaveDays: '0', sickLeaveDays: '0', absenceDays: '0', externalDays: '0', annualLeaveDays: '0', compLeaveDays: '0', remark: '' })
 const saving = ref(false)
@@ -31,7 +32,7 @@ onLoad(async (query) => {
   if (summaryId.value) {
     const item = await payrollApi.attendanceInfo(summaryId.value)
     selectedEmployee.value = item.employee
-    scheduledDays.value = item.scheduledDays
+    scheduledDays.value = String(item.scheduledDays)
     form.month = item.payrollMonth || form.month
     Object.assign(form, { normalDays:String(item.normalDays), personalLeaveDays:String(item.personalLeaveDays), sickLeaveDays:String(item.sickLeaveDays), absenceDays:String(item.absenceDays), externalDays:String(item.externalDays), annualLeaveDays:String(item.annualLeaveDays), compLeaveDays:String(item.compLeaveDays), remark:item.remark || '' })
   } else {
@@ -60,7 +61,8 @@ function chooseEmployee() {
 function clearEmployee() {
   if (!summaryId.value) {
     selectedEmployee.value = null
-    scheduledDays.value = null
+    scheduledDays.value = ''
+    schemeError.value = ''
     schemeRequest += 1
     schemeLoading.value = false
   }
@@ -69,17 +71,22 @@ function clearEmployee() {
 async function loadEffectiveScheme() {
   const empId = selectedEmployee.value?.id
   if (summaryId.value || !empId || !form.month) {
-    scheduledDays.value = null
+    scheduledDays.value = ''
+    schemeError.value = ''
     return
   }
   const version = ++schemeRequest
   schemeLoading.value = true
+  schemeError.value = ''
   try {
     const scheme = await payrollApi.compensationForMonth(empId, form.month)
     if (version !== schemeRequest) return
-    scheduledDays.value = scheme.scheduledDays
+    scheduledDays.value = String(scheme.scheduledDays)
   } catch {
-    if (version === schemeRequest) scheduledDays.value = null
+    if (version === schemeRequest) {
+      scheduledDays.value = ''
+      schemeError.value = '该工资月份没有生效薪酬方案，请先配置对应薪酬方案'
+    }
   } finally {
     if (version === schemeRequest) schemeLoading.value = false
   }
@@ -92,10 +99,17 @@ watch([() => selectedEmployee.value?.id, () => form.month], () => {
 async function submit() {
   const employee = selectedEmployee.value
   if (!employee || !form.month || saving.value) { toast('请选择员工和工资月份'); return }
+  if (!summaryId.value && schemeError.value) { toast(schemeError.value); return }
+  if (schemeLoading.value) { toast('正在读取当月薪酬方案，请稍候'); return }
+  const scheduledDaysValue = Number(scheduledDays.value)
+  if (!Number.isInteger(scheduledDaysValue) || scheduledDaysValue < 1 || scheduledDaysValue > 31) {
+    toast('月应出勤天数必须为 1 至 31 天的整数')
+    return
+  }
   saving.value = true
   try {
-    if (summaryId.value) await payrollApi.updateAttendance({ summaryId:summaryId.value, ...numberFields(), remark:form.remark })
-    else await payrollApi.saveAttendance({ empId:employee.id, month:form.month, ...numberFields(), remark:form.remark })
+    if (summaryId.value) await payrollApi.updateAttendance({ summaryId:summaryId.value, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
+    else await payrollApi.saveAttendance({ empId:employee.id, month:form.month, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
     toast('考勤已保存', 'success'); setTimeout(() => uni.navigateBack(), 500)
   } catch (error) { toastError(error, '考勤保存失败') }
   finally { saving.value = false }
@@ -120,10 +134,20 @@ async function submit() {
 
       <view class="pay-scheme-days">
         <view class="pay-scheme-days__main">
-          <text class="pay-scheme-days__label">月应出勤天数</text>
-          <text class="pay-scheme-days__value">{{ schemeLoading ? '读取中' : !selectedEmployee ? '选择员工后读取' : scheduledDays ? `${scheduledDays} 天` : '未找到当月生效方案' }}</text>
+          <text class="pay-scheme-days__label">应出勤天数</text>
+          <JzNumberInput
+            v-model="scheduledDays"
+            class="pay-scheme-days__input"
+            :precision="0"
+            :min="1"
+            :max="31"
+            :disabled="schemeLoading || (!summaryId && Boolean(schemeError))"
+            placeholder="按当月方案带出，可调整"
+            suffix="天"
+          />
         </view>
-        <text class="pay-scheme-days__tip">{{ summaryId ? '该值已保存为当月考勤记录' : '按所选工资月份匹配生效薪酬方案；保存后写入当月考勤记录' }}</text>
+        <text class="pay-scheme-days__tip">{{ summaryId ? '保存后以本考勤单的快照为准；已进入工资单后不可修改' : '默认按所选工资月份匹配生效薪酬方案，可结合当月实际调整；保存后写入考勤快照' }}</text>
+        <text v-if="schemeError && !summaryId" class="pay-scheme-days__error">{{ schemeError }}</text>
       </view>
 
       <view class="pay-grid">
@@ -148,11 +172,12 @@ async function submit() {
 .pay-input,
 .pay-textarea { box-sizing: border-box; width: 100%; padding: 22rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-md; background: $jzb-bg-card; color: $jzb-text-1; }
 .pay-textarea { min-height: 150rpx; }
-.pay-scheme-days { margin-top: 24rpx; padding: 24rpx; border: 1rpx solid rgba(22, 163, 148, .2); border-radius: $jzb-radius-md; background: $jzb-primary-lightest; }
+.pay-scheme-days { margin-top: 24rpx; padding: 24rpx; border: 1rpx solid var(--jzb-primary-a20, rgba(22, 163, 148, .2)); border-radius: $jzb-radius-md; background: $jzb-primary-lightest; }
 .pay-scheme-days__main { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; }
 .pay-scheme-days__label { color: $jzb-text-2; font-size: $jzb-font-sm; }
-.pay-scheme-days__value { color: $jzb-primary-deep; font-size: $jzb-font-md; font-weight: 750; }
+.pay-scheme-days__input { flex: 1; max-width: 260rpx; }
 .pay-scheme-days__tip { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.pay-scheme-days__error { display: block; margin-top: 10rpx; color: $jzb-danger; font-size: $jzb-font-xs; line-height: 1.55; }
 .pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18rpx; }
 .pay-grid view { min-width: 0; }
 .jz-btn { margin-top: 36rpx; }

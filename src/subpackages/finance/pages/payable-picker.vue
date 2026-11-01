@@ -295,7 +295,8 @@ function projectName(item: Payable) {
 }
 
 function goCreatePayable() {
-  const params = [`type=payable`, `payableType=${typeFilter.value === 'all' ? 'material' : typeFilter.value}`]
+  const manualType = typeFilter.value === 'expense' ? 'expense' : 'other'
+  const params = ['type=payable', `payableType=${manualType}`]
   if (projectId.value) params.push(`projectId=${encodeURIComponent(projectId.value)}`)
   uni.navigateTo({ url: `${P.financeEntry}?${params.join('&')}` })
 }
@@ -416,7 +417,7 @@ function goPayables() {
         </JzEmpty>
         <JzEmpty v-else-if="noData" text="当前没有待付应付单" sub="先建立材料款、项目款、工资或费用应付，再安排付款">
           <view class="ppk-empty-actions">
-            <view class="ppk-empty-btn ppk-empty-btn--primary" @tap="goCreatePayable">去新增应付</view>
+            <view class="ppk-empty-btn ppk-empty-btn--primary" @tap="goCreatePayable">去新增手工应付</view>
             <view class="ppk-empty-btn" @tap="goPayables">查看应付账款</view>
           </view>
         </JzEmpty>
@@ -446,7 +447,7 @@ function goPayables() {
 .ppk-body { padding: 16rpx $jzb-page-pad 0; }
 .ppk-context {
   display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; padding: 24rpx;
-  background: $jzb-primary-lighter; border: 1rpx solid rgba(22, 163, 148, .22); border-radius: $jzb-radius;
+  background: $jzb-primary-lighter; border: 1rpx solid var(--jzb-primary-a22, rgba(22, 163, 148, .22)); border-radius: $jzb-radius;
 }
 .ppk-context__icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-text-inverse; border-radius: $jzb-radius-sm; }
 .ppk-context__main { flex: 1; min-width: 0; }
@@ -472,7 +473,7 @@ function goPayables() {
 .ppk-scroll { flex: 1; min-width: 0; white-space: nowrap; }
 .ppk-chips { display: inline-flex; align-items: center; gap: 16rpx; }
 .ppk-chip { display: inline-flex; align-items: center; min-height: 64rpx; padding: 0 24rpx; color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
-.ppk-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: rgba(22, 163, 148, .24); font-weight: 650; }
+.ppk-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a24, rgba(22, 163, 148, .24)); font-weight: 650; }
 .ppk-switch { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 0; border-top: 1rpx solid $jzb-border-light; }
 .ppk-switch__main { flex: 1; min-width: 0; }
 .ppk-switch__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
@@ -487,7 +488,7 @@ function goPayables() {
 .ppk-group__title { color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 .ppk-group__count { color: $jzb-text-4; font-size: $jzb-font-xs; }
 .ppk-item { display: flex; align-items: flex-start; gap: 14rpx; padding: 24rpx; margin-bottom: 16rpx; background: $jzb-bg-card; border: 1rpx solid transparent; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.ppk-item--on { border-color: rgba(22, 163, 148, .28); background: $jzb-primary-lightest; }
+.ppk-item--on { border-color: var(--jzb-primary-a28, rgba(22, 163, 148, .28)); background: $jzb-primary-lightest; }
 .ppk-item--disabled { opacity: .7; background: $jzb-bg-hover; }
 .ppk-item__main { flex: 1; min-width: 0; }
 .ppk-item__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; min-width: 0; }

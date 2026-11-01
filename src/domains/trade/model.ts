@@ -303,6 +303,9 @@ export interface ContractFactNode {
 /** 合同履约档案聚合：一屏回答钱、货、工、变、选。 */
 export interface ContractWorkbench {
   contract: Contract
+  /** 合同基线行全量摘要，不随当前分页变化。 */
+  lineCount: number
+  lineAmount: number
   receivable: ContractWorkbenchReceivable
   paymentNodes: ContractPaymentNodeState[]
   cost: ContractWorkbenchCost

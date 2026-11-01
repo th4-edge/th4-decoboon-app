@@ -78,6 +78,10 @@ export interface PlanTemplateCatalog {
   constructionPlanBaselineVersion: number
   paymentPlans: PaymentPlanTemplate[]
   constructionPlans: ConstructionPlanTemplate[]
+  total?: number
+  current?: number
+  size?: number
+  hasMore?: boolean
 }
 
 export interface ContractPaymentNode {

@@ -124,7 +124,7 @@ async function save() {
         </view>
         <view class="mc__editor-field">
           <text class="mc__editor-label">默认损耗率 *</text>
-          <input v-model="lossRate" class="mc__input jz-numeric-input" type="digit" placeholder="如 8 表示 8%" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+          <input v-model="lossRate" class="mc__input jz-numeric-input" type="digit" placeholder="如 8 表示 8%" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
           <text class="mc__editor-tip">材料计划行自动继承该比例，默认 0；不预置行业比例。</text>
         </view>
         <view class="mc__editor-actions">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TOKEN_COLOR, STATUS_COLOR } from '@/styles/tokens'
 function go(url: string) { uni.navigateTo({ url }) }
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P, goTab, isTabPath } from '@/config'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -29,11 +29,9 @@ import { projectMetrics, visibleProjects } from '@/domains/project/scope'
 import { alert, toastError } from '@/composables/toast'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import OnboardingChecklist from '@/components/OnboardingChecklist.vue'
-import SuccessProgramCard from '@/components/SuccessProgramCard.vue'
 import JzTabBar from '@/components/JzTabBar.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzProgress from '@/components/JzProgress.vue'
-import JzAvatar from '@/components/JzAvatar.vue'
 import JzEmployeeAvatar from '@/components/JzEmployeeAvatar.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
@@ -42,6 +40,8 @@ import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 import JzMoney from '@/components/JzMoney.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import CompanyBrandMark from '@/components/CompanyBrandMark.vue'
+import { applyBrandTheme } from '@/domains/identity/brandTheme'
 import { useSystem } from '@/composables/system'
 import { useShare } from '@/composables/share'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
@@ -56,13 +56,13 @@ import {
 const previewProject = ref<Project | null>(null)
 const previewMode = computed(() => ownerPreview.active)
 const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
+const roleMeta = computed(() => ROLE_META[role.value])
 const onboardingRef = ref<{ reload: () => Promise<void> } | null>(null)
-const successProgramRef = ref<{ reload: () => Promise<void> } | null>(null)
 const emp = computed(() => session.emp)
+const avatarUrl = computed(() => emp.value?.avatarUrl || session.user?.avatarUrl || '')
 const customer = computed(() => ownerPreview.active
   ? previewProject.value?.customer || null
   : session.customer)
-const roleMeta = computed(() => ROLE_META[role.value])
 const { system } = useSystem()
 const loggedIn = computed(() => isLoggedIn())
 const padTop = computed(() => `${(system.value.statusBarHeight || 20) + 12}px`)
@@ -75,6 +75,7 @@ const guestFeatures: Array<{ key: string; title: string; subtitle: string; icon:
 ]
 
 function openLogin() { uni.navigateTo({ url: P.login }) }
+function openOwnerEntry() { uni.navigateTo({ url: P.ownerEnter }) }
 
 // 首页是品牌词搜索与内容承接的落地页，分享文案以收到的人为主语，
 // 不复述功能清单；未登录访客同样可打开。
@@ -87,6 +88,25 @@ useShare(() => ({
 const projects = ref<Project[]>([])
 const acceptances = ref<Acceptance[]>([])
 const reports = ref<SiteReport[]>([])
+const reportsState = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+const reportsError = ref('')
+
+/** 首页“最新动态”与动态页共用 project/report/page，不允许按角色在前端清空事实源。 */
+async function loadLatestReports(): Promise<SiteReport[]> {
+  reportsState.value = 'loading'
+  reportsError.value = ''
+  try {
+    const list = await siteApi.allReports()
+    reports.value = list
+    reportsState.value = 'ready'
+    return list
+  } catch (error) {
+    reports.value = []
+    reportsState.value = 'error'
+    reportsError.value = error instanceof Error ? error.message : '动态暂不可确认'
+    return []
+  }
+}
 const customers = ref<Customer[]>([])
 const marketerReport = ref<MarketerReport | null>(null)
 const designerReport = ref<DesignerReport | null>(null)
@@ -124,18 +144,20 @@ onShow(() => {
   // 主经营数据优先返回，入驻/成功计划在后台分阶段加载，避免阻塞首屏。
   void refresh(background).finally(() => {
     void onboardingRef.value?.reload()
-    void successProgramRef.value?.reload()
   })
 })
 onPullDownRefresh(() => {
   if (!loggedIn.value) { uni.stopPullDownRefresh(); return }
-  return Promise.all([refresh(), onboardingRef.value?.reload(), successProgramRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
+  return Promise.all([refresh(), onboardingRef.value?.reload()]).finally(() => uni.stopPullDownRefresh())
 })
 
 const myProjects = computed(() => ownerPreview.active
   ? projects.value
   : visibleProjects(projects.value, role.value, emp.value, customer.value))
 const customerProject = computed(() => isCustomer(role.value) ? myProjects.value[0] || null : null)
+watch(() => customerProject.value?.company?.color, (color) => {
+  if (isCustomer(role.value)) applyBrandTheme(color)
+}, { immediate: true })
 const metrics = computed(() => projectMetrics(myProjects.value))
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -348,6 +370,8 @@ async function refresh(background = false) {
       acceptanceApi.listByProject(project.id).catch(() => [])
     ])
     reports.value = latestReports
+    reportsState.value = 'ready'
+    reportsError.value = ''
     acceptances.value = latestAcceptances
     customers.value = []
     unreadCount.value = 0
@@ -398,19 +422,19 @@ async function refresh(background = false) {
     return
   }
   if (role.value === 'finance') {
-    const [ps, fs, unread] = await Promise.all([
-      projectApi.list(), financeApi.summary(), collabApi.unread(role.value)
+    const [ps, fs, rs, unread] = await Promise.all([
+      projectApi.list(), financeApi.summary(), loadLatestReports(), collabApi.unread(role.value)
     ])
     projects.value = ps
     financeSummary.value = fs
     unreadCount.value = Number(unread || 0)
-    reports.value = []
+    reports.value = rs
     acceptances.value = []
     return
   }
   if (role.value === 'teamLeader') {
     const [ps, rs, tr, unread] = await Promise.all([
-      projectApi.list(), siteApi.allReports(), statisticApi.teamLeader(), collabApi.unread(role.value)
+      projectApi.list(), loadLatestReports(), statisticApi.teamLeader(), collabApi.unread(role.value)
     ])
     projects.value = ps
     reports.value = rs
@@ -422,7 +446,7 @@ async function refresh(background = false) {
   }
   if (role.value === 'pm') {
     const [ps, rs, pr, unread] = await Promise.all([
-      projectApi.list(), siteApi.allReports(), statisticApi.pm(), collabApi.unread(role.value)
+      projectApi.list(), loadLatestReports(), statisticApi.pm(), collabApi.unread(role.value)
     ])
     projects.value = ps
     reports.value = rs
@@ -434,7 +458,7 @@ async function refresh(background = false) {
   }
   if (role.value === 'storeManager') {
     const [ps, rs, sr, unread] = await Promise.all([
-      projectApi.list(), siteApi.allReports().catch(() => []), statisticApi.storeManager(), collabApi.unread(role.value)
+      projectApi.list(), loadLatestReports(), statisticApi.storeManager(), collabApi.unread(role.value)
     ])
     projects.value = ps.length ? ps : sr.recentProjects
     reports.value = rs
@@ -445,20 +469,20 @@ async function refresh(background = false) {
     return
   }
   if (role.value === 'marketer') {
-    const [ps, cs, mr, unread] = await Promise.all([
-      projectApi.list(), crmApi.list(), statisticApi.marketer(), collabApi.unread(role.value)
+    const [ps, cs, rs, mr, unread] = await Promise.all([
+      projectApi.list(), crmApi.list(), loadLatestReports(), statisticApi.marketer(), collabApi.unread(role.value)
     ])
     projects.value = ps
     customers.value = cs
+    reports.value = rs
     marketerReport.value = mr
     unreadCount.value = Number(unread || 0)
-    reports.value = []
     acceptances.value = []
     return
   }
   if (role.value === 'designer') {
     const [ps, rs, dr, unread] = await Promise.all([
-      projectApi.list(), siteApi.allReports(), statisticApi.designer(), collabApi.unread(role.value)
+      projectApi.list(), loadLatestReports(), statisticApi.designer(), collabApi.unread(role.value)
     ])
     projects.value = ps
     reports.value = rs
@@ -467,7 +491,7 @@ async function refresh(background = false) {
     acceptances.value = []
     return
   }
-  const [ps, rs] = await Promise.all([projectApi.list(), siteApi.allReports()])
+  const [ps, rs] = await Promise.all([projectApi.list(), loadLatestReports()])
   projects.value = ps
   reports.value = rs
   const accs: Acceptance[] = []
@@ -625,24 +649,16 @@ function displayName() {
   return emp.value?.name || '我'
 }
 
-/** 优先展示后端保存的微信头像，未授权时回退姓名首字 */
-const avatarUrl = computed(() => emp.value?.avatarUrl || session.user?.avatarUrl || '')
-
 /** 企业名称：强化企业归属展示 */
 const orgLine = computed(() => {
   if (isCustomer(role.value)) return customerProject.value?.company?.name || session.company?.name || '装修公司'
   return session.company?.name || '未归属企业'
 })
 
-/** 门店 / 团队 / 视图说明 */
+/** 门店与团队是员工组织归属的事实投影；缺失时明确显示未分配，不伪造。 */
 const orgSubLine = computed(() => {
-  if (isCustomer(role.value)) return '业主查看视图 · 仅显示我的工地'
-  const parts = [emp.value?.store?.name, emp.value?.team?.name].filter(Boolean)
-  if (parts.length) return parts.join(' · ')
-  if (role.value === 'boss') return '全公司经营视图'
-  if (role.value === 'storeManager') return '门店经营视图'
-  if (role.value === 'teamLeader') return '团队经营视图'
-  return emp.value?.title || '员工视图'
+  const parts = [session.emp?.store?.name, session.emp?.team?.name].filter(Boolean)
+  return parts.length ? parts.join(' · ') : '未分配门店与团队'
 })
 
 /** 项目区块标题：企业负责人/店长/团队长关心的是全局项目，而不是"我的项目" */
@@ -669,22 +685,10 @@ const projectSectionTitle = computed(() => {
     </JzPageHeader>
 
     <view class="home__body">
-      <!-- 角色横幅：明确当前身份与视图边界 -->
-      <OnboardingChecklist v-if="!previewMode" ref="onboardingRef" />
-      <SuccessProgramCard v-if="!previewMode" ref="successProgramRef" />
-      <view v-if="role === 'boss' && carryoverBatch" class="home__carryover jz-card" @tap="go(P.carryoverHome)">
-        <view class="home__carryover-icon"><JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" /></view>
-        <view class="jz-grow">
-          <text class="home__carryover-title">业务承接进行中</text>
-          <text class="home__carryover-sub">继续录入在跑项目，让工地、业主和账务不断档</text>
-        </view>
-        <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
-      </view>
-
-      <view v-if="!isCustomer(role) || !customerProject" class="home__profile jz-card">
+      <!-- 全角色统一个人身份卡：使用登录会话事实，不随经营卡片改版丢失。 -->
+      <view v-if="!isCustomer(role)" class="home__profile jz-card">
         <view class="home__profile-top">
-          <JzEmployeeAvatar v-if="role !== 'customer' && emp" :src="avatarUrl" :name="displayName()" :role="emp.role" :status="emp.status" :size="112" />
-          <JzAvatar v-else :src="avatarUrl" :name="displayName()" :color="roleMeta.color" :size="112" />
+          <JzEmployeeAvatar :src="avatarUrl" :name="displayName()" :role="emp?.role" :status="emp?.status" :size="112" />
           <view class="home__profile-ident">
             <view class="home__profile-name-row">
               <text class="home__profile-name">{{ displayName() }}</text>
@@ -702,9 +706,20 @@ const projectSectionTitle = computed(() => {
         </view>
       </view>
 
+      <!-- 角色横幅：明确当前身份与视图边界 -->
+      <OnboardingChecklist v-if="!previewMode" ref="onboardingRef" />
+      <view v-if="role === 'boss' && carryoverBatch" class="home__carryover jz-card" @tap="go(P.carryoverHome)">
+        <view class="home__carryover-icon"><JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" /></view>
+        <view class="jz-grow">
+          <text class="home__carryover-title">业务承接进行中</text>
+          <text class="home__carryover-sub">继续录入在跑项目，让工地、业主和账务不断档</text>
+        </view>
+        <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
+      </view>
+
       <view v-if="isCustomer(role) && customerProject" class="jz-card home__owner-project" @tap="openProject(customerProject.id)">
         <view class="home__owner-provider">
-          <view class="home__owner-provider-logo"><JzBrandLogo variant="color" :size="64" /></view>
+          <view class="home__owner-provider-logo"><CompanyBrandMark :name="orgLine" :short-name="customerProject.company?.shortName || orgLine" :logo="customerProject.company?.logo || ''" :color="customerProject.company?.color || ''" :size="64" /></view>
           <view class="jz-grow">
             <text class="home__owner-provider-name">{{ orgLine }}</text>
             <text class="home__owner-provider-sub">由装企提供服务 · 装得清记录存证与保管</text>
@@ -756,7 +771,7 @@ const projectSectionTitle = computed(() => {
       </view>
 
       <!-- 指标卡：员工经营视角 -->
-      <view v-if="!isCustomer(role)" class="home__stats">
+      <view v-if="!isCustomer(role) && role !== 'boss'" class="home__stats">
         <view class="home__stat" :class="s.status ? `home__stat--${s.status}` : ''" v-for="s in statCards" :key="s.label">
           <view class="home__stat-icon" :style="{ backgroundColor: s.tone }">
             <JzIcon :name="s.icon" :size="34" :color="s.color" :stroke-width="2" />
@@ -856,7 +871,6 @@ const projectSectionTitle = computed(() => {
       <view v-if="contentWorkbench" class="home__professional home__content-workbench">
         <view class="home__professional-head">
           <text class="home__professional-title">内容获客</text>
-          <text class="home__professional-sub">{{ contentWorkbench.subtitle }}</text>
         </view>
         <view class="home__professional-grid jz-card">
           <view v-for="item in contentWorkbench.actions" :key="item.key" class="home__professional-item" @tap="go(item.path)">
@@ -874,7 +888,6 @@ const projectSectionTitle = computed(() => {
       <view v-if="role === 'boss'" class="home__professional">
         <view class="home__professional-head">
           <text class="home__professional-title">经营专业工作台</text>
-          <text class="home__professional-sub">量房、选材、材料、履约、增减项与员工绩效集中处理</text>
         </view>
         <view class="home__professional-grid jz-card">
           <view v-for="item in professionalWorkbenches" :key="item.key" class="home__professional-item" @tap="go(item.path)">
@@ -1030,8 +1043,14 @@ const projectSectionTitle = computed(() => {
           <view v-else class="jz-card home__empty-card"><JzEmpty text="暂无经营动态" sub="客户、合同、项目和资金发生变化后会自动形成事件" /></view>
         </template>
         <template v-else>
-          <JzReportCard v-for="r in visibleReports" :key="r.id" :report="r" />
-          <view v-if="!visibleReports.length" class="jz-card home__empty-card"><JzEmpty text="暂无动态" sub="现场汇报后这里会实时同步" /></view>
+          <view v-if="reportsState === 'loading'" class="jz-card home__empty-card"><JzSkeleton :rows="2" /></view>
+          <view v-else-if="reportsState === 'error'" class="jz-card home__empty-card">
+            <JzEmpty text="最新动态暂不可确认" :sub="reportsError || '请下拉刷新后重试'" />
+          </view>
+          <template v-else>
+            <JzReportCard v-for="r in visibleReports" :key="r.id" :report="r" />
+            <view v-if="!visibleReports.length" class="jz-card home__empty-card"><JzEmpty text="暂无动态" sub="现场汇报后这里会实时同步" /></view>
+          </template>
         </template>
       </view>
     </view>
@@ -1063,7 +1082,23 @@ const projectSectionTitle = computed(() => {
         <view class="guest__hero">
           <text class="guest__eyebrow">游客可先浏览，再选择登录</text>
           <text class="guest__title">让装修经营和项目交付都在线协同</text>
-          <text class="guest__desc">登录后按企业、角色和项目授权展示数据。</text>
+          <text class="guest__desc">装企在同一个系统里推进客户、设计、报价、合同、项目和收款；业主只进入自己的家。</text>
+        </view>
+
+        <view class="guest__owner jz-card">
+          <view class="guest__owner-head">
+            <view class="guest__owner-icon"><JzIcon name="home" :size="38" :color="TOKEN_COLOR.primary" /></view>
+            <view class="jz-grow">
+              <text class="guest__owner-title">业主也有专属入口</text>
+              <text class="guest__owner-sub">收到装修公司邀请后，只看自己家的进度、照片、付款与验收</text>
+            </view>
+          </view>
+          <view class="guest__owner-points">
+            <text>本人项目授权</text>
+            <text>施工进度可回看</text>
+            <text>验收确认留痕</text>
+          </view>
+          <button class="jz-btn jz-btn--ghost jz-btn--block guest__owner-action" @tap="openOwnerEntry">我是业主，进入我的家</button>
         </view>
 
         <view class="guest__features">
@@ -1099,7 +1134,7 @@ const projectSectionTitle = computed(() => {
           </view>
         </view>
 
-        <button class="jz-btn jz-btn--primary jz-btn--block guest__login" @tap="openLogin">手机号快捷登录</button>
+        <button class="jz-btn jz-btn--primary jz-btn--block guest__login" @tap="openLogin">企业负责人 / 员工登录</button>
         <text class="guest__tip">浏览期间不会要求登录；仅在您主动点击登录后进入身份验证。</text>
       </view>
     </template>
@@ -1117,7 +1152,7 @@ const projectSectionTitle = computed(() => {
   padding-right: 36rpx;
   padding-bottom: 60rpx;
   box-sizing: border-box;
-  background: radial-gradient(circle at 8% 0%, rgba(43, 196, 180, .18), transparent 34%), $jzb-bg-page;
+  background: radial-gradient(circle at 8% 0%, var(--jzb-primary-a18, rgba(43, 196, 180, .18)), transparent 34%), $jzb-bg-page;
 }
 .guest__brand { display: flex; align-items: center; padding-top: 28rpx; }
 .guest__brand-copy { margin-left: 20rpx; }
@@ -1132,8 +1167,16 @@ const projectSectionTitle = computed(() => {
 .guest__desc { display: block; margin-top: 18rpx; color: $jzb-text-2; font-size: $jzb-font-sm; line-height: 1.7; }
 .guest__features { display: flex; justify-content: space-between; margin-top: 44rpx; }
 .guest__feature { width: 23%; display: flex; flex-direction: column; align-items: center; gap: 12rpx; padding: 20rpx 4rpx; color: $jzb-text-2; font-size: $jzb-font-xs; border: 1rpx solid transparent; border-radius: $jzb-radius-lg; transition: all $jzb-duration-base $jzb-ease-out; }
-.guest__feature--active { color: $jzb-primary-dark; font-weight: 650; background: rgba(255, 255, 255, .86); border-color: rgba(43, 196, 180, .24); box-shadow: $jzb-shadow-card; }
+.guest__feature--active { color: $jzb-primary-dark; font-weight: 650; background: rgba(255, 255, 255, .86); border-color: var(--jzb-primary-a24, rgba(43, 196, 180, .24)); box-shadow: $jzb-shadow-card; }
 .guest__feature-icon { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; border-radius: 22rpx; }
+.guest__owner { margin-top: 30rpx; padding: 26rpx 24rpx 22rpx; border-color: var(--jzb-primary-a20, rgba(22, 163, 148, .20)); background: linear-gradient(135deg, rgba(255,255,255,.96), $jzb-primary-lightest); }
+.guest__owner-head { display: flex; align-items: center; gap: 16rpx; }
+.guest__owner-icon { width: 72rpx; height: 72rpx; flex-shrink: 0; border-radius: 22rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; }
+.guest__owner-title { display: block; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 740; }
+.guest__owner-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.6; }
+.guest__owner-points { display: flex; flex-wrap: wrap; gap: 10rpx; margin-top: 18rpx; }
+.guest__owner-points text { padding: 5rpx 12rpx; border-radius: 999rpx; color: $jzb-primary-dark; background: $jzb-primary-lighter; font-size: 20rpx; }
+.guest__owner-action { margin-top: 18rpx; }
 .guest__detail { margin-top: 32rpx; padding: 30rpx 28rpx; }
 .guest__detail-head { display: flex; align-items: center; }
 .guest__detail-icon { display: flex; align-items: center; justify-content: center; width: 76rpx; height: 76rpx; margin-right: 20rpx; border-radius: 24rpx; }

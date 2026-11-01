@@ -376,7 +376,7 @@ function goReceivables() {
         </JzEmpty>
         <JzEmpty v-else-if="noData" text="本项目还没有应收节点" sub="先在应收计划建立合同节点，再回来登记收款">
           <view class="rp-empty-actions">
-            <view class="rp-empty-btn rp-empty-btn--primary" @tap="goCreateReceivable">去新增应收节点</view>
+            <view class="rp-empty-btn rp-empty-btn--primary" @tap="goCreateReceivable">去新增其他应收</view>
             <view class="rp-empty-btn" @tap="goReceivables">查看应收计划</view>
           </view>
         </JzEmpty>
@@ -406,7 +406,7 @@ function goReceivables() {
 .rp-body { padding: 16rpx $jzb-page-pad 0; }
 .rp-context {
   display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; padding: 24rpx;
-  background: $jzb-primary-lighter; border: 1rpx solid rgba(22, 163, 148, .22); border-radius: $jzb-radius;
+  background: $jzb-primary-lighter; border: 1rpx solid var(--jzb-primary-a22, rgba(22, 163, 148, .22)); border-radius: $jzb-radius;
 }
 .rp-context__icon { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; background: $jzb-text-inverse; border-radius: $jzb-radius-sm; }
 .rp-context__main { flex: 1; min-width: 0; }
@@ -431,7 +431,7 @@ function goReceivables() {
 .rp-scroll { flex: 1; min-width: 0; white-space: nowrap; }
 .rp-chips { display: inline-flex; align-items: center; gap: 16rpx; }
 .rp-chip { display: inline-flex; align-items: center; min-height: 64rpx; padding: 0 24rpx; color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; }
-.rp-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: rgba(22, 163, 148, .24); font-weight: 650; }
+.rp-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a24, rgba(22, 163, 148, .24)); font-weight: 650; }
 .rp-switch { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 0; border-top: 1rpx solid $jzb-border-light; }
 .rp-switch__main { flex: 1; min-width: 0; }
 .rp-switch__title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
@@ -446,7 +446,7 @@ function goReceivables() {
 .rp-group__title { color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
 .rp-group__count { color: $jzb-text-4; font-size: $jzb-font-xs; }
 .rp-item { display: flex; align-items: flex-start; gap: 14rpx; padding: 24rpx; margin-bottom: 16rpx; background: $jzb-bg-card; border: 1rpx solid transparent; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.rp-item--on { border-color: rgba(22, 163, 148, .28); background: $jzb-primary-lightest; }
+.rp-item--on { border-color: var(--jzb-primary-a28, rgba(22, 163, 148, .28)); background: $jzb-primary-lightest; }
 .rp-item--disabled { opacity: .7; background: $jzb-bg-hover; }
 .rp-item__main { flex: 1; min-width: 0; }
 .rp-item__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; min-width: 0; }

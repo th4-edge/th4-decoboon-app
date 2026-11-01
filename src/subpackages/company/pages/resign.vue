@@ -35,7 +35,7 @@ async function resign() {
   try {
     await identityApi.resignCompany(reason.value.trim(), force.value)
     const { logout } = await import('@/domains/identity/session')
-    logout()
+    await logout()
     toast('已退出企业', 'success')
     uni.reLaunch({ url: P.login })
   } catch (error) { toastError(error, '退出失败') }

@@ -252,7 +252,7 @@ async function removeCategory(item: LedgerCategory) {
 
 .lc-page { padding-bottom: calc(48rpx + #{$jzb-safe-bottom}); }
 .lc-body { padding: 16rpx $jzb-page-pad 0; }
-.lc-current { display: flex; align-items: center; padding: 22rpx; background: $jzb-primary-lightest; border: 1rpx solid rgba(22, 163, 148, .18); border-radius: $jzb-radius; }
+.lc-current { display: flex; align-items: center; padding: 22rpx; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a18, rgba(22, 163, 148, .18)); border-radius: $jzb-radius; }
 .lc-current--muted { background: $jzb-bg-page; border-color: $jzb-border; }
 .lc-current__icon { width: 54rpx; height: 54rpx; display: flex; align-items: center; justify-content: center; background: $jzb-bg-card; border-radius: 50%; }
 .lc-current__main { flex: 1; min-width: 0; margin-left: 16rpx; }
@@ -266,7 +266,7 @@ async function removeCategory(item: LedgerCategory) {
 .lc-search__clear { color: $jzb-primary; font-size: $jzb-font-xs; }
 .lc-list { margin-top: 16rpx; }
 .lc-item { display: flex; align-items: flex-start; gap: 16rpx; margin-bottom: 14rpx; padding: 22rpx; background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs; }
-.lc-item--on { border-color: rgba(22, 163, 148, .3); background: $jzb-primary-lightest; }
+.lc-item--on { border-color: var(--jzb-primary-a30, rgba(22, 163, 148, .3)); background: $jzb-primary-lightest; }
 .lc-item__main { flex: 1; min-width: 0; }
 .lc-item__title { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; }
 .lc-node-name { color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }

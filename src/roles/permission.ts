@@ -29,6 +29,8 @@ export type Capability =
   | 'view:cost'
   | 'view:design'
   | 'view:design-review'
+  | 'view:design-template'
+  | 'edit:design-template'
   | 'view:catalog'
   | 'edit:catalog'
   | 'view:catalog-cost'
@@ -77,9 +79,11 @@ export type Capability =
   | 'view:payroll'
   | 'edit:payroll'
   | 'confirm:payroll'
+  | 'delete:draftPayroll'
   | 'pay:payroll'
   | 'edit:attendance'
   | 'view:ownPayslip'
+  | 'view:ownAttendance'
   | 'view:commission'
 
 type InternalRoleKey = Exclude<RoleKey, 'customer'>
@@ -91,6 +95,7 @@ const INTERNAL_READ_ONLY_BUSINESS_CAPABILITIES: Capability[] = [
   'view:payment-plan-template',
   'view:construction-plan-template',
   'view:ownPayslip',
+  'view:ownAttendance',
   'view:feedback'
 ]
 
@@ -119,7 +124,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'edit:payment-plan-template',
     'edit:construction-plan-template',
     'view:selection-board', 'view:rectify',
-    'view:design', 'view:design-review', 'edit:design', 'act:talk',
+    'view:design', 'view:design-review', 'view:design-template', 'edit:design-template', 'edit:design', 'act:talk',
     'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:quote', 'view:finance', 'view:supply',
     // DEC-065 FIN-STORE-06：店长在本店范围内取得与门店财务一致的记账写权限
@@ -133,7 +138,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'act:quote', 'act:contractPrepare', 'act:contractConfirm', 'act:projectCreate',
     'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
     'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteMember', 'act:inviteCustomer', 'view:notice', 'view:performance', 'view:measure-workbench', 'act:stageNotApplicable',
-    'view:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
+    'view:payroll', 'confirm:payroll', 'delete:draftPayroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ],
   // DEC-082：TeamLeader 仅保留历史数据解码，不再获得任何应用能力。
   teamLeader: [],
@@ -151,7 +156,7 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'view:worker',
     'view:catalog',
     'view:selection-board', 'view:rectify',
-    'view:design', 'edit:design', 'act:talk',
+    'view:design', 'view:design-template', 'edit:design-template', 'edit:design', 'act:talk',
     'view:owner-preview',
     'view:myProjects', 'view:customers', 'view:schedule', 'view:task', 'view:contract', 'view:quote',
     'edit:project', 'edit:plan', 'act:contractPrepare', 'act:followCustomer', 'act:convertCustomer',
@@ -176,14 +181,14 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
     'edit:doc-template',
     'view:worker',
     'view:customers', 'act:followCustomer', 'act:recordWechat', 'act:recordVisit',
-    'act:scheduleMeasure', 'act:assignDesigner', 'act:inviteCustomer',
+    'act:scheduleMeasure', 'act:inviteCustomer',
     'view:catalog', 'edit:catalog', 'view:catalog-cost', 'act:catalog-import', 'act:catalog-delete',
     'view:selection-board', 'view:rectify',
     'view:myProjects', 'view:schedule', 'view:task', 'view:inspection', 'view:material',
     'view:design', 'view:design-review', 'view:finance', 'edit:finance', 'view:contract', 'view:quote',
     'view:cost',
     'view:approval', 'view:supply',
-    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice', 'view:payroll', 'edit:payroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
+    'act:issue', 'act:material', 'act:acceptRequest', 'view:notice', 'view:payroll', 'edit:payroll', 'delete:draftPayroll', 'pay:payroll', 'edit:attendance', 'view:ownPayslip', 'view:commission'
   ]
 }
 
@@ -191,16 +196,15 @@ const INTERNAL_MATRIX: Record<InternalRoleKey, Capability[]> = {
 const EXTERNAL_ONLY_CAPABILITIES: readonly Capability[] = ['act:acceptConfirm']
 
 /**
- * 仅 BOSS 独有的内部能力；不进入其它岗位矩阵。
- * DEC-046 APP-PAY-03/08：工资单确认动作人仅 BOSS，财务不参与确认。
- * 这类能力必须显式列出，否则 BOSS 并集无法自动覆盖新增能力键。
+ * BOSS 的内部动作兜底能力。工资单确认/草稿删除已按 DEC-097、DEC-098
+ * 下放给本店店长和相应数据范围财务，但仍保留在 BOSS 并集。
  */
-const BOSS_ONLY_CAPABILITIES: readonly Capability[] = ['confirm:payroll']
+const BOSS_ACTION_CAPABILITIES: readonly Capability[] = ['confirm:payroll', 'delete:draftPayroll']
 
 const INTERNAL_CAPABILITIES = [
   ...new Set([
     ...Object.values(INTERNAL_MATRIX).flat(),
-    ...BOSS_ONLY_CAPABILITIES
+    ...BOSS_ACTION_CAPABILITIES
   ])
 ].filter((capability) => !EXTERNAL_ONLY_CAPABILITIES.includes(capability))
 

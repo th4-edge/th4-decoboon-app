@@ -1,6 +1,6 @@
 import { post, listOf } from '@/core/http'
 import { dateTimeValue } from '@/core/format'
-import type { PageResult } from '@/domains/common/model'
+import { toPageData, type PageData, type PageResult } from '@/domains/common/model'
 import type { Worker, WorkerStatus } from './model'
 
 type Raw = Record<string, any>
@@ -27,12 +27,20 @@ export function normalizeWorker(raw: Raw): Worker {
 export const laborApi = {
   /** 工人档案分页：服务端已按角色裁剪身份证号与银行账号。 */
   workers: async (params: { keyword?: string; status?: WorkerStatus; current?: number; size?: number } = {}) =>
-    listOf(await post<PageResult<Raw> | Raw[]>('labor/worker/page', {
-      current: params.current ?? 1,
-      size: params.size ?? 50,
-      keyword: params.keyword,
+    (await laborApi.workerPickerPage(params)).list,
+
+  workerPickerPage: async (params: { keyword?: string; status?: WorkerStatus; current?: number; size?: number } = {}): Promise<PageData<Worker>> => {
+    const current = params.current ?? 1
+    const size = params.size ?? 20
+    const result = await post<PageResult<Raw> | Raw[]>('labor/worker/page', {
+      current,
+      size,
+      keyword: params.keyword?.trim() || undefined,
       status: params.status ? STATUS_API[params.status] : undefined
-    })).map(normalizeWorker),
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeWorker) }
+  },
 
   /** 工人详情：按主键单条读取，避免列表分页导致编辑页取不到人。 */
   worker: async (id: string) => normalizeWorker(await post<Raw>('labor/worker/info', { workerId: id })),

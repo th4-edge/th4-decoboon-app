@@ -26,11 +26,16 @@ import {
   ownerPreview,
   ownerPreviewWatermark
 } from '@/domains/owner-preview/session'
+import { activeBrandTheme } from '@/domains/identity/brandTheme'
 
 const previewProject = ref<Project | null>(null)
 const previewMode = computed(() => ownerPreview.active)
 const role = computed(() => ownerPreview.active ? 'customer' as const : session.role || 'customer')
 const roleMeta = computed(() => ROLE_META[role.value])
+const profileHeroStyle = computed(() => ({
+  background: `linear-gradient(135deg, ${activeBrandTheme.primaryLightest} 0%, #FFFFFF 72%)`,
+  borderColor: activeBrandTheme.primaryLighter
+}))
 const memberCount = ref(0)
 const myProjectCount = ref(0)
 
@@ -111,7 +116,6 @@ const groups = computed(() => {
   const support: ReturnType<typeof cell>[] = []
 
   account.push(cell('user', '个人信息', employee ? '头像、姓名与组织归属' : '姓名与手机号', guarded(openProfile)))
-  account.push(cell('logout', '退出登录', '清除当前设备登录状态', guarded(doLogout)))
   if (employee) account.push(cell('building', '我的企业', session.company?.name || '', guarded(() => uni.navigateTo({ url: P.companyInfo }))))
   if (employee) account.push(cell('lock', '账号密码', session.user?.passwordSet ? '已设置' : '未设置', guarded(() => uni.navigateTo({ url: P.accountPassword }))))
   if (employee && can(role.value, 'view:subscription')) account.push(cell('wallet', '订阅与门店', '年费、席位与功能模块', guarded(() => uni.navigateTo({ url: P.subscription }))))
@@ -163,6 +167,8 @@ const groups = computed(() => {
   if (!employee) mine.push(cell('home', '我的工地', `${myProjectCount.value} 个`, goMyProjects))
   if (!employee) mine.push(cell('alert-circle', '我的意见投诉', '提交问题并查看处理进度', guarded(() => uni.navigateTo({ url: P.feedbackList }))))
   if (employee && can(role.value, 'view:ownPayslip')) payroll.push(cell('wallet', '我的工资条', '已发放工资条与收入明细', () => uni.navigateTo({ url: P.payrollMyPayroll })))
+  if (employee && can(role.value, 'view:ownAttendance')) payroll.push(cell('calendar', '我的考勤', '查看本人月度出勤与异常', () => uni.navigateTo({ url: P.payrollMyAttendance })))
+  if (employee && can(role.value, 'view:commission')) payroll.push(cell('chart', '我的提成', '查看本人项目提成与发放进度', () => uni.navigateTo({ url: P.payrollMyCommission })))
 
   support.push(cell('bell', '消息通知', '', guarded(() => uni.navigateTo({ url: P.msgList }))))
   support.push(cell('info', '使用帮助', '新手任务、常见错误与处理入口', guarded(() => uni.navigateTo({ url: P.helpCenter }))))
@@ -173,7 +179,7 @@ const groups = computed(() => {
     { key: 'account', title: '账号与企业', subtitle: '企业身份、账号安全和订阅权益', items: account },
     { key: 'organization', title: '组织与权限', subtitle: '团队、成员与岗位协作', items: organization },
     { key: 'business', title: '经营工具', subtitle: '企业标准资料与经营履约能力', items: business },
-    { key: 'payroll', title: '我的工资', subtitle: '已发放工资条与收入明细', items: payroll },
+    { key: 'payroll', title: '我的工资', subtitle: '本人考勤、提成与已发放工资条', items: payroll },
     { key: 'mine', title: '我的业务', subtitle: '我参与和负责的项目', items: mine },
     { key: 'support', title: '服务与支持', subtitle: '消息、咨询与产品信息', items: support }
   ].filter((group) => group.items.length > 0)
@@ -182,7 +188,7 @@ async function doLogout() {
   if (previewBlocked()) return
   const ok = await confirm('退出登录', '确认退出当前账号吗？', '退出')
   if (!ok) return
-  logout()
+  await logout()
   uni.reLaunch({ url: P.login })
 }
 </script>
@@ -192,7 +198,7 @@ async function doLogout() {
     <OwnerPreviewBanner v-if="previewMode" @back="leaveOwnerPreview" />
     <JzPageHeader title="我的" :subtitle="isCustomer(role) ? '业主账号' : '企业账号'" />
 
-    <view class="mine__profile" :style="{ backgroundColor: roleMeta.soft }" @tap="openProfile">
+    <view class="mine__profile" :style="profileHeroStyle" @tap="openProfile">
       <JzEmployeeAvatar v-if="session.emp" :src="session.emp.avatarUrl || session.user?.avatarUrl || ''" :name="displayName()" :role="session.emp.role" :status="session.emp.status" :size="96" />
       <JzAvatar v-else :src="session.user?.avatarUrl || ''" :name="displayName()" :color="roleMeta.color" :size="96" />
       <view class="jz-grow mine__who">
@@ -216,6 +222,13 @@ async function doLogout() {
           <JzIcon v-if="item.cb" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
       </view>
+    </view>
+    <view class="mine__session">
+      <button class="mine__logout" @tap="doLogout">
+        <JzIcon name="logout" :size="30" :color="TOKEN_COLOR.danger" />
+        <text>退出登录</text>
+      </button>
+      <text class="mine__session-note">退出后仅清除本机登录状态，不删除企业业务数据</text>
     </view>
     <JzTabBar :current="P.mine" />
     <OwnerPreviewWatermark v-if="previewMode" :text="ownerPreviewWatermark" />
@@ -242,5 +255,9 @@ async function doLogout() {
 .mine__cell-value { font-size: $jzb-font-sm; color: $jzb-text-3; }
 .mine__cell-arrow { font-size: 36rpx; color: $jzb-text-4; margin-left: 12rpx; }
 .mine__profile::after { content: ''; position: absolute; right: -90rpx; top: -100rpx; width: 240rpx; height: 240rpx; border-radius: 50%; background: rgba(255,255,255,.5); }
+.mine__session { margin: 8rpx $jzb-page-pad 32rpx; }
+.mine__logout { width: 100%; min-height: 92rpx; display: flex; align-items: center; justify-content: center; gap: 12rpx; color: $jzb-danger; background: $jzb-bg-card; border: 1rpx solid rgba(229,72,77,.18); border-radius: $jzb-radius-md; font-size: $jzb-font-sm; font-weight: 650; }
+.mine__logout::after { border: none; }
+.mine__session-note { display: block; margin-top: 12rpx; color: $jzb-text-4; text-align: center; font-size: 20rpx; line-height: 1.5; }
 
 </style>

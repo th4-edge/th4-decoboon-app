@@ -19,13 +19,13 @@ export interface RoleTab {
 
 /** 角色元信息仅负责展示；数据可见域由 roles/permission.ts 与服务端共同保证。 */
 export const ROLE_META: Record<RoleKey, RoleMeta> = {
-  boss:       { label: '企业负责人', short: '负责人', color: TOKEN_COLOR.primary, soft: TOKEN_COLOR.primaryLighter, description: '全局经营与关键审批' },
+  boss:       { label: '企业负责人', short: '负责人', get color() { return TOKEN_COLOR.primary }, get soft() { return TOKEN_COLOR.primaryLighter }, description: '全局经营与关键审批' },
   storeManager: { label: '店长', short: '店长', color: '#0B7A70', soft: '#E6F5F3', description: '门店经营、客户分配与设计师调度' },
   teamLeader: { label: '团队负责人', short: '团队长', color: '#2F54EB', soft: TOKEN_COLOR.primaryLighter, description: '历史兼容岗位，不再启用' },
   marketer:   { label: '业务员',   short: '业务', color: '#168A96', soft: '#E9F6F7', description: '客户登记、跟进与转化' },
   designer:   { label: '设计师',     short: '设计', color: TOKEN_COLOR.purple, soft: TOKEN_COLOR.purpleSoft, description: '量房报价与施工排期' },
   pm:         { label: '项目经理',   short: '经理', color: TOKEN_COLOR.warning, soft: TOKEN_COLOR.warningSoft, description: '现场施工、节点与验收' },
-  finance:    { label: '财务',       short: '财务', color: TOKEN_COLOR.primary, soft: TOKEN_COLOR.primaryLighter, description: '应收、收付款、项目结算与材料履约协同' },
+  finance:    { label: '财务',       short: '财务', get color() { return TOKEN_COLOR.primary }, get soft() { return TOKEN_COLOR.primaryLighter }, description: '应收、收付款、项目结算与材料履约协同' },
   customer:   { label: '业主客户',   short: '业主', color: TOKEN_COLOR.danger, soft: TOKEN_COLOR.dangerSoft, description: '只看自己的项目并参与验收' }
 }
 

@@ -153,7 +153,7 @@ const hasAction = computed(() => !!props.actionLabel)
   color: $jzb-text-inverse;
   background: $jzb-primary;
   border-color: $jzb-primary;
-  box-shadow: 0 6rpx 18rpx rgba(22, 163, 148, 0.22);
+  box-shadow: 0 6rpx 18rpx var(--jzb-primary-a22, rgba(22, 163, 148, 0.22));
 }
 .sales-steps__action {
   width: 100%;

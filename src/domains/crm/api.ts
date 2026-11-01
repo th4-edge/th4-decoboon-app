@@ -347,7 +347,13 @@ export const crmApi = {
     const current = query.current ?? 1
     const size = query.size ?? 20
     const uri = session.role === 'pm' ? 'project/manager/customer/page' : 'customer/customer/page'
-    const result = await post<PageResult<RawRecord> | RawRecord[]>(uri, { ...query, current, size })
+    const { stage, ...requestQuery } = query
+    const result = await post<PageResult<RawRecord> | RawRecord[]>(uri, {
+      ...requestQuery,
+      current,
+      size,
+      status: stage === 'all' ? undefined : stage
+    })
     const page = toPageData(result, current, size)
     return { ...page, list: page.list.map(normalizeCustomer) }
   },

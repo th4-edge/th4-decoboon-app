@@ -218,6 +218,8 @@ export interface FinanceSummary {
   monthNetCashFlowAmount: number
   receiptCount: number
   paymentCount: number
+  monthReceiptCount: number
+  monthPaymentCount: number
   grossReceiptAmount?: number
   reversalAmount?: number
   receiptAmount: number
@@ -298,6 +300,29 @@ export interface FinanceLedgerReport {
   incomeAmount: number
   expenseAmount: number
   netCashFlowAmount: number
+}
+
+export interface FinanceReceivableReport {
+  count: number
+  totalAmount: number
+  receivedAmount: number
+  outstandingAmount: number
+  overdueAmount: number
+  asOf?: string
+}
+
+export interface FinanceReceiptReport {
+  receiptCount: number
+  grossReceiptAmount: number
+  reversalAmount: number
+  receiptAmount: number
+  asOf?: string
+}
+
+export interface FinancePaymentReport {
+  paymentCount: number
+  paymentAmount: number
+  asOf?: string
 }
 
 export interface FinancePayableReport {

@@ -5,8 +5,6 @@ import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { P, goTab } from '@/config'
 import { money } from '@/core/format'
 import { financeApi } from '@/domains/finance/api'
-import { statisticApi } from '@/domains/statistic/api'
-import type { MetricDefinition } from '@/domains/statistic/model'
 import type { FinanceSummary } from '@/domains/finance/model'
 import { DIRECTION_LABEL, PAYABLE_STATUS_META, RECEIVABLE_STATUS_META } from '@/domains/finance/meta'
 import { isLoggedIn, session } from '@/domains/identity/session'
@@ -23,7 +21,7 @@ import { activeStoreName } from '@/domains/identity/storeScope'
 import { useFinanceStoreScope } from '@/composables/useFinanceStoreScope'
 
 const summary = ref<FinanceSummary | null>(null)
-const metricDefinitions = ref<MetricDefinition[]>([])
+const summaryError = ref('')
 
 /** 只解释老板最容易混的几笔钱，口径与后端指标字典一致。 */
 const glossaryDifferences = [
@@ -33,11 +31,13 @@ const glossaryDifferences = [
   '已收金额：只看现在还在管的项目，已经和应收计划对上、确认收回来的钱，不包含已归档项目。',
   '现金流：本月实际收到的钱减去实际花出去的钱，不是利润。'
 ]
+const glossaryMetricKeys = ['receiptAmount', 'monthReceiptAmount', 'monthIncome', 'receivedAmount', 'outstandingAmount', 'overdueAmount', 'payableAmount', 'unpaidAmount', 'monthExpense', 'monthNetCashFlowAmount', 'cashBalance', 'openingBalanceAmount']
 
 /** 财务工作台内存缓存：只驻留当前 App 会话，不写入本地存储。 */
-let financeCache: { at: number; summary: FinanceSummary; metricDefinitions: MetricDefinition[] } | null = null
+let financeCache: { at: number; summary: FinanceSummary } | null = null
 const loading = ref(false)
 const urgentTab = ref<'overdue' | 'dueSoon' | 'pay'>('overdue')
+const showAllQuick = ref(false)
 const editable = computed(() => can(session.role, 'edit:finance'))
 
 /**
@@ -52,9 +52,7 @@ const storeScoped = computed(() => {
 })
 const storeName = computed(() => session.emp?.store?.name || '本店')
 const pageTitle = computed(() => (storeScoped.value ? '本店财务记账台' : '财务工作台'))
-const pageSubtitle = computed(() => (storeScoped.value
-  ? `${session.company?.name || '当前企业'} · ${storeName.value} · 本店经营资金与项目账务`
-  : `${session.company?.name || '当前企业'} · ${activeStoreName.value} · 经营资金与项目账务`))
+const pageSubtitle = computed(() => `${session.company?.name || '当前企业'} · ${storeScoped.value ? storeName.value : activeStoreName.value}`)
 
 onLoad(() => { if (!isLoggedIn()) goTab(P.login) })
 onShow(() => {
@@ -67,29 +65,25 @@ onPullDownRefresh(() => refresh().finally(() => uni.stopPullDownRefresh()))
 function applyFinanceCache() {
   if (!financeCache) return
   summary.value = financeCache.summary
-  metricDefinitions.value = financeCache.metricDefinitions
   loading.value = false
 }
 
 async function refresh(background = false) {
+  summaryError.value = ''
   if (financeCache) {
     applyFinanceCache()
   } else if (!background) {
     loading.value = true
   }
   try {
-    const [s, d] = await Promise.all([
-      financeApi.summary(),
-      statisticApi.metricDictionary(['receiptAmount', 'monthReceiptAmount', 'monthIncome', 'receivedAmount', 'outstandingAmount', 'overdueAmount', 'payableAmount', 'unpaidAmount', 'monthExpense', 'monthNetCashFlowAmount', 'cashBalance', 'openingBalanceAmount'])
-    ])
+    const s = await financeApi.summary()
     summary.value = s
-    metricDefinitions.value = d
-    financeCache = { at: Date.now(), summary: s, metricDefinitions: d }
+    financeCache = { at: Date.now(), summary: s }
   } catch (error) {
     if (!financeCache) {
       summary.value = null
-      metricDefinitions.value = []
     }
+    summaryError.value = error instanceof Error ? error.message : '财务工作台暂不可确认'
     toastError(error, '财务工作台加载失败')
   } finally {
     loading.value = false
@@ -99,13 +93,6 @@ async function refresh(background = false) {
 function go(path: string) { uni.navigateTo({ url: path }) }
 function openEntry(type: string, extra = '') { go(`${P.financeEntry}?type=${type}${extra}`) }
 function openProject(id: string) { go(`${P.financeProject}?projectId=${id}`) }
-
-const stats = computed(() => [
-  { label: '待收工程款', value: summary.value?.outstandingAmount || 0, sub: `逾期 ${money(summary.value?.overdueAmount)}`, icon: 'file-text' as IconName, tone: TOKEN_COLOR.primaryLighter, color: TOKEN_COLOR.primary },
-  { label: '本月回款', value: summary.value?.monthReceiptAmount || 0, sub: `累计收款 ${money(summary.value?.receiptAmount)}`, icon: 'arrow-right' as IconName, tone: TOKEN_COLOR.successSoft, color: TOKEN_COLOR.success },
-  { label: '待付账款', value: summary.value?.unpaidAmount || 0, sub: `合同应付 ${money(summary.value?.payableAmount)}`, icon: 'wallet' as IconName, tone: TOKEN_COLOR.warningSoft, color: TOKEN_COLOR.warning },
-  { label: '本月支出', value: summary.value?.monthExpense || 0, sub: `现金流 ${money(summary.value?.monthNetCashFlowAmount)}`, icon: 'chart' as IconName, tone: TOKEN_COLOR.dangerSoft, color: TOKEN_COLOR.danger }
-])
 
 interface FinanceQuickItem {
   key: string
@@ -119,7 +106,6 @@ interface FinanceQuickItem {
 interface FinanceQuickGroup {
   key: string
   title: string
-  description: string
   items: FinanceQuickItem[]
 }
 
@@ -128,7 +114,6 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
   {
     key: 'cash',
     title: '资金收付',
-    description: '先登记真实收付款，系统自动核销并进入资金台账',
     items: [
       { key: 'receipt', label: '登记收款', icon: 'wallet', tone: TOKEN_COLOR.successSoft, path: `${P.financeEntry}?type=receipt`, requiresEdit: true },
       { key: 'refund', label: '客户退款', icon: 'file-text', tone: TOKEN_COLOR.dangerSoft, path: P.financeRefunds },
@@ -139,7 +124,6 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
   {
     key: 'counterparty',
     title: '往来管理',
-    description: '按客户、供应商和工人管理待收待付，形成资金计划',
     items: [
       { key: 'receivables', label: '应收计划', icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, path: P.financeReceivables },
       { key: 'payables', label: '应付账款', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financePayables },
@@ -150,7 +134,6 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
   {
     key: 'payroll',
     title: '员工薪酬',
-    description: '员工工资与提成独立核算，发放后进入工资条和资金台账',
     items: [
       { key: 'payrollWorkbench', label: '员工薪酬', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollWorkbench },
       { key: 'employeeSalary', label: '员工工资', icon: 'wallet', tone: TOKEN_COLOR.primaryLighter, path: P.payrollSheetList },
@@ -160,7 +143,6 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
   {
     key: 'accounting',
     title: '账务核算',
-    description: '统一查看资金流水、项目盈利和收付凭证',
     items: [
       { key: 'materialOrder', label: '主材下单', icon: 'package', tone: TOKEN_COLOR.primaryLighter, path: P.materialSheet },
       { key: 'materialSettlement', label: '主材结算', icon: 'clipboard', tone: TOKEN_COLOR.warningSoft, path: P.financeMaterialSettlement },
@@ -172,7 +154,6 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
   {
     key: 'expense',
     title: '费用与报销',
-    description: '员工提交证据，负责人审批，财务只复核补充',
     items: [
       { key: 'expenses', label: '费用中心', icon: 'file-text', tone: TOKEN_COLOR.primaryLighter, path: P.financeExpenses },
       { key: 'expensePending', label: '待处理费用', icon: 'clock', tone: TOKEN_COLOR.warningSoft, path: `${P.financeExpenses}?status=Submitted` },
@@ -180,6 +161,9 @@ const quickGroups = computed<FinanceQuickGroup[]>(() => [
     ]
   }
 ])
+
+const primaryQuickGroup = computed(() => quickGroups.value[0])
+const remainingQuickGroups = computed(() => quickGroups.value.slice(1))
 
 function openQuick(item: FinanceQuickItem) {
   if (item.requiresEdit && !editable.value) {
@@ -199,19 +183,20 @@ useFinanceStoreScope(() => refresh())
     <view class="fin-hero fin-hero--balance">
       <text class="fin-hero__label">当前账面现金余额</text>
       <text class="fin-hero__value fin-amount">{{ money(summary?.cashBalance) }}</text>
+      <text v-if="summaryError" class="fin-hero__notice">{{ summary ? '财务汇总刷新失败，当前为上次成功读取数据' : '财务汇总暂不可确认，点击右上角刷新重试' }}</text>
       <text v-if="summary && !summary.openingBalanceCaptured" class="fin-hero__notice">期初未承接，余额为过程参考</text>
       <view class="fin-hero__grid">
         <view class="fin-hero__item">
-          <text class="fin-hero__item-label">项目合同额</text>
-          <text class="fin-hero__item-value">{{ money(summary?.contractAmount) }}</text>
+          <text class="fin-hero__item-label">待收工程款</text>
+          <text class="fin-hero__item-value">{{ money(summary?.outstandingAmount) }}</text>
         </view>
         <view class="fin-hero__item">
-          <text class="fin-hero__item-label">已收 / 应收</text>
-          <text class="fin-hero__item-value">{{ summary?.collectionRate || 0 }}%</text>
+          <text class="fin-hero__item-label">待付账款</text>
+          <text class="fin-hero__item-value">{{ money(summary?.unpaidAmount) }}</text>
         </view>
         <view class="fin-hero__item">
-          <text class="fin-hero__item-label">经营项目</text>
-          <text class="fin-hero__item-value">{{ summary?.activeProjectCount || 0 }}/{{ summary?.projectCount || 0 }}</text>
+          <text class="fin-hero__item-label">项目经营结果</text>
+          <text class="fin-hero__item-value">{{ !summary ? '-' : summary.costComplete ? money(summary.profitAmount) : '成本未完整' }}</text>
         </view>
       </view>
     </view>
@@ -225,7 +210,8 @@ useFinanceStoreScope(() => refresh())
       </view>
     </view>
     <view class="fin-body">
-      <template v-if="urgentTab === 'overdue'">
+      <view v-if="!summary" class="fin-empty"><JzEmpty text="风险待办暂不可确认" sub="财务汇总读取失败，请重新加载" /></view>
+      <template v-else-if="urgentTab === 'overdue'">
         <view v-for="item in summary?.overdueReceivables || []" :key="item.id" class="fin-card" @tap="go(`${P.financeReceivables}?projectId=${item.project.id}`)">
           <view class="fin-card__top">
             <view class="fin-card__title">{{ item.project.name }}<text class="fin-card__sub">{{ item.name }} · {{ item.dueDate || '未设账期' }}</text></view>
@@ -266,57 +252,51 @@ useFinanceStoreScope(() => refresh())
       </template>
     </view>
 
-    <view class="fin-grid">
-      <view v-for="item in stats" :key="item.label" class="fin-stat">
-        <view class="fin-stat__head">
-          <view class="fin-stat__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="28" :color="item.color" /></view>
-          <text class="fin-stat__sub">{{ item.sub }}</text>
-        </view>
-        <text class="fin-stat__label">{{ item.label }}</text>
-        <text class="fin-stat__value fin-amount">{{ money(item.value) }}</text>
-      </view>
-    </view>
-
-    <view class="fin-body">
-      <JzMetricGlossary :metrics="metricDefinitions" :differences="glossaryDifferences" title="财务数字怎么算？" subtitle="累计收款、本月回款、资金收入、现金流、账户余额分别是什么意思" />
-    </view>
-
     <view class="fin-section">
-      <text class="fin-section__title">资金闭环</text>
+      <text class="fin-section__title">本月资金</text>
+      <text class="fin-section__more">{{ summary ? `本月收 ${summary.monthReceiptCount} 笔 · 本月付 ${summary.monthPaymentCount} 笔` : '暂不可确认' }}</text>
     </view>
     <view class="fin-body">
-      <view class="fin-flow">
-        <view class="fin-flow__node">
-          <view class="fin-flow__icon"><JzIcon name="file-text" :size="28" :color="TOKEN_COLOR.primary" /></view>
-          <text class="fin-flow__label">应收</text><text class="fin-flow__value">{{ money(summary?.receivableAmount) }}</text>
+      <view class="fin-month-card">
+        <view class="fin-month-card__item">
+          <text class="fin-month-card__label">本月回款</text>
+          <text class="fin-month-card__value">{{ money(summary?.monthReceiptAmount) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-flow__node">
-          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.successSoft }"><JzIcon name="check-circle" :size="28" :color="TOKEN_COLOR.success" /></view>
-          <text class="fin-flow__label">已收</text><text class="fin-flow__value">{{ money(summary?.receivedAmount) }}</text>
+        <view class="fin-month-card__item">
+          <text class="fin-month-card__label">资金收入</text>
+          <text class="fin-month-card__value">{{ money(summary?.monthIncome) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-flow__node">
-          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.primaryLighter }"><JzIcon name="wallet" :size="28" :color="TOKEN_COLOR.primary" /></view>
-          <text class="fin-flow__label">应付</text><text class="fin-flow__value">{{ money(summary?.payableAmount) }}</text>
+        <view class="fin-month-card__item">
+          <text class="fin-month-card__label">资金支出</text>
+          <text class="fin-month-card__value">{{ money(summary?.monthExpense) }}</text>
         </view>
-        <view class="fin-flow__link"><JzIcon name="arrow-right" :size="24" :color="TOKEN_COLOR.text4" /></view>
-        <view class="fin-flow__node">
-          <view class="fin-flow__icon" :style="{ background: TOKEN_COLOR.warningSoft }"><JzIcon name="arrow-right" :size="28" :color="TOKEN_COLOR.warning" /></view>
-          <text class="fin-flow__label">已付</text><text class="fin-flow__value">{{ money(summary?.paidAmount) }}</text>
+        <view class="fin-month-card__item">
+          <text class="fin-month-card__label">现金流</text>
+          <text class="fin-month-card__value">{{ money(summary?.monthNetCashFlowAmount) }}</text>
         </view>
       </view>
     </view>
 
     <view class="fin-section">
-      <text class="fin-section__title">财务快捷入口</text>
-      <text v-if="!editable" class="fin-section__more">只读视图</text>
+      <text class="fin-section__title">常用操作</text>
+      <text class="fin-section__more" @tap="showAllQuick = !showAllQuick">{{ showAllQuick ? '收起' : '全部入口' }}</text>
     </view>
     <view class="fin-body">
-      <view v-for="group in quickGroups" :key="group.key" class="fin-quick-group">
+      <view class="fin-quick">
+        <view
+          v-for="item in primaryQuickGroup?.items || []"
+          :key="item.key"
+          class="fin-quick__item"
+          :class="{ 'fin-quick__item--disabled': item.requiresEdit && !editable }"
+          @tap="openQuick(item)"
+        >
+          <view class="fin-quick__icon" :style="{ backgroundColor: item.tone }"><JzIcon :name="item.icon" :size="30" :color="TOKEN_COLOR.primary" /></view>
+          <text class="fin-quick__text">{{ item.label }}</text>
+        </view>
+      </view>
+      <view v-for="group in showAllQuick ? remainingQuickGroups : []" :key="group.key" class="fin-quick-group">
         <view class="fin-quick-group__head">
           <text class="fin-quick-group__title">{{ group.title }}</text>
-          <text class="fin-quick-group__desc">{{ group.description }}</text>
         </view>
         <view class="fin-quick">
           <view
@@ -331,6 +311,7 @@ useFinanceStoreScope(() => refresh())
           </view>
         </view>
       </view>
+      <view v-if="!editable" class="fin-quick-readonly">当前账号仅可查看财务数据</view>
     </view>
 
     <view class="fin-section">
@@ -338,16 +319,23 @@ useFinanceStoreScope(() => refresh())
       <text class="fin-section__more" @tap="go(P.financeLedger)">全部台账</text>
     </view>
     <view class="fin-body">
-      <view v-for="item in (summary?.recentLedgers || []).slice(0, 5)" :key="item.id" class="fin-card">
-        <view class="fin-card__top">
-          <view class="fin-card__title">{{ item.summary }}<text class="fin-card__sub">{{ item.occurredAt }} · {{ item.project?.name || '企业账务' }}</text></view>
-          <text class="fin-card__amount" :class="item.direction === 'income' ? 'fin-card__amount--income' : 'fin-card__amount--expense'">
-            {{ item.direction === 'income' ? '+' : '-' }}{{ money(item.amount) }}
-          </text>
+      <view v-if="!summary" class="fin-empty"><JzEmpty text="最近流水暂不可确认" sub="财务汇总读取失败，请重新加载" /></view>
+      <template v-else>
+        <view v-for="item in summary.recentLedgers.slice(0, 5)" :key="item.id" class="fin-card">
+          <view class="fin-card__top">
+            <view class="fin-card__title">{{ item.summary }}<text class="fin-card__sub">{{ item.occurredAt }} · {{ item.project?.name || '企业账务' }}</text></view>
+            <text class="fin-card__amount" :class="item.direction === 'income' ? 'fin-card__amount--income' : 'fin-card__amount--expense'">
+              {{ item.direction === 'income' ? '+' : '-' }}{{ money(item.amount) }}
+            </text>
+          </view>
+          <view class="fin-card__facts"><text>{{ DIRECTION_LABEL[item.direction] }}</text><text>{{ item.category }}</text><text>{{ item.counterparty || '—' }}</text></view>
         </view>
-        <view class="fin-card__facts"><text>{{ DIRECTION_LABEL[item.direction] }}</text><text>{{ item.category }}</text><text>{{ item.counterparty || '—' }}</text></view>
-      </view>
-      <view v-if="!(summary?.recentLedgers || []).length" class="fin-empty"><JzEmpty text="暂无资金流水" sub="登记收款、付款或手工记账后将自动进入台账" /></view>
+        <view v-if="!summary.recentLedgers.length" class="fin-empty"><JzEmpty text="暂无资金流水" sub="登记收款、付款或手工记账后将自动进入台账" /></view>
+      </template>
+    </view>
+
+    <view class="fin-body">
+      <JzMetricGlossary :keys="glossaryMetricKeys" :differences="glossaryDifferences" title="指标口径" subtitle="" />
     </view>
 
     <view class="jz-tabbar-gap" />

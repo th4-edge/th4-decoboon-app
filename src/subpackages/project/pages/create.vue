@@ -8,6 +8,7 @@ import { tradeApi } from '@/domains/trade/api'
 import { planApi } from '@/domains/plan/api'
 import { can } from '@/roles/permission'
 import { consumeConstructionPlanPickerResult, consumePaymentPlanPickerResult } from '@/domains/plan/plan-template-picker'
+import { consumeQuotePickerResult } from '@/domains/trade/quote-picker'
 import type { ConstructionPlanTemplate, PaymentPlanTemplate } from '@/domains/plan/model'
 import { money } from '@/core/format'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -23,7 +24,7 @@ type ContractStatus = Contract['status']
 const quoteId = ref('')
 const customerId = ref('')
 const propertyId = ref('')
-const quotes = ref<Quote[]>([])
+const selectedQuote = ref<Quote | null>(null)
 const contract = ref<Contract | null>(null)
 const finalSignedAmount = ref<number | string>('')
 const finalAmountDirty = ref(false)
@@ -43,7 +44,6 @@ const canPrepareContract = computed(() => can(session.role, 'act:contractPrepare
 const canConfirmContract = computed(() => can(session.role, 'act:contractConfirm'))
 const canCreateProject = computed(() => can(session.role, 'act:projectCreate'))
 const canEnterContract = computed(() => canPrepareContract.value || canConfirmContract.value)
-const selectedQuote = computed(() => quotes.value.find((item) => item.id === quoteId.value))
 const selectedPaymentPlan = computed(() => paymentPlans.value.find((item) => item.code === paymentPlanCode.value))
 const selectedConstructionPlan = computed(() => constructionPlans.value.find((item) => item.code === constructionPlanCode.value))
 watch(selectedPaymentPlan, (plan) => {
@@ -98,7 +98,7 @@ onLoad((query) => {
   propertyId.value = query?.propertyId || ''
 })
 
-onShow(() => {
+onShow(async () => {
   if (!isLoggedIn()) {
     uni.reLaunch({ url: P.login })
     return
@@ -113,10 +113,22 @@ onShow(() => {
     }, 350)
     return
   }
-  // 历史坑：必须先消费刚选择的计划，再回读已有合同，避免旧合同覆盖新选择。
+  // 一次性结果必须先于回读合同消费，避免旧合同或计划覆盖用户刚完成的选择。
+  const quoteChanged = await applyQuotePickerResult()
   applyPlanPickerResults()
-  void load()
+  await load(!quoteChanged)
 })
+
+async function applyQuotePickerResult(): Promise<boolean> {
+  const result = consumeQuotePickerResult()
+  if (!result) return false
+  if (result.action === 'clear') {
+    clearQuoteSelection()
+    return true
+  }
+  await selectQuote(result.value)
+  return true
+}
 
 function applyPlanPickerResults() {
   const payment = consumePaymentPlanPickerResult()
@@ -124,6 +136,37 @@ function applyPlanPickerResults() {
   const construction = consumeConstructionPlanPickerResult()
   if (construction) constructionPlanCode.value = construction.action === 'clear' ? '' : construction.value.code
 }
+function openQuotePicker() {
+  if (!canPrepareContract.value || contract.value) {
+    toast(contract.value ? '合同已生成，不能再更换来源报价' : '当前角色不能更换合同来源报价')
+    return
+  }
+  const params = [
+    `selectedId=${encodeURIComponent(quoteId.value || '')}`,
+    `selectedName=${encodeURIComponent(selectedQuote.value?.customer?.name || '')}`,
+    `selectedMeta=${encodeURIComponent(selectedQuote.value ? `${money(selectedQuote.value.amount)} · ${selectedQuote.value.property?.address || '房屋地址待完善'}` : '')}`,
+    customerId.value ? `customerId=${encodeURIComponent(customerId.value)}` : '',
+    propertyId.value ? `propertyId=${encodeURIComponent(propertyId.value)}` : ''
+  ].filter(Boolean)
+  uni.navigateTo({ url: `${P.quotePicker}?${params.join('&')}` })
+}
+
+function clearQuoteSelection() {
+  if (contract.value) {
+    toast('合同已生成，不能清除来源报价')
+    return
+  }
+  quoteId.value = ''
+  selectedQuote.value = null
+  contract.value = null
+  finalSignedAmount.value = ''
+  finalAmountDirty.value = false
+  finalAmountQuoteId.value = ''
+  paymentPlanCode.value = ''
+  constructionPlanCode.value = ''
+  paymentTerms.value = ''
+}
+
 function openPaymentPlanPicker() {
   if (!planFieldsEditable.value) {
     toast(contract.value ? '合同已签约，不能再修改付款计划' : '当前角色不能修改付款计划')
@@ -138,24 +181,23 @@ function openConstructionPlanPicker() {
   }
   uni.navigateTo({ url: `${P.constructionPlanPicker}?selectedCode=${encodeURIComponent(constructionPlanCode.value || '')}&selectedName=${encodeURIComponent(selectedConstructionPlan.value?.name || '')}` })
 }
-async function load() {
+async function load(refreshSelectedContract = true) {
   loadingData.value = true
   try {
-    const [accepted, catalog] = await Promise.all([
-      tradeApi.quotes({ status: 'accepted' }),
-      planApi.catalog()
-    ])
+    const catalog = await planApi.catalog()
     paymentPlans.value = catalog.paymentPlans
     constructionPlans.value = catalog.constructionPlans
 
-    quotes.value = customerId.value
-      ? accepted.filter((item) => item.customer?.id === customerId.value)
-      : accepted
-    if (!quoteId.value && quotes.value.length === 1) {
-      await selectQuote(quotes.value[0])
-    } else if (quoteId.value) {
-      const matched = quotes.value.find((item) => item.id === quoteId.value)
-      if (matched) await selectQuote(matched)
+    if (!selectedQuote.value && quoteId.value) {
+      const quote = await tradeApi.quote(quoteId.value)
+      if (quote.status !== 'accepted') {
+        toast('仅客户已确认报价可以作为合同来源')
+        quoteId.value = ''
+        return
+      }
+      await selectQuote(quote)
+    } else if (selectedQuote.value && refreshSelectedContract) {
+      await selectQuote(selectedQuote.value)
     }
   } catch (error) {
     toastError(error, '签约数据加载失败')
@@ -165,10 +207,16 @@ async function load() {
 }
 
 async function selectQuote(quote: Quote) {
+  if (quote.status !== 'accepted') {
+    toast('仅客户已确认报价可以作为合同来源')
+    return
+  }
+  selectedQuote.value = quote
   quoteId.value = quote.id
+  const quoteChanged = finalAmountQuoteId.value !== quote.id
   contract.value = await tradeApi.contractByQuote(quote.id).catch(() => null)
   // 从付款/施工计划选择页返回时 onShow 会重载合同；同一待签合同不得用报价默认值覆盖用户已录入的最终签约价。
-  const keepDirtyAmount = finalAmountQuoteId.value === quote.id
+  const keepDirtyAmount = !quoteChanged
     && finalAmountDirty.value
     && (!contract.value || ['draft', 'pendingSign'].includes(contract.value.status))
   if (!keepDirtyAmount) {
@@ -176,18 +224,18 @@ async function selectQuote(quote: Quote) {
     finalAmountDirty.value = false
   }
   finalAmountQuoteId.value = quote.id
+  if (quoteChanged) {
+    paymentPlanCode.value = ''
+    constructionPlanCode.value = ''
+    paymentTerms.value = ''
+  }
   if (!paymentPlanCode.value) paymentPlanCode.value = contract.value?.paymentPlan?.sourceCode || ''
   if (!constructionPlanCode.value) constructionPlanCode.value = contract.value?.constructionPlan?.sourceCode || ''
+  if (!paymentTerms.value && contract.value?.paymentTerms) paymentTerms.value = contract.value.paymentTerms
   if (contract.value?.signedAt) signedAt.value = contract.value.signedAt.slice(0, 10)
   if (contract.value?.startDate) startDate.value = contract.value.startDate.slice(0, 10)
   if (contract.value?.planEndDate) planEndDate.value = contract.value.planEndDate.slice(0, 10)
-  if (contract.value?.paymentTerms) paymentTerms.value = contract.value.paymentTerms
   if (quote.property?.id) propertyId.value = quote.property.id
-}
-
-async function pickQuoteByLabel(label: string) {
-  const hit = quotes.value.find((item) => `${item.customer?.name || '客户'} · ${money(item.amount)}` === label)
-  if (hit) await selectQuote(hit)
 }
 
 async function submit() {
@@ -352,34 +400,41 @@ function validateEffectiveInputs() {
         <text class="pc__group">一、客户确认报价</text>
         <text class="pc__required">必选</text>
       </view>
-      <view v-if="quotes.length" class="pc__row">
-        <text class="pc__label">客户报价</text>
-        <JzSelectField
-          variant="plain"
-          :display="selectedQuote ? `${selectedQuote.customer?.name} · ${selectedQuote.no}` : ''"
-          :range="quotes.map(item => `${item.customer?.name || '客户'} · ${money(item.amount)}`)"
-          :index="Math.max(0, quotes.findIndex(item => item.id === quoteId))"
-          :disabled="!!contract || !canPrepareContract"
-          placeholder="选择报价"
-          @change="pickQuoteByLabel"
-        />
-      </view>
-      <view v-else-if="loadingData" class="pc__loading">正在加载客户已确认报价…</view>
-      <view v-else class="pc__empty">
-        <JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.purple" />
-        <text>暂无客户已确认报价，请先在报价详情完成客户确认。</text>
+      <view v-if="loadingData && !selectedQuote" class="pc__loading">正在读取合同上下文…</view>
+
+      <view v-else-if="selectedQuote" class="pc__quote-card">
+        <view class="pc__quote-head">
+          <view class="pc__quote-title-wrap">
+            <text class="pc__quote-kicker">{{ selectedQuote.customer?.name || '客户待完善' }}</text>
+            <text class="pc__quote-title">{{ selectedQuote.title || '客户报价' }}</text>
+          </view>
+          <JzTag text="客户已确认" :color="TOKEN_COLOR.success" />
+        </view>
+        <text class="pc__quote-address">{{ selectedQuote.property?.address || selectedQuote.customer?.community || '房屋地址待完善' }}</text>
+        <view class="pc__quote-facts">
+          <view class="pc__quote-fact"><text>报价金额</text><text>{{ money(selectedQuote.amount) }}</text></view>
+          <view class="pc__quote-fact"><text>房屋面积</text><text>{{ selectedQuote.area || selectedQuote.property?.area || 0 }}㎡</text></view>
+          <view class="pc__quote-fact"><text>版本</text><text>第 {{ selectedQuote.version }} 版</text></view>
+          <view class="pc__quote-fact"><text>设计师</text><text class="pc__person"><JzEmployeeAvatar v-if="selectedQuote.owner" :src="selectedQuote.owner.avatarUrl || ''" :name="selectedQuote.owner.name" :role="selectedQuote.owner.role" :status="selectedQuote.owner.status" :size="40" />{{ selectedQuote.owner?.name || '待指派' }}</text></view>
+        </view>
+        <view class="pc__quote-actions">
+          <button class="jz-btn jz-btn--secondary jz-btn--sm" :disabled="!!contract || !canPrepareContract" @tap="openQuotePicker">更换报价</button>
+          <button class="jz-btn jz-btn--text jz-btn--sm" :disabled="!!contract || !canPrepareContract" @tap="clearQuoteSelection">清除</button>
+        </view>
       </view>
 
-      <view v-if="selectedQuote" class="pc__quote">
-        <view><text>房屋</text><text class="jz-clamp-1">{{ selectedQuote.property?.address || selectedQuote.customer?.community || '待补充' }}</text></view>
-        <view><text>面积</text><text>{{ selectedQuote.area }}㎡</text></view>
-        <view><text>报价额</text><text>{{ money(selectedQuote.amount) }}</text></view>
-        <view><text>设计师</text><view class="pc__person"><JzEmployeeAvatar v-if="selectedQuote.owner" :src="selectedQuote.owner.avatarUrl || ''" :name="selectedQuote.owner.name" :role="selectedQuote.owner.role" :status="selectedQuote.owner.status" :size="40" /><text>{{ selectedQuote.owner?.name || '待指派' }}</text></view></view>
+      <view v-else class="pc__quote-empty">
+        <view class="pc__empty-icon"><JzIcon name="file-text" :size="34" :color="TOKEN_COLOR.purple" /></view>
+        <view class="jz-grow">
+          <text class="pc__empty-title">选择客户已确认报价</text>
+          <text class="pc__empty-sub">确认报价的客户、房屋、金额和设计师后再发起合同。</text>
+        </view>
+        <button class="jz-btn jz-btn--primary jz-btn--sm" :disabled="!canPrepareContract" @tap="openQuotePicker">选择报价</button>
       </view>
 
       <view v-if="contract" class="pc__contract-state">
         <view class="jz-grow">
-          <text class="pc__contract-no">{{ contract.no }}</text>
+          <text class="pc__contract-no">合同已生成</text>
           <text class="pc__contract-sub">当前合同金额 {{ money(contract.currentAmount) }}</text>
         </view>
         <JzTag :text="contractStatusText" :color="contract.status === 'effective' ? TOKEN_COLOR.success : TOKEN_COLOR.warning" />
@@ -394,7 +449,7 @@ function validateEffectiveInputs() {
           type="digit"
           :disabled="!signFieldsEditable"
           @input="finalAmountDirty = true"
-          placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left"
+          placeholder="客户最终确认的合同价格" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right"
         />
       </view>
       <view class="pc__row"><text class="pc__label">签约日期</text><JzSelectField mode="date" :disabled="!signFieldsEditable" :value="signedAt" :display="signedAt" placeholder="请选择" @change="signedAt = $event" /></view>
@@ -462,11 +517,22 @@ function validateEffectiveInputs() {
 .pc__plan-name { display: block; margin-top: 10rpx; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
 .pc__plan-preview { margin: 0 0 16rpx 170rpx; padding: 16rpx 18rpx; color: $jzb-text-3; background: $jzb-primary-lightest; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.6; }
 .pc__arrow { margin-left: 8rpx; flex-shrink: 0; }
-.pc__quote { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx 12rpx; margin-top: 18rpx; padding: 20rpx; color: $jzb-primary-dark; background: $jzb-primary-lightest; border-radius: $jzb-radius; font-size: $jzb-font-xs; }
+.pc__quote-card { margin-top: 18rpx; padding: 22rpx; background: $jzb-primary-lightest; border: 1rpx solid var(--jzb-primary-a18, rgba(22,163,148,.18)); border-radius: $jzb-radius; }
+.pc__quote-head { display: flex; align-items: flex-start; gap: 16rpx; }
+.pc__quote-title-wrap { flex: 1; min-width: 0; }
+.pc__quote-kicker { display: block; color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
+.pc__quote-title { display: block; margin-top: 6rpx; color: $jzb-text-1; font-size: $jzb-font-md; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.pc__quote-address { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; overflow-wrap: anywhere; }
+.pc__quote-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx 20rpx; margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid var(--jzb-primary-a12, rgba(22,163,148,.12)); }
+.pc__quote-fact { min-width: 0; color: $jzb-text-3; font-size: $jzb-font-xs; }
+.pc__quote-fact > text { display: block; margin-top: 4rpx; color: $jzb-text-1; font-weight: 650; overflow-wrap: anywhere; }
+.pc__quote-fact > text:first-child { margin-top: 0; color: $jzb-text-3; font-weight: 400; }
+.pc__quote-actions { display: flex; align-items: center; gap: 12rpx; margin-top: 20rpx; }
 .pc__person { display: inline-flex; align-items: center; gap: 8rpx; }
-.pc__quote view { min-width: 0; }
-.pc__quote view > text:first-child { display: block; color: $jzb-text-3; }
-.pc__quote view > text:last-child { display: block; margin-top: 4rpx; font-weight: 650; }
+.pc__quote-empty { display: flex; align-items: center; gap: 16rpx; margin-top: 18rpx; padding: 22rpx; background: $jzb-bg-hover; border-radius: $jzb-radius; }
+.pc__empty-icon { width: 68rpx; height: 68rpx; flex: none; display: flex; align-items: center; justify-content: center; background: $jzb-purple-soft; border-radius: $jzb-radius-sm; }
+.pc__empty-title { display: block; color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 700; }
+.pc__empty-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .pc__contract-state { display: flex; align-items: center; margin-top: 18rpx; padding: 20rpx; background: $jzb-bg-hover; border-radius: $jzb-radius; }
 .pc__contract-no { display: block; font-weight: 700; }
 .pc__contract-sub { display: block; margin-top: 6rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }

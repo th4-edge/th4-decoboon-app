@@ -522,12 +522,8 @@ function itemTypeFor(type: CatalogType): DesignItemType {
   return 'construction'
 }
 async function saveItem() {
-  if (!selectedCatalogs.value.length && !sourceId.value) {
+  if (!selectedCatalogs.value.length) {
     toast(editingItemId.value ? '历史分项不可直接保存，请先从企业报价项目库重新选择项目' : '请先从企业报价项目库选择项目')
-    return
-  }
-  if (!selectedCatalogs.value.length && (quantity.value === '' || Number(quantity.value) < 0)) {
-    toast('工程量不能为负数，赠送项目数量填0')
     return
   }
   for (const catalog of selectedCatalogs.value) {
@@ -541,46 +537,18 @@ async function saveItem() {
   loading('按企业计价规则计算…')
   try {
     const catalogs = selectedCatalogs.value
-    if (catalogs.length) {
-      for (const [index, catalog] of catalogs.entries()) {
-        const type = itemTypeFor(catalog.type)
-        await designApi.saveItem({
-          designId: designId.value,
-          itemId: editingItemId.value && index === 0 ? editingItemId.value : undefined,
-          spaceId: itemSpaceId.value || undefined,
-          type,
-          category: catalog.category,
-          name: catalog.name,
-          unit: catalog.unit,
-          quantity: Number(quantities.value[catalog.id]),
-          materialPrice: catalog.materialPrice,
-          manualPrice: catalog.manualPrice,
-          costPrice: catalog.costPrice,
-          pricingMode: catalog.pricingMode,
-          catalogItemId: catalog.id,
-          sort: items.value.length + index
-        })
-      }
-      itemType.value = itemTypeFor(catalogs[0].type)
-    } else {
-      await designApi.saveItem({
-        designId: designId.value,
-        itemId: editingItemId.value || undefined,
+    await designApi.saveItems({
+      designId: designId.value,
+      items: catalogs.map((catalog, index) => ({
+        itemId: editingItemId.value && index === 0 ? editingItemId.value : undefined,
         spaceId: itemSpaceId.value || undefined,
-        type: itemType.value,
-        category: itemCategory.value,
-        name: itemName.value,
-        unit: itemUnit.value,
-        quantity: Number(quantity.value),
-        materialPrice: Number(materialPrice.value || 0),
-        manualPrice: Number(manualPrice.value || 0),
-        costPrice: Number(costPrice.value || 0),
-        pricingMode: pricingMode.value,
-        constructionId: itemType.value === 'construction' ? sourceId.value || undefined : undefined,
-        materialId: itemType.value === 'material' ? sourceId.value || undefined : undefined,
-        sort: items.value.length
-      })
-    }
+        catalogItemId: catalog.id,
+        quantity: Number(quantities.value[catalog.id]),
+        quantitySource: 'manual',
+        sort: items.value.length + index
+      }))
+    })
+    itemType.value = itemTypeFor(catalogs[0].type)
     await reloadDetail()
     itemOpen.value = false
     activeTab.value = itemType.value === 'construction' ? 'construction' : itemType.value === 'material' ? 'material' : 'other'
@@ -597,7 +565,7 @@ async function deleteItem(item: DesignItem) {
   if (!ok) return
   loading('删除分项…')
   try {
-    await designApi.deleteItem(item.id)
+    await designApi.saveItems({ designId: designId.value, items: [], deletedItemIds: [item.id] })
     await reloadDetail()
     itemOpen.value = false
     toast('分项已删除', 'success')

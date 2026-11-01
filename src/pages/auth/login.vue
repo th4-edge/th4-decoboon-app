@@ -10,6 +10,7 @@ import { useSystem } from '@/composables/system'
 import { hideLoading, loading, toast } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import { resetOwnerPreview } from '@/domains/owner-preview/session'
+import { captureInviteIntent, clearInviteIntent, inviteLandingUrl, pendingEntriesLandingUrl, readInviteIntent } from '@/domains/identity/inviteContext'
 import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
@@ -17,10 +18,12 @@ const { system } = useSystem()
 const padTop = computed(() => `${(system.value.statusBarHeight || 20) + 12}px`)
 const agreed = ref(session.agreed)
 const submitting = ref(false)
-const needPhone = ref(false)
+/** 先识别微信身份；仅服务端确认首次使用后才展示手机号授权。 */
+const phoneRequired = ref(false)
 const { handlePhoneNumber } = useWxPhoneAuth()
 
 onLoad(async (query) => {
+  captureInviteIntent(query as Record<string, unknown>)
   // 本地联调：使用真实员工令牌快速切换角色；生产构建不会执行该分支。
   if ((import.meta.env.DEV || import.meta.env.MODE === 'development') && query?.devToken) {
     const token = String(query.devToken)
@@ -31,12 +34,14 @@ onLoad(async (query) => {
       if (profile.currentEmployee) {
         resetOwnerPreview()
         loginAsEmployee(profile.currentEmployee, token, profile)
+        clearInviteIntent()
         goTab(P.home)
         return
       }
       if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) {
         resetOwnerPreview()
         loginAsCustomer(profile, token)
+        clearInviteIntent()
         goTab(P.home)
         return
       }
@@ -44,9 +49,28 @@ onLoad(async (query) => {
       // 开发令牌失效时回到普通登录流程。
     }
   }
-  if (session.role) goTab(P.home)
-  else if (session.token && session.user) uni.redirectTo({ url: P.companyJoin })
+  if (session.role) {
+    clearInviteIntent()
+    goTab(P.home)
+  } else if (session.token && session.user) {
+    await routeUnjoined()
+  }
 })
+
+async function routeUnjoined(): Promise<void> {
+  const intent = readInviteIntent()
+  if (intent) {
+    uni.redirectTo({ url: inviteLandingUrl(intent) })
+    return
+  }
+  try {
+    const pending = await identityApi.pendingEntryInvites()
+    uni.redirectTo({ url: pending.length ? pendingEntriesLandingUrl(pending) : P.companyJoin })
+  } catch (error) {
+    toast(error instanceof Error ? error.message : '邀请暂不可确认，请稍后重试')
+    uni.redirectTo({ url: P.companyJoin })
+  }
+}
 
 function ensureAgreed(): boolean {
   if (!agreed.value) {
@@ -75,23 +99,25 @@ async function finishWxLogin(code: string, phoneCode?: string) {
     if (profile.currentEmployee) {
       resetOwnerPreview()
       loginAsEmployee(profile.currentEmployee, token.token, profile)
+      clearInviteIntent()
       hideLoading()
       goTab(P.home)
     } else if (profile.sessionType === 'Customer' && profile.customerAccesses?.length) {
       resetOwnerPreview()
       loginAsCustomer(profile, token.token)
+      clearInviteIntent()
       hideLoading()
       goTab(P.home)
     } else {
       loginAsUser(profile, token.token)
+      await routeUnjoined()
       hideLoading()
-      uni.redirectTo({ url: P.companyJoin })
     }
   } catch (error) {
     hideLoading()
     if (error instanceof ProviderRequestError && error.code === 'PHONE_REQUIRED') {
-      needPhone.value = true
-      toast('请使用手机号快捷登录后继续')
+      phoneRequired.value = true
+      toast('已识别当前身份，首次使用需授权手机号完成账号绑定')
       return
     }
     toast(error instanceof Error ? error.message : '登录失败')
@@ -101,6 +127,7 @@ async function finishWxLogin(code: string, phoneCode?: string) {
 }
 
 function requestWxCode(phoneCode?: string) {
+  if (submitting.value) return
   uni.login({
     provider: 'weixin',
     success: (loginResult) => {
@@ -111,9 +138,8 @@ function requestWxCode(phoneCode?: string) {
   })
 }
 
-function wxLogin() {
+function quickLogin() {
   if (!ensureAgreed()) return
-  needPhone.value = false
   requestWxCode()
 }
 
@@ -153,8 +179,8 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
 
       <view class="login__panel">
         <view class="login__panel-head">
-          <text class="login__panel-title">手机号快捷登录</text>
-          <text class="login__panel-sub">请先确认您的使用身份，再选择是否继续</text>
+          <text class="login__panel-title">账号快捷登录</text>
+          <text class="login__panel-sub">{{ phoneRequired ? '首次使用需授权手机号，完成微信身份与账号绑定' : '已使用过的账号直接继续，首次使用再确认手机号' }}</text>
         </view>
         <view class="login__audience">
           <view class="login__audience-item">
@@ -179,13 +205,13 @@ function wxPhoneLogin(event: { detail?: { code?: string; errMsg?: string } }) {
             </view>
           </view>
         </view>
-        <button v-if="!needPhone" class="login__submit jz-btn jz-btn--primary jz-btn--block"
-                :loading="submitting" @tap="wxLogin">
-          <text>手机号快捷登录</text>
+        <button v-if="!phoneRequired" class="login__submit jz-btn jz-btn--primary jz-btn--block"
+                :loading="submitting" @tap="quickLogin">
+          <text>身份快捷登录</text>
         </button>
         <button v-else class="login__submit jz-btn jz-btn--primary jz-btn--block" open-type="getPhoneNumber"
                 :loading="submitting" @getphonenumber="wxPhoneLogin">
-          <text>手机号快捷登录</text>
+          <text>授权手机号并登录</text>
         </button>
         <view class="login__agree">
           <view class="login__agree-toggle" @tap="toggleAgreed">

@@ -110,7 +110,7 @@ function handleTap(index: number) {
 .psteps__item--active {
   .psteps__circle {
     background: $jzb-primary;
-    box-shadow: 0 4rpx 12rpx rgba(22, 163, 148, 0.3);
+    box-shadow: 0 4rpx 12rpx var(--jzb-primary-a30, rgba(22, 163, 148, 0.3));
   }
   .psteps__num { color: $jzb-text-inverse; }
   .psteps__label { color: $jzb-primary-dark; font-weight: 650; }

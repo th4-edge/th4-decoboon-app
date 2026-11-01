@@ -10,6 +10,18 @@ interface RouteRule {
 }
 
 /** 页面级权限规则；服务端仍会按当前员工、企业和项目归属再次强制校验。 */
+/** 无需登录即可浏览的公共页面；业务数据仍由服务端校验项目授权。 */
+const PUBLIC_PATHS: ReadonlySet<string> = new Set([
+  P.home,
+  P.ownerEnter,
+  P.inviteAccept,
+  P.companyJoin,
+  P.userAgreement,
+  P.privacyPolicy,
+  P.about,
+  P.shareView
+])
+
 const ROUTE_RULES: RouteRule[] = [
   { path: P.customerList, anyOf: ['view:customers'] },
   { path: P.customerPicker, anyOf: ['view:customers'] },
@@ -22,6 +34,9 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.designerMeasureWorkbench, anyOf: ['view:measure-workbench'] },
   { path: P.customerMeasureRecord, anyOf: ['edit:design'] },
   { path: P.designList, anyOf: ['view:design'] },
+  { path: P.designTemplates, anyOf: ['view:design-template'] },
+  { path: P.designTemplateDetail, anyOf: ['view:design-template'] },
+  { path: P.designTemplateEdit, anyOf: ['edit:design-template'] },
   { path: P.designSchemePicker, anyOf: ['view:design'] },
   { path: P.designRequirements, anyOf: ['edit:design'] },
   { path: P.designRequirement, anyOf: ['edit:design'] },
@@ -35,6 +50,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.catalogImportResult, anyOf: ['act:catalog-import'] },
   { path: P.quoteList, anyOf: ['view:quote'] },
   { path: P.quoteLinePicker, anyOf: ['edit:quote'] },
+  { path: P.quotePicker, anyOf: ['view:quote'] },
   { path: P.packageManage, anyOf: ['view:package-template'] },
   { path: P.packageEdit, anyOf: ['edit:package-template'] },
   { path: P.packagePicker, anyOf: ['view:quote'] },
@@ -64,6 +80,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.taskDetail, anyOf: ['view:task'] },
   { path: P.taskEdit, anyOf: ['edit:task'] },
   { path: P.reportEdit, anyOf: ['act:report'] },
+  { path: P.reportProjectPicker, anyOf: ['act:report'] },
   { path: P.reportDaily, anyOf: ['view:allProjects', 'view:myProjects'] },
   { path: P.acceptEdit, anyOf: ['act:acceptRequest', 'act:acceptConfirm'] },
   { path: P.teamList, anyOf: ['view:team'] },
@@ -90,6 +107,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.financeExpenses, anyOf: ['view:expense'] },
   { path: P.financeExpenseDetail, anyOf: ['view:expense'] },
   { path: P.financeExpenseEdit, anyOf: ['edit:expense'] },
+  { path: P.expenseCategoryPicker, anyOf: ['edit:expense'] },
   { path: P.financeProjects, anyOf: ['view:finance'] },
   { path: P.financeProject, anyOf: ['view:finance'] },
   { path: P.financeEntry, anyOf: ['edit:finance'] },
@@ -99,6 +117,8 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.financePayablePicker, anyOf: ['edit:finance'] },
   { path: P.financeLedgerCategoryPicker, anyOf: ['edit:finance'] },
   { path: P.payrollMyPayroll, anyOf: ['view:ownPayslip'] },
+  { path: P.payrollMyAttendance, anyOf: ['view:ownAttendance'] },
+  { path: P.payrollMyCommission, anyOf: ['view:commission'] },
   { path: P.payrollWorkbench, anyOf: ['view:payroll'] },
   { path: P.payrollAdjustmentList, anyOf: ['view:payroll'] },
   { path: P.payrollCommissionList, anyOf: ['view:payroll'] },
@@ -115,6 +135,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.payrollStorePayroll, anyOf: ['view:payroll'] },
   { path: P.laborWorkers, anyOf: ['view:worker'] },
   { path: P.laborWorkerEdit, anyOf: ['edit:worker'] },
+  { path: P.workerPicker, anyOf: ['view:worker'] },
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supply, anyOf: ['view:supply'] },
   { path: P.supplierPicker, anyOf: ['view:supply'] },
@@ -134,7 +155,7 @@ export function hasRouteRule(url: string): boolean {
 
 export function canVisit(url: string): boolean {
   const path = pathOf(url)
-  if (path.startsWith('/pages/auth/')) return true
+  if (path.startsWith('/pages/auth/') || PUBLIC_PATHS.has(path)) return true
   if (!isLoggedIn()) return false
 
   const rule = ROUTE_RULES.find((item) => item.path === path)

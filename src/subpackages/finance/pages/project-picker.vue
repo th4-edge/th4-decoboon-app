@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { P } from '@/config'
 import { financeApi } from '@/domains/finance/api'
 import { setFinanceProjectPickerResult } from '@/domains/finance/project-picker'
-import { identityApi } from '@/domains/identity/api'
-import type { Employee } from '@/domains/identity/model'
+import { consumeEmployeePickerResult } from '@/domains/identity/employee-picker'
 import { isLoggedIn } from '@/domains/identity/session'
 import { projectApi } from '@/domains/project/api'
 import { PROJECT_ORIGIN_META, PROJECT_STATUS_META } from '@/domains/project/meta'
@@ -51,7 +50,8 @@ const loadError = ref('')
 const loadMoreError = ref('')
 let loadVersion = 0
 const frequentProjects = ref<Project[]>([])
-const designers = ref<Employee[]>([])
+const designerName = ref('')
+const employeeFilterOpen = ref(false)
 
 const filterActive = computed(() => Boolean(keyword.value.trim()) || group.value !== 'all'
   || origin.value !== 'all' || Boolean(designerId.value))
@@ -86,6 +86,15 @@ onLoad((query) => {
 
 onPullDownRefresh(() => { void boot().finally(() => uni.stopPullDownRefresh()) })
 onReachBottom(loadMore)
+onShow(() => {
+  if (!employeeFilterOpen.value) return
+  const result = consumeEmployeePickerResult()
+  if (!result) return
+  employeeFilterOpen.value = false
+  designerId.value = result.action === 'clear' ? '' : result.value.id
+  designerName.value = result.action === 'clear' ? '' : result.value.name
+  void loadProjects()
+})
 
 async function boot() {
   if (selectedId.value && (selected.value?.name === '已选项目' || !selected.value?.customer)) {
@@ -99,12 +108,7 @@ async function boot() {
 }
 
 async function bootPickerSources() {
-  const [frequent, designerList] = await Promise.all([
-    financeApi.frequentProjects().catch(() => [] as Project[]),
-    identityApi.designers().catch(() => [] as Employee[])
-  ])
-  frequentProjects.value = frequent
-  designers.value = designerList
+  frequentProjects.value = await financeApi.frequentProjects().catch(() => [] as Project[])
 }
 
 function statusPayload(): ProjectStatus[] | undefined {
@@ -126,7 +130,7 @@ async function loadProjects(reset = true) {
   else loadingMore.value = true
   loadError.value = ''
   try {
-    const page = await projectApi.page({
+    const page = await projectApi.pickerPage({
       current: current.value,
       size: 20,
       keyword: keyword.value.trim() || undefined,
@@ -183,10 +187,16 @@ function selectOrigin(value: OriginKey) {
   void loadProjects()
 }
 
-function selectDesigner(value: string) {
-  if (designerId.value === value) return
-  designerId.value = value
-  void loadProjects()
+function openDesignerFilter() {
+  employeeFilterOpen.value = true
+  const params = [
+    'source=directory',
+    'activeOnly=1',
+    'roles=designer',
+    `selectedId=${encodeURIComponent(designerId.value)}`,
+    `selectedName=${encodeURIComponent(designerName.value)}`
+  ]
+  uni.navigateTo({ url: `${P.employeePicker}?${params.join('&')}` })
 }
 
 function resetFilters() {
@@ -194,6 +204,7 @@ function resetFilters() {
   group.value = 'all'
   origin.value = 'all'
   designerId.value = ''
+  designerName.value = ''
   void loadProjects()
 }
 
@@ -301,20 +312,13 @@ function chooseGeneral() {
           </scroll-view>
         </view>
 
-        <view v-if="designers.length" class="pp-filter-row">
+        <view class="pp-filter-row">
           <text class="pp-filter__label">设计师</text>
           <scroll-view scroll-x class="pp-scroll" :show-scrollbar="false">
             <view class="pp-chips">
-              <view class="pp-chip" :class="{ 'pp-chip--on': !designerId }" @tap="selectDesigner('')">全部</view>
-              <view
-                v-for="item in designers"
-                :key="item.id"
-                class="pp-chip pp-chip--person"
-                :class="{ 'pp-chip--on': designerId === item.id }"
-                @tap="selectDesigner(item.id)"
-              >
-                <JzEmployeeAvatar :src="item.avatarUrl || ''" :name="item.name" :role="item.role" :status="item.status" :size="34" />
-                <text>{{ item.name }}</text>
+              <view class="pp-chip pp-chip--person" :class="{ 'pp-chip--on': designerId }" @tap="openDesignerFilter">
+                <JzIcon name="user" :size="22" :color="designerId ? TOKEN_COLOR.primary : TOKEN_COLOR.text3" />
+                <text>{{ designerName || '选择设计师' }}</text>
               </view>
             </view>
           </scroll-view>
@@ -382,7 +386,7 @@ function chooseGeneral() {
 
 .pp-current {
   display: flex; align-items: center; gap: 16rpx; margin-bottom: 16rpx; padding: 24rpx;
-  background: $jzb-primary-lighter; border: 1rpx solid rgba(22, 163, 148, .22); border-radius: $jzb-radius;
+  background: $jzb-primary-lighter; border: 1rpx solid var(--jzb-primary-a22, rgba(22, 163, 148, .22)); border-radius: $jzb-radius;
 }
 .pp-current__icon {
   width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center;
@@ -398,7 +402,7 @@ function chooseGeneral() {
   display: flex; align-items: center; gap: 16rpx; padding: 24rpx; margin-bottom: 20rpx;
   background: $jzb-bg-card; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius;
 }
-.pp-general--on { border-color: rgba(22, 163, 148, .28); background: $jzb-primary-lightest; }
+.pp-general--on { border-color: var(--jzb-primary-a28, rgba(22, 163, 148, .28)); background: $jzb-primary-lightest; }
 .pp-general__icon {
   width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center;
   background: $jzb-bg-page; border-radius: $jzb-radius-sm;
@@ -427,7 +431,7 @@ function chooseGeneral() {
   color: $jzb-text-2; background: $jzb-bg-page; border: 1rpx solid transparent;
   border-radius: $jzb-radius-pill; font-size: $jzb-font-xs;
 }
-.pp-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: rgba(22, 163, 148, .24); font-weight: 650; }
+.pp-chip--on { color: $jzb-primary-deep; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a24, rgba(22, 163, 148, .24)); font-weight: 650; }
 .pp-chip--person { gap: 8rpx; padding-left: 8rpx; }
 .pp-filter-reset {
   display: flex; align-items: center; justify-content: center; gap: 8rpx; padding: 24rpx 0 16rpx;
@@ -445,7 +449,7 @@ function chooseGeneral() {
   display: flex; align-items: center; gap: 16rpx; padding: 24rpx; margin-bottom: 16rpx;
   background: $jzb-bg-card; border: 1rpx solid transparent; border-radius: $jzb-radius; box-shadow: $jzb-shadow-xs;
 }
-.pp-item--on { border-color: rgba(22, 163, 148, .28); background: $jzb-primary-lightest; }
+.pp-item--on { border-color: var(--jzb-primary-a28, rgba(22, 163, 148, .28)); background: $jzb-primary-lightest; }
 .pp-item__placeholder {
   width: 56rpx; height: 56rpx; flex: none; display: flex; align-items: center; justify-content: center;
   background: $jzb-bg-page; border-radius: 50%;

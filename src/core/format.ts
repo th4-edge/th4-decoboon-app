@@ -93,6 +93,18 @@ export function money(n?: number | null, withUnit = true): string {
   return part.text
 }
 
+/**
+ * 精确金额文案：始终保留两位小数和千分位，用于财务对账页与 Web `MoneyText` 同口径展示。
+ * 缺值仍返回 `-`，不得用 0 伪装。
+ */
+export function moneyExact(n?: number | null): string {
+  if (n === undefined || n === null || Number.isNaN(n)) return '-'
+  const sign = n < 0 ? '-' : ''
+  const [integer, fraction] = Math.abs(n).toFixed(2).split('.')
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return `${sign}¥${grouped}.${fraction}`
+}
+
 /** 万元展示 */
 export function wan(n?: number): string {
   if (n === undefined || n === null) return '-'

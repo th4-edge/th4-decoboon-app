@@ -267,9 +267,9 @@ function preview(urls: string[], current: string) {
         </view>
         <text v-if="journey.vendor?.serviceTel" class="journey__team-tel">有问题打 {{ journey.vendor.serviceTel }}</text>
       </view>
-      <!-- 服务方与记录存证说明：叙事主体归装企；平台署名受企业配置控制，默认关闭 -->
+      <!-- 服务方与软件提供者说明：业务主体归装企，装得清固定提供软件与记录存证能力。 -->
       <view v-else-if="journey.vendor?.name" class="journey__footer">
-        本页记录由 {{ journey.vendor.name }} 提供并审核{{ journey.vendor.custodianCredit ? '；记录存证与保管 · 装得清' : '。' }}
+        本页记录由 {{ journey.vendor.name }} 提供并审核；装得清提供软件与记录存证服务。
       </view>
       <view class="jz-tabbar-gap" />
       <view v-if="previewMode" class="journey__preview-note">业主操作需业主本人在业主端完成</view>

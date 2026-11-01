@@ -156,7 +156,7 @@ function startBusiness(path: string) {
 .bd__filters { width: 100%; white-space: nowrap; }
 .bd__filter-row { display: inline-flex; padding: 18rpx $jzb-page-pad 24rpx; }
 .bd__filter { min-height: 64rpx; padding: 0 28rpx; margin-right: 14rpx; display: inline-flex; align-items: center; border-radius: $jzb-radius-pill; color: $jzb-text-2; background: $jzb-text-inverse; border: 1rpx solid rgba(15,23,42,.06); font-size: $jzb-font-sm; }
-.bd__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.22); font-weight: 650; }
+.bd__filter--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a22, rgba(22, 163, 148, .22)); font-weight: 650; }
 .bd__scope { display: flex; align-items: center; justify-content: space-between; margin: 0 $jzb-page-pad 22rpx; padding: 22rpx 24rpx; color: $jzb-text-3; font-size: $jzb-font-xs; }
 .bd__scope text:last-child { color: $jzb-primary-dark; font-weight: 650; }
 .bd__body { padding: 0 $jzb-page-pad; }

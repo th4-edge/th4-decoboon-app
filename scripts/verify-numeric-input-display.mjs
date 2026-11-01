@@ -30,17 +30,17 @@ for (const file of walk(sourceRoot)) {
     const relative = path.relative(root, file)
     if (!classes.includes('jz-numeric-input')) failures.push(`${relative}: 缺少 jz-numeric-input`)
     if (!placeholderClasses.includes('jz-number-placeholder')) failures.push(`${relative}: 缺少 jz-number-placeholder`)
-    if (!/text-align\s*:\s*left/i.test(placeholderStyle)) failures.push(`${relative}: 缺少 placeholder-style text-align: left`)
+    if (!/text-align\s*:\s*right/i.test(placeholderStyle)) failures.push(`${relative}: 缺少 placeholder-style text-align: right`)
   }
 }
 
 const numberInput = fs.readFileSync(path.join(sourceRoot, 'components/JzNumberInput/JzNumberInput.vue'), 'utf8')
 if (!/placeholder-class="jz-number-input__placeholder"/.test(numberInput)) failures.push('JzNumberInput: 缺少组件占位样式类')
-if (!/placeholder-style="text-align: left"/.test(numberInput)) failures.push('JzNumberInput: 缺少占位左对齐')
-if (!/\.jz-number-input__placeholder\s*\{[^}]*text-align:\s*left/s.test(numberInput)) failures.push('JzNumberInput: 占位样式未左对齐')
+if (!/placeholder-style="text-align: right"/.test(numberInput)) failures.push('JzNumberInput: 缺少占位右对齐')
+if (!/\.jz-number-input__placeholder\s*\{[^}]*text-align:\s*right/s.test(numberInput)) failures.push('JzNumberInput: 占位样式未右对齐')
 
 const base = fs.readFileSync(path.join(sourceRoot, 'styles/base.scss'), 'utf8')
-if (!/\.jz-number-placeholder\s*\{[^}]*text-align:\s*left/s.test(base)) failures.push('base.scss: 缺少 jz-number-placeholder 左对齐')
+if (!/\.jz-number-placeholder\s*\{[^}]*text-align:\s*right/s.test(base)) failures.push('base.scss: 缺少 jz-number-placeholder 右对齐')
 
 if (failures.length) {
   console.error(`numeric-input-display FAIL (${failures.length})`)

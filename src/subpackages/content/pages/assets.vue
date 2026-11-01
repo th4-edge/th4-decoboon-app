@@ -100,7 +100,7 @@ function upload() {
 .ca__hero-sub { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.5; }
 .ca__filters { display: flex; gap: 12rpx; overflow-x: auto; margin: 22rpx 0 16rpx; }
 .ca__chip { flex: none; min-height: 64rpx; padding: 0 22rpx; border: 1rpx solid rgba(15,23,42,.08); border-radius: 999rpx; background: #fff; color: $jzb-text-3; font-size: $jzb-font-xs; }
-.ca__chip--active { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(14,138,125,.18); font-weight: 700; }
+.ca__chip--active { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a18, rgba(14, 138, 125, .18)); font-weight: 700; }
 .ca__list { display: grid; gap: 16rpx; }
 .ca__item { padding: 18rpx; display: grid; grid-template-columns: 150rpx 1fr; gap: 18rpx; }
 .ca__thumb, .ca__thumb-fallback { width: 150rpx; height: 150rpx; border-radius: $jzb-radius-sm; overflow: hidden; background: $jzb-primary-lightest; }

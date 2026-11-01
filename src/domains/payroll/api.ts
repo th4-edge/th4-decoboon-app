@@ -227,6 +227,7 @@ export const payrollApi = {
     post<Raw>('payroll/compensation/delete', { schemeId }),
 
   attendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', { ...params, storeId: storeScopeRequestId.value }, normalizeAttendance, current, size),
+  myAttendancePage: async (params: Raw = {}, current = 1, size = 20) => page('attendance/summary/page', { ...params, selfOnly: true }, normalizeAttendance, current, size),
   attendanceInfo: async (summaryId: string) => normalizeAttendance(await post<Raw>('attendance/summary/info', { summaryId })),
   saveAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/save', input)),
   updateAttendance: async (input: Raw) => normalizeAttendance(await post<Raw>('attendance/summary/update', input)),
@@ -245,6 +246,8 @@ export const payrollApi = {
   storePayrollPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/store-payroll/page', { ...params, storeId: storeScopeRequestId.value }, normalizeItem, current, size),
 
   commissionPage: async (params: Raw = {}, current = 1, size = 20) => page('payroll/commission/page', { ...params, storeId: storeScopeRequestId.value }, normalizeCommission, current, size),
+  myCommissionPage: async (current = 1, size = 20) => page('payroll/commission/page', { selfOnly: true }, normalizeCommission, current, size),
+  myCommissionInfo: async (commissionId: string) => normalizeCommission(await post<Raw>('payroll/commission/info', { commissionId })),
   saveCommission: async (input: { empId: string; projectId: string; contractAmount: number; manualRate: number; commissionAmount?: number; remark?: string }) =>
     normalizeCommission(await post<Raw>('payroll/commission/save', input)),
   releasePage: async (commissionId: string, current = 1, size = 20) => page('payroll/commission/release/page', { commissionId }, normalizeRelease, current, size),

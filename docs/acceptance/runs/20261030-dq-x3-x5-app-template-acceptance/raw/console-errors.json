@@ -1,0 +1,11 @@
+{
+  "startedAt": "2026-10-30T12:58:28.524Z",
+  "pages": [
+    "subpackages/design/pages/templates",
+    "subpackages/design/pages/template-detail",
+    "subpackages/design/pages/scheme"
+  ],
+  "logs": [],
+  "errorCount": 0,
+  "warningCount": 0
+}

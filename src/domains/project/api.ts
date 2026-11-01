@@ -417,6 +417,23 @@ export const projectApi = {
     }
   },
 
+  pickerPage: async (query: ProjectPageQuery & { customerId?: string; managerId?: string } = {}): Promise<PageData<Project>> => {
+    const current = query.current ?? 1
+    const size = Math.min(50, Math.max(1, query.size ?? 20))
+    const result = await post<PageResult<RawRecord> | RawRecord[]>('project/project/picker/page', {
+      current,
+      size,
+      keyword: query.keyword?.trim() || undefined,
+      statuses: query.statuses?.map((item) => PROJECT_STATUS_API[item]),
+      designerId: query.designerId,
+      managerId: query.managerId,
+      customerId: query.customerId,
+      businessOrigin: query.businessOrigin ? BUSINESS_ORIGIN_API[query.businessOrigin] : undefined
+    })
+    const page = toPageData(result, current, size)
+    return { ...page, list: page.list.map(normalizeProject) }
+  },
+
   page: async (query: ProjectPageQuery = {}): Promise<PageData<Project>> => {
     const current = query.current ?? 1
     const size = query.size ?? 20
@@ -514,6 +531,19 @@ export const projectApi = {
       .map(normalizeMember)
   },
 
-  addMember: (projectId: string, member: Partial<ProjectMember>) =>
-    post<ProjectMember>('project/member/save', { ...member, projectId })
+  updateMembers: (projectId: string, input: {
+    managerId?: string
+    designerId?: string
+    supportId?: string
+    startDate?: string
+    planEndDate?: string
+  }) =>
+    post<RawRecord>('project/project/update', {
+      projectId,
+      managerId: input.managerId || undefined,
+      designerId: input.designerId || undefined,
+      supportId: input.supportId || undefined,
+      startDate: input.startDate || undefined,
+      planEndDate: input.planEndDate || undefined
+    }).then(normalizeProject)
 }

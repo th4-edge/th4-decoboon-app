@@ -9,11 +9,12 @@ import { dateTimeText } from '@/core/format'
 import { ownerPreview, ownerPreviewWatermark } from '@/domains/owner-preview/session'
 import { OWNER_COLOR, STATUS_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
-import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import CompanyBrandMark from '@/components/CompanyBrandMark.vue'
 import OwnerPreviewBanner from '@/components/owner/OwnerPreviewBanner.vue'
 import OwnerPreviewWatermark from '@/components/owner/OwnerPreviewWatermark.vue'
 import OwnerTabBar from '@/components/owner/OwnerTabBar.vue'
 import { leaveOwnerPreview } from '@/domains/owner-preview/session'
+import { applyBrandTheme } from '@/domains/identity/brandTheme'
 
 const props = defineProps<{ project: Project | null }>()
 const { journey, loading, loadingError, load, section } = useOwnerJourney()
@@ -23,6 +24,10 @@ watch(() => props.project?.id, (projectId) => {
 }, { immediate: true })
 
 const providerName = computed(() => journey.value?.vendor?.name || props.project?.company?.name || '为您服务的装企')
+const providerLogo = computed(() => journey.value?.vendor?.logo || props.project?.company?.logo || '')
+const providerColor = computed(() => journey.value?.vendor?.color || props.project?.company?.color || '')
+const providerShortName = computed(() => props.project?.company?.shortName || providerName.value)
+watch(providerColor, (color) => applyBrandTheme(color), { immediate: true })
 const stageName = computed(() => journey.value?.currentStageName || (props.project ? projectStageText(props.project) : '阶段待确认'))
 const statusMeta = computed(() => props.project ? PROJECT_STATUS_META[props.project.status] : null)
 const pendingAction = computed<JourneyAction | null>(() => journey.value?.actions?.[0] || null)
@@ -148,7 +153,7 @@ function memberMark(roleName: string, name: string) {
       <view class="owner-home__hero-glow owner-home__hero-glow--two" />
       <view class="owner-home__hero-top">
         <view class="owner-home__brand">
-          <JzBrandLogo variant="white" :size="54" />
+          <CompanyBrandMark :name="providerName" :short-name="providerShortName" :logo="providerLogo" :color="providerColor" :size="54" surface="white" />
           <view>
             <text class="owner-home__brand-name">{{ providerName }}</text>
             <text class="owner-home__brand-sub">为您家提供服务</text>
@@ -289,7 +294,7 @@ function memberMark(roleName: string, name: string) {
   overflow: hidden;
   padding: calc(var(--status-bar-height, 44rpx) + 30rpx) $jzb-page-pad 116rpx;
   color: $jzb-text-inverse;
-  background: linear-gradient(148deg, $owner-forest 0%, $owner-forest 48%, $owner-forest 100%);
+  background: linear-gradient(148deg, $jzb-brand-ink 0%, $jzb-brand-ink-deep 78%, $jzb-primary-deep 100%);
 }
 .owner-home__hero-glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(2rpx); }
 .owner-home__hero-glow--one { top: -170rpx; right: -120rpx; width: 420rpx; height: 420rpx; background: rgba(67, 221, 202, 0.13); }
@@ -303,7 +308,7 @@ function memberMark(roleName: string, name: string) {
 .owner-home__address { position: relative; display: block; margin-top: 54rpx; color: rgba(255,255,255,.62); font-size: $jzb-font-xs; letter-spacing: 1rpx; }
 .owner-home__name { position: relative; display: block; margin-top: 8rpx; color: $jzb-text-inverse; font-size: 48rpx; font-weight: 760; line-height: 1.28; letter-spacing: -1rpx; }
 .owner-home__now { position: relative; margin-top: 38rpx; }
-.owner-home__eyebrow { display: block; color: $owner-moss-light; font-size: 20rpx; font-weight: 650; letter-spacing: 2rpx; }
+.owner-home__eyebrow { display: block; color: $jzb-primary-light; font-size: 20rpx; font-weight: 650; letter-spacing: 2rpx; }
 .owner-home__focus-title { display: block; margin-top: 10rpx; color: $jzb-text-inverse; font-size: 36rpx; font-weight: 700; line-height: 1.35; }
 .owner-home__focus-sub { display: block; margin-top: 10rpx; max-width: 590rpx; color: rgba(255,255,255,.7); font-size: $jzb-font-sm; line-height: 1.65; }
 .owner-home__progress { position: relative; margin-top: 34rpx; }
@@ -311,12 +316,12 @@ function memberMark(roleName: string, name: string) {
 .owner-home__progress-head { color: rgba(255,255,255,.72); font-size: 20rpx; }
 .owner-home__progress-value { color: $jzb-text-inverse; font-size: 34rpx; font-weight: 740; }
 .owner-home__progress-track { height: 8rpx; margin-top: 12rpx; overflow: hidden; background: rgba(255,255,255,.16); border-radius: 999rpx; }
-.owner-home__progress-fill { height: 100%; background: linear-gradient(90deg, $owner-moss-light 0%, $owner-mint 100%); border-radius: inherit; box-shadow: 0 0 18rpx rgba(125,231,219,.46); }
+.owner-home__progress-fill { height: 100%; background: linear-gradient(90deg, $jzb-primary-light 0%, $jzb-primary-base 100%); border-radius: inherit; box-shadow: 0 0 18rpx var(--jzb-primary-a34, rgba(125,231,219,.46)); }
 .owner-home__progress-meta { margin-top: 10rpx; color: rgba(255,255,255,.56); font-size: 19rpx; }
 .owner-home__body { position: relative; margin-top: -78rpx; padding: 0 $jzb-page-pad 24rpx; }
 .owner-home__focus { display: flex; align-items: center; gap: 18rpx; padding: 24rpx; border: 1rpx solid rgba(255,255,255,.8); box-shadow: 0 18rpx 50rpx rgba(13, 54, 49, .14); }
 .owner-home__focus--action { border-color: rgba(43,196,180,.28); background: linear-gradient(145deg, $owner-card, $owner-paper); }
-.owner-home__focus-icon { width: 70rpx; height: 70rpx; flex: 0 0 70rpx; display: flex; align-items: center; justify-content: center; background: $owner-mint; border-radius: 22rpx; }
+.owner-home__focus-icon { width: 70rpx; height: 70rpx; flex: 0 0 70rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 22rpx; }
 .owner-home__focus-card-title { display: block; color: $owner-ink; font-size: $jzb-font-md; font-weight: 720; }
 .owner-home__focus-card-sub { display: block; margin-top: 6rpx; color: $owner-muted; font-size: $jzb-font-xs; line-height: 1.6; }
 .owner-home__focus-arrow { width: 46rpx; display: flex; justify-content: flex-end; }
@@ -324,23 +329,23 @@ function memberMark(roleName: string, name: string) {
 .owner-home__section-head--inside { margin: 0 0 16rpx; }
 .owner-home__section-title { display: block; color: $owner-ink; font-size: $jzb-font-lg; font-weight: 760; letter-spacing: -0.4rpx; }
 .owner-home__section-sub { display: block; margin-top: 4rpx; color: $owner-muted; font-size: 20rpx; }
-.owner-home__section-more { color: $owner-forest; font-size: $jzb-font-xs; font-weight: 650; }
+.owner-home__section-more { color: $jzb-primary-dark; font-size: $jzb-font-xs; font-weight: 650; }
 .owner-home__records { display: grid; grid-template-columns: 1fr 1fr; gap: 14rpx; }
 .owner-home__record { min-width: 0; padding: 20rpx; border-color: rgba(15,23,42,.045); }
 .owner-home__record:active { transform: scale(.985); }
 .owner-home__record-top { display: flex; align-items: center; justify-content: space-between; }
 .owner-home__record-icon { width: 58rpx; height: 58rpx; display: flex; align-items: center; justify-content: center; background: $owner-paper; border-radius: 18rpx; }
-.owner-home__record-count { min-width: 34rpx; height: 34rpx; padding: 0 9rpx; display: flex; align-items: center; justify-content: center; color: $owner-forest; font-size: 18rpx; font-weight: 700; background: $owner-mint; border-radius: 999rpx; }
+.owner-home__record-count { min-width: 34rpx; height: 34rpx; padding: 0 9rpx; display: flex; align-items: center; justify-content: center; color: $jzb-primary-dark; font-size: 18rpx; font-weight: 700; background: $jzb-primary-lighter; border-radius: 999rpx; }
 .owner-home__record-label { display: block; margin-top: 16rpx; color: $owner-ink; font-size: $jzb-font-sm; font-weight: 680; }
 .owner-home__record-summary { display: block; margin-top: 6rpx; overflow: hidden; color: $owner-muted; font-size: 20rpx; line-height: 1.55; text-overflow: ellipsis; white-space: nowrap; }
 .owner-home__feedback { display: flex; align-items: center; gap: 16rpx; margin-top: 20rpx; padding: 22rpx; background: linear-gradient(145deg, $owner-card, $owner-paper); }
-.owner-home__feedback-icon { width: 62rpx; height: 62rpx; flex: 0 0 62rpx; display: flex; align-items: center; justify-content: center; background: $owner-mint; border-radius: 20rpx; }
+.owner-home__feedback-icon { width: 62rpx; height: 62rpx; flex: 0 0 62rpx; display: flex; align-items: center; justify-content: center; background: $jzb-primary-lighter; border-radius: 20rpx; }
 .owner-home__feedback-title { display: block; color: $owner-ink; font-size: $jzb-font-sm; font-weight: 680; }
 .owner-home__feedback-sub { display: block; margin-top: 5rpx; color: $owner-muted; font-size: 20rpx; line-height: 1.55; }
 .owner-home__team { padding: 24rpx; background: linear-gradient(145deg, $owner-card, $owner-paper); }
 .owner-home__team-list { display: flex; flex-wrap: wrap; gap: 14rpx 28rpx; }
 .owner-home__member { min-width: 210rpx; display: flex; align-items: center; gap: 12rpx; }
-.owner-home__member-avatar { width: 54rpx; height: 54rpx; flex: 0 0 54rpx; display: flex; align-items: center; justify-content: center; color: $owner-forest; font-size: 19rpx; font-weight: 700; background: $owner-mint; border-radius: 50%; }
+.owner-home__member-avatar { width: 54rpx; height: 54rpx; flex: 0 0 54rpx; display: flex; align-items: center; justify-content: center; color: $jzb-primary-dark; font-size: 19rpx; font-weight: 700; background: $jzb-primary-lighter; border-radius: 50%; }
 .owner-home__member-name { display: block; color: $owner-ink; font-size: $jzb-font-xs; font-weight: 650; }
 .owner-home__member-role { display: block; margin-top: 2rpx; color: $owner-muted; font-size: 19rpx; }
 .owner-home__timeline { padding: 8rpx 22rpx; }
@@ -351,7 +356,7 @@ function memberMark(roleName: string, name: string) {
 .owner-home__event-line { position: absolute; top: 28rpx; bottom: -30rpx; width: 1rpx; background: $owner-line; }
 .owner-home__event-head { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; }
 .owner-home__event-title { color: $owner-ink; font-size: $jzb-font-sm; font-weight: 650; }
-.owner-home__event-status { flex-shrink: 0; color: $owner-forest; font-size: 19rpx; }
+.owner-home__event-status { flex-shrink: 0; color: $jzb-primary-dark; font-size: 19rpx; }
 .owner-home__event-sub { display: block; margin-top: 5rpx; color: $owner-ink-2; font-size: $jzb-font-xs; line-height: 1.55; }
 .owner-home__event-time { display: block; margin-top: 6rpx; color: $owner-muted-2; font-size: 19rpx; }
 .owner-home__empty { padding: 44rpx 34rpx; display: flex; flex-direction: column; align-items: center; text-align: center; }

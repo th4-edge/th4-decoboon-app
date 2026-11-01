@@ -193,12 +193,12 @@ async function submit() {
           <view class="mso__line-inputs">
             <view class="mso__input-wrap">
               <text class="mso__input-label">本次数量</text>
-              <input v-model="line.quantity" class="mso__input jz-numeric-input" type="digit" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model="line.quantity" class="mso__input jz-numeric-input" type="digit" placeholder="数量" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
               <text class="mso__unit">{{ unitLabel(line.item.unit) }}</text>
             </view>
             <view class="mso__input-wrap">
               <text class="mso__input-label">采购单价</text>
-              <input v-model="line.unitPrice" class="mso__input jz-numeric-input" type="digit" placeholder="可留空=未定价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: left" />
+              <input v-model="line.unitPrice" class="mso__input jz-numeric-input" type="digit" placeholder="可留空=未定价" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" />
             </view>
           </view>
         </view>

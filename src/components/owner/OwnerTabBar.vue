@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { P } from '@/config'
 import { ownerPreview, ownerPreviewTabUrl } from '@/domains/owner-preview/session'
-import { OWNER_COLOR, STATUS_COLOR } from '@/styles/tokens'
+import { OWNER_COLOR, STATUS_COLOR, TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon, { type IconName } from '@/components/JzIcon.vue'
 
 type OwnerTabKey = 'home' | 'progress' | 'journey' | 'money' | 'archive'
@@ -53,7 +53,7 @@ function onTap(item: OwnerTabItem) {
         <JzIcon
           :name="item.icon"
           :size="36"
-          :color="activeKey === item.key ? OWNER_COLOR.moss : STATUS_COLOR.todo"
+          :color="activeKey === item.key ? TOKEN_COLOR.primaryDark : STATUS_COLOR.todo"
           :stroke-width="activeKey === item.key ? 2.2 : 1.8"
         />
       </view>
@@ -74,8 +74,8 @@ function onTap(item: OwnerTabItem) {
   min-height: 112rpx;
   padding: 8rpx 8rpx calc(8rpx + #{$jzb-safe-bottom});
   background: rgba(255, 253, 248, 0.97);
-  border-top: 1rpx solid $owner-line;
-  box-shadow: 0 -16rpx 42rpx rgba(23, 35, 31, 0.07);
+  border-top: 1rpx solid var(--jzb-primary-a14, rgba(14, 138, 125, 0.14));
+  box-shadow: 0 -16rpx 42rpx var(--jzb-primary-a08, rgba(14, 138, 125, 0.08));
   backdrop-filter: blur(22rpx);
 }
 .owner-tabbar__item {
@@ -105,15 +105,15 @@ function onTap(item: OwnerTabItem) {
   white-space: nowrap;
 }
 .owner-tabbar__item--active {
-  color: $owner-moss;
-  .owner-tabbar__icon { background: $owner-mint; }
+  color: $jzb-primary-dark;
+  .owner-tabbar__icon { background: $jzb-primary-lighter; }
   .owner-tabbar__label { font-weight: 700; }
 }
 .owner-tabbar__item--center {
   justify-content: flex-end;
   padding-bottom: 8rpx;
-  color: $owner-forest;
-  .owner-tabbar__label { color: $owner-forest; font-weight: 750; }
+  color: $jzb-primary-dark;
+  .owner-tabbar__label { color: $jzb-primary-dark; font-weight: 700; }
 }
 .owner-tabbar__fab {
   position: absolute;
@@ -125,8 +125,8 @@ function onTap(item: OwnerTabItem) {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: linear-gradient(145deg, $owner-moss-light 0%, $owner-moss 52%, $owner-forest 100%);
-  box-shadow: 0 14rpx 30rpx rgba(13, 43, 37, 0.32), 0 0 0 8rpx $owner-card, 0 0 0 10rpx rgba(36, 114, 99, 0.14);
+  background: $jzb-gradient;
+  box-shadow: 0 14rpx 30rpx var(--jzb-primary-a28, rgba(13, 43, 37, 0.32)), 0 0 0 8rpx $owner-card, 0 0 0 10rpx var(--jzb-primary-a14, rgba(36, 114, 99, 0.14));
   transform: translateX(-50%);
 }
 </style>

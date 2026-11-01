@@ -172,7 +172,7 @@ async function save() {
 .rp__label { display: block; font-size: $jzb-font-sm; color: $jzb-text-3; margin: 20rpx 0 12rpx; }
 .rp__types { flex-wrap: wrap; }
 .rp__type { min-height: 60rpx; padding: 0 26rpx; margin: 0 14rpx 12rpx 0; display: inline-flex; align-items: center; background: $jzb-bg-hover; border: 1rpx solid transparent; border-radius: $jzb-radius-pill; font-size: $jzb-font-sm; color: $jzb-text-2; }
-.rp__type--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: rgba(22,163,148,.18); font-weight: 650; }
+.rp__type--on { color: $jzb-primary-dark; background: $jzb-primary-lighter; border-color: var(--jzb-primary-a18, rgba(22, 163, 148, .18)); font-weight: 650; }
 .req { color: $jzb-danger; }
 .rp__input { height: 94rpx; padding: 0 22rpx; color: $jzb-text-1; background: $jzb-bg-hover; border: 1rpx solid transparent; border-radius: $jzb-radius-sm; font-size: $jzb-font; }
 .rp__ta { width: 100%; height: 260rpx; padding: 20rpx; color: $jzb-text-1; background: $jzb-bg-hover; border-radius: $jzb-radius-sm; font-size: $jzb-font; }
