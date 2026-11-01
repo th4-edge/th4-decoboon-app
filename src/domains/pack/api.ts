@@ -132,6 +132,9 @@ export const packApi = {
   buildNextVersion: (templateId: string) =>
     post<RawRecord>('pack/template/build', { templateId }).then(normalizeTemplate),
 
+  copyTemplate: (templateId: string) =>
+    post<RawRecord>('pack/template/copy', { templateId }).then(normalizeTemplate),
+
   saveTemplate: (input: PackageTemplateInput) =>
     post<RawRecord>(input.templateId ? 'pack/template/update' : 'pack/template/save', {
       templateId: input.templateId,

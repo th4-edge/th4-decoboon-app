@@ -25,6 +25,7 @@ const catalogItemId = ref('')
 const selectedCatalog = ref<CatalogItem | null>(null)
 const catalogPickerVisible = ref(false)
 const quantity = ref('1')
+const copyingLineId = ref('')
 
 const baseLines = computed(() => (quote.value?.items || []).filter((line) => ['Base', 'base'].includes(String(line.role || '')) && line.included !== false))
 const baseLine = computed(() => (quote.value?.items || []).find((line) => line.id === baseLineId.value) || null)
@@ -113,6 +114,30 @@ async function submit() {
   } catch (error) {
     hideLoading()
     toastError(error, '报价调整失败')
+  }
+}
+
+function canCopyLine(line: QuoteItem): boolean {
+  return line.included !== false && !['Deduct', 'deduct'].includes(String(line.role || ''))
+}
+
+async function copyLine(line: QuoteItem) {
+  if (!quote.value || copyingLineId.value) return
+  if (!canCopyLine(line)) {
+    toast('已扣减或未包含的项目不能复制')
+    return
+  }
+  const ok = await confirm('复制报价分项', `将“${line.name}”复制为一条新的增项行，并重新计算报价。`, '复制')
+  if (!ok) return
+  copyingLineId.value = line.id
+  try {
+    await tradeApi.copyQuoteLine(quote.value.id, line.id)
+    await loadQuote()
+    toast('已复制为新增分项', 'success')
+  } catch (error) {
+    toastError(error, '复制失败')
+  } finally {
+    copyingLineId.value = ''
   }
 }
 
@@ -213,6 +238,7 @@ async function deductDifference(line: QuoteItem) {
           <text v-else-if="line.differenceStatus === 'Ignored'" class="qa__difference--ignored">已忽略</text>
         </view>
         <text class="qa__line-price">{{ money(line.amount || 0) }}</text>
+        <text v-if="canCopyLine(line)" class="qa__copy" @tap.stop="copyLine(line)">{{ copyingLineId === line.id ? '复制中' : '复制' }}</text>
         <text v-if="!['Base', 'base', 'Deduct', 'deduct'].includes(String(line.role || ''))" class="qa__delete" @tap="removeAdjustment(line)">删除</text>
       </view>
       <JzEmpty v-if="!(quote.items || []).length" text="暂无报价行" sub="请先从套餐模板生成报价草稿" />

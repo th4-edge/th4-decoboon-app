@@ -64,6 +64,10 @@ function canBuildNext(tpl: PackageTemplate): boolean {
   return canEdit.value && tpl.statusKnown === true && tpl.status !== 'Draft' && isLatest(tpl)
 }
 
+function canCopyTemplate(tpl: PackageTemplate): boolean {
+  return canEdit.value && isLatest(tpl) && Boolean(tpl.code)
+}
+
 function canCreateQuote(tpl: PackageTemplate): boolean {
   return tpl.statusKnown
     ? tpl.status === 'Published' && tpl.currentPublished
@@ -162,6 +166,23 @@ async function buildNext(item: PackageTemplate) {
     uni.navigateTo({ url: `${P.packageEdit}?templateId=${draft.id}` })
   } catch (error) {
     toastError(error, '下一版本创建失败')
+  } finally {
+    busyId.value = ''
+  }
+}
+
+async function copyPackage(item: PackageTemplate) {
+  if (!canCopyTemplate(item)) return
+  const ok = await confirm('复制套餐', `将基于 ${item.name} V${item.version} 创建一条独立套餐草稿，新套餐使用新编码，不影响原套餐和历史报价。`, '复制套餐')
+  if (!ok) return
+  busyId.value = item.id
+  try {
+    const draft = await packApi.copyTemplate(item.id)
+    await load()
+    toast('套餐副本已创建', 'success')
+    uni.navigateTo({ url: `${P.packageEdit}?templateId=${draft.id}` })
+  } catch (error) {
+    toastError(error, '套餐复制失败')
   } finally {
     busyId.value = ''
   }
@@ -266,6 +287,10 @@ async function disable(item: PackageTemplate) {
           <view v-if="canBuildNext(item)" class="pm__action" @tap="buildNext(item)">
             <JzIcon name="plus" :size="28" :color="TOKEN_COLOR.text3" />
             <text>创建下一版</text>
+          </view>
+          <view v-if="canCopyTemplate(item)" class="pm__action" @tap="copyPackage(item)">
+            <JzIcon name="copy" :size="28" :color="TOKEN_COLOR.text3" />
+            <text>{{ busyId === item.id ? '处理中' : '复制套餐' }}</text>
           </view>
           <view v-if="canCreateQuote(item)" class="pm__action pm__action--danger" @tap="disable(item)">
             <JzIcon name="close" :size="28" :color="TOKEN_COLOR.danger" />

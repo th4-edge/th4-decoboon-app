@@ -12,6 +12,7 @@ const files = {
   quoteDetail: 'src/subpackages/quote/pages/detail.vue',
   quoteList: 'src/subpackages/quote/pages/list.vue',
   quoteAdjust: 'src/subpackages/quote/pages/adjust.vue',
+  tradeApi: 'src/domains/trade/api.ts',
   quoteWorkbench: 'src/subpackages/quote/pages/workbench.vue',
   signWorkbench: 'src/subpackages/project/pages/sign-workbench.vue',
   performance: 'src/subpackages/statistic/pages/performance.vue',
@@ -24,7 +25,7 @@ function read(path) {
 
 function validate(source) {
   const errors = []
-  const { api, edit, manage, picker, catalogPicker, quoteEdit, propertyPicker } = source
+  const { api, edit, manage, picker, catalogPicker, quoteEdit, quoteAdjust, tradeApi, propertyPicker } = source
   if (!api.includes("'pack/section/page'")) errors.push('套餐分区必须通过 pack/section/page 读取。')
   if (!api.includes('size: 50')) errors.push('套餐分区读取必须显式分页且单页不超过 50。')
   if (api.includes("status: raw.status ?? 'Draft'")) errors.push('旧后端缺少生命周期字段时不得伪造成 Draft。')
@@ -42,6 +43,10 @@ function validate(source) {
   if (!edit.includes('addingLines.value')) errors.push('批量添加项目必须有重复提交锁。')
   if (!manage.includes('sectionCount') || !manage.includes('lineCount') || !manage.includes('ready')) errors.push('套餐列表必须使用服务端有界摘要。')
   if (!manage.includes('publishTemplate') || !manage.includes('buildNextVersion') || !manage.includes('disableTemplate')) errors.push('套餐列表必须提供发布、下一版和停用动作。')
+  if (!api.includes("'pack/template/copy'") || !manage.includes('copyTemplate')) errors.push('套餐必须支持独立编码复制草稿。')
+  if (!manage.includes('copyPackage') || !manage.includes("name=\"copy\"")) errors.push('套餐管理页必须提供复制入口。')
+  if (!tradeApi.includes("'quote/line/copy'") || !quoteAdjust.includes('copyQuoteLine')) errors.push('报价分项必须支持复制为新增分项。')
+  if (!quoteAdjust.includes('canCopyLine') || !quoteAdjust.includes('已复制为新增分项')) errors.push('报价调整页必须提供复制动作和结果反馈。')
   if (!manage.includes('JzConfirmDialog')) errors.push('套餐生命周期确认必须挂载确认弹窗宿主。')
   if (manage.includes("item.code || '套餐编码待生成'")) errors.push('套餐界面不得展示内部套餐编码。')
   if (!picker.includes('availableTemplates')) errors.push('报价只能从当前发布套餐中选择。')
@@ -68,6 +73,8 @@ if (process.argv.includes('--self-test')) {
     validate({ ...source, edit: source.edit.replace('const sections = ref<PackageSection[]>([])', 'const sections = computed<PackageSection[]>(() => [])') }),
     validate({ ...source, edit: source.edit.replace('请先移动或删除项目行', '删除后项目行将变为未分区') }),
     validate({ ...source, catalogPicker: source.catalogPicker.replace('size: PAGE_SIZE', 'size: 200') }),
+    validate({ ...source, manage: source.manage.replace("name=\"copy\"", 'name="plus"') }),
+    validate({ ...source, quoteAdjust: source.quoteAdjust.replace('copyQuoteLine', 'deleteQuoteLine') }),
     validate({ ...source, quoteEdit: source.quoteEdit.replace("mode.value !== 'package'", 'false') }),
     validate({ ...source, quoteDetail: source.quoteDetail.replace('报价 V{{ quote.version }}', '{{ quote.no }} · V{{ quote.version }}') })
   ]
