@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.72",
+  "version": "1.0.74",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -54,6 +54,7 @@
     "check:finance-pickers": "node scripts/verify-finance-entry-picker-contract.mjs",
     "check:finance-payment-worker": "node scripts/verify-finance-worker-backfill-contract.mjs",
     "check:design-items": "node scripts/verify-design-items-contract.mjs",
+    "check:package-config": "node scripts/verify-package-config-contract.mjs",
     "check:contract-change-items": "node scripts/verify-contract-change-item-parity.mjs",
     "check:owner-ui": "node scripts/verify-owner-ui-v2-contract.mjs",
     "check:invite-flow": "node scripts/verify-invite-flow-contract.mjs"

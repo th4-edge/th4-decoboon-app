@@ -101,6 +101,11 @@ export const packApi = {
     size: 100
   })).map(normalizeTemplate),
 
+  sections: async () => listOf(await post<PageResult<RawRecord> | RawRecord[]>('pack/section/page', {
+    current: 1,
+    size: 50
+  })).map(normalizeSection),
+
   template: (templateId: string) =>
     post<RawRecord>('pack/template/info', { templateId }).then(normalizeTemplate),
 

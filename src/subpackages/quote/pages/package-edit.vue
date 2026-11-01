@@ -41,14 +41,9 @@ const completed = computed<boolean[]>(() => [
   true
 ])
 
-// 分区与项目行
-const sections = computed<PackageSection[]>(() => {
-  const map = new Map<string, PackageSection>()
-  for (const line of template.value?.items || []) {
-    if (line.section?.id) map.set(line.section.id, line.section)
-  }
-  return [...map.values()].sort((a, b) => a.priority - b.priority)
-})
+// 分区与项目行。分区是企业级主数据，不能只从当前套餐的项目行反推，
+// 否则尚未添加项目行的新分区会在保存后立即从界面消失。
+const sections = ref<PackageSection[]>([])
 const lines = computed<PackageLine[]>(() => template.value?.items || [])
 const lineCounts = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = {}
@@ -86,7 +81,12 @@ async function initialize() {
   loadingTpl.value = true
   loadError.value = ''
   try {
-    template.value = await packApi.template(templateId.value)
+    const [loadedTemplate, loadedSections] = await Promise.all([
+      packApi.template(templateId.value),
+      packApi.sections()
+    ])
+    template.value = loadedTemplate
+    sections.value = loadedSections
     name.value = template.value.name
     area.value = String(template.value.area)
     price.value = String(template.value.price)
@@ -101,10 +101,27 @@ async function initialize() {
   }
 }
 
+function sortSections(list: PackageSection[]): PackageSection[] {
+  return [...list].sort((a, b) => a.priority - b.priority)
+}
+
+function upsertSection(saved: PackageSection) {
+  const next = sections.value.filter((section) => section.id !== saved.id)
+  sections.value = sortSections([...next, saved])
+}
+
 async function reload() {
   if (!templateId.value) return
   try {
-    template.value = await packApi.template(templateId.value)
+    const [loadedTemplate, loadedSections] = await Promise.all([
+      packApi.template(templateId.value),
+      packApi.sections()
+    ])
+    template.value = loadedTemplate
+    sections.value = loadedSections
+    if (!sections.value.some((section) => section.id === activeSectionId.value)) {
+      activeSectionId.value = sections.value[0]?.id || ''
+    }
   } catch (error) {
     toastError(error, '刷新失败')
   }
@@ -173,13 +190,18 @@ async function saveSectionDialog() {
   sectionSaving.value = true
   try {
     if (sectionDialog.mode === 'add') {
-      await packApi.saveSection({ name: value, maxDeleteNum: 1, priority: sections.value.length })
+      const saved = await packApi.saveSection({ name: value, maxDeleteNum: 1, priority: sections.value.length })
+      upsertSection(saved)
+      activeSectionId.value = saved.id
       await reload()
-      activeSectionId.value = sections.value[sections.value.length - 1]?.id || activeSectionId.value
+      activeSectionId.value = saved.id
       toast('分区已新增', 'success')
     } else if (sectionDialog.section) {
-      await packApi.saveSection({ groupId: sectionDialog.section.id, name: value, maxDeleteNum: sectionDialog.section.maxDeleteNum, priority: sectionDialog.section.priority })
+      const saved = await packApi.saveSection({ groupId: sectionDialog.section.id, name: value, maxDeleteNum: sectionDialog.section.maxDeleteNum, priority: sectionDialog.section.priority })
+      upsertSection(saved)
+      activeSectionId.value = saved.id
       await reload()
+      activeSectionId.value = saved.id
       toast('分区已重命名', 'success')
     }
     sectionDialog.visible = false
@@ -192,7 +214,11 @@ async function saveSectionDialog() {
 
 async function removeSection(section: PackageSection) {
   const count = lineCounts.value[section.id] || 0
-  const ok = await confirm('删除套餐分区', `确认删除“${section.name}”？${count > 0 ? `该分区下有 ${count} 个项目行，删除后项目行将变为未分区。` : ''}`, '删除')
+  if (count > 0) {
+    toast(`“${section.name}”下还有 ${count} 个项目行，请先移动或删除项目行`)
+    return
+  }
+  const ok = await confirm('删除套餐分区', `确认删除“${section.name}”？`, '删除')
   if (!ok) return
   try {
     await packApi.deleteSection(section.id)
