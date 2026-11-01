@@ -62,7 +62,7 @@
 | 产品/视觉/修复文档 | `docs/AGENTS.md` | `docs/03-视觉与设计规范.md`、`docs/fixes/**`、相关产品规范 |
 | 官网短视频/录屏 | `scripts/AGENTS.md` | 场景 JSON、开发者工具、隐私和授权规则 |
 | 业务需求 | `zhuangdeqing-business` | 相关 `SCN/BR/DEC/GAP/EV` |
-| 独立验收 | `zhuangdeqing-acceptance-agent` | 冻结用例、RUN、Oracle Lock 和真机证据 |
+| 独立验收 | 后端 `docs/testing/README.md`、`docs/testing/scripts/create_run.py` | 冻结用例、RUN、Oracle Lock 和真机证据 |
 
 默认不读完整历史发布记录、旧诊断、归档资料和全部契约脚本。先用 `rg -n` 定位。
 
