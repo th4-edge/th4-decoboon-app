@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'change', index: number): void
+  (e: 'blocked', index: number): void
 }>()
 
 const steps = [
@@ -29,7 +30,15 @@ function isActive(index: number): boolean {
   return props.current === index
 }
 
+function isBlocked(index: number): boolean {
+  return index > props.current && props.completed.slice(0, index).some((done) => !done)
+}
+
 function handleTap(index: number) {
+  if (isBlocked(index)) {
+    emit('blocked', index)
+    return
+  }
   emit('change', index)
 }
 </script>
@@ -42,7 +51,8 @@ function handleTap(index: number) {
       class="psteps__item"
       :class="{
         'psteps__item--active': isActive(index),
-        'psteps__item--done': isDone(index) && !isActive(index)
+        'psteps__item--done': isDone(index) && !isActive(index),
+        'psteps__item--locked': isBlocked(index)
       }"
       @tap="handleTap(index)"
     >
@@ -109,18 +119,20 @@ function handleTap(index: number) {
 /* 激活态 */
 .psteps__item--active {
   .psteps__circle {
-    background: $jzb-primary;
-    box-shadow: 0 4rpx 12rpx rgba(22, 163, 148, 0.3);
+    background: var(--jzb-brand-primary, #{$jzb-primary});
+    box-shadow: 0 4rpx 12rpx var(--jzb-brand-shadow, rgba(22, 163, 148, 0.3));
   }
   .psteps__num { color: $jzb-text-inverse; }
-  .psteps__label { color: $jzb-primary-dark; font-weight: 650; }
+  .psteps__label { color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); font-weight: 650; }
 }
 
 /* 已完成态 */
 .psteps__item--done {
-  .psteps__circle { background: $jzb-primary; }
+  .psteps__circle { background: var(--jzb-brand-primary, #{$jzb-primary}); }
   .psteps__label { color: $jzb-text-2; }
 }
 
-.psteps__line--done { background: $jzb-primary; }
+.psteps__line--done { background: var(--jzb-brand-primary, #{$jzb-primary}); }
+
+.psteps__item--locked { opacity: 0.56; }
 </style>

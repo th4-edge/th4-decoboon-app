@@ -10,6 +10,7 @@ import type { PackageLine, PackageSection, PackageTemplate } from '@/domains/pac
 import { money } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 import JzIcon from '@/components/JzIcon.vue'
 import JzInputDialog from '@/components/JzInputDialog.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -22,6 +23,7 @@ import LineEditSheet from '../components/LineEditSheet/LineEditSheet.vue'
 import CostCheckPanel from '../components/CostCheckPanel/CostCheckPanel.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 
+const { brandThemeStyle } = useBrandTheme()
 const templateId = ref('')
 const template = ref<PackageTemplate | null>(null)
 const loadError = ref('')
@@ -353,12 +355,37 @@ function handleFix(type: 'zeroCost' | 'emptySection' | 'noDescription' | 'noLine
   }
 }
 
+// 步骤导航：可回看已进入步骤，但不能跳过未完成项。
+const stepLabels = ['基本信息', '分区', '项目配置', '成本检查']
+
+function firstBlockedStep(index: number): number {
+  for (let cursor = 0; cursor < index; cursor += 1) {
+    if (!completed.value[cursor]) return cursor
+  }
+  return -1
+}
+
+function showBlockedStep(index: number) {
+  const blocked = firstBlockedStep(index)
+  if (blocked >= 0) toast(`请先完成「${stepLabels[blocked]}」`)
+}
+
+function changeStep(index: number) {
+  if (index < 0 || index >= stepLabels.length) return
+  const blocked = firstBlockedStep(index)
+  if (blocked >= 0) {
+    showBlockedStep(index)
+    return
+  }
+  step.value = index
+}
+
 // 底部操作
 function handlePrimary() {
   if (step.value === 0) {
     void saveBasic()
   } else if (step.value < 3) {
-    step.value += 1
+    changeStep(step.value + 1)
   } else {
     uni.navigateBack()
   }
@@ -372,8 +399,8 @@ const primaryText = computed(() => {
 </script>
 
 <template>
-  <view class="pe">
-    <PackageSteps :current="step" :completed="completed" @change="(i: number) => step = i" />
+  <view class="pe" :style="brandThemeStyle">
+    <PackageSteps :current="step" :completed="completed" @change="changeStep" @blocked="showBlockedStep" />
 
     <scroll-view scroll-y class="pe__body">
       <!-- 加载态 -->
@@ -623,7 +650,7 @@ const primaryText = computed(() => {
 .pe__calc {
   margin-top: 24rpx;
   padding: 20rpx 24rpx;
-  background: $jzb-primary-lightest;
+  background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest});
   border-radius: $jzb-radius-sm;
 }
 
@@ -728,7 +755,7 @@ const primaryText = computed(() => {
 .pe__footer-value {
   font-size: $jzb-font-lg;
   font-weight: 750;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
   font-variant-numeric: tabular-nums;
 }
 

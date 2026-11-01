@@ -7,7 +7,6 @@ import JzSheet from '@/components/JzSheet.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
-
 const props = withDefaults(defineProps<{
   visible: boolean
   sectionName: string
@@ -182,9 +181,9 @@ function confirm() {
 }
 
 .cps__type--active {
-  color: $jzb-primary-dark;
-  background: $jzb-primary-lighter;
-  border-color: $jzb-primary;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
+  background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter});
+  border-color: var(--jzb-brand-primary, #{$jzb-primary});
   font-weight: 600;
 }
 
@@ -202,7 +201,7 @@ function confirm() {
 }
 
 .cps__item--selected {
-  background: $jzb-primary-lightest;
+  background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest});
 }
 
 .cps__checkbox {
@@ -217,8 +216,8 @@ function confirm() {
 }
 
 .cps__checkbox--checked {
-  background: $jzb-primary;
-  border-color: $jzb-primary;
+  background: var(--jzb-brand-primary, #{$jzb-primary});
+  border-color: var(--jzb-brand-primary, #{$jzb-primary});
 }
 
 .cps__item-main {
@@ -252,7 +251,7 @@ function confirm() {
   display: block;
   font-size: $jzb-font-sm;
   font-weight: 700;
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
   font-variant-numeric: tabular-nums;
 }
 
@@ -280,6 +279,6 @@ function confirm() {
 .cps__selected-num {
   font-size: $jzb-font-md;
   font-weight: 700;
-  color: $jzb-primary;
+  color: var(--jzb-brand-primary, #{$jzb-primary});
 }
 </style>

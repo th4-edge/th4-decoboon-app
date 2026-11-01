@@ -1,6 +1,6 @@
 {
   "name": "th4-decoboon-app",
-  "version": "1.0.75",
+  "version": "1.0.76",
   "private": true,
   "description": "装得清 · 装企协同微信小程序（uni-app Vue3 + TypeScript + Vite）",
   "scripts": {
@@ -32,7 +32,7 @@
     "check:dev-api": "node scripts/verify-dev-api-base.mjs",
     "check:numeric-inputs": "node scripts/verify-numeric-input-display.mjs",
     "check:refund-amount": "node scripts/verify-refund-amount.mjs",
-    "verify:mp-weixin": "npm run check:version && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:client-copy && npm run check:invite-flow && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:selectors && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
+    "verify:mp-weixin": "npm run check:version && node scripts/verify-customer-source-contract.mjs && node scripts/verify-employee-display-contract.mjs && npm run check:client-copy && npm run check:invite-flow && npm run check:onboarding && npm run check:document && npm run check:plan && npm run check:home && npm run check:action && npm run check:selectors && npm run check:contract-sign && npm run check:media && npm run check:design-items && npm run check:finance-ia && npm run check:finance-pickers && npm run check:finance-payment-worker && node scripts/verify-payroll-closure-contract.mjs && npm run check:registration && npm run check:upload && npm run check:customer-admin && npm run check:navigation && npm run check:owner-preview && npm run check:owner-ui && npm run check:dev-api && npm run check:numeric-inputs && node scripts/verify-receipt-reversal-contract.mjs && npm run check:refund-amount && node scripts/verify-money-format.mjs && npm run check:contract-change-items && npm run check:ui && npm run check:brand-theme && npm run type-check && npm run build:mp-weixin && npm run check:subpackages",
     "check:upload": "node scripts/verify-upload-diagnostics-contract.mjs",
     "check:customer-admin": "node scripts/verify-customer-admin-contract.mjs",
     "record:site": "node scripts/recording/run-scenario.mjs scripts/recording/scenarios/website-boss-overview.json",
@@ -57,7 +57,8 @@
     "check:package-config": "node scripts/verify-package-config-contract.mjs",
     "check:contract-change-items": "node scripts/verify-contract-change-item-parity.mjs",
     "check:owner-ui": "node scripts/verify-owner-ui-v2-contract.mjs",
-    "check:invite-flow": "node scripts/verify-invite-flow-contract.mjs"
+    "check:invite-flow": "node scripts/verify-invite-flow-contract.mjs",
+    "check:brand-theme": "node scripts/verify-brand-theme-contract.mjs"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5020520260829001",

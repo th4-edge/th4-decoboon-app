@@ -96,6 +96,7 @@ function normalizeCompany(raw: RawRecord | null | undefined): Employee['company'
     id: String(raw.id ?? raw.comId ?? ''),
     name: raw.title ?? raw.name ?? '',
     shortName: raw.name,
+    color: typeof raw.color === 'string' ? raw.color : undefined,
     city: raw.addr,
     storeName: store?.name,
     createdAt: raw.createTime?.dateTime ?? raw.createTime

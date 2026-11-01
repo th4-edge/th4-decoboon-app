@@ -139,6 +139,14 @@ export function loginAsEmployee(employee: Employee, token: string, profile?: Use
   persist()
 }
 
+/** 企业资料保存后同步本地会话，品牌色与名称无需重新登录即可生效。 */
+export function updateCompanyProfile(company: Company) {
+  session.company = company
+  if (session.emp) session.emp.company = company
+  if (session.user?.currentEmployee) session.user.currentEmployee.company = company
+  persist()
+}
+
 /** 个人资料修改后同步本地会话（姓名 / 头像），无需重新登录。 */
 export function updateEmployeeProfile(patch: { name?: string; avatarUrl?: string | null }) {
   if (session.emp) {

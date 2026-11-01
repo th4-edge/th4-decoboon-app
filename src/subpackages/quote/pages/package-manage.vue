@@ -9,15 +9,19 @@ import type { PackageTemplate } from '@/domains/pack/model'
 import { money, timeText } from '@/core/format'
 import { confirm, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 import JzEmpty from '@/components/JzEmpty.vue'
 import JzFloatAdd from '@/components/JzFloatAdd.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import JzTag from '@/components/JzTag.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
+import PageState from '@/components/PageState/PageState.vue'
 
 const loading = ref(false)
+const loadError = ref('')
 const templates = ref<PackageTemplate[]>([])
+const { brandTheme, brandThemeStyle } = useBrandTheme()
 const canEdit = computed(() => can(session.role, 'edit:package-template'))
 const canViewCost = computed(() => can(session.role, 'view:cost'))
 const busyId = ref('')
@@ -102,9 +106,11 @@ onPullDownRefresh(() => load().finally(() => uni.stopPullDownRefresh()))
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     templates.value = await packApi.templates()
   } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '套餐模板加载失败'
     toastError(error, '套餐模板加载失败')
   } finally {
     loading.value = false
@@ -179,7 +185,7 @@ async function disable(item: PackageTemplate) {
 </script>
 
 <template>
-  <view class="pm">
+  <view class="pm" :style="brandThemeStyle">
     <!-- Hero 区 -->
     <view class="pm__hero">
       <view class="pm__hero-top">
@@ -190,8 +196,14 @@ async function disable(item: PackageTemplate) {
       <text class="pm__hero-sub">{{ canEdit ? '套餐是企业标准报价模板，客户报价生成后保存独立版本，修改模板不影响历史报价。' : '只读查看企业套餐模板；套餐调整由企业负责人或店长维护。' }}</text>
     </view>
 
+    <PageState v-if="loadError && !templates.length" state="error" title="套餐模板加载失败" :subtitle="loadError" @retry="load" />
+
     <!-- 列表 -->
-    <view class="pm__list">
+    <view v-else class="pm__list">
+      <view v-if="loadError" class="pm__inline-error" @tap="load">
+        <JzIcon name="alert-circle" :size="28" :color="TOKEN_COLOR.danger" />
+        <text>刷新失败，当前显示上次加载的数据；点击重试</text>
+      </view>
       <JzSkeleton v-if="loading && !templates.length" :rows="3" />
       <view
         v-for="item in templates"
@@ -240,7 +252,7 @@ async function disable(item: PackageTemplate) {
         <!-- 操作行 -->
         <view class="pm__actions">
           <view v-if="canCreateQuote(item)" class="pm__action pm__action--primary" @tap="createQuote(item)">
-            <JzIcon name="file-text" :size="28" :color="TOKEN_COLOR.primaryBase" />
+            <JzIcon name="file-text" :size="28" :color="brandTheme.primaryDark" />
             <text>生成报价</text>
           </view>
           <view v-if="canEditTemplate(item)" class="pm__action" @tap="edit(item.id)">
@@ -286,7 +298,7 @@ async function disable(item: PackageTemplate) {
   padding: 34rpx 30rpx;
   color: $jzb-text-inverse;
   border-radius: $jzb-radius-lg;
-  background: $jzb-gradient;
+  background: var(--jzb-brand-gradient, #{$jzb-gradient});
   box-shadow: $jzb-shadow-card;
 }
 
@@ -381,7 +393,7 @@ async function disable(item: PackageTemplate) {
 }
 
 .pm__money-value--cost {
-  color: $jzb-primary-dark;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
 
 .pm__money-value--margin {
@@ -398,6 +410,7 @@ async function disable(item: PackageTemplate) {
 /* 操作行 */
 .pm__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
   margin-top: 24rpx;
   padding-top: 20rpx;
@@ -405,12 +418,13 @@ async function disable(item: PackageTemplate) {
 }
 
 .pm__action {
-  flex: 1;
+  flex: 1 1 calc(50% - 8rpx);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8rpx;
-  height: 72rpx;
+  min-height: 88rpx;
+  padding: 0 18rpx;
   border-radius: $jzb-radius-sm;
   background: $jzb-bg-hover;
   font-size: $jzb-font-sm;
@@ -419,9 +433,12 @@ async function disable(item: PackageTemplate) {
 }
 
 .pm__action--primary {
-  background: $jzb-primary-lighter;
-  color: $jzb-primary-dark;
+  flex-basis: 100%;
+  background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter});
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
 }
+
+.pm__inline-error { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 18rpx 20rpx; color: $jzb-danger; background: $jzb-danger-soft; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.5; }
 
 .pm__action--danger {
   color: $jzb-danger;

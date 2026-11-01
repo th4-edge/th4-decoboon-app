@@ -15,15 +15,19 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { identityApi } from '@/domains/identity/api'
 import type { Company, CompanySetting } from '@/domains/identity/model'
-import { session } from '@/domains/identity/session'
+import { session, updateCompanyProfile } from '@/domains/identity/session'
 import { toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
+import { BRAND_COLOR_PRESETS, buildBrandTheme, normalizeBrandColor, serializeBrandTheme } from '@/styles/brand-theme'
+import { useBrandTheme } from '@/composables/useBrandTheme'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
+import JzIcon from '@/components/JzIcon.vue'
 
 const company = ref<Company | null>(null)
 const editing = ref(false)
 const saving = ref(false)
+const { brandThemeStyle } = useBrandTheme()
 /** 在职员工个人手机号：用于拦截「把员工个人号填成企业客服电话」。 */
 const employeePhones = ref<string[]>([])
 const form = ref({
@@ -33,6 +37,10 @@ const form = ref({
 // 品牌与署名：叙事主体归装企（ANS-BIZ-20261010-004 §4）；平台署名默认关闭
 const brandPrimary = ref<'Company' | 'Platform'>('Company')
 const custodianCredit = ref(false)
+const brandColor = ref<string>(TOKEN_COLOR.primaryBase)
+const previewTheme = computed(() => buildBrandTheme(brandColor.value))
+const previewThemeStyle = computed(() => serializeBrandTheme(previewTheme.value))
+const brandColorLabel = computed(() => normalizeBrandColor(brandColor.value) || '请输入 #RRGGBB')
 const editable = computed(() => session.role === 'boss')
 
 /**
@@ -73,6 +81,11 @@ function hydrate(loaded: Company) {
   }
   brandPrimary.value = setting.brandPrimary === 'Platform' ? 'Platform' : 'Company'
   custodianCredit.value = setting.custodianCredit === true
+  brandColor.value = normalizeBrandColor(loaded.color) || TOKEN_COLOR.primaryBase
+}
+
+function isPresetSelected(value: string): boolean {
+  return normalizeBrandColor(brandColor.value) === normalizeBrandColor(value)
 }
 
 function onCreditChange(event: Event) {
@@ -119,6 +132,7 @@ function validate(): string {
   if (uscc && !USCC_PATTERN.test(uscc)) return '统一社会信用代码需为 18 位（数字与大写字母，不含 I O S V Z）'
   if ((value.qualification || '').trim().length > 128) return '资质最长 128 个字符'
   if ((value.intro || '').trim().length > 512) return '一句话简介最长 512 个字符'
+  if (!normalizeBrandColor(brandColor.value)) return '品牌色需填写 #RRGGBB 格式，例如 #16A394'
   return ''
 }
 
@@ -133,6 +147,7 @@ async function save() {
       title: value.title.trim(),
       name: value.name.trim(),
       addr: value.addr.trim(),
+      color: normalizeBrandColor(brandColor.value) || TOKEN_COLOR.primaryBase,
       setting: {
         brandPrimary: brandPrimary.value,
         custodianCredit: custodianCredit.value,
@@ -146,6 +161,7 @@ async function save() {
     })
     if (!updated) throw new Error('企业信息更新失败')
     company.value = updated
+    updateCompanyProfile(updated)
     hydrate(updated)
     editing.value = false
     toast('企业信息已更新', 'success')
@@ -154,7 +170,7 @@ async function save() {
 </script>
 
 <template>
-  <view class="ci-page">
+  <view class="ci-page" :style="brandThemeStyle">
     <JzPageHeader title="我的企业" subtitle="企业身份与组织归属" :right-text="editable ? '编辑' : ''" @right="startEdit" />
     <view v-if="company" class="ci-body">
       <view class="jz-card ci-hero">
@@ -195,6 +211,10 @@ async function save() {
         <view><text>当前团队</text><text>{{ session.emp?.team?.name || '-' }}</text></view>
         <view><text>叙事主品牌</text><text>{{ brandPrimary === 'Platform' ? '平台' : '装企（默认）' }}</text></view>
         <view><text>记录存证署名</text><text>{{ custodianCredit ? '显示「记录存证与保管 · 装得清」' : '不显示（默认）' }}</text></view>
+        <view class="ci-brand-read">
+          <text>品牌色</text>
+          <view><view class="ci-brand-read__swatch" :style="{ backgroundColor: previewTheme.primary }" /><text>{{ brandColorLabel }}</text></view>
+        </view>
       </view>
       <view v-else class="jz-card ci-info ci-info--form">
         <view><text>企业全称</text><input v-model="form.title" maxlength="128" /></view>
@@ -212,6 +232,52 @@ async function save() {
           <switch :checked="custodianCredit" :color="TOKEN_COLOR.primary" @change="onCreditChange" />
         </view>
       </view>
+      <view v-if="editing" class="jz-card ci-brand">
+        <view class="ci-brand__head">
+          <view>
+            <text class="ci-brand__title">品牌外观</text>
+            <text class="ci-brand__hint">用于套餐管理、选品与主操作按钮；状态色不随品牌色变化</text>
+          </view>
+          <text class="ci-brand__reset" @tap="brandColor = TOKEN_COLOR.primaryBase">恢复平台默认</text>
+        </view>
+
+        <text class="ci-brand__label">常用颜色</text>
+        <view class="ci-brand__presets">
+          <view
+            v-for="preset in BRAND_COLOR_PRESETS"
+            :key="preset.value"
+            class="ci-brand__preset"
+            :class="{ 'ci-brand__preset--selected': isPresetSelected(preset.value) }"
+            @tap="brandColor = preset.value"
+          >
+            <view class="ci-brand__swatch" :style="{ backgroundColor: preset.value }">
+              <JzIcon v-if="isPresetSelected(preset.value)" name="check" :size="24" :color="TOKEN_COLOR.white" />
+            </view>
+            <text>{{ preset.label }}</text>
+          </view>
+        </view>
+
+        <view class="ci-brand__custom">
+          <text class="ci-brand__label">自定义色值</text>
+          <view class="ci-brand__input-wrap">
+            <view class="ci-brand__input-swatch" :style="{ backgroundColor: previewTheme.primary }" />
+            <input v-model="brandColor" maxlength="7" placeholder="#16A394" />
+          </view>
+        </view>
+        <text class="ci-brand__tip">仅支持 #RRGGBB。颜色过浅时会自动加深主操作色，保证白色文字可读。</text>
+
+        <view class="ci-brand__preview" :style="previewThemeStyle">
+          <view class="ci-brand__preview-head">
+            <text class="ci-brand__preview-title">效果预览</text>
+            <text class="ci-brand__preview-value">{{ brandColorLabel }}</text>
+          </view>
+          <view class="ci-brand__preview-actions">
+            <view class="ci-brand__preview-selected">已选中</view>
+            <view class="ci-brand__preview-button">主操作按钮</view>
+          </view>
+        </view>
+      </view>
+
       <button v-if="editing" class="jz-btn jz-btn--primary jz-btn--block" :disabled="saving" @tap="save">
         {{ saving ? '保存中…' : '保存企业信息' }}
       </button>
@@ -223,7 +289,7 @@ async function save() {
 .ci-page { min-height: 100vh; background: $jzb-bg-page; }
 .ci-body { padding: 28rpx; }
 .ci-hero { padding: 48rpx 32rpx; text-align: center; }
-.ci-logo { display: flex; align-items: center; justify-content: center; width: 112rpx; height: 112rpx; margin: 0 auto; background: $jzb-gradient; border-radius: 36rpx; }
+.ci-logo { display: flex; align-items: center; justify-content: center; width: 112rpx; height: 112rpx; margin: 0 auto; background: var(--jzb-brand-gradient, #{$jzb-gradient}); border-radius: 36rpx; }
 .ci-name { display: block; margin-top: 22rpx; color: $jzb-text-1; font-size: $jzb-font-xl; font-weight: 750; }
 .ci-addr { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .ci-service { margin-top: 24rpx; padding: 26rpx 28rpx 10rpx; }
@@ -246,6 +312,31 @@ async function save() {
 .ci-info--form input { flex: 1; margin-left: 24rpx; color: $jzb-text-1; text-align: right; }
 .ci-seg { display: flex; gap: 12rpx; }
 .ci-seg text { padding: 8rpx 24rpx; border: 1rpx solid $jzb-border-light; border-radius: 999rpx; color: $jzb-text-2; font-size: $jzb-font-sm; }
-.ci-seg text.on { border-color: $jzb-primary; background: $jzb-primary-lighter; color: $jzb-primary; font-weight: 650; }
+.ci-seg text.on { border-color: var(--jzb-brand-primary, #{$jzb-primary}); background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter}); color: var(--jzb-brand-primary-dark, #{$jzb-primary}); font-weight: 650; }
+.ci-brand-read > view { display: flex; align-items: center; gap: 10rpx; }
+.ci-brand-read__swatch { width: 28rpx; height: 28rpx; border-radius: 50%; box-shadow: 0 0 0 2rpx $jzb-bg-card, 0 0 0 3rpx $jzb-border-light; }
+.ci-brand { margin-top: 24rpx; padding: 28rpx; }
+.ci-brand__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; }
+.ci-brand__title { display: block; color: $jzb-text-1; font-size: $jzb-font; font-weight: 700; }
+.ci-brand__hint { display: block; margin-top: 8rpx; color: $jzb-text-3; font-size: $jzb-font-xs; line-height: 1.55; }
+.ci-brand__reset { flex: none; padding: 14rpx 0 14rpx 16rpx; color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); font-size: $jzb-font-xs; }
+.ci-brand__label { display: block; margin-top: 28rpx; color: $jzb-text-2; font-size: $jzb-font-sm; font-weight: 650; }
+.ci-brand__presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18rpx 12rpx; margin-top: 16rpx; }
+.ci-brand__preset { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8rpx; padding: 12rpx 4rpx; border: 1rpx solid transparent; border-radius: $jzb-radius-sm; color: $jzb-text-3; font-size: 20rpx; }
+.ci-brand__preset--selected { border-color: var(--jzb-brand-border, rgba(22,163,148,.18)); background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest}); color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); font-weight: 650; }
+.ci-brand__swatch { width: 64rpx; height: 64rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: inset 0 0 0 1rpx rgba(15,23,42,.08), 0 4rpx 12rpx rgba(15,23,42,.08); }
+.ci-brand__custom { margin-top: 4rpx; }
+.ci-brand__input-wrap { display: flex; align-items: center; gap: 16rpx; min-height: 88rpx; margin-top: 12rpx; padding: 0 20rpx; border: 1rpx solid $jzb-border-light; border-radius: $jzb-radius-sm; background: $jzb-bg-hover; }
+.ci-brand__input-wrap:focus-within { border-color: var(--jzb-brand-border, rgba(22,163,148,.18)); background: $jzb-bg-card; }
+.ci-brand__input-swatch { width: 40rpx; height: 40rpx; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1rpx rgba(15,23,42,.08); }
+.ci-brand__input-wrap input { flex: 1; min-width: 0; color: $jzb-text-1; font-size: $jzb-font; font-variant-numeric: tabular-nums; }
+.ci-brand__tip { display: block; margin-top: 12rpx; color: $jzb-text-4; font-size: 20rpx; line-height: 1.55; }
+.ci-brand__preview { margin-top: 24rpx; padding: 24rpx; border: 1rpx solid var(--jzb-brand-border, rgba(22,163,148,.18)); border-radius: $jzb-radius; background: var(--jzb-brand-gradient-soft, #{$jzb-gradient-soft}); }
+.ci-brand__preview-head { display: flex; align-items: center; justify-content: space-between; }
+.ci-brand__preview-title { color: $jzb-text-1; font-size: $jzb-font-sm; font-weight: 650; }
+.ci-brand__preview-value { color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); font-size: $jzb-font-xs; font-variant-numeric: tabular-nums; }
+.ci-brand__preview-actions { display: flex; align-items: center; gap: 16rpx; margin-top: 20rpx; }
+.ci-brand__preview-selected { min-height: 64rpx; padding: 0 24rpx; display: flex; align-items: center; justify-content: center; color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark}); background: var(--jzb-brand-primary-lighter, #{$jzb-primary-lighter}); border: 1rpx solid var(--jzb-brand-border, rgba(22,163,148,.18)); border-radius: $jzb-radius-pill; font-size: $jzb-font-xs; font-weight: 650; }
+.ci-brand__preview-button { min-height: 72rpx; flex: 1; display: flex; align-items: center; justify-content: center; color: $jzb-text-inverse; background: var(--jzb-brand-gradient, #{$jzb-gradient}); border-radius: $jzb-radius-sm; font-size: $jzb-font-sm; font-weight: 650; box-shadow: 0 10rpx 24rpx var(--jzb-brand-shadow, rgba(14,138,125,.22)); }
 .ci-body > button { margin-top: 28rpx; }
 </style>
