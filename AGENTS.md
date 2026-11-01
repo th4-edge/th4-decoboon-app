@@ -46,7 +46,15 @@
 4. 路由统一使用 `src/config/index.ts` 的 `P.*`，禁止魔法字符串。
 5. 品牌视觉只有一个 Token 真源；品牌 Logo 只使用 `logo-export` 和 `JzBrandLogo`。
 
-## 4. 按任务读取
+## 4. 固定读取纪律与任务路由
+
+1. 问题台账按 ID/状态查询，禁止全文读取 `registry.json`。
+2. 业务领域只读 `state.json`、`00-charter.md`、`10-reconciliation.md`；需要时再补一个业务卡或一个实现文件。
+3. `rules.md` 只读相关章节，不全文加载。
+4. Skill references 只读当前模式需要的一份。
+5. 验收只读 RUN 摘要、当前用例、缺陷和关键证据。
+6. 构建/监控只读失败行、结论和新增指纹。
+7. 一个任务只允许一个主 Skill；业务智能体是事实源，不另算执行 Skill。
 
 | 任务 | 必读入口 | 按需读取 |
 | --- | --- | --- |
