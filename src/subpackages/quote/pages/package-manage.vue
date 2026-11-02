@@ -7,7 +7,7 @@ import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { PackageTemplate } from '@/domains/pack/model'
 import { money, timeText } from '@/core/format'
-import { confirm, toast, toastError } from '@/composables/toast'
+import { confirm, confirmDanger, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { useBrandTheme } from '@/composables/useBrandTheme'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -54,6 +54,10 @@ function isLatest(tpl: PackageTemplate): boolean {
 function canEditTemplate(tpl: PackageTemplate): boolean {
   if (!canEdit.value || !isLatest(tpl)) return false
   return !tpl.statusKnown || tpl.status === 'Draft'
+}
+
+function canDeleteTemplate(tpl: PackageTemplate): boolean {
+  return canEditTemplate(tpl)
 }
 
 function canPublish(tpl: PackageTemplate): boolean {
@@ -196,6 +200,26 @@ async function copyPackage(item: PackageTemplate) {
   }
 }
 
+async function deleteDraft(item: PackageTemplate) {
+  if (!canDeleteTemplate(item)) return
+  const ok = await confirmDanger(
+    '删除套餐草稿',
+    `确认删除「${item.name}」V${item.version} 草稿？删除后不可恢复；已发布版本和历史报价不受影响。`,
+    '确认删除'
+  )
+  if (!ok) return
+  busyId.value = item.id
+  try {
+    await packApi.deleteTemplate(item.id)
+    await load()
+    toast('套餐草稿已删除', 'success')
+  } catch (error) {
+    toastError(error, '套餐草稿删除失败')
+  } finally {
+    busyId.value = ''
+  }
+}
+
 async function disable(item: PackageTemplate) {
   if (!canEdit.value || !canCreateQuote(item)) return
   const ok = await confirm('停用套餐', `停用 V${item.version} 后不能用于新报价，历史报价、合同和项目不受影响。`, '停用')
@@ -287,6 +311,10 @@ async function disable(item: PackageTemplate) {
           <view v-if="canEditTemplate(item)" class="pm__action" @tap="edit(item.id)">
             <JzIcon name="edit" :size="28" :color="TOKEN_COLOR.text3" />
             <text>编辑草稿</text>
+          </view>
+          <view v-if="canDeleteTemplate(item)" class="pm__action pm__action--danger" @tap="deleteDraft(item)">
+            <JzIcon name="trash" :size="28" :color="TOKEN_COLOR.danger" />
+            <text>{{ busyId === item.id ? '处理中' : '删除草稿' }}</text>
           </view>
           <view v-if="canPublish(item)" class="pm__action" @tap="publish(item)">
             <JzIcon name="check" :size="28" :color="TOKEN_COLOR.success" />

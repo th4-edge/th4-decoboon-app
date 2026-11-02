@@ -164,6 +164,8 @@ export const packApi = {
   disableTemplate: (templateId: string) =>
     post<RawRecord>('pack/template/disable', { templateId }).then(normalizeTemplate),
 
+  deleteTemplate: (templateId: string) => post<boolean>('pack/template/delete', { templateId }),
+
   buildNextVersion: (templateId: string) =>
     post<RawRecord>('pack/template/build', { templateId }).then(normalizeTemplate),
 

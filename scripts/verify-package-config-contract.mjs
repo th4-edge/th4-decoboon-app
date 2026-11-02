@@ -29,7 +29,7 @@ function validate(source) {
   if (!api.includes("'pack/section/page'")) errors.push('套餐分区必须通过 pack/section/page 读取。')
   if (!/size:\s*(?:20|50)/.test(api)) errors.push('套餐分区读取必须显式分页且单页不超过 50。')
   if (api.includes("status: raw.status ?? 'Draft'")) errors.push('旧后端缺少生命周期字段时不得伪造成 Draft。')
-  for (const route of ['pack/template/list', 'pack/template/publish', 'pack/template/disable', 'pack/template/build']) {
+  for (const route of ['pack/template/list', 'pack/template/publish', 'pack/template/disable', 'pack/template/build', 'pack/template/delete']) {
     if (!api.includes(`'${route}'`)) errors.push(`缺少套餐生命周期路由：${route}`)
   }
   if (!edit.includes('const sections = ref<PackageSection[]>([])')) errors.push('套餐配置页必须维护独立的分区状态。')
@@ -43,6 +43,7 @@ function validate(source) {
   if (!edit.includes('addingLines.value')) errors.push('批量添加项目必须有重复提交锁。')
   if (!manage.includes('sectionCount') || !manage.includes('lineCount') || !manage.includes('ready')) errors.push('套餐列表必须使用服务端有界摘要。')
   if (!manage.includes('publishTemplate') || !manage.includes('buildNextVersion') || !manage.includes('disableTemplate')) errors.push('套餐列表必须提供发布、下一版和停用动作。')
+  if (!manage.includes('canDeleteTemplate') || !manage.includes('deleteTemplate') || !manage.includes('confirmDanger')) errors.push('套餐列表必须仅对最新草稿提供二次确认删除。')
   if (!api.includes("'pack/template/copy'") || !manage.includes('copyTemplate')) errors.push('套餐必须支持独立编码复制草稿。')
   if (!manage.includes('copyPackage') || !manage.includes("name=\"copy\"")) errors.push('套餐管理页必须提供复制入口。')
   if (!tradeApi.includes("'quote/line/copy'") || !quoteAdjust.includes('copyQuoteLine')) errors.push('报价分项必须支持复制为新增分项。')
@@ -80,6 +81,7 @@ if (process.argv.includes('--self-test')) {
     validate({ ...source, quoteAdjust: source.quoteAdjust.replace('copyQuoteLine', 'deleteQuoteLine') }),
     validate({ ...source, quoteEdit: source.quoteEdit.replace("mode.value !== 'package'", 'false') }),
     validate({ ...source, manage: source.manage.replace('templateManagePage', 'templatePickerPage') }),
+    validate({ ...source, manage: source.manage.replace('deleteTemplate', 'getTemplate') }),
     validate({ ...source, quoteDetail: source.quoteDetail.replace('报价 V{{ quote.version }}', '{{ quote.no }} · V{{ quote.version }}') })
   ]
   if (fixtures.some((items) => items.length === 0)) {
