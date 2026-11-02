@@ -7,7 +7,7 @@ import { can } from '@/roles/permission'
 import { packApi } from '@/domains/pack/api'
 import type { CatalogItem, CatalogPricingMode } from '@/domains/catalog/model'
 import type { PackageLine, PackageSection, PackageTemplate } from '@/domains/pack/model'
-import { money } from '@/core/format'
+import { money, moneyExact } from '@/core/format'
 import { confirm, hideLoading, loading, toast, toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import { useBrandTheme } from '@/composables/useBrandTheme'
@@ -17,7 +17,7 @@ import JzEmpty from '@/components/JzEmpty.vue'
 import JzSkeleton from '@/components/JzSkeleton.vue'
 import PackageSteps from '../components/PackageSteps/PackageSteps.vue'
 import SectionTabs from '../components/SectionTabs/SectionTabs.vue'
-import LineCard from '../components/LineCard/LineCard.vue'
+import PackageLineGroups from '../components/PackageLineGroups/PackageLineGroups.vue'
 import CatalogPickerSheet from '../components/CatalogPickerSheet/CatalogPickerSheet.vue'
 import LineEditSheet from '../components/LineEditSheet/LineEditSheet.vue'
 import CostCheckPanel from '../components/CostCheckPanel/CostCheckPanel.vue'
@@ -50,17 +50,13 @@ const completed = computed<boolean[]>(() => [
 // 否则尚未添加项目行的新分区会在保存后立即从界面消失。
 const sections = ref<PackageSection[]>([])
 const lines = computed<PackageLine[]>(() => template.value?.items || [])
-const lineCounts = computed<Record<string, number>>(() => {
-  const counts: Record<string, number> = {}
-  for (const line of lines.value) {
-    const id = line.section?.id
-    if (id) counts[id] = (counts[id] || 0) + 1
-  }
-  return counts
-})
+const lineCounts = computed<Record<string, number>>(() => template.value?.sectionLineCounts || {})
+const sectionAmounts = computed<Record<string, number>>(() => template.value?.sectionReferenceAmounts || {})
 const activeSectionId = ref('')
 const activeSection = computed(() => sections.value.find((s) => s.id === activeSectionId.value) || null)
 const linesBySection = computed(() => lines.value.filter((l) => l.section?.id === activeSectionId.value))
+const activeSectionCount = computed(() => lineCounts.value[activeSectionId.value])
+const activeSectionAmount = computed(() => sectionAmounts.value[activeSectionId.value])
 
 // 选品与编辑面板
 const pickerVisible = ref(false)
@@ -88,21 +84,21 @@ onLoad((query) => {
 })
 
 async function initialize() {
-  if (!templateId.value) return
   loadingTpl.value = true
   loadError.value = ''
   try {
-    const [loadedTemplate, loadedSections] = await Promise.all([
-      packApi.template(templateId.value),
-      packApi.sections()
-    ])
+    const loadedSections = await packApi.sections()
+    sections.value = sortSections(loadedSections)
+    activeSectionId.value = sections.value[0]?.id || ''
+    if (!templateId.value) return
+    const loadedTemplate = await packApi.template(templateId.value)
     template.value = loadedTemplate
     if (template.value.statusKnown && template.value.status !== 'Draft') {
       toast('已发布或已停用的套餐不可原地修改')
       setTimeout(() => uni.redirectTo({ url: P.packageManage }), 500)
       return
     }
-    sections.value = loadedSections
+    sections.value = sortSections(sections.value)
     name.value = template.value.name
     area.value = String(template.value.area)
     price.value = String(template.value.price)
@@ -134,7 +130,7 @@ async function reload() {
       packApi.sections()
     ])
     template.value = loadedTemplate
-    sections.value = loadedSections
+    sections.value = sortSections(loadedSections)
     if (!sections.value.some((section) => section.id === activeSectionId.value)) {
       activeSectionId.value = sections.value[0]?.id || ''
     }
@@ -466,11 +462,13 @@ const primaryText = computed(() => {
               :sections="sections"
               :active="activeSectionId"
               :line-counts="lineCounts"
+              :section-amounts="sectionAmounts"
               :editable="true"
               @change="selectSection"
               @add="addSection"
               @edit="renameSection"
               @remove="removeSection"
+              @refresh="reload"
             />
             <JzEmpty v-if="!sections.length" text="尚未建立分区" sub="点击上方「新增」按钮，建立第一个套餐分区" />
           </view>
@@ -480,24 +478,39 @@ const primaryText = computed(() => {
         <view v-show="step === 2" class="pe__panel">
           <view class="jz-card pe__card">
             <text class="pe__card-title">项目配置</text>
-            <text class="pe__hint">选择分区后，从报价项目库批量添加项目，再逐个调整数量系数</text>
+            <text class="pe__hint">点击下方分区卡片切换区域；带品牌色边框的是当前分区</text>
+            <view class="pe__active-section">
+              <text class="pe__active-section-label">当前分区</text>
+              <view class="pe__active-section-main">
+                <text class="pe__active-section-value">{{ activeSection?.name || '请选择分区' }}</text>
+            <text class="pe__active-section-meta">
+                  {{ activeSectionCount === undefined ? '项目数暂不可确认' : `${activeSectionCount}项` }}
+                  <template v-if="activeSectionAmount !== undefined"> · 参考 {{ moneyExact(activeSectionAmount) }}</template>
+                </text>
+              </view>
+              <view class="pe__active-section-refresh" @tap="reload">
+                <JzIcon name="refresh" :size="24" :color="TOKEN_COLOR.primary" />
+                <text>刷新</text>
+              </view>
+            </view>
             <SectionTabs
               :sections="sections"
               :active="activeSectionId"
               :line-counts="lineCounts"
+              :section-amounts="sectionAmounts"
               :editable="false"
               @change="selectSection"
+              @refresh="reload"
             />
             <view v-if="activeSection" class="pe__line-list">
-              <LineCard
-                v-for="line in linesBySection"
-                :key="line.id"
-                :line="line"
+              <PackageLineGroups
+                :lines="linesBySection"
+                :type-counts="template?.sectionTypeCounts?.[activeSectionId] || {}"
+                :type-amounts="template?.sectionTypeReferenceAmounts?.[activeSectionId] || {}"
                 :standard-area="Number(area) || 100"
                 @edit="openLineEdit"
                 @remove="removeLine"
               />
-              <JzEmpty v-if="!linesBySection.length" text="该分区暂无项目" sub="点击下方按钮，从报价项目库批量添加" />
             </view>
             <view v-else class="pe__empty-tip">
               <JzIcon name="info" :size="32" :color="TOKEN_COLOR.text4" />
@@ -607,6 +620,58 @@ const primaryText = computed(() => {
   color: $jzb-text-3;
   line-height: 1.5;
   margin-bottom: 20rpx;
+}
+
+.pe__active-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $jzb-space-2;
+  margin-bottom: $jzb-space-3;
+  padding: $jzb-space-3;
+  background: var(--jzb-brand-primary-lightest, #{$jzb-primary-lightest});
+  border: 1rpx solid var(--jzb-brand-border, #{$jzb-primary-lighter});
+  border-radius: $jzb-radius-md;
+}
+
+.pe__active-section-label {
+  font-size: $jzb-font-xs;
+  color: $jzb-text-3;
+}
+
+.pe__active-section-value {
+  min-width: 0;
+  font-size: $jzb-font-sm;
+  font-weight: 700;
+  color: var(--jzb-brand-primary-dark, #{$jzb-primary-dark});
+  text-align: right;
+  word-break: break-all;
+}
+
+.pe__active-section-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2rpx;
+  min-width: 0;
+}
+
+.pe__active-section-meta {
+  font-size: $jzb-font-xs;
+  color: $jzb-text-3;
+  font-variant-numeric: tabular-nums;
+}
+
+.pe__active-section-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  flex-shrink: 0;
+  padding: $jzb-space-1 $jzb-space-2;
+  font-size: $jzb-font-xs;
+  color: $jzb-primary;
+  background: $jzb-bg-card;
+  border-radius: $jzb-radius-pill;
 }
 
 .pe__label {

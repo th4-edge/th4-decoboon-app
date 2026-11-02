@@ -108,7 +108,11 @@ const scopeLineAmount = computed<number | null>(() =>
 )
 const scopeSummaryText = computed(() => {
   const count = scopeLineCount.value
-  const amountText = scopeLineAmount.value === null ? '金额暂不可确认' : `合计 ${money(scopeLineAmount.value)}`
+  const current = contract.value?.currentAmount ?? null
+  const adjustment = scopeLineAmount.value === null || current === null ? null : current - scopeLineAmount.value
+  const amountText = scopeLineAmount.value === null
+    ? '折前明细合计暂不可确认'
+    : `折前明细合计 ${money(scopeLineAmount.value)} · 合同金额 ${money(current)} · 折扣/税金调整 ${money(adjustment)}`
   const loadedText = lineHasMore.value ? ` · 当前已加载 ${lines.value.length} 项` : ''
   return `签约时冻结的合同明细，共 ${count} 项 · ${amountText}${loadedText}`
 })
@@ -131,6 +135,16 @@ function factMeta(fact: ContractFactNode): string {
     fact.businessTime ? fact.businessTime.slice(0, 10) : '',
     fact.actorName || ''
   ].filter(Boolean).join(' · ')
+}
+
+function factTitle(fact: ContractFactNode): string {
+  if (fact.factType === 'Quote') return fact.summary || `报价基线${fact.version ? ` V${fact.version}` : ''}`
+  if (fact.factType === 'Contract') return fact.summary === '正常业务' ? '合同签约基线' : (fact.summary || '合同签约基线')
+  return fact.title || '—'
+}
+
+function sourceGapMeta(gap: string): string {
+  return gap === '无设计方案来源' ? '套餐报价无需设计方案' : '来源事实暂不可确认'
 }
 
 function openFact(fact: ContractFactNode): void {
@@ -317,7 +331,7 @@ function nodeColor(status?: string) {
         <JzIcon name="arrow-left" :size="36" :color="TOKEN_COLOR.white" :stroke-width="2.2" />
       </view>
       <view class="jz-between">
-        <text class="cw__no">{{ contract.no }}</text>
+        <text class="cw__no">合同履约档案</text>
         <JzTag :text="statusMeta.label" :color="statusMeta.color" :soft="false" />
       </view>
       <text class="cw__name">{{ contract.customer?.name || '未关联客户' }} · {{ contract.property?.address || '未关联房屋' }}</text>
@@ -361,7 +375,7 @@ function nodeColor(status?: string) {
           >
             <view class="cw__fact-main">
               <text class="cw__fact-type">{{ factTypeLabel(fact) }}</text>
-              <text class="cw__fact-title">{{ fact.title || '—' }}</text>
+              <text class="cw__fact-title">{{ factTitle(fact) }}</text>
               <text v-if="fact.summary" class="cw__fact-summary">{{ fact.summary }}</text>
             </view>
             <view class="cw__fact-side">
@@ -372,7 +386,7 @@ function nodeColor(status?: string) {
           </view>
           <view v-for="gap in sourceGaps" :key="gap" class="cw__fact cw__fact--gap">
             <text class="cw__fact-title">{{ gap }}</text>
-            <text class="cw__fact-meta">来源事实暂不可确认</text>
+            <text class="cw__fact-meta">{{ sourceGapMeta(gap) }}</text>
           </view>
         </view>
 
@@ -387,7 +401,7 @@ function nodeColor(status?: string) {
           >
             <view class="cw__fact-main">
               <text class="cw__fact-type">{{ factTypeLabel(fact) }}</text>
-              <text class="cw__fact-title">{{ fact.title || '—' }}</text>
+              <text class="cw__fact-title">{{ factTitle(fact) }}</text>
               <text v-if="fact.summary" class="cw__fact-summary">{{ fact.summary }}</text>
             </view>
             <view class="cw__fact-side">

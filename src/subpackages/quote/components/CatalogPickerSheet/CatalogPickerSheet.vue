@@ -3,6 +3,7 @@ import { onUnmounted, ref, computed, watch } from 'vue'
 import { catalogApi } from '@/domains/catalog/api'
 import type { CatalogItem, CatalogType } from '@/domains/catalog/model'
 import { money } from '@/core/format'
+import { catalogPriceParts } from '@/domains/pack/display'
 import JzSheet from '@/components/JzSheet.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import JzEmpty from '@/components/JzEmpty.vue'
@@ -176,6 +177,10 @@ function isSelected(id: string): boolean {
   return selected.value.has(id)
 }
 
+function priceText(item: CatalogItem): string {
+  return catalogPriceParts(item).map((part) => `${part.label} ${part.amount}`).join(' · ')
+}
+
 function confirm() {
   if (confirming.value || selectedItems.value.length === 0) return
   confirming.value = true
@@ -245,6 +250,8 @@ function confirm() {
             <view class="cps__item-main">
               <text class="cps__item-name">{{ item.name }}</text>
               <text class="cps__item-spec">{{ item.brand || '无品牌' }} · {{ item.spec || '无规格' }} · {{ item.unit }}</text>
+              <text v-if="priceText(item)" class="cps__item-price">{{ priceText(item) }}</text>
+              <text v-else class="cps__item-price cps__item-price--missing">价格暂不可确认</text>
             </view>
             <view class="cps__item-cost">
               <text class="cps__item-cost-value">{{ money(item.costPrice) }}</text>
@@ -381,6 +388,19 @@ function confirm() {
   margin-top: 4rpx;
   font-size: $jzb-font-xs;
   color: $jzb-text-4;
+}
+
+.cps__item-price {
+  display: block;
+  margin-top: 4rpx;
+  font-size: $jzb-font-xs;
+  font-weight: 650;
+  color: $jzb-text-2;
+}
+
+.cps__item-price--missing {
+  color: $jzb-warning;
+  font-weight: 500;
 }
 
 .cps__item-cost {

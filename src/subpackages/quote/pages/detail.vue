@@ -94,13 +94,20 @@ const projectionMissing = computed(() =>
 /** 同客户是否有多份报价（切换条仅在 >1 时显示） */
 const hasMultipleQuotes = computed(() => customerQuotes.value.length > 1)
 
-/** 套餐基准价（packageTemplate.price = 标准面积折前牌价） */
+/** 套餐基准价：标准面积折前牌价按本次计价面积折算，不是标准面积牌价原值。 */
 const hasPackage = computed(() => !!quote.value?.packageTemplate)
-const packageBaseline = computed(() => quote.value?.packageTemplate?.price ?? 0)
-/** 调整增减 = 分项合计（折前）- 套餐基准牌价；正数为增项，负数为扣减 */
+const packageBaseline = computed(() => {
+  const template = quote.value?.packageTemplate
+  if (!template) return 0
+  const quoteArea = Number(quote.value?.area || 0)
+  const standardArea = Number(template.area || 0)
+  if (quoteArea > 0 && standardArea > 0) return template.price * quoteArea / standardArea
+  return template.price
+})
+/** 调整增减 = 分项合计（折前）- 面积折算后的套餐基准金额。 */
 const adjustDelta = computed(() => {
   if (!quote.value?.packageTemplate) return 0
-  return (quote.value.subtotal ?? quote.value.amount) - quote.value.packageTemplate.price
+  return (quote.value.subtotal ?? quote.value.amount) - packageBaseline.value
 })
 
 /** 项目经理视角下分组类型前缀 */
@@ -464,7 +471,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
 
     <view v-if="quote.status === 'accepted' && contract" class="jz-card qd__contract">
       <view class="jz-between">
-        <view><text class="qd__down-eyebrow">合同进度</text><text class="qd__down-title">{{ contract.no }}</text></view>
+        <view><text class="qd__down-eyebrow">合同进度</text><text class="qd__down-title">合同签约基线</text></view>
         <JzTag :text="CONTRACT_STATUS_META[contract.status]" :color="contract.status === 'effective' ? TOKEN_COLOR.success : TOKEN_COLOR.warning" />
       </view>
       <view class="qd__down-grid">
@@ -477,7 +484,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
 
     <view v-if="quote.status === 'converted'" class="jz-card qd__handoff qd__handoff--converted">
       <JzIcon name="briefcase" :size="34" :color="TOKEN_COLOR.primary" />
-      <view class="jz-grow"><text class="qd__handoff-title">{{ project ? `已转唯一项目 ${project.no}` : '报价已转项目，正在同步项目' }}</text><text class="qd__handoff-tip">设计与报价转为只读基线；所有金额调整进入合同变更单，应收由财务计划承接。</text></view>
+      <view class="jz-grow"><text class="qd__handoff-title">{{ project ? '已转唯一项目' : '报价已转项目，正在同步项目' }}</text><text class="qd__handoff-tip">设计与报价转为只读基线；所有金额调整进入合同变更单，应收由财务计划承接。</text></view>
       <button v-if="project" class="jz-btn jz-btn--ghost jz-btn--sm" @tap="openProject">查看工地</button>
     </view>
 
@@ -492,7 +499,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
 
       <view v-else class="jz-card qd__contract">
         <view class="jz-between">
-          <view><text class="qd__down-eyebrow">合同基线</text><text class="qd__down-title">{{ contract.no }}</text></view>
+          <view><text class="qd__down-eyebrow">合同基线</text><text class="qd__down-title">合同签约基线</text></view>
           <JzTag :text="CONTRACT_STATUS_META[contract.status]" :color="contract.status === 'changed' ? TOKEN_COLOR.warning : TOKEN_COLOR.success" />
         </view>
         <view class="qd__down-grid">
@@ -610,7 +617,7 @@ async function reviewChange(change: ContractChange, approved: boolean) {
     <JzEmpty v-else text="暂无报价明细" sub="设计报价由方案区域中的施工/材料分项自动生成" />
 
     <view class="jz-card qd__facts">
-      <view v-if="hasPackage"><text>套餐基准价</text><text>{{ money(packageBaseline) }}</text></view>
+      <view v-if="hasPackage"><text>套餐基准价（按面积）</text><text>{{ money(packageBaseline) }}</text></view>
       <view v-if="hasPackage"><text>调整增减</text><text :class="{ 'qd__delta--down': adjustDelta < 0 }">{{ adjustDelta > 0 ? '+' : '' }}{{ money(adjustDelta) }}</text></view>
       <view><text>分项合计</text><text>{{ money(quote.subtotal || quote.amount) }}</text></view>
       <view><text>折扣率</text><text>{{ quote.discount ? (quote.discount * 100).toFixed(0) + '%' : '-' }}</text></view>

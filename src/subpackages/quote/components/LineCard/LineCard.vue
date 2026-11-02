@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { PackageLine } from '@/domains/pack/model'
 import { money } from '@/core/format'
+import { catalogPriceParts, packageItemTypeLabel } from '@/domains/pack/display'
 import JzIcon from '@/components/JzIcon.vue'
 import JzCostIncomplete from '@/components/JzCostIncomplete.vue'
 import JzTag from '@/components/JzTag.vue'
@@ -12,9 +13,11 @@ const props = withDefaults(defineProps<{
   line: PackageLine
   standardArea: number
   editable?: boolean
+  showCost?: boolean
 }>(), {
   standardArea: 100,
-  editable: true
+  editable: true,
+  showCost: true
 })
 
 const { brandTheme } = useBrandTheme()
@@ -27,6 +30,8 @@ const emit = defineEmits<{
 const costPrice = computed(() => Number(props.line.item?.costPrice || 0))
 const lineCost = computed(() => costPrice.value * props.line.quantityFactor)
 const hasZeroCost = computed(() => costPrice.value <= 0)
+const typeLabel = computed(() => packageItemTypeLabel(props.line.catalogType || props.line.item?.type))
+const priceParts = computed(() => catalogPriceParts(props.line.item))
 const estimatedQuantity = computed(() => {
   const q = props.line.quantityFactor * props.standardArea
   if (Number.isInteger(q)) return String(q)
@@ -42,11 +47,12 @@ const pricingLabel: Record<string, string> = {
 </script>
 
 <template>
-  <view class="lcard" :class="{ 'lcard--warning': hasZeroCost }" @tap="emit('edit', line)">
+  <view class="lcard" :class="{ 'lcard--warning': showCost && hasZeroCost }" @tap="editable && emit('edit', line)">
     <view class="lcard__main">
       <view class="lcard__head">
+        <JzTag :text="typeLabel" :color="TOKEN_COLOR.primary" :size="'sm'" />
         <text class="lcard__name">{{ line.name }}</text>
-        <JzCostIncomplete v-if="hasZeroCost" :count="1" reason="该报价项目尚未维护标准成本，补齐后才能计算成本和利润。" compact />
+        <JzCostIncomplete v-if="showCost && hasZeroCost" :count="1" reason="该报价项目尚未维护标准成本，补齐后才能计算成本和利润。" compact />
       </view>
       <text v-if="line.item?.brand || line.item?.spec" class="lcard__spec">
         {{ line.item?.brand || '无品牌' }} · {{ line.item?.spec || '无规格' }}
@@ -56,6 +62,12 @@ const pricingLabel: Record<string, string> = {
         <text class="lcard__meta-item">折算 {{ estimatedQuantity }}{{ line.unit }}</text>
         <text class="lcard__meta-item">{{ pricingLabel[line.pricingMethod] || line.pricingMethod }}</text>
       </view>
+      <view class="lcard__price">
+        <text v-for="part in priceParts" :key="part.label" class="lcard__price-item">
+          {{ part.label }} {{ part.amount }}
+        </text>
+        <text v-if="!priceParts.length" class="lcard__price-missing">价格暂不可确认</text>
+      </view>
       <view class="lcard__tags">
         <JzTag :text="line.included ? '默认包含' : '不包含'" :color="line.included ? brandTheme.primary : TOKEN_COLOR.text3" :size="'sm'" />
         <JzTag :text="line.deductible ? '允许扣减' : '不可扣减'" :color="line.deductible ? brandTheme.primaryDark : TOKEN_COLOR.text3" :size="'sm'" />
@@ -63,7 +75,7 @@ const pricingLabel: Record<string, string> = {
       <text v-if="line.criterions?.length" class="lcard__rule">{{ line.criterions.join('；') }}</text>
     </view>
     <view class="lcard__side">
-      <view class="lcard__cost">
+      <view v-if="showCost" class="lcard__cost">
         <text class="lcard__cost-value">{{ money(lineCost) }}</text>
         <text class="lcard__cost-label">本行成本</text>
       </view>
@@ -149,6 +161,27 @@ const pricingLabel: Record<string, string> = {
   background: $jzb-bg-hover;
   padding: 4rpx 12rpx;
   border-radius: $jzb-radius-xs;
+}
+
+.lcard__price {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $jzb-space-2;
+  margin-top: $jzb-space-2;
+  padding: $jzb-space-2 $jzb-space-3;
+  color: $jzb-text-2;
+  background: $jzb-bg-hover;
+  border-radius: $jzb-radius-sm;
+}
+
+.lcard__price-item {
+  font-size: $jzb-font-sm;
+  font-weight: 650;
+}
+
+.lcard__price-missing {
+  color: $jzb-warning;
+  font-size: $jzb-font-xs;
 }
 
 .lcard__tags {

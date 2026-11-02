@@ -139,6 +139,10 @@ function edit(templateId = '') {
   uni.navigateTo({ url: `${P.packageEdit}${query}` })
 }
 
+function openDetail(template: PackageTemplate) {
+  uni.navigateTo({ url: `${P.packageDetail}?templateId=${template.id}` })
+}
+
 function createQuote(template: PackageTemplate) {
   if (!canCreateQuote(template)) {
     toast('只有当前发布版本可以生成新报价')
@@ -264,7 +268,7 @@ async function disable(item: PackageTemplate) {
         class="jz-card pm__item"
       >
         <!-- 标题行 -->
-        <view class="pm__item-head" @tap="canEditTemplate(item) && edit(item.id)">
+        <view class="pm__item-head" @tap="openDetail(item)">
           <view class="jz-grow">
             <view class="pm__name-row">
               <text class="pm__name">{{ item.name }}</text>
@@ -279,7 +283,7 @@ async function disable(item: PackageTemplate) {
               <text v-if="item.updatedAt"> · 更新于{{ timeText(item.updatedAt) }}</text>
             </text>
           </view>
-          <JzIcon v-if="canEditTemplate(item)" name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
+          <JzIcon name="chevron-right" :size="28" :color="TOKEN_COLOR.text4" />
         </view>
 
         <!-- 金额行 -->
@@ -304,6 +308,10 @@ async function disable(item: PackageTemplate) {
 
         <!-- 操作行 -->
         <view class="pm__actions">
+          <view class="pm__action" @tap="openDetail(item)">
+            <JzIcon name="file-text" :size="28" :color="TOKEN_COLOR.text3" />
+            <text>查看详情</text>
+          </view>
           <view v-if="canCreateQuote(item)" class="pm__action pm__action--primary" @tap="createQuote(item)">
             <JzIcon name="file-text" :size="28" :color="brandTheme.primaryDark" />
             <text>生成报价</text>

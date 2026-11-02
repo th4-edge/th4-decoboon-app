@@ -944,6 +944,14 @@
           }
         },
         {
+          "path": "pages/package-detail",
+          "style": {
+            "navigationBarTitleText": "套餐详情",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F4F7F8"
+          }
+        },
+        {
           "path": "pages/adjust",
           "style": {
             "navigationBarTitleText": "报价调整",

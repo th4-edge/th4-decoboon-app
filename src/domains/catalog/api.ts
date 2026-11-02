@@ -63,11 +63,17 @@ function number(raw: unknown): number {
   return Number(raw ?? 0)
 }
 
+export function normalizeCatalogType(value: unknown): CatalogItem['type'] {
+  const key = enumValue(value)
+  if (TYPE[key]) return TYPE[key]
+  return Object.values(TYPE).includes(key as CatalogType) ? key as CatalogType : 'construction'
+}
+
 export function normalizeCatalogItem(raw: RawRecord): CatalogItem {
   return {
     ...raw,
     id: String(raw.id ?? raw.itemId ?? ''),
-    type: TYPE[enumValue(raw.type)] || 'construction',
+    type: normalizeCatalogType(raw.type),
     code: raw.code,
     category: raw.category ?? '其他',
     brand: raw.brand,

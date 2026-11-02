@@ -3,8 +3,10 @@ import { ref, computed, watch } from 'vue'
 import type { CatalogPricingMode } from '@/domains/catalog/model'
 import type { PackageLine, PackageSection } from '@/domains/pack/model'
 import { money } from '@/core/format'
+import { catalogPriceParts, packageItemTypeLabel } from '@/domains/pack/display'
 import JzSheet from '@/components/JzSheet.vue'
 import JzIcon from '@/components/JzIcon.vue'
+import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzSelectField from '@/components/JzSelectField/JzSelectField.vue'
 
@@ -49,6 +51,8 @@ const pricingOptions: { value: CatalogPricingMode; label: string }[] = [
 ]
 
 const costPrice = computed(() => Number(props.line?.item?.costPrice || 0))
+const priceParts = computed(() => catalogPriceParts(props.line?.item))
+const typeLabel = computed(() => packageItemTypeLabel(props.line?.catalogType || props.line?.item?.type))
 const lineCost = computed(() => costPrice.value * Number(factor.value || 0))
 const estimatedQty = computed(() => {
   const q = Number(factor.value || 0) * props.standardArea
@@ -92,8 +96,15 @@ function handleSave() {
     <view v-if="line" class="les">
       <!-- 项目信息 -->
       <view class="les__info">
-        <text class="les__name">{{ line.name }}</text>
+        <view class="les__title">
+          <text class="les__name">{{ line.name }}</text>
+          <JzTag :text="typeLabel" :color="TOKEN_COLOR.primary" :size="'sm'" />
+        </view>
         <text class="les__spec">{{ line.item?.brand || '无品牌' }} · {{ line.item?.spec || '无规格' }} · {{ line.unit }}</text>
+        <view class="les__price">
+          <text v-for="part in priceParts" :key="part.label" class="les__price-item">{{ part.label }} {{ part.amount }}</text>
+          <text v-if="!priceParts.length" class="les__price-missing">价格暂不可确认</text>
+        </view>
       </view>
 
       <!-- 分区选择 -->
@@ -150,6 +161,30 @@ function handleSave() {
   background: $jzb-primary-lightest;
   border-radius: $jzb-radius-sm;
   margin-bottom: 24rpx;
+}
+
+.les__title {
+  display: flex;
+  align-items: center;
+  gap: $jzb-space-2;
+}
+
+.les__price {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $jzb-space-2;
+  margin-top: $jzb-space-2;
+}
+
+.les__price-item {
+  font-size: $jzb-font-xs;
+  font-weight: 650;
+  color: $jzb-text-2;
+}
+
+.les__price-missing {
+  font-size: $jzb-font-xs;
+  color: $jzb-warning;
 }
 
 .les__name {

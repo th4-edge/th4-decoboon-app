@@ -1,7 +1,7 @@
 import { listOf, post } from '@/core/http'
 import { toPageData, type PageResult } from '@/domains/common/model'
 import { dateTimeValue } from '@/core/format'
-import { normalizeCatalogItem } from '@/domains/catalog/api'
+import { normalizeCatalogItem, normalizeCatalogType } from '@/domains/catalog/api'
 import type {
   PackageLine,
   PackageLineInput,
@@ -73,10 +73,55 @@ function normalizeLine(raw: RawRecord): PackageLine {
     included: raw.included !== false,
     deductible: raw.deductible !== false,
     sort: Number(raw.sort ?? 0),
+    catalogType: raw.catalogTypeSnapshot
+      ? normalizeCatalogType(raw.catalogTypeSnapshot)
+      : raw.item?.type ? normalizeCatalogType(raw.item.type) : undefined,
+    sectionNameSnapshot: raw.sectionNameSnapshot ?? undefined,
     criterions: raw.criterions,
     item: raw.item ? normalizeCatalogItem(raw.item) : undefined,
     section: raw.section ? normalizeSection(raw.section) : undefined
   }
+}
+
+function normalizeTypeCounts(raw: unknown): Partial<Record<string, number>> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const result: Record<string, number> = {}
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const type = normalizeCatalogType(key)
+    result[type] = Number(value ?? 0)
+  }
+  return result
+}
+
+function normalizeSectionTypeCounts(raw: unknown): Record<string, Partial<Record<string, number>>> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const result: Record<string, Partial<Record<string, number>>> = {}
+  for (const [sectionId, counts] of Object.entries(raw as Record<string, unknown>)) {
+    const normalized = normalizeTypeCounts(counts)
+    if (normalized) result[sectionId] = normalized
+  }
+  return result
+}
+
+function normalizeNumberRecord(raw: unknown): Record<string, number> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).map(([key, value]) => [key, Number(value ?? 0)]))
+}
+
+function normalizeAmountMap(raw: unknown): Partial<Record<string, number>> | undefined {
+  const normalized = normalizeTypeCounts(raw)
+  if (!normalized) return undefined
+  return Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, Number(value ?? 0)]))
+}
+
+function normalizeSectionAmountMap(raw: unknown): Record<string, Partial<Record<string, number>>> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const result: Record<string, Partial<Record<string, number>>> = {}
+  for (const [sectionId, amounts] of Object.entries(raw as Record<string, unknown>)) {
+    const normalized = normalizeAmountMap(amounts)
+    if (normalized) result[sectionId] = normalized
+  }
+  return result
 }
 
 function normalizeTemplate(raw: RawRecord): PackageTemplate {
@@ -102,6 +147,14 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
     criterions: raw.criterions,
     items: Array.isArray(raw.items) ? raw.items.map(normalizeLine) : undefined,
     itemCount: raw.itemCount == null ? undefined : Number(raw.itemCount),
+    typeCounts: normalizeTypeCounts(raw.typeCounts),
+    sectionTypeCounts: normalizeSectionTypeCounts(raw.sectionTypeCounts),
+    sectionLineCounts: normalizeNumberRecord(raw.sectionLineCounts),
+    referenceAmount: raw.referenceAmount == null ? undefined : Number(raw.referenceAmount),
+    referenceCost: raw.referenceCost == null ? undefined : Number(raw.referenceCost),
+    typeReferenceAmounts: normalizeAmountMap(raw.typeReferenceAmounts),
+    sectionReferenceAmounts: normalizeNumberRecord(raw.sectionReferenceAmounts),
+    sectionTypeReferenceAmounts: normalizeSectionAmountMap(raw.sectionTypeReferenceAmounts),
     measures: raw.measures,
     createdAt: dateTimeValue(raw.createdAt ?? raw.createTime?.dateTime ?? raw.createTime),
     updatedAt: dateTimeValue(raw.updatedAt ?? raw.updateTime?.dateTime ?? raw.updateTime)

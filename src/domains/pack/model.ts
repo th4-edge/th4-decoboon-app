@@ -1,4 +1,4 @@
-import type { CatalogItem, CatalogPricingMode } from '@/domains/catalog/model'
+import type { CatalogItem, CatalogPricingMode, CatalogType } from '@/domains/catalog/model'
 
 export interface PackageSection {
   id: string
@@ -20,6 +20,8 @@ export interface PackageLine {
   included: boolean
   deductible: boolean
   sort: number
+  catalogType?: CatalogType
+  sectionNameSnapshot?: string
   criterions?: string[]
   item?: CatalogItem
   section?: PackageSection
@@ -57,6 +59,14 @@ export interface PackageTemplate {
   items?: PackageLine[]
   /** 选择器摘要：服务端批量聚合，不依赖逐套餐加载明细。 */
   itemCount?: number
+  typeCounts?: Partial<Record<CatalogType, number>>
+  sectionTypeCounts?: Record<string, Partial<Record<CatalogType, number>>>
+  sectionLineCounts?: Record<string, number>
+  referenceAmount?: number
+  referenceCost?: number
+  typeReferenceAmounts?: Partial<Record<CatalogType, number>>
+  sectionReferenceAmounts?: Record<string, number>
+  sectionTypeReferenceAmounts?: Record<string, Partial<Record<CatalogType, number>>>
   measures?: Record<string, { price: number; standard: number; remark?: string }>
   createdAt?: string
   updatedAt?: string

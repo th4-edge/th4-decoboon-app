@@ -153,6 +153,7 @@ export const P = {
   quoteEdit: '/subpackages/quote/pages/edit',
   packageManage: '/subpackages/quote/pages/package-manage',
   packageEdit: '/subpackages/quote/pages/package-edit',
+  packageDetail: '/subpackages/quote/pages/package-detail',
   paymentPlanTemplates: '/subpackages/plan/pages/payment-list',
   paymentPlanTemplateEdit: '/subpackages/plan/pages/payment-edit',
   constructionPlanTemplates: '/subpackages/plan/pages/construction-list',

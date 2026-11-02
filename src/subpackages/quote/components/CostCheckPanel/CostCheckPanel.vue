@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PackageLine, PackageSection, PackageTemplate } from '@/domains/pack/model'
-import { money } from '@/core/format'
+import { money, moneyExact } from '@/core/format'
 import JzIcon from '@/components/JzIcon.vue'
 import JzTag from '@/components/JzTag.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -108,7 +108,12 @@ function handleFix(item: WarningItem) {
         <text class="ccp__overview-label">参考毛利率</text>
         <text class="ccp__overview-value" :class="{ 'ccp__overview-value--warning': marginLow }">{{ grossMargin }}%</text>
       </view>
+      <view v-if="template?.referenceAmount !== undefined" class="ccp__overview-item">
+        <text class="ccp__overview-label">分项参考合计</text>
+        <text class="ccp__overview-value">{{ moneyExact(template.referenceAmount) }}</text>
+      </view>
     </view>
+    <text class="ccp__reference-note">分项参考合计按项目库单价与数量系数估算，不等同套餐牌价</text>
 
     <!-- 检查结果 -->
     <view v-if="allPassed" class="ccp__passed">
@@ -181,6 +186,14 @@ function handleFix(item: WarningItem) {
 
 .ccp__overview-value--warning {
   color: $jzb-warning;
+}
+
+.ccp__reference-note {
+  display: block;
+  margin: -12rpx 0 24rpx;
+  font-size: $jzb-font-xs;
+  line-height: 1.5;
+  color: $jzb-text-3;
 }
 
 .ccp__passed {

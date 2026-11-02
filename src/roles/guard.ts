@@ -53,6 +53,7 @@ const ROUTE_RULES: RouteRule[] = [
   { path: P.quotePicker, anyOf: ['view:quote'] },
   { path: P.packageManage, anyOf: ['view:package-template'] },
   { path: P.packageEdit, anyOf: ['edit:package-template'] },
+  { path: P.packageDetail, anyOf: ['view:package-template'] },
   { path: P.packagePicker, anyOf: ['view:quote'] },
   { path: P.paymentPlanTemplates, anyOf: ['view:payment-plan-template'] },
   { path: P.paymentPlanTemplateEdit, anyOf: ['edit:payment-plan-template'] },
