@@ -92,16 +92,16 @@ const form = reactive({
 })
 
 const title = computed(() => ({
-  receivable: editId.value ? '编辑应收节点' : '新增其他应收',
+  receivable: editId.value ? '编辑应收节点' : '新增应收',
   receipt: '登记客户收款',
   payable: editId.value ? '编辑应付单' : '新增手工应付',
   payment: '安排业务付款',
   ledger: editId.value ? '更正手工记账' : '手工记账'
 }[type.value]))
 const subtitle = computed(() => ({
-  receivable: editId.value ? '查看并核对当前应收节点' : '手工补充其他应收；合同节点应由合同与付款计划生成',
+  receivable: editId.value ? '查看并核对当前应收节点' : '手工应收支持全部类型；合同节点仍由合同与付款计划生成',
   receipt: '收款将自动核销应收并写入资金台账',
-  payable: '手工应付仅登记其他应付或费用支出；材料、工资、项目款须由来源闭环生成',
+  payable: '手工应付支持全部类型；自动来源仍按材料、工资、提成等业务闭环生成',
   payment: '付款核销应付并写入资金台账；项目成本按应付/到货口径归集',
   ledger: editId.value ? '元数据更正留痕；金额、方向、日期或账户变化将冲正重记' : '企业通用或项目直接收支，生成不可变资金流水'
 }[type.value]))
@@ -109,14 +109,15 @@ const subtitle = computed(() => ({
 const isSalaryPayment = computed(() => type.value === 'payment' && selectedPayable.value?.type === 'salary')
 const receivableTypeOptions = computed(() => editId.value
   ? [{ label: RECEIVABLE_TYPE_META[form.receivableType].label, value: form.receivableType }]
-  : [{ label: '其他应收', value: 'other' as Receivable['type'] }])
+  : (Object.entries(RECEIVABLE_TYPE_META) as Array<[Receivable['type'], { label: string }]>)
+      .map(([value, meta]) => ({ label: meta.label, value })))
 const receivableTypeIndex = computed(() => Math.max(receivableTypeOptions.value.findIndex((item) => item.value === form.receivableType), 0))
 const payableTypeOptions = computed(() => {
   const options = Object.entries(PAYABLE_TYPE_META)
     .map(([value, meta]) => ({ label: meta.label, value: value as PayableType }))
   return editId.value
     ? options.filter((item) => item.value === form.payableType)
-    : options.filter((item) => item.value === 'other' || item.value === 'expense')
+    : options
 })
 const payableTypeIndex = computed(() => Math.max(payableTypeOptions.value.findIndex((item) => item.value === form.payableType), 0))
 const accountOptions = Object.entries(ACCOUNT_LABEL).map(([value, label]) => ({ label, value }))
@@ -131,7 +132,7 @@ const purposeIndex = computed(() => Math.max(purposeOptions.value.findIndex((ite
 
 const submitLabel = computed(() => {
   if (submitting.value) return '处理中…'
-  if (type.value === 'receivable') return editId.value ? '保存应收节点' : '创建其他应收'
+  if (type.value === 'receivable') return editId.value ? '保存应收节点' : '创建应收'
   if (type.value === 'receipt') return '确认收款登记'
   if (type.value === 'payable') {
     if (editId.value) return '保存应付成本'
@@ -163,7 +164,7 @@ onLoad((query) => {
   form.projectId = query?.projectId || ''
   form.receivableId = query?.receivableId || ''
   form.payableId = query?.payableId || ''
-  if (!query?.id && query?.payableType && ['other', 'expense'].includes(query.payableType)) form.payableType = query.payableType as PayableType
+  if (!query?.id && query?.payableType && PAYABLE_TYPE_META[query.payableType as PayableType]) form.payableType = query.payableType as PayableType
   void boot()
 })
 
@@ -471,8 +472,7 @@ function goReceivables() {
 }
 
 function goCreatePayable() {
-  const manualType = form.payableType === 'expense' ? 'expense' : 'other'
-  const params = ['type=payable', `payableType=${manualType}`]
+  const params = ['type=payable', `payableType=${form.payableType}`]
   if (form.projectId) params.push(`projectId=${encodeURIComponent(form.projectId)}`)
   uni.navigateTo({ url: `${P.financeEntry}?${params.join('&')}` })
 }
@@ -612,8 +612,6 @@ function ledgerFinanciallyChanged() {
 async function submit() {
   const amount = Number(form.amount)
   if (!amount || amount <= 0) { toast('请输入正确金额'); return }
-  if (type.value === 'receivable' && !editId.value && form.receivableType !== 'other') { toast('手工应收仅支持其他应收'); return }
-  if (type.value === 'payable' && !editId.value && !['other', 'expense'].includes(form.payableType)) { toast('手工应付仅支持其他应付或费用支出'); return }
   if (['receivable', 'receipt'].includes(type.value) && !form.projectId) { toast('请选择项目'); return }
   if (type.value === 'receipt' && !form.receivableId) { toast('请选择应收节点'); return }
   if (type.value === 'receipt' && selectedReceivable.value && amount > selectedReceivable.value.outstandingAmount) {
@@ -731,7 +729,7 @@ async function submit() {
           <text class="fe-inline-state__title">该项目还没有应收节点</text>
           <text class="fe-inline-state__sub">先在应收计划建立合同节点，再回来登记收款</text>
           <view class="fe-inline-state__actions">
-            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreateReceivable">去新增其他应收</view>
+            <view class="fe-inline-btn fe-inline-btn--primary" @tap="goCreateReceivable">去新增应收</view>
             <view class="fe-inline-btn" @tap="goReceivables">查看应收计划</view>
           </view>
         </view>
@@ -770,7 +768,7 @@ async function submit() {
 
       <template v-else-if="type === 'payable'">
         <view class="fin-field"><text class="fin-field__label">应付名称</text><input v-model="form.name" maxlength="64" :placeholder="form.payableType === 'salary' ? '如 9月水电工工资' : '如 瓷砖材料款'" /></view>
-        <view class="fin-field"><text class="fin-field__label">费用类型</text><JzSelectField variant="plain" :display="selectLabel(payableTypeOptions, payableTypeIndex)" :range="payableTypeOptions.map(item => item.label)" :index="payableTypeIndex" @change="pickPayableType" /></view>
+        <view class="fin-field"><text class="fin-field__label">应付类型</text><JzSelectField variant="plain" :display="selectLabel(payableTypeOptions, payableTypeIndex)" :range="payableTypeOptions.map(item => item.label)" :index="payableTypeIndex" @change="pickPayableType" /></view>
         <view class="fin-field"><text class="fin-field__label">收款方</text><input v-model="form.payeeName" maxlength="64" :placeholder="form.payableType === 'salary' ? '工人姓名' : '供应商/班组'" /></view>
         <view v-if="form.payableType === 'salary'" class="fin-field"><text class="fin-field__label">工资周期</text><input v-model="form.period" maxlength="32" placeholder="如 2026年8月" /></view>
         <view class="fin-field"><text class="fin-field__label">应付金额</text><input v-model="form.amount" type="digit" placeholder="0.00" class="jz-numeric-input" placeholder-class="jz-number-placeholder" placeholder-style="text-align: right" /><text class="fe-unit">元</text></view>

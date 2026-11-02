@@ -160,7 +160,7 @@ async function releaseRetention() {
     </view>
 
     <view v-else-if="report && tab === 'receivable'" class="fin-body">
-      <view v-if="editable" class="fp-inline-action" @tap="entry('receivable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增其他应收</text></view>
+      <view v-if="editable" class="fp-inline-action" @tap="entry('receivable')"><JzIcon name="plus" :size="24" :color="TOKEN_COLOR.primary" /><text>新增应收</text></view>
       <view v-for="item in report.receivables" :key="item.id" class="fin-card">
         <view class="fin-card__top"><view class="fin-card__title">{{ item.name }}<text class="fin-card__sub">{{ item.stageName || '合同节点' }} · 到期 {{ item.dueDate }}</text></view><text class="fin-card__amount">{{ moneyExact(item.amount) }}</text></view>
         <view class="fin-card__facts"><text :style="{ color: RECEIVABLE_TYPE_META[item.type].color }">{{ RECEIVABLE_TYPE_META[item.type].label }}</text><text :style="{ color: RECEIVABLE_STATUS_META[item.status].color }">{{ RECEIVABLE_STATUS_META[item.status].label }}</text><text>待收 {{ moneyExact(item.outstandingAmount) }}</text></view>

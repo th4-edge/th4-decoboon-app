@@ -5,7 +5,7 @@ import type { Worker } from '../labor/model'
 
 export type ReceivableType = 'first' | 'progress' | 'final' | 'retention' | 'other'
 export type ReceivableStatus = 'pending' | 'partial' | 'received' | 'overdue' | 'closed'
-export type PayableType = 'material' | 'salary' | 'project' | 'supplier' | 'expense' | 'other'
+export type PayableType = 'material' | 'salary' | 'employeeSalary' | 'employeeCommission' | 'project' | 'supplier' | 'expense' | 'other'
 export type PayableStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'closed'
 export type FundAccount = 'companyBank' | 'cash' | 'wechat' | 'alipay' | 'other'
 export type LedgerDirection = 'income' | 'expense'

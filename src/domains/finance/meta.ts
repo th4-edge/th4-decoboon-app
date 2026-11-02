@@ -20,6 +20,8 @@ export const RECEIVABLE_STATUS_META: Record<ReceivableStatus, { label: string; c
 export const PAYABLE_TYPE_META: Record<PayableType, { label: string; short: string; color: string }> = {
   material: { label: '材料款', short: '材料', color: STATUS_COLOR.accent },
   salary: { label: '工人工资', short: '工资', color: TOKEN_COLOR.warning },
+  employeeSalary: { label: '员工工资', short: '员工工资', color: TOKEN_COLOR.warning },
+  employeeCommission: { label: '员工提成', short: '提成', color: TOKEN_COLOR.primary },
   project: { label: '项目款', short: '项目', color: TOKEN_COLOR.primary },
   supplier: { label: '供应商款', short: '供应商', color: STATUS_COLOR.progress },
   expense: { label: '费用支出', short: '费用', color: TOKEN_COLOR.purple },

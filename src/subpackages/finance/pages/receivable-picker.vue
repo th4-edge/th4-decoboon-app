@@ -376,7 +376,7 @@ function goReceivables() {
         </JzEmpty>
         <JzEmpty v-else-if="noData" text="本项目还没有应收节点" sub="先在应收计划建立合同节点，再回来登记收款">
           <view class="rp-empty-actions">
-            <view class="rp-empty-btn rp-empty-btn--primary" @tap="goCreateReceivable">去新增其他应收</view>
+            <view class="rp-empty-btn rp-empty-btn--primary" @tap="goCreateReceivable">去新增应收</view>
             <view class="rp-empty-btn" @tap="goReceivables">查看应收计划</view>
           </view>
         </JzEmpty>

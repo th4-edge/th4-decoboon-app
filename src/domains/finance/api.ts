@@ -20,8 +20,14 @@ type Raw = Record<string, any>
 const RECEIVABLE_TYPE_API: Record<ReceivableType, string> = { first: 'First', progress: 'Progress', final: 'Final', retention: 'Retention', other: 'Other' }
 const RECEIVABLE_TYPE_UI: Record<string, ReceivableType> = { first: 'first', progress: 'progress', final: 'final', retention: 'retention', other: 'other' }
 const RECEIVABLE_STATUS_UI: Record<string, ReceivableStatus> = { pending: 'pending', partial: 'partial', received: 'received', overdue: 'overdue', closed: 'closed' }
-const PAYABLE_TYPE_API: Record<PayableType, string> = { material: 'Material', salary: 'Salary', project: 'Project', supplier: 'Supplier', expense: 'Expense', other: 'Other' }
-const PAYABLE_TYPE_UI: Record<string, PayableType> = { material: 'material', salary: 'salary', project: 'project', supplier: 'supplier', expense: 'expense', other: 'other' }
+const PAYABLE_TYPE_API: Record<PayableType, string> = {
+  material: 'Material', salary: 'Salary', employeeSalary: 'EmployeeSalary', employeeCommission: 'EmployeeCommission',
+  project: 'Project', supplier: 'Supplier', expense: 'Expense', other: 'Other'
+}
+const PAYABLE_TYPE_UI: Record<string, PayableType> = {
+  material: 'material', salary: 'salary', employeesalary: 'employeeSalary', employeecommission: 'employeeCommission',
+  project: 'project', supplier: 'supplier', expense: 'expense', other: 'other'
+}
 const PAYABLE_STATUS_UI: Record<string, PayableStatus> = { pending: 'pending', partial: 'partial', paid: 'paid', overdue: 'overdue', closed: 'closed' }
 const ACCOUNT_API: Record<FundAccount, string> = { companyBank: 'CompanyBank', cash: 'Cash', wechat: 'Wechat', alipay: 'Alipay', other: 'Other' }
 const ACCOUNT_UI: Record<string, FundAccount> = { companybank: 'companyBank', cash: 'cash', wechat: 'wechat', alipay: 'alipay', other: 'other' }
