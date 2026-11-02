@@ -115,7 +115,7 @@ async function load() {
     const all: PackageTemplate[] = []
     let current = 1
     do {
-      const page = await packApi.templatePickerPage({ current, size: 20 })
+      const page = await packApi.templateManagePage({ current, size: 20 })
       all.push(...page.list)
       if (!page.hasMore) break
       current += 1

@@ -49,6 +49,9 @@ function validate(source) {
   if (!quoteAdjust.includes('canCopyLine') || !quoteAdjust.includes('已复制为新增分项')) errors.push('报价调整页必须提供复制动作和结果反馈。')
   if (!manage.includes('JzConfirmDialog')) errors.push('套餐生命周期确认必须挂载确认弹窗宿主。')
   if (manage.includes("item.code || '套餐编码待生成'")) errors.push('套餐界面不得展示内部套餐编码。')
+  if (!manage.includes('templateManagePage') || manage.includes('templatePickerPage')) errors.push('套餐管理必须读取全部状态，不得复用报价选择器分页。')
+  if (!api.includes('templateManagePage: async (query: TemplatePageQuery = {}) => templatePage(query, false)')) errors.push('套餐管理分页必须显式关闭已发布过滤。')
+  if (!api.includes('templatePickerPage: async (query: TemplatePageQuery = {}) => templatePage(query, true)')) errors.push('报价套餐选择器必须显式限定当前发布版本。')
   if (!picker.includes('availableTemplates') && !picker.includes('templatePickerPage')) errors.push('报价只能从当前发布套餐中选择。')
   if (!picker.includes('item.sectionCount') || !picker.includes('item.lineCount')) errors.push('套餐选择器必须使用服务端摘要。')
   if (catalogPicker.includes('size: 200') || /list\.value\.filter/.test(catalogPicker)) errors.push('套餐选品必须使用服务端关键词分页，禁止固定 200 条后客户端过滤。')
@@ -76,6 +79,7 @@ if (process.argv.includes('--self-test')) {
     validate({ ...source, manage: source.manage.replace("name=\"copy\"", 'name="plus"') }),
     validate({ ...source, quoteAdjust: source.quoteAdjust.replace('copyQuoteLine', 'deleteQuoteLine') }),
     validate({ ...source, quoteEdit: source.quoteEdit.replace("mode.value !== 'package'", 'false') }),
+    validate({ ...source, manage: source.manage.replace('templateManagePage', 'templatePickerPage') }),
     validate({ ...source, quoteDetail: source.quoteDetail.replace('报价 V{{ quote.version }}', '{{ quote.no }} · V{{ quote.version }}') })
   ]
   if (fixtures.some((items) => items.length === 0)) {

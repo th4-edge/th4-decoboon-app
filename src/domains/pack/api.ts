@@ -108,26 +108,33 @@ function normalizeTemplate(raw: RawRecord): PackageTemplate {
   }
 }
 
+interface TemplatePageQuery {
+  current?: number
+  size?: number
+  keyword?: string
+  minArea?: number
+  maxArea?: number
+}
+
+async function templatePage(query: TemplatePageQuery, publishedOnly: boolean) {
+  const current = Math.max(1, Math.trunc(query.current ?? 1))
+  const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
+  const result = await post<PageResult<RawRecord> | RawRecord[]>('pack/template/page', {
+    current,
+    size,
+    keyword: query.keyword?.trim() || undefined,
+    minArea: query.minArea,
+    maxArea: query.maxArea,
+    publishedOnly
+  })
+  const page = toPageData(result, current, size)
+  return { ...page, list: page.list.map(normalizeTemplate) }
+}
+
 export const packApi = {
-  templatePickerPage: async (query: {
-    current?: number
-    size?: number
-    keyword?: string
-    minArea?: number
-    maxArea?: number
-  } = {}) => {
-    const current = Math.max(1, Math.trunc(query.current ?? 1))
-    const size = Math.min(50, Math.max(1, Math.trunc(query.size ?? 20)))
-    const result = await post<PageResult<RawRecord> | RawRecord[]>('pack/template/page', {
-      current,
-      size,
-      keyword: query.keyword?.trim() || undefined,
-      minArea: query.minArea,
-      maxArea: query.maxArea
-    })
-    const page = toPageData(result, current, size)
-    return { ...page, list: page.list.map(normalizeTemplate) }
-  },
+  templateManagePage: async (query: TemplatePageQuery = {}) => templatePage(query, false),
+
+  templatePickerPage: async (query: TemplatePageQuery = {}) => templatePage(query, true),
 
   availableTemplates: async () => listOf(await post<RawRecord[]>('pack/template/list', {})).map(normalizeTemplate),
 
