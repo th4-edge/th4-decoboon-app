@@ -49,9 +49,7 @@ const { items, loading: listLoading, loadingMore, loadError, loadMoreError, hasM
 )
 const editable = computed(() => can(session.role, 'edit:finance'))
 const canIssueVoucher = computed(() => can(session.role, 'edit:finance'))
-const isBoss = computed(() => session.role === 'boss')
-const isStoreManager = computed(() => session.role === 'storeManager')
-const canHighRisk = computed(() => isBoss.value || isStoreManager.value)
+const canHighRisk = computed(() => can(session.role, 'act:ledgerCorrection'))
 
 const selecting = ref(false)
 const selected = ref<string[]>([])

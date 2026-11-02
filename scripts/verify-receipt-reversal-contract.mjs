@@ -13,6 +13,11 @@ const page = read('src/subpackages/finance/pages/receipt-reversal.vue')
 const receipts = read('src/subpackages/finance/pages/receipts.vue')
 const pages = read('src/pages.json')
 const config = read('src/config/index.ts')
+const financeStart = permission.indexOf('  finance: [')
+const financeEnd = permission.indexOf('\n  ]', financeStart)
+const financeMatrix = financeStart >= 0 && financeEnd > financeStart
+  ? permission.slice(financeStart, financeEnd)
+  : ''
 
 expect(api.includes("finance/receipt/info"), '缺少收款详情接口')
 expect(api.includes("finance/receipt/reverse"), '缺少收款冲正接口')
@@ -21,7 +26,8 @@ expect(model.includes("export type ReceiptStatus = 'active' | 'reversed'"), '收
 expect(model.includes("reversalReason"), '收款模型缺少冲正原因字段')
 expect(model.includes("export interface ReceiptReversal"), '缺少收款冲正事实模型')
 expect(permission.includes("'act:receiptReverse'"), '缺少收款冲正能力键')
-expect(permission.includes("'act:receiptReverse'") && !permission.match(/finance:\s*\[[\s\S]*?act:receiptReverse/), '财务角色不应默认拥有收款冲正能力')
+expect(financeMatrix.includes("'act:receiptReverse'"), '财务角色缺少收款冲正能力')
+expect(financeMatrix.includes("'act:ledgerCorrection'"), '财务角色缺少手工流水更正/作废能力')
 expect(config.includes("financeReceiptReversal: '/subpackages/finance/pages/receipt-reversal'"), '缺少收款冲正页路由常量')
 expect(pages.includes('"path": "pages/receipt-reversal"'), 'pages.json 缺少收款冲正页')
 expect(receipts.includes("can(session.role, 'act:receiptReverse')"), '收款列表未接入冲正能力')

@@ -876,7 +876,7 @@ async function submit() {
       <view class="fin-field fe-remark"><text class="fin-field__label">备注</text><textarea v-model="form.remark" maxlength="500" auto-height placeholder="可选，记录凭证、批次或补充说明" /></view>
     </view>
 
-    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">企业负责人、财务可更正分类与账务用途；其他元数据更正仅企业负责人可操作，且全程留痕。金额、方向、日期或账户变化将自动冲正重记。</text><text v-else-if="type === 'ledger'">手工记账只登记非计划内其他账务；工程款、材料款、工资、项目款请走应收/应付闭环。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
+    <view class="fe-tip"><JzIcon name="info" :size="26" :color="TOKEN_COLOR.primary" /><text v-if="type === 'ledger' && editId">企业负责人、总部财务、门店财务和店长可按本人数据范围更正，且全程留痕。金额、方向、日期或账户变化将自动冲正原流水后重记。</text><text v-else-if="type === 'ledger'">手工记账只登记非计划内其他账务；工程款、材料款、工资、项目款请走应收/应付闭环。</text><text v-else>保存后金额不可随意调整；已收/已付金额不能被改小，错误业务应通过反向流水冲销。</text></view>
 
     <view class="fin-form-actions">
       <view v-if="submitHint" class="fe-submit-note">
