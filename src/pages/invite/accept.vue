@@ -16,12 +16,15 @@ import JzIcon from '@/components/JzIcon.vue'
 import CompanyBrandMark from '@/components/CompanyBrandMark.vue'
 import JzConfirmDialog from '@/components/JzConfirmDialog.vue'
 import { applyBrandTheme } from '@/domains/identity/brandTheme'
+import { createInviteTraceId, inviteErrorCode, inviteErrorMessage, traceInvite } from '@/domains/identity/inviteTrace'
 
 const inviteId = ref('')
 const token = ref('')
 const invite = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const loadError = ref('')
+const entrySource = ref('direct')
+const entryTraceId = ref('')
 const { handlePhoneNumber } = useWxPhoneAuth()
 const pageTitle = computed(() => {
   const company = invite.value?.company?.name
@@ -50,18 +53,48 @@ watch(() => invite.value?.company?.color, (color) => applyBrandTheme(color), { i
 onLoad(async (query) => {
   inviteId.value = query?.inviteId || ''
   token.value = query?.token || ''
-  captureInviteIntent(query as Record<string, unknown>)
+  entrySource.value = String(query?.source || 'direct')
+  entryTraceId.value = String(query?.traceId || createInviteTraceId(inviteId.value, entrySource.value))
+  captureInviteIntent({ ...(query as Record<string, unknown>), source: entrySource.value, traceId: entryTraceId.value })
+  traceInvite('invite_landing_loaded', {
+    inviteId: inviteId.value,
+    traceId: entryTraceId.value,
+    source: entrySource.value,
+    stage: 'landing',
+    result: 'success'
+  })
   // P0：业主邀请不再走本页。历史链接（type=customer 或带邀请串）自动转到业主专用页，
   // 既保证已发出的邀请不失效，也让本页只服务员工邀请，不再"猜参数"。
   if (query?.type === 'customer' || token.value) {
     const qs = [inviteId.value ? `inviteId=${encodeURIComponent(inviteId.value)}` : '',
       token.value ? `token=${encodeURIComponent(token.value)}` : ''].filter(Boolean).join('&')
     // 注意：onLoad 期间 redirectTo 可能因为页面尚未入栈而静默失败，这里用 reLaunch
-    saveInviteIntent({ type: 'customer', inviteId: inviteId.value, token: token.value })
+    saveInviteIntent({
+      type: 'customer',
+      inviteId: inviteId.value,
+      token: token.value,
+      source: entrySource.value,
+      traceId: entryTraceId.value
+    })
+    traceInvite('invite_landing_redirect_owner', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'landing',
+      result: 'redirect'
+    })
     uni.reLaunch({ url: `${P.ownerEnter}${qs ? '?' + qs : ''}` })
     return
   }
   if (!inviteId.value && !token.value) {
+    traceInvite('invite_landing_invalid', {
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'landing',
+      result: 'failed',
+      errorCode: 'INVITE_INFO_MISSING',
+      errorMessage: '邀请信息不完整'
+    })
     loadError.value = '邀请信息不完整，请重新打开邀请人发送的链接。'
     return
   }
@@ -72,10 +105,26 @@ onLoad(async (query) => {
     // 员工：已完成手机号授权并加入企业（邀请已使用 + 当前已有员工身份）时，
     // 再次点开邀请链接不再重复授权，直接进入工作台
     if (session.token && session.role && invite.value?.status === 'accepted') {
+      traceInvite('invite_entry_recovered', {
+        inviteId: inviteId.value,
+        traceId: entryTraceId.value,
+        source: entrySource.value,
+        stage: 'landing',
+        result: 'success'
+      })
       clearInviteIntent()
       enterHome()
     }
   } catch (error) {
+    traceInvite('invite_info_failed', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'info',
+      result: 'failed',
+      errorCode: inviteErrorCode(error),
+      errorMessage: inviteErrorMessage(error)
+    })
     loadError.value = error instanceof Error ? error.message : '邀请加载失败'
     toastError(error, '邀请加载失败')
   }
@@ -83,22 +132,45 @@ onLoad(async (query) => {
 
 async function loadInvite() {
   invite.value = await identityApi.invitationInfo(inviteId.value)
+  traceInvite('invite_info_loaded', {
+    inviteId: inviteId.value,
+    traceId: entryTraceId.value,
+    source: entrySource.value,
+    stage: 'info',
+    result: 'success'
+  })
 }
 
 async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
   const auth = handlePhoneNumber(event)
   if (!auth || auth.cancelled) return
   const phoneCode = auth.phoneCode
+  traceInvite('invite_login_started', {
+    inviteId: inviteId.value,
+    traceId: entryTraceId.value,
+    source: entrySource.value,
+    stage: 'login',
+    result: 'started'
+  })
   submitting.value = true
   loading('正在校验邀请…')
+  let failureStage: 'login' | 'accept' = 'login'
   try {
     const loginResult = await new Promise<UniApp.LoginRes>((resolve, reject) => {
       uni.login({ provider: 'weixin', success: resolve, fail: reject })
     })
     const nickname = invite.value?.inviteName || undefined
     const sessionToken = await identityApi.wxLogin({ code: loginResult.code, phoneCode, nickname })
+    traceInvite('invite_login_succeeded', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'login',
+      result: 'success'
+    })
     loginAsToken(sessionToken.token)
     const profile = await identityApi.sessionInfo(sessionToken.token)
+    failureStage = 'accept'
 
     if (profile.currentEmployee && invite.value?.status === 'accepted') {
       loginAsEmployee(profile.currentEmployee, sessionToken.token, profile)
@@ -118,6 +190,13 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
       if (!ok) { submitting.value = false; return }
       loading('正在切换企业…')
     }
+    traceInvite('invite_accept_started', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'accept',
+      result: 'started'
+    })
     const employeeToken = await identityApi.acceptInvite({
       inviteId: inviteId.value,
       name: invite.value?.inviteName || nickname,
@@ -128,11 +207,27 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
     const accepted = await identityApi.sessionInfo(employeeToken.token)
     if (!accepted.currentEmployee) throw new Error('加入企业失败')
     loginAsEmployee(accepted.currentEmployee, employeeToken.token, accepted)
+    traceInvite('invite_accept_succeeded', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'accept',
+      result: 'success'
+    })
     clearInviteIntent()
     hideLoading()
     toast(`已加入${accepted.currentEmployee.company?.name || '企业'}`, 'success')
     enterHome()
   } catch (error) {
+    traceInvite(failureStage === 'login' ? 'invite_login_failed' : 'invite_accept_failed', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: failureStage,
+      result: 'failed',
+      errorCode: inviteErrorCode(error),
+      errorMessage: inviteErrorMessage(error)
+    })
     hideLoading()
     toastError(error, session.token ? '加入企业失败' : '手机号快捷登录失败')
   } finally {
@@ -142,6 +237,13 @@ async function accept(event: { detail?: { code?: string; errMsg?: string } }) {
 
 async function acceptAuthenticated(): Promise<void> {
   if (!session.token || !invite.value) return
+  traceInvite('invite_accept_started', {
+    inviteId: inviteId.value,
+    traceId: entryTraceId.value,
+    source: entrySource.value,
+    stage: 'accept',
+    result: 'started'
+  })
   submitting.value = true
   loading('正在确认邀请…')
   try {
@@ -154,11 +256,27 @@ async function acceptAuthenticated(): Promise<void> {
     const accepted = await identityApi.sessionInfo(employeeToken.token)
     if (!accepted.currentEmployee) throw new Error('加入企业失败')
     loginAsEmployee(accepted.currentEmployee, employeeToken.token, accepted)
+    traceInvite('invite_accept_succeeded', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'accept',
+      result: 'success'
+    })
     clearInviteIntent()
     hideLoading()
     toast(`已加入${accepted.currentEmployee.company?.name || '企业'}`, 'success')
     enterHome()
   } catch (error) {
+    traceInvite('invite_accept_failed', {
+      inviteId: inviteId.value,
+      traceId: entryTraceId.value,
+      source: entrySource.value,
+      stage: 'accept',
+      result: 'failed',
+      errorCode: inviteErrorCode(error),
+      errorMessage: inviteErrorMessage(error)
+    })
     hideLoading()
     toastError(error, '加入企业失败')
   } finally {

@@ -9,6 +9,7 @@ import type { PendingEntryInvite } from '@/domains/identity/model'
 import { canVisit, hasRouteRule } from '@/roles/guard'
 import { ProviderRequestError, setUnauthorizedHandler } from '@/core/http'
 import { applyBrandTheme } from '@/domains/identity/brandTheme'
+import { createInviteTraceId, traceInvite } from '@/domains/identity/inviteTrace'
 
 setUnauthorizedHandler(clearSession)
 
@@ -66,7 +67,18 @@ async function refreshIdentity() {
     } else {
       loginAsUser(profile, session.token)
       const pending = await identityApi.pendingEntryInvites()
-      if (pending.length) uni.reLaunch({ url: pendingEntriesLandingUrl(pending) })
+      if (pending.length) {
+        const source = 'pending_discovery'
+        const traceId = createInviteTraceId(pending[0]?.id, source)
+        traceInvite('invite_pending_discovered', {
+          inviteId: pending[0]?.id,
+          traceId,
+          source,
+          stage: 'startup',
+          result: 'success'
+        })
+        uni.reLaunch({ url: pendingEntriesLandingUrl(pending, { source, traceId }) })
+      }
     }
   } catch (error) {
     if (error instanceof ProviderRequestError && error.code === '403') {
@@ -77,10 +89,15 @@ async function refreshIdentity() {
   }
 }
 
-function pendingEntriesLandingUrl(invites: PendingEntryInvite[]): string {
+function pendingEntriesLandingUrl(
+  invites: PendingEntryInvite[],
+  options: { source?: string; traceId?: string } = {}
+): string {
   if (invites.length !== 1) return P.inviteDiscover
   const invite = invites[0]
-  const query = `inviteId=${encodeURIComponent(invite.id)}`
+  const source = options.source || 'pending_discovery'
+  const traceId = options.traceId || createInviteTraceId(invite.id, source)
+  const query = `inviteId=${encodeURIComponent(invite.id)}&source=${encodeURIComponent(source)}&traceId=${encodeURIComponent(traceId)}`
   return invite.type === 'customer' ? `${P.ownerEnter}?${query}` : `${P.inviteAccept}?${query}`
 }
 

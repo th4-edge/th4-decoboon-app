@@ -6,6 +6,7 @@ import { identityApi } from '@/domains/identity/api'
 import type { PendingEntryInvite } from '@/domains/identity/model'
 import { pendingInviteLandingUrl } from '@/domains/identity/inviteContext'
 import { session } from '@/domains/identity/session'
+import { createInviteTraceId, traceInvite } from '@/domains/identity/inviteTrace'
 import { toastError } from '@/composables/toast'
 import { TOKEN_COLOR } from '@/styles/tokens'
 import JzIcon from '@/components/JzIcon.vue'
@@ -29,6 +30,11 @@ async function load(): Promise<void> {
   error.value = ''
   try {
     const list = await identityApi.pendingEntryInvites()
+    traceInvite('invite_discovery_loaded', {
+      source: 'pending_discovery',
+      stage: 'discover',
+      result: list.length ? 'success' : 'empty'
+    })
     if (list.length === 1) {
       uni.redirectTo({ url: pendingInviteLandingUrl(list[0]) })
       return
@@ -65,7 +71,16 @@ function roleName(role: string): string {
 }
 
 function open(invite: PendingEntryInvite): void {
-  uni.navigateTo({ url: pendingInviteLandingUrl(invite) })
+  const source = 'pending_discovery'
+  const traceId = createInviteTraceId(invite.id, source)
+  traceInvite('invite_discovery_opened', {
+    inviteId: invite.id,
+    traceId,
+    source,
+    stage: 'discover',
+    result: 'success'
+  })
+  uni.navigateTo({ url: pendingInviteLandingUrl(invite, { source, traceId }) })
 }
 
 function returnJoin(): void {

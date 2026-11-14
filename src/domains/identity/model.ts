@@ -167,6 +167,30 @@ export interface InviteCode {
   createdAt?: string
 }
 
+/** 员工邀请的稳定微信 URL Link。 */
+export interface InviteUrlLink {
+  url: string
+  traceId: string
+  expireAt?: string
+}
+
+/** 邀请链路结构化埋点，不包含姓名和完整手机号。 */
+export interface InviteTraceEvent {
+  traceId: string
+  event: string
+  inviteId?: string
+  source?: string
+  stage?: string
+  result?: string
+  errorCode?: string
+  errorMessage?: string
+  page?: string
+  path?: string
+  clientVersion: string
+  platform: string
+  occurredAt: number
+}
+
 /** 业主当前微信身份下的显式项目授权。 */
 export interface CustomerAccess {
   accessId: string

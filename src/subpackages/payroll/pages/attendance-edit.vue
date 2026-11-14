@@ -23,6 +23,7 @@ const saving = ref(false)
 function localMonth(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` }
 function monthParam(value: unknown): string { const month = String(value || ''); return /^\d{4}-\d{2}$/.test(month) ? month : '' }
 function numberFields() { return { normalDays:Number(form.normalDays),personalLeaveDays:Number(form.personalLeaveDays),sickLeaveDays:Number(form.sickLeaveDays),absenceDays:Number(form.absenceDays),externalDays:Number(form.externalDays),annualLeaveDays:Number(form.annualLeaveDays),compLeaveDays:Number(form.compLeaveDays) } }
+function resetEntryFields() { form.normalDays='0'; form.personalLeaveDays='0'; form.sickLeaveDays='0'; form.absenceDays='0'; form.externalDays='0'; form.annualLeaveDays='0'; form.compLeaveDays='0'; form.remark='' }
 
 onLoad(async (query) => {
   if (!isLoggedIn()) { uni.reLaunch({ url: P.login }); return }
@@ -44,9 +45,25 @@ onShow(() => {
   if (!isLoggedIn()) return
   const result = consumePayrollEmployeePickerResult()
   if (!result) return
-  if (result.action === 'clear') selectedEmployee.value = null
-  else selectedEmployee.value = result.value
+  const nextEmployee = result.action === 'clear' ? null : result.value
+  if ((selectedEmployee.value?.id ?? '') !== (nextEmployee?.id ?? '')) {
+    resetEntryFields()
+    scheduledDays.value = ''
+    schemeError.value = ''
+    schemeRequest += 1
+    schemeLoading.value = false
+  }
+  selectedEmployee.value = nextEmployee
 })
+
+function onMonthChange(value: string) {
+  form.month = value
+  resetEntryFields()
+  scheduledDays.value = ''
+  schemeError.value = ''
+  schemeRequest += 1
+  schemeLoading.value = false
+}
 
 function chooseEmployee() {
   if (summaryId.value) return
@@ -61,6 +78,7 @@ function chooseEmployee() {
 function clearEmployee() {
   if (!summaryId.value) {
     selectedEmployee.value = null
+    resetEntryFields()
     scheduledDays.value = ''
     schemeError.value = ''
     schemeRequest += 1
@@ -107,10 +125,13 @@ async function submit() {
     return
   }
   saving.value = true
+  const wasEditing = Boolean(summaryId.value)
   try {
-    if (summaryId.value) await payrollApi.updateAttendance({ summaryId:summaryId.value, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
-    else await payrollApi.saveAttendance({ empId:employee.id, month:form.month, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
-    toast('考勤已保存', 'success'); setTimeout(() => uni.navigateBack(), 500)
+    const saved = summaryId.value
+      ? await payrollApi.updateAttendance({ summaryId:summaryId.value, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
+      : await payrollApi.saveAttendance({ empId:employee.id, month:form.month, scheduledDays:scheduledDaysValue, ...numberFields(), remark:form.remark })
+    toast(wasEditing && saved.status === 'pending' ? '考勤已更新，需重新确认' : '考勤已保存', 'success')
+    setTimeout(() => uni.navigateBack(), 500)
   } catch (error) { toastError(error, '考勤保存失败') }
   finally { saving.value = false }
 }
@@ -130,7 +151,7 @@ async function submit() {
       />
 
       <label class="pay-label">工资月份</label>
-      <JzSelectField mode="date" fields="month" variant="boxed" :value="form.month" :disabled="!!summaryId" :display="form.month" placeholder="选择月份" @change="form.month = $event" />
+      <JzSelectField mode="date" fields="month" variant="boxed" :value="form.month" :disabled="!!summaryId" :display="form.month" placeholder="选择月份" @change="onMonthChange" />
 
       <view class="pay-scheme-days">
         <view class="pay-scheme-days__main">
@@ -146,7 +167,7 @@ async function submit() {
             suffix="天"
           />
         </view>
-        <text class="pay-scheme-days__tip">{{ summaryId ? '保存后以本考勤单的快照为准；已进入工资单后不可修改' : '默认按所选工资月份匹配生效薪酬方案，可结合当月实际调整；保存后写入考勤快照' }}</text>
+        <text class="pay-scheme-days__tip">{{ summaryId ? '保存后以本考勤单的快照为准；已进入工资单后需先删除或退回同月工资单草稿才能修改' : '默认按所选工资月份匹配生效薪酬方案，可结合当月实际调整；保存后写入考勤快照' }}</text>
         <text v-if="schemeError && !summaryId" class="pay-scheme-days__error">{{ schemeError }}</text>
       </view>
 

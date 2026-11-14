@@ -11,6 +11,7 @@ import { P } from '@/config'
 import { confirm } from '@/composables/toast'
 import { logout, session } from '@/domains/identity/session'
 import { inviteLandingUrl, readInviteIntent } from '@/domains/identity/inviteContext'
+import { traceInvite } from '@/domains/identity/inviteTrace'
 import JzPageHeader from '@/components/JzPageHeader.vue'
 import JzIcon from '@/components/JzIcon.vue'
 import { TOKEN_COLOR } from '@/styles/tokens'
@@ -26,6 +27,13 @@ function routeInviteIntent() {
   if (redirecting.value) return
   const intent = readInviteIntent()
   if (!intent) return
+  traceInvite('invite_join_context_recovered', {
+    inviteId: intent.inviteId,
+    traceId: intent.traceId,
+    source: intent.source,
+    stage: 'join',
+    result: 'redirect'
+  })
   redirecting.value = true
   uni.reLaunch({ url: inviteLandingUrl(intent) })
 }

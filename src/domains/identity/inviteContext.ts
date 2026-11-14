@@ -1,5 +1,6 @@
 import { P } from '@/config'
 import type { PendingEntryInvite } from './model'
+import { createInviteTraceId } from './inviteTraceId'
 
 export type InviteIntentType = 'member' | 'customer'
 
@@ -8,6 +9,8 @@ export interface InviteIntent {
   inviteId?: string
   token?: string
   scene?: string
+  source?: string
+  traceId?: string
   createdAt: number
 }
 
@@ -24,6 +27,8 @@ export function saveInviteIntent(input: Omit<InviteIntent, 'createdAt'>): Invite
     inviteId: normalized(input.inviteId) || undefined,
     token: normalized(input.token) || undefined,
     scene: normalized(input.scene) || undefined,
+    source: normalized(input.source) || undefined,
+    traceId: normalized(input.traceId) || undefined,
     createdAt: Date.now()
   }
   if (!intent.inviteId && !intent.token && !intent.scene) return null
@@ -66,7 +71,9 @@ export function captureInviteIntent(query?: Record<string, unknown>): InviteInte
     type,
     inviteId: normalized(query.inviteId),
     token: normalized(query.token),
-    scene: query.scene ? decodeURIComponent(String(query.scene)) : undefined
+    scene: query.scene ? decodeURIComponent(String(query.scene)) : undefined,
+    source: normalized(query.source),
+    traceId: normalized(query.traceId)
   })
 }
 
@@ -75,16 +82,26 @@ export function inviteLandingUrl(intent: InviteIntent): string {
   if (intent.inviteId) query.push(`inviteId=${encodeURIComponent(intent.inviteId)}`)
   if (intent.token) query.push(`token=${encodeURIComponent(intent.token)}`)
   if (intent.scene) query.push(`scene=${encodeURIComponent(intent.scene)}`)
+  if (intent.source) query.push(`source=${encodeURIComponent(intent.source)}`)
+  if (intent.traceId) query.push(`traceId=${encodeURIComponent(intent.traceId)}`)
   if (intent.type === 'customer') query.push('type=customer')
   const base = intent.type === 'customer' ? P.ownerEnter : P.inviteAccept
   return `${base}${query.length ? `?${query.join('&')}` : ''}`
 }
 
-export function pendingInviteLandingUrl(invite: PendingEntryInvite): string {
-  const query = `inviteId=${encodeURIComponent(invite.id)}`
+export function pendingInviteLandingUrl(
+  invite: PendingEntryInvite,
+  options: { source?: string; traceId?: string } = {}
+): string {
+  const source = options.source || 'pending_discovery'
+  const traceId = options.traceId || createInviteTraceId(invite.id, source)
+  const query = `inviteId=${encodeURIComponent(invite.id)}&source=${encodeURIComponent(source)}&traceId=${encodeURIComponent(traceId)}`
   return invite.type === 'customer' ? `${P.ownerEnter}?${query}` : `${P.inviteAccept}?${query}`
 }
 
-export function pendingEntriesLandingUrl(invites: PendingEntryInvite[]): string {
-  return invites.length === 1 ? pendingInviteLandingUrl(invites[0]) : P.inviteDiscover
+export function pendingEntriesLandingUrl(
+  invites: PendingEntryInvite[],
+  options: { source?: string; traceId?: string } = {}
+): string {
+  return invites.length === 1 ? pendingInviteLandingUrl(invites[0], options) : P.inviteDiscover
 }

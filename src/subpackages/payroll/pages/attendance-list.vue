@@ -48,6 +48,12 @@ function onMonthChange(event: any) {
 
 async function confirm(item: AttendanceSummary) {
   if (item.status === 'confirmed') return
+  const confirmed = await confirmDanger(
+    '确认月度考勤',
+    `确认 ${item.employee.name} ${item.payrollMonth} 的考勤？确认后将进入工资单锁定状态。`,
+    '确认考勤'
+  )
+  if (!confirmed) return
   showLoading('确认中')
   try {
     await payrollApi.updateAttendance({ summaryId: item.id, status: 'Confirmed' })
@@ -61,6 +67,10 @@ async function confirm(item: AttendanceSummary) {
 }
 
 function openEdit(item: AttendanceSummary) {
+  if (item.status === 'inPayroll') {
+    toast('已进入工资单；草稿可删除，待确认需先退回草稿')
+    return
+  }
   uni.navigateTo({ url: `${P.payrollAttendanceEdit}?summaryId=${item.id}&month=${encodeURIComponent(item.payrollMonth || month.value)}` })
 }
 function add() { uni.navigateTo({ url: `${P.payrollAttendanceEdit}?month=${encodeURIComponent(month.value)}` }) }
@@ -92,7 +102,7 @@ useFinanceStoreScope(() => refresh())
     <FinanceStoreScope />
     <view class="att-month jz-card">
       <JzSelectField mode="date" fields="month" :value="month" :display="month" placeholder="选择月份" @change="(v) => { month = v; void refresh() }" />
-      <text class="att-month__tip">可切换历史月份补录；确认后需重新生成同月工资单</text>
+      <text class="att-month__tip">工资单生成前完成考勤确认；已生成时先删除或退回草稿再修改</text>
     </view>
     <view class="att-body">
       <PageState v-if="loadError && !items.length" state="error" title="薪酬数据暂不可确认" :subtitle="loadError" @retry="refresh" />

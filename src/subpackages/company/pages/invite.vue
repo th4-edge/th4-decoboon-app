@@ -6,6 +6,8 @@ import { P } from '@/config'
 import { identityApi } from '@/domains/identity/api'
 import type { EmployeeRole, InviteCode, Store } from '@/domains/identity/model'
 import { session } from '@/domains/identity/session'
+import { pendingEntriesLandingUrl } from '@/domains/identity/inviteContext'
+import { createInviteTraceId, inviteErrorCode, inviteErrorMessage, traceInvite } from '@/domains/identity/inviteTrace'
 import { toast, toastError } from '@/composables/toast'
 import { useShare } from '@/composables/share'
 import JzPageHeader from '@/components/JzPageHeader.vue'
@@ -26,6 +28,8 @@ const cancellingId = ref('')
 const cancelCandidate = ref<InviteCode | null>(null)
 const submitting = ref(false)
 const shareTarget = ref<InviteCode | null>(null)
+const shareTraceId = ref('')
+const copyingLinkId = ref('')
 
 const roles: { value: EmployeeRole; label: string }[] = [
   { value: 'storeManager', label: '店长' },
@@ -49,6 +53,42 @@ const generatedHint = computed(() => generated.value?.reusedPending
 const visiblePendingInvites = computed(() => pendingInvites.value.filter((item) => item.id !== generated.value?.id))
 
 onLoad(async () => {
+  traceInvite('invite_admin_loaded', { source: 'admin', stage: 'landing', result: 'success' })
+  if (!session.emp) {
+    if (!session.token) {
+      traceInvite('invite_admin_guard_login_required', {
+        source: 'admin_guard',
+        stage: 'landing',
+        result: 'redirect'
+      })
+      uni.reLaunch({ url: P.login })
+      return
+    }
+    try {
+      const pending = await identityApi.pendingEntryInvites()
+      const source = 'admin_guard'
+      const traceId = createInviteTraceId(pending[0]?.id, source)
+      traceInvite('invite_admin_guard_pending_discovered', {
+        inviteId: pending[0]?.id,
+        traceId,
+        source,
+        stage: 'landing',
+        result: pending.length ? 'success' : 'empty'
+      })
+      uni.reLaunch({ url: pending.length ? pendingEntriesLandingUrl(pending, { source, traceId }) : P.companyJoin })
+      return
+    } catch (error) {
+      traceInvite('invite_admin_guard_discovery_failed', {
+        source: 'admin_guard',
+        stage: 'landing',
+        result: 'failed',
+        errorCode: inviteErrorCode(error),
+        errorMessage: inviteErrorMessage(error)
+      })
+      uni.reLaunch({ url: P.companyJoin })
+      return
+    }
+  }
   await Promise.all([loadStores(), loadPendingInvites()])
 })
 
@@ -106,14 +146,72 @@ function inviteForShare(message?: ShareMessage): InviteCode | null {
 
 function prepareShare(invite: InviteCode): void {
   shareTarget.value = invite
+  shareTraceId.value = createInviteTraceId(invite.id, 'share_card')
+  traceInvite('invite_share_prepared', {
+    inviteId: invite.id,
+    traceId: shareTraceId.value,
+    source: 'share_card',
+    stage: 'share',
+    result: 'success'
+  })
 }
 
 useShare((message) => {
   const invite = inviteForShare(message)
-  return invite
-    ? { title: shareTitle(invite), path: `${P.inviteAccept}?inviteId=${invite.id}`, imageUrl: invite.company?.logo }
-    : { title: '装得清 · 企业邀请', path: P.login }
+  if (!invite) {
+    traceInvite('invite_share_card_missing_target', {
+      source: 'share_card',
+      stage: 'share',
+      result: 'failed',
+      errorCode: 'INVITE_SHARE_TARGET_MISSING'
+    })
+    return { title: '装得清 · 企业邀请', path: P.login }
+  }
+  const traceId = shareTraceId.value || createInviteTraceId(invite.id, 'share_card')
+  const path = `${P.inviteAccept}?inviteId=${encodeURIComponent(invite.id)}&source=share_card&traceId=${encodeURIComponent(traceId)}`
+  traceInvite('invite_share_card_built', {
+    inviteId: invite.id,
+    traceId,
+    source: 'share_card',
+    stage: 'share',
+    result: 'success',
+    path
+  })
+  return { title: shareTitle(invite), path, imageUrl: invite.company?.logo }
 }, null)
+
+async function copyUrlLink(invite: InviteCode): Promise<void> {
+  if (copyingLinkId.value) return
+  const traceId = createInviteTraceId(invite.id, 'url_link_admin')
+  copyingLinkId.value = invite.id
+  try {
+    const link = await identityApi.inviteUrlLink(invite.id)
+    traceInvite('invite_url_link_created', {
+      inviteId: invite.id,
+      traceId: link.traceId || traceId,
+      source: 'url_link_admin',
+      stage: 'share',
+      result: 'success'
+    })
+    await new Promise<void>((resolve, reject) => {
+      uni.setClipboardData({ data: link.url, success: () => resolve(), fail: reject })
+    })
+    toast('微信链接已复制，请粘贴发送给员工', 'success')
+  } catch (error) {
+    traceInvite('invite_url_link_failed', {
+      inviteId: invite.id,
+      traceId,
+      source: 'url_link_admin',
+      stage: 'share',
+      result: 'failed',
+      errorCode: inviteErrorCode(error),
+      errorMessage: inviteErrorMessage(error)
+    })
+    toastError(error, '微信链接生成失败')
+  } finally {
+    copyingLinkId.value = ''
+  }
+}
 
 async function create(): Promise<void> {
   if (!inviteName.value.trim()) { toast('请填写被邀请人姓名'); return }
@@ -219,6 +317,7 @@ function expiryText(invite: InviteCode): string {
         <text class="ci-result__hint">{{ generatedHint }}</text>
         <text class="ci-share-preview">微信聊天卡片标题预览：{{ shareTitle(generated) }}</text>
         <button class="jz-btn jz-btn--primary jz-btn--block" open-type="share" :data-invite-id="generated.id" @touchstart="prepareShare(generated)" @tap="prepareShare(generated)">微信分享邀请卡片</button>
+        <button class="jz-btn jz-btn--ghost jz-btn--block ci-copy-link" :loading="copyingLinkId === generated.id" @tap="copyUrlLink(generated)">复制微信链接（备用入口）</button>
       </view>
 
       <view class="ci-pending">
@@ -246,6 +345,7 @@ function expiryText(invite: InviteCode): string {
             </view>
             <view class="ci-pending__actions">
               <button class="jz-btn jz-btn--primary jz-btn--sm ci-pending__share" open-type="share" :data-invite-id="invite.id" @touchstart="prepareShare(invite)" @tap="prepareShare(invite)">微信分享</button>
+              <button class="jz-btn jz-btn--text ci-pending__copy" :loading="copyingLinkId === invite.id" @tap="copyUrlLink(invite)">复制链接</button>
               <button class="jz-btn jz-btn--text ci-pending__cancel" :loading="cancellingId === invite.id" @tap="requestCancel(invite)">取消邀请</button>
             </view>
           </view>
@@ -283,6 +383,7 @@ function expiryText(invite: InviteCode): string {
 .ci-result__phone { display: block; margin-top: 10rpx; color: $jzb-text-3; font-size: $jzb-font-sm; }
 .ci-result__hint { display: block; margin-top: 16rpx; color: $jzb-primary-dark; font-size: $jzb-font-xs; line-height: 1.6; }
 .ci-share-preview { display: block; margin: 12rpx 0 26rpx; padding: 14rpx 16rpx; color: $jzb-text-2; background: $jzb-primary-lightest; border: 1rpx solid $jzb-primary-lighter; border-radius: $jzb-radius-sm; font-size: $jzb-font-xs; line-height: 1.5; }
+.ci-copy-link { margin-top: 12rpx; }
 .ci-field__readonly { flex: 1; min-width: 0; text-align: right; color: $jzb-text-2; font-size: $jzb-font; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ci-pending { margin-top: 34rpx; }
 .ci-pending__head { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 0 4rpx 18rpx; }
@@ -301,6 +402,7 @@ function expiryText(invite: InviteCode): string {
 .ci-pending__share-preview { display: block; margin-top: 8rpx; color: $jzb-primary-dark; font-size: 20rpx; line-height: 1.5; }
 .ci-pending__actions { display: flex; align-items: center; gap: 12rpx; margin-top: 20rpx; padding-top: 18rpx; border-top: 1rpx solid $jzb-border-light; }
 .ci-pending__share { flex: 1; }
+.ci-pending__copy { flex: 0 0 auto; color: $jzb-primary-dark; }
 .ci-pending__cancel { flex: 0 0 auto; color: $jzb-danger; }
 .ci-local-confirm { position: fixed; z-index: $jzb-z-modal; inset: 0; display: flex; align-items: center; justify-content: center; padding: 40rpx; background: rgba(15, 23, 42, .48); }
 .ci-local-confirm__card { width: 100%; padding: 34rpx 30rpx 28rpx; border-radius: $jzb-radius-lg; background: $jzb-bg-card; box-shadow: $jzb-shadow-elevated; }

@@ -11,6 +11,7 @@ import { hideLoading, loading, toast } from '@/composables/toast'
 import { useWxPhoneAuth } from '@/composables/useWxAuth'
 import { resetOwnerPreview } from '@/domains/owner-preview/session'
 import { captureInviteIntent, clearInviteIntent, inviteLandingUrl, pendingEntriesLandingUrl, readInviteIntent } from '@/domains/identity/inviteContext'
+import { createInviteTraceId, inviteErrorCode, inviteErrorMessage, traceInvite } from '@/domains/identity/inviteTrace'
 import JzIcon from '@/components/JzIcon.vue'
 import JzBrandLogo from '@/components/JzBrandLogo.vue'
 
@@ -24,6 +25,16 @@ const { handlePhoneNumber } = useWxPhoneAuth()
 
 onLoad(async (query) => {
   captureInviteIntent(query as Record<string, unknown>)
+  const entryIntent = readInviteIntent()
+  if (entryIntent) {
+    traceInvite('invite_login_loaded', {
+      inviteId: entryIntent.inviteId,
+      traceId: entryIntent.traceId,
+      source: entryIntent.source,
+      stage: 'login',
+      result: 'success'
+    })
+  }
   // 本地联调：使用真实员工令牌快速切换角色；生产构建不会执行该分支。
   if ((import.meta.env.DEV || import.meta.env.MODE === 'development') && query?.devToken) {
     const token = String(query.devToken)
@@ -60,13 +71,36 @@ onLoad(async (query) => {
 async function routeUnjoined(): Promise<void> {
   const intent = readInviteIntent()
   if (intent) {
+    traceInvite('invite_login_context_recovered', {
+      inviteId: intent.inviteId,
+      traceId: intent.traceId,
+      source: intent.source,
+      stage: 'login_route',
+      result: 'success'
+    })
     uni.redirectTo({ url: inviteLandingUrl(intent) })
     return
   }
   try {
     const pending = await identityApi.pendingEntryInvites()
-    uni.redirectTo({ url: pending.length ? pendingEntriesLandingUrl(pending) : P.companyJoin })
+    const source = 'pending_discovery'
+    const traceId = createInviteTraceId(pending[0]?.id, source)
+    traceInvite('invite_pending_discovered', {
+      inviteId: pending[0]?.id,
+      traceId,
+      source,
+      stage: 'login_route',
+      result: pending.length ? 'success' : 'empty'
+    })
+    uni.redirectTo({ url: pending.length ? pendingEntriesLandingUrl(pending, { source, traceId }) : P.companyJoin })
   } catch (error) {
+    traceInvite('invite_pending_discovery_failed', {
+      source: 'pending_discovery',
+      stage: 'login_route',
+      result: 'failed',
+      errorCode: inviteErrorCode(error),
+      errorMessage: inviteErrorMessage(error)
+    })
     toast(error instanceof Error ? error.message : '邀请暂不可确认，请稍后重试')
     uni.redirectTo({ url: P.companyJoin })
   }

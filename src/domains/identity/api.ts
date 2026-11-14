@@ -3,7 +3,7 @@ import { runtime } from '@/config'
 import { session } from './session'
 import type { PageData, PageResult } from '@/domains/common/model'
 import { toPageData } from '@/domains/common/model'
-import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, PendingEntryInvite, Store, Team, UserProfile } from './model'
+import type { CompanySetting, CustomerAccess, Employee, EmployeeRole, InviteCode, InviteTraceEvent, InviteUrlLink, PendingEntryInvite, Store, Team, UserProfile } from './model'
 
 export interface LoginToken { token: string }
 
@@ -267,6 +267,12 @@ export const identityApi = {
 
   invitationInfo: async (inviteId: string, phone?: string): Promise<InviteCode> =>
     normalizeInvite(await post<RawRecord>('invite/invitation/info', { inviteId, phone })),
+
+  submitInviteTrace: (input: InviteTraceEvent) =>
+    post<{ accepted: boolean }>('invite/invitation/trace', input),
+
+  inviteUrlLink: (inviteId: string) =>
+    post<InviteUrlLink>('invite/invitation/url-link', { inviteId }),
 
   pendingEntryInvites: async (): Promise<PendingEntryInvite[]> => {
     const rows = listOf(await post<RawRecord[]>('invite/invitation/pending', {}))
